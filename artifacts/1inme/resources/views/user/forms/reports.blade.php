@@ -1,0 +1,51 @@
+@extends('user.layouts.app')
+@section('title','Reports · '.$form->title)
+@section('content')
+<div class="forms-workspace" x-data="{ chart: @js(request('chart','bars')) }">
+@include('user.partials.page-hero',['title'=>'Response intelligence','subtitle'=>$form->title.' · Understand traffic, completion and the answers received.','icon'=>'fa-chart-pie','back'=>route('user.forms.show',$form)])
+@include('user.forms._tabs')
+@if(session('success'))<p role="status" class="card-premium p-4 mb-4">{{ session('success') }}</p>@endif
+@if($errors->any())<p role="alert" class="card-premium p-4 mb-4 text-red-500">{{ $errors->first() }}</p>@endif
+@if(session('success'))<p class="card-premium p-4 mb-4">{{ session('success') }}</p>@endif
+<form method="GET" class="card-premium p-5 mb-5 flex flex-wrap gap-3 items-end">
+<label>From<input class="theme-input block" type="date" name="from" value="{{ $report['from'] }}"></label>
+<label>To<input class="theme-input block" type="date" name="to" value="{{ $report['to'] }}"></label>
+<details class="relative"><summary class="form-chip cursor-pointer">+ Questions · {{ count(request('fields',[])) ?: 'All' }}</summary><div class="card-premium p-4 max-h-72 overflow-auto">
+@foreach($form->fields??[] as $f)@if(!in_array($f['type']??'text',['heading','paragraph','divider','page_break','section','hidden']))<label class="flex gap-2 py-2"><input type="checkbox" name="fields[]" value="{{ $f['id'] }}" @checked(in_array($f['id'],request('fields',[])))>{{ $f['label']??$f['id'] }}</label>@endif @endforeach
+</div></details>
+<details><summary class="form-chip cursor-pointer">+ Answer filters</summary><div class="card-premium p-4 space-y-3">
+@foreach($form->fields??[] as $f)@if(in_array($f['type']??'',['select','radio','yes_no','text','number']))<label class="block text-xs">{{ $f['label']??$f['id'] }}<input class="theme-input block" name="filters[{{ $f['id'] }}]" value="{{ request('filters.'.$f['id']) }}" placeholder="Exact answer; leave blank for all"></label>@endif @endforeach
+</div></details>
+<label>View<select name="chart" x-model="chart" class="theme-input block"><option value="bars">Charts</option><option value="table">Tables</option></select></label>
+<button class="btn-primary">Apply</button><a class="btn-ghost" href="{{ route('user.forms.reports',$form) }}">Reset</a>
+<a class="btn-ghost" href="{{ route('user.forms.reports',array_merge(['form'=>$form->id],request()->except('export'),['export'=>'csv'])) }}">Export CSV</a><button type="button" class="btn-ghost" onclick="window.print()">Print / PDF</button>
+</form>
+@if(!empty($form->settings['saved_reports']))<div class="flex flex-wrap gap-2 mb-5"><span class="text-sm">Saved reports</span>@foreach($form->settings['saved_reports'] as $index=>$saved)<span class="inline-flex items-center gap-1"><a class="form-chip" href="{{ route('user.forms.reports',array_merge(['form'=>$form->id],\Illuminate\Support\Arr::except($saved,['name']))) }}">{{ $saved['name'] }}</a>@canInWorkspace('inbox.edit')<form method="POST" action="{{ route('user.forms.reports.delete',['form'=>$form,'index'=>$index]) }}">@csrf @method('DELETE')<button class="form-chip" aria-label="Remove {{ $saved['name'] }}" title="Remove saved layout">×</button></form>@endcanInWorkspace</span>@endforeach</div>@endif
+<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+@foreach([['Responses',$report['total'],'#174184','#367afa','fa-inbox'],['Previous period',$report['previous'],'#50308a','#9868ee','fa-calendar'],['Started',$report['funnel']['starts']??'—','#075b54','#15988c','fa-play'],['Completion',($report['funnel']['conversion']??null)===null?'—':$report['funnel']['conversion'].'%','#854710','#e89620','fa-check-circle']] as [$label,$value,$a,$b,$icon])
+<div class="p-5 rounded-2xl relative overflow-hidden" style="background:linear-gradient(120deg,{{ $a }},{{ $b }});color:white;min-height:125px"><i class="fas {{ $icon }} absolute right-5 top-5 text-3xl opacity-40"></i><p class="text-xs font-semibold">{{ $label }}</p><p class="text-3xl font-extrabold mt-3">{{ $value }}</p></div>
+@endforeach
+</div>
+<div class="card-premium p-5 mb-5"><h3 class="font-bold">Submission trend · {{ $report['from'] }} – {{ $report['to'] }} · {{ $report['timezone'] }}</h3><p class="text-xs mt-1" style="color:var(--text-muted)">Completed, non-spam responses. Answer filters apply to responses and charts; the visit funnel covers all traffic.</p>
+<div class="flex items-end gap-1 h-36 mt-5" role="img" aria-label="Daily completed response counts">
+@php $peak=max(1,...array_values($report['daily'])); @endphp
+@foreach($report['daily'] as $day=>$n)<div title="{{ $day }}: {{ $n }}" style="flex:1;min-width:1px;height:{{ max(2,$n/$peak*100) }}%;background:linear-gradient(#7775ff,#365ce9);border-radius:4px 4px 0 0"></div>@endforeach
+</div><div class="flex justify-between text-xs mt-2"><span>{{ $report['from'] }}</span><span>{{ $report['to'] }}</span></div></div>
+<div class="grid lg:grid-cols-3 gap-4 mb-5">
+@foreach(['devices'=>'Devices','countries'=>'Countries','sources'=>'Referrers'] as $key=>$label)<div class="card-premium p-5"><h3 class="font-bold mb-3">{{ $label }}</h3>@forelse($report[$key] as $name=>$n)<div class="flex justify-between gap-3 text-sm py-2"><span class="break-all">{{ $name }}</span><strong>{{ $n }}</strong></div>@empty<p class="text-sm">No recorded data in this range.</p>@endforelse</div>@endforeach
+</div>
+@if($report['revenue'])<div class="card-premium p-5 mb-5"><h3 class="font-bold">Paid response revenue</h3><div class="flex flex-wrap gap-5 mt-3">@foreach($report['revenue'] as $currency=>$cents)<strong>{{ $currency }} {{ number_format($cents/100,2) }}</strong>@endforeach</div><p class="text-xs mt-2">Verified paid responses in the selected range. Currencies are kept separate.</p></div>@endif
+@if($report['funnel'])<div class="card-premium p-5 mb-5"><h3 class="font-bold">Tracked visit funnel</h3><div class="flex flex-wrap gap-5 mt-3">@foreach(['views'=>'Visits','starts'=>'Started','completed'=>'Completed','abandoned'=>'Inactive starts (30+ min)'] as $k=>$label)<span>{{ $label }} <strong>{{ $report['funnel'][$k] }}</strong></span>@endforeach<span>Average completion time <strong>{{ $report['funnel']['average_seconds']===null?'Unavailable':round($report['funnel']['average_seconds']).'s' }}</strong></span></div><p class="text-xs mt-3" style="color:var(--text-muted)">Tracking begins with this release. An inactive start can be resumed later; it is not a confirmed abandonment. Visits exclude recognized crawler user agents. Historical lifetime views are {{ number_format($form->total_views) }}.</p></div>@endif
+<div class="grid lg:grid-cols-2 gap-4">
+@forelse($report['reports'] as $f)<article class="card-premium p-5"><div class="flex justify-between gap-3"><h3 class="font-bold">{{ $f['label'] }}</h3><span class="form-chip text-xs">{{ str_replace('_',' ',$f['type']) }}</span></div><p class="text-xs mt-2" style="color:var(--text-muted)">{{ $f['filled'] }} responses answered @if(($f['entries']??0)>$f['filled']) · {{ $f['entries'] }} entries across repeated sections @endif · {{ $f['rate'] }}% of completed responses</p>
+@if($f['type']==='consent')<p class="text-xs mt-2">Accepted consent only; unchecked options are not counted as accepted.</p>@endif
+@if($f['ranking'])<div class="mt-4 text-sm"><strong>Average rank · lower is preferred</strong>@foreach($f['ranking'] as $answer=>$position)<div class="flex justify-between py-2 gap-3"><span class="break-all">{{ $answer }}</span><strong>{{ $position }}</strong></div>@endforeach</div>@endif
+@if($f['numeric'])<div class="flex flex-wrap gap-4 py-4">@foreach($f['numeric'] as $k=>$v)<span class="text-xs">{{ ucfirst($k) }} <strong class="block text-lg">{{ $v }}</strong></span>@endforeach</div>@endif
+@if($f['distribution'])<table x-show="chart==='table'" class="w-full text-sm mt-4"><thead><tr><th class="text-left py-2">Answer</th><th class="text-right">Selections</th></tr></thead><tbody>@foreach($f['distribution'] as $answer=>$count)<tr><td class="py-2 break-all">{{ $answer }}</td><td class="text-right">{{ $count }}</td></tr>@endforeach</tbody></table>@foreach($f['distribution'] as $label=>$n)<div class="mt-3" x-show="chart==='bars'"><div class="flex justify-between text-sm gap-3"><span class="break-all">{{ $label }}</span><strong>{{ $n }}</strong></div><div x-show="chart==='bars'" class="h-2 rounded-full mt-1" style="background:var(--bg-glass-input)"><div class="h-2 rounded-full" style="background:linear-gradient(90deg,#3155eb,#9180fa);width:{{ ($f['entries']??0)?min(100,$n/$f['entries']*100):0 }}%"></div></div></div>@endforeach<p class="text-xs mt-3" style="color:var(--text-muted)">Counts are selections; bars are measured against answered entries, including repeated copies. Multi-choice totals may exceed response count; ranking selection counts are separate from average rank.</p>
+@elseif(!$f['numeric'])<p class="text-sm mt-4">{{ in_array($f['type'],['signature','file'])?'Presence measured; uploaded contents are not analyzed.':'Open answers remain in Submissions; this report measures completion without exposing personal answers.' }}</p>@endif
+</article>@empty<div class="card-premium p-6">No matching questions. Select report questions above.</div>@endforelse
+</div>
+@canInWorkspace('inbox.edit')<form method="POST" action="{{ route('user.forms.reports.save',$form) }}" class="card-premium p-5 mt-5 flex flex-wrap gap-3">@csrf<input class="theme-input" name="name" required maxlength="80" placeholder="Name this report layout"><input type="hidden" name="from" value="{{ $report['from'] }}"><input type="hidden" name="to" value="{{ $report['to'] }}"><input type="hidden" name="chart" :value="chart">@foreach(request('fields',[]) as $id)<input type="hidden" name="fields[]" value="{{ $id }}">@endforeach @foreach(request('filters',[]) as $k=>$v)@if($v!==null&&$v!=='')<input type="hidden" name="filters[{{ $k }}]" value="{{ $v }}">@endif @endforeach<button class="btn-primary">Save report layout</button></form>@endcanInWorkspace
+</div>
+<style>@media print{aside,nav,header,form,.forms-tabs,.btn-ghost{display:none!important}.forms-workspace{max-width:none}.card-premium{break-inside:avoid}body{background:white!important;color:black!important}}</style>
+@endsection

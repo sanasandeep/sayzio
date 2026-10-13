@@ -13,7 +13,7 @@
         array_unshift($__showActions, ['label' => 'Edit Fields', 'url' => route('user.forms.builder', $form), 'icon' => 'fa-pen', 'class' => 'btn-primary']);
     }
 @endphp
-<div class="max-w-6xl mx-auto" x-data="{ copied: false }">
+<div class="forms-workspace" x-data="{ copied: false }">
     @include('user.partials.page-hero', [
         'title' => $form->title,
         'subtitle' => $form->description,
@@ -50,22 +50,23 @@
             ['7 days', $stats['week'],   'fa-calendar-day', '#5c83ff'],
             ['30 days',$stats['month'],  'fa-calendar',     '#6366f1'],
             ['Unread', $stats['unread'], 'fa-envelope',     '#ec4899'],
-            ['Conv. %',$stats['conversion'] . '%', 'fa-percentage', '#10b981'],
+            ['Lifetime conv.',$stats['conversion'] . '%', 'fa-percentage', '#10b981'],
         ] as [$label, $val, $icon, $color])
-            <div class="card-premium p-4">
+            <div class="p-4 rounded-2xl" style="background:linear-gradient(135deg,{{ $color }}dd,{{ $color }});color:white;min-height:112px">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: {{ $color }}22;">
-                        <i class="fas {{ $icon }} text-sm" style="color: {{ $color }};"></i>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(255,255,255,.16);">
+                        <i class="fas {{ $icon }} text-sm" style="color:white;"></i>
                     </div>
                     <div class="min-w-0">
-                        <div class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);">{{ $label }}</div>
-                        <div class="text-lg font-bold leading-none mt-1" style="color: var(--text-primary);">{{ $val }}</div>
+                        <div class="text-[10px] uppercase tracking-wider" style="color:rgba(255,255,255,.85);">{{ $label }}</div>
+                        <div class="text-lg font-bold leading-none mt-1" style="color:white;">{{ $val }}</div>
                     </div>
                 </div>
             </div>
         @endforeach
     </div>
 
+    <a class="card-premium p-5 mb-6 flex justify-between items-center gap-3" href="{{ workspace_owner()?->getPlanFeature('form_analytics_advanced',false)?route('user.forms.reports',$form):route('user.upgrade') }}"><span><strong>Explore your response data</strong><span class="block text-sm mt-1" style="color:var(--text-muted)">Date ranges, answer filters, question distributions, numeric summaries, saved reports and exports.</span></span><i class="fas fa-arrow-right" style="color:var(--accent)"></i></a>
     {{-- Advanced analytics (Pro and above) --}}
     @if($advancedAnalytics && $analytics)
         @php($a = $analytics)
@@ -140,7 +141,7 @@
             {{-- Field completion --}}
             <div class="card-premium p-6 lg:col-span-2">
                 <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Field completion</h3>
-                <p class="text-[11px] mb-4" style="color: var(--text-faint);">How often each field is filled in; low rates hint at drop-off.</p>
+                <p class="text-[11px] mb-4" style="color: var(--text-faint);">How often each field is filled in; blank optional answers do not prove drop-off. These completion rates cover all-time responses.</p>
                 @if(empty($a['fields']))
                     <p class="text-xs" style="color: var(--text-faint);">No fields to report on yet.</p>
                 @else

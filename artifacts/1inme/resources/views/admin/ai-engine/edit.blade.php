@@ -291,7 +291,7 @@
                 array_filter($models, fn($m) => ($m['kind'] ?? 'chat') === 'chat')));
 
             $featureGroups = [
-                'Page & content builders' => ['biolink_builder', 'slides_builder', 'restaurant_menu_builder', 'store_menu_builder', 'service_booking_builder', 'resume_builder'],
+                'Page & content builders' => ['form_builder', 'biolink_builder', 'slides_builder', 'restaurant_menu_builder', 'store_menu_builder', 'service_booking_builder', 'resume_builder'],
                 'Chat & coaching'         => ['companion', 'coach', 'ask_coach', 'mind', 'persona'],
                 'Resume tools'            => ['resume_import', 'resume_tailor', 'resume_cover_letter'],
                 'Inbox & automation'      => ['inbox_agent', 'whatsapp_agent', 'ai_staff_billing', 'ai_staff_contacts', 'ai_staff_general'],

@@ -478,6 +478,7 @@ function dropzoneInput_{{ $dzId }}() {
 
         refreshFiles(extraSource) {
             const list = Array.from(this.$refs.input.files || []);
+            if (this.$refs.input.closest('.forms-workspace') && ['card_image','logo','cover_image'].includes(this.$refs.input.name)) { const file=list[0];if(file && file.type.startsWith('image/') && file.size<=10*1024*1024){const reader=new FileReader();reader.onload=()=>this.$dispatch('form-asset-preview',{name:this.$refs.input.name,url:reader.result});reader.readAsDataURL(file);}else this.$dispatch('form-asset-preview',{name:this.$refs.input.name,url:null});}
             this.files = list.map((f) => ({
                 name: f.name,
                 size: f.size,

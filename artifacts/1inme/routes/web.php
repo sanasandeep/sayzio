@@ -875,3 +875,5 @@ Route::post('/{alias}/tickets/buy', [\App\Modules\Common\Controllers\EventTicket
     ->name('redirect.event.buy')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
 Route::get('/{alias}/tickets/{code}', [\App\Modules\Common\Controllers\EventTicketPublicController::class, 'viewTicket'])
     ->name('redirect.event.ticket')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->where('code', '[A-Za-z0-9\-]+');
+
+Route::post("f/{slug}/event", [\App\Modules\User\Controllers\FormExperienceController::class, "event"])->middleware("throttle:60,1")->name("forms.public.event");

@@ -773,6 +773,13 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('forms/{form}', [FormController::class, 'show'])->middleware('workspace.can:inbox.view')->name('forms.show');
         Route::delete('forms/{form}', [FormController::class, 'destroy'])->middleware('workspace.can:inbox.delete')->name('forms.destroy');
         Route::post('forms/{form}/toggle-active', [FormController::class, 'toggleActive'])->middleware('workspace.can:inbox.edit')->name('forms.toggle-active');
+        Route::post('forms/{form}/webhook-test', [\App\Modules\User\Controllers\FormExperienceController::class, 'testWebhook'])->middleware(['workspace.can:inbox.edit','throttle:10,1'])->name('forms.webhook-test');
+        Route::post('forms/{form}/ai/estimate', [\App\Modules\User\Controllers\FormAiController::class, 'estimate'])->middleware(['workspace.can:inbox.edit','throttle:10,1'])->name('forms.ai.estimate');
+        Route::post('forms/{form}/ai/generate', [\App\Modules\User\Controllers\FormAiController::class, 'generate'])->middleware(['workspace.can:inbox.edit','throttle:5,1'])->name('forms.ai.generate');
+        Route::get('forms/{form}/reports', [\App\Modules\User\Controllers\FormExperienceController::class, 'reports'])->middleware('workspace.can:inbox.view')->name('forms.reports');
+        Route::delete('forms/{form}/reports/{index}', [\App\Modules\User\Controllers\FormExperienceController::class, 'deleteReport'])->whereNumber('index')->middleware('workspace.can:inbox.edit')->name('forms.reports.delete');
+        Route::post('forms/{form}/reports', [\App\Modules\User\Controllers\FormExperienceController::class, 'saveReport'])->middleware('workspace.can:inbox.edit')->name('forms.reports.save');
+        Route::post('forms/{form}/preview', [\App\Modules\User\Controllers\FormExperienceController::class, 'preview'])->middleware('workspace.can:inbox.view')->name('forms.preview');
         Route::get('forms/{form}/builder', [FormController::class, 'builder'])->middleware('workspace.can:inbox.view')->name('forms.builder');
         Route::put('forms/{form}/builder', [FormController::class, 'updateBuilder'])->middleware('workspace.can:inbox.edit')->name('forms.builder.update');
         Route::get('forms/{form}/design', [FormController::class, 'design'])->middleware('workspace.can:inbox.view')->name('forms.design');

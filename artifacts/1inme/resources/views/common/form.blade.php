@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
+        $resumeSchema=hash('sha256',json_encode($form->fields));
+        $locale=request('lang');if(!is_string($locale))$locale=null;$translated=$form->settings['translations'][$locale]??null;
+        if(is_array($translated)){$form=clone $form;if(isset($translated['title']))$form->title=$translated['title'];if(isset($translated['description']))$form->description=$translated['description'];$form->fields=array_map(fn($f)=>array_merge($f,$translated['fields'][$f['id']??'']??[]),$form->fields??[]);$d=$form->design??[];if(isset($translated['button_label']))$d['button_label']=$translated['button_label'];$form->design=$d;}
         $design = array_merge(\App\Modules\User\Models\Form::defaultDesign(), $form->design ?? []);
         $settings = array_merge(\App\Modules\User\Models\Form::defaultSettings(), $form->settings ?? []);
         $theme = $design['theme'];
@@ -571,6 +574,12 @@
             $safeCss = preg_replace(['#</style#i', '#<script#i', '#javascript:#i', '#expression\s*\(#i', '#@import#i'], '/*blocked*/', $rawCss);
         @endphp
         {!! $safeCss !!}
+        @if(($design['choice_style']??'plain')!=='plain')
+        .form-radio-group,.form-check-group{display:flex;flex-wrap:wrap;gap:10px}
+        .form-radio-group>label,.form-check-group>label{display:flex;align-items:center;gap:10px;padding:14px 18px;border:1px solid var(--form-border);border-radius:{{ ($design['choice_style']??'')==='pills'?'999px':'12px' }};cursor:pointer;flex:{{ ($design['choice_style']??'')==='cards'?'1 1 180px':'0 1 auto' }}}
+        .form-radio-group>label:has(input:checked),.form-check-group>label:has(input:checked){border-color:var(--form-accent);box-shadow:0 0 0 1px var(--form-accent)}
+        .form-radio-group>label:hover,.form-check-group>label:hover{border-color:var(--form-accent)}
+        @endif
     </style>
 </head>
 <body class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }} input-{{ str_replace('_', '-', $inputStyle) }} ishape-{{ $inputShape }} density-{{ $density }} focus-{{ $focusStyle }}">
@@ -720,6 +729,7 @@
                           x-data="formOneq({{ $slideCount }}, {{ $startSlide }}, @js($requiredBySlide))"
                           @keydown.enter="onEnter($event)">
                         @csrf
+<input type="hidden" name="_locale" value="{{ $locale??'' }}"><input type="hidden" name="_visit_token" value="{{ $visitToken ?? '' }}">
 
                         {{-- Honeypot --}}
                         <div class="honeypot" aria-hidden="true">
@@ -738,7 +748,8 @@
                                 @if($s['type'] === 'intro')
                                     <div class="oneq-slide oneq-intro" x-show="slide === {{ $idx }}" x-cloak>
                                         @if($logo)<img src="{{ $logo }}" alt="logo" class="form-logo">@endif
-                                        <h1 class="form-title">{{ $form->title }}</h1>
+                                        @if(!empty($settings['translations']))<label class="form-label">Language <select onchange="const u=new URL(location.href);u.searchParams.set('lang',this.value);location.href=u.href" class="form-select"><option value="">Default</option>@foreach($settings['translations'] as $code=>$translation)<option value="{{ $code }}" @selected(request('lang')===$code)>{{ strtoupper($code) }}</option>@endforeach</select></label>@endif
+                    <h1 class="form-title">{{ $form->title }}</h1>
                                         @if($form->description)<p class="form-desc">{{ $form->description }}</p>@endif
                                         @if($errors->any())
                                             <div style="margin-top: 1rem; background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.25); color: #b91c1c; padding: 0.75rem 1rem; border-radius: var(--form-radius-sm); font-size: 0.85rem;">
@@ -828,6 +839,7 @@
                       class="form-card {{ $cover ? 'has-cover' : '' }} {{ $design['layout'] === 'inline' ? 'form-row-inline' : '' }} {{ $showFieldPrices ? 'form-paid-pricing' : '' }}"
                       x-data="formRunner({{ $pageCount }})">
                     @csrf
+<input type="hidden" name="_locale" value="{{ $locale??'' }}"><input type="hidden" name="_visit_token" value="{{ $visitToken ?? '' }}">
 
                     @if($logo)<img src="{{ $logo }}" alt="logo" class="form-logo">@endif
                     <h1 class="form-title">{{ $form->title }}</h1>
@@ -1472,5 +1484,21 @@
             recompute();
         })();
     </script>
+@if($preview ?? false)
+<script>document.addEventListener('submit',e=>{e.preventDefault();alert('Preview only. No response or payment is recorded.');},true);</script>
+@elseif(!empty($visitToken))
+<script>
+(()=>{const token=@js($visitToken),url=@js(route('forms.public.event',$form->slug)),csrf=@js(csrf_token());let last=0;function touch(){if(Date.now()-last<5000)return;last=Date.now();fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'application/json'},body:JSON.stringify({token,page:1}),keepalive:true}).catch(()=>{});}document.querySelectorAll('.form-card').forEach(f=>{f.addEventListener('input',touch);f.addEventListener('change',touch);});})();
+</script>
+@endif
+<script>
+(()=>{function conditions(){document.querySelectorAll('[data-form-condition]').forEach(box=>{let c;try{c=JSON.parse(box.dataset.formCondition);}catch(e){return;}const controls=[...document.querySelectorAll('[name]')].filter(e=>e.name===c.field||e.name===c.field+'[]');const enabled=controls.filter(e=>!e.disabled);const values=enabled.filter(e=>!['radio','checkbox'].includes(e.type)||e.checked).map(e=>String(e.value));const match=values.includes(String(c.value||'')),show=enabled.length>0&&(c.operator==='not_equals'?!match:match);box.hidden=!show;box.style.display=show?'':'none';box.querySelectorAll('input,select,textarea').forEach(e=>{if(e.dataset.originalRequired===undefined)e.dataset.originalRequired=e.required?'1':'0';e.disabled=!show;e.required=show&&e.dataset.originalRequired==='1';});});}
+ document.addEventListener('input',conditions);document.addEventListener('change',conditions);document.addEventListener('DOMContentLoaded',conditions);})();
+</script>
+@if(!empty($settings['allow_resume']) && !($preview??false))
+<script>
+document.addEventListener('DOMContentLoaded',()=>{const key='sayzio-form-draft-'+@js($form->id),removeDraft=()=>{try{localStorage.removeItem(key);}catch(e){}},schema=@js($resumeSchema),done=@js((bool)session('form_success'));if(done){removeDraft();return;}const form=document.querySelector('.form-card');if(!form)return;const controls=()=>[...form.querySelectorAll('input,select,textarea')].filter(e=>e.name&&!e.name.startsWith('_')&&!['file','hidden','password','submit'].includes(e.type)&&!e.closest('[data-signature-pad]'));const bar=document.createElement('div');bar.style.cssText='padding:12px;border:1px solid #cbd5e1;border-radius:12px;margin-bottom:16px;font:13px sans-serif';const opt=document.createElement('input');opt.type='checkbox';const label=document.createElement('label');label.append(opt,document.createTextNode(' Save my answers on this device for 7 days'));const clear=document.createElement('button');clear.type='button';clear.textContent='Clear saved draft';clear.style.marginLeft='12px';clear.onclick=()=>{removeDraft();opt.checked=false;};bar.append(label,clear);form.prepend(bar);let draft;try{draft=JSON.parse(localStorage.getItem(key)||'null');}catch(e){}if(draft&&draft.schema===schema&&draft.expires>Date.now()){opt.checked=true;controls().forEach(e=>{if(draft.values[e.name]!==undefined){if(['radio','checkbox'].includes(e.type))e.checked=draft.values[e.name].includes(e.value);else e.value=draft.values[e.name][0]||'';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));}});form.dispatchEvent(new Event('change',{bubbles:true}));}else removeDraft();function save(){if(!opt.checked){removeDraft();return;}const values={};controls().forEach(e=>{if(['radio','checkbox'].includes(e.type)&&!e.checked)return;(values[e.name]??=[]).push(e.value);});try{localStorage.setItem(key,JSON.stringify({schema,expires:Date.now()+7*86400000,values}));}catch(e){opt.checked=false;}}form.addEventListener('input',save);form.addEventListener('change',save);});
+</script>
+@endif
 </body>
 </html>

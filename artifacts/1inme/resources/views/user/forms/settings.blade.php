@@ -2,7 +2,7 @@
 @section('title', 'Settings · ' . $form->title)
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="forms-workspace">
 
     @include('user.partials.page-hero', [
         'title' => 'Settings: ' . $form->title,
@@ -185,6 +185,13 @@
             </div>
         </div>
 
+        @php($translationFields=collect($form->fields??[])->filter(fn($f)=>!in_array($f['type']??'',['section','divider','page_break','hidden']))->map(fn($f)=>['id'=>$f['id'],'label'=>$f['label']??$f['id']])->values())
+        <div class="card-premium p-5 space-y-4" x-data="{translations:@js((object)($form->settings['translations']??[])),locale:'',fields:@js($translationFields),addLanguage(){if(!/^[a-z]{2}(-[A-Z]{2})?$/.test(this.locale))return alert('Use a language code such as en, es, hi or pt-BR.');if(Object.keys(this.translations).length>=10)return alert('You can add up to ten languages.');if(this.translations[this.locale])return alert('This language already exists. Edit it below.');this.translations[this.locale]={title:'',description:'',button_label:'',success_message:'',fields:{}};this.locale='';}}">
+            <h3 class="font-bold">Resume & languages</h3><label class="flex gap-2"><input type="hidden" name="allow_resume" value="0"><input type="checkbox" name="allow_resume" value="1" @checked($form->settings['allow_resume']??false)>Offer save-and-resume on the respondent's device</label><p class="text-xs" style="color:var(--text-muted)">Visitors opt in to save answers on this browser for seven days. Files and signatures must be reattached.</p>
+            <input type="hidden" name="translations_json" :value="JSON.stringify(translations)">
+            <div class="flex flex-wrap gap-2"><input class="theme-input" x-model="locale" placeholder="Language code, e.g. hi" aria-label="Language code"><button type="button" class="btn-ghost" @click="addLanguage()">+ Add language</button></div><p class="text-xs" style="color:var(--text-muted)">Provide your own translated labels. Blank translations use the original wording. Answer values stay consistent across languages; no AI coins are used.</p>
+            <template x-for="(tr,code) in translations" :key="code"><details class="border rounded-xl p-4" style="border-color:var(--border-glass)"><summary class="font-bold cursor-pointer" x-text="code"></summary><div class="grid sm:grid-cols-2 gap-3 mt-4"><label class="text-xs">Form title<input class="theme-input w-full" x-model="tr.title"></label><label class="text-xs">Submit button<input class="theme-input w-full" x-model="tr.button_label"></label><label class="text-xs">Description<textarea class="theme-input w-full" x-model="tr.description"></textarea></label><label class="text-xs">Thank-you message<textarea class="theme-input w-full" x-model="tr.success_message"></textarea></label></div><div class="mt-4 space-y-2"><template x-for="field in fields" :key="field.id"><div><button type="button" class="btn-ghost text-xs" @click="tr.fields??={};tr.fields[field.id]??={label:'',help:'',placeholder:''}" x-text="'+ Translate '+field.label"></button><template x-if="tr.fields&&tr.fields[field.id]"><div class="grid sm:grid-cols-3 gap-2"><input class="theme-input" :aria-label="field.label+' translation'" placeholder="Question label" x-model="tr.fields[field.id].label"><input class="theme-input" placeholder="Help text" x-model="tr.fields[field.id].help"><input class="theme-input" placeholder="Placeholder" x-model="tr.fields[field.id].placeholder"></div></template></div></template></div><button type="button" class="btn-ghost mt-3" @click="delete translations[code]">Remove language</button></details></template>
+        </div>
         @canInWorkspace('inbox.edit')
         <button type="submit" class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg">
             <i class="fas fa-save text-xs"></i> Save Settings

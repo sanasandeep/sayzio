@@ -7,7 +7,7 @@
     $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
     $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
 @endphp
-<div class="max-w-3xl mx-auto">
+<div class="forms-workspace">
     @include('user.partials.page-hero', [
         'title' => 'Submission #' . $submission->id,
         'subtitle' => $form->title,
