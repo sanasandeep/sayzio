@@ -233,7 +233,7 @@
                             </div>
                         </template>
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs text-white truncate" x-text="f.name"></p>
+                            <p class="text-xs dz-ink-strong truncate" x-text="f.name"></p>
                             <p class="text-[10px] dz-ink-muted" x-text="formatSize(f.size) + (f.source ? ' · ' + f.source : '')"></p>
                         </div>
                         <button type="button" @click.stop="removeAt(i)" class="pointer-events-auto w-6 h-6 rounded-md flex items-center justify-center dz-ink-muted hover:text-red-400 hover:bg-red-500/10 transition" title="Remove">
@@ -479,6 +479,7 @@ function dropzoneInput_{{ $dzId }}() {
         refreshFiles(extraSource) {
             const list = Array.from(this.$refs.input.files || []);
             if (this.$refs.input.closest('.forms-workspace') && ['card_image','logo','cover_image'].includes(this.$refs.input.name)) { const file=list[0];if(file && file.type.startsWith('image/') && file.size<=10*1024*1024){const reader=new FileReader();reader.onload=()=>this.$dispatch('form-asset-preview',{name:this.$refs.input.name,url:reader.result});reader.readAsDataURL(file);}else this.$dispatch('form-asset-preview',{name:this.$refs.input.name,url:null});}
+            if (this.$refs.input.name === 'form_ai_source') this.$dispatch('form-ai-source', {file:list[0]||null});
             this.files = list.map((f) => ({
                 name: f.name,
                 size: f.size,
