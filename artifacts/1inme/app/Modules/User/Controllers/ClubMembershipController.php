@@ -18,7 +18,7 @@ class ClubMembershipController extends Controller {
         $this->authorizeLink($link);
         $settings=data_get($link->settings,'membership',[]);
         $forms=auth()->user()->canInWorkspace(app('current_workspace'),'inbox.view') ? Form::where('user_id',$link->user_id)->orderBy('title')->get() : collect();
-        $query=ClubMembership::where('link_id',$link->id);
+        $query=ClubMembership::with('profilePhoto')->where('link_id',$link->id);
         $tab=$request->input('tab','all');
         $upcoming=(int)($settings['upcoming_days']??30);
         match($tab) {
@@ -51,7 +51,7 @@ class ClubMembershipController extends Controller {
     }
     public function settings(Request $request, Link $link) {
         $this->authorizeLink($link);
-        $data=$request->validate(['fields'=>'nullable|array|max:20','fields.*.key'=>['required','distinct','regex:/^[a-z][a-z0-9_]{0,39}$/',Rule::notIn(['name','email','phone','consent'])],'fields.*.label'=>'required|string|max:100','fields.*.type'=>'required|in:text,textarea,number,date,email','fields.*.required'=>'required|boolean','form_id'=>'nullable|integer','mapping'=>'nullable|array','mapping.*'=>'nullable|string|max:100']);
+        $data=$request->validate(['fields'=>'nullable|array|max:20','fields.*.key'=>['required','distinct','regex:/^[a-z][a-z0-9_]{0,39}$/',Rule::notIn(['name','email','phone','consent'])],'fields.*.label'=>'required|string|max:100','fields.*.type'=>'required|in:text,textarea,number,date,email','fields.*.required'=>'required|boolean','form_id'=>'nullable|integer','mapping'=>'nullable|array','mapping.*'=>'nullable|string|max:100','photo_field'=>'nullable|string|max:100']);
         if($request->filled('form_id')) abort_unless(auth()->user()->canInWorkspace(app('current_workspace'),'inbox.edit'),403);
         $form=$request->filled('form_id')?Form::where('user_id',$link->user_id)->findOrFail($data['form_id']):null;
         $mapping=array_intersect_key($data['mapping']??[],array_flip(['name','email','phone',...array_column($data['fields']??[],'key')]));
@@ -61,12 +61,42 @@ class ClubMembershipController extends Controller {
                 $id=$mapping[$key]??$key;
                 if(!$fields->has($id) || empty($fields[$id]['required'])) throw ValidationException::withMessages(['mapping'=>'Map each required membership field to a required field in the selected Sayzio Form.']);
             }
+            if(!empty($data['photo_field']) && (!$fields->has($data['photo_field']) || ($fields[$data['photo_field']]['type']??'')!=='file')) throw ValidationException::withMessages(['photo_field'=>'Choose a file upload field for the profile picture.']);
             foreach($mapping as $id) if($id && !$fields->has($id)) throw ValidationException::withMessages(['mapping'=>'A mapped field does not exist on this form.']);
         }
         $settings=$link->settings??[];
-        $settings['membership']=[...($settings['membership']??[]),'fields'=>$data['fields']??[],'form_id'=>$form?->id,'mapping'=>$mapping];
+        $settings['membership']=[...($settings['membership']??[]),'fields'=>$data['fields']??[],'form_id'=>$form?->id,'mapping'=>$mapping,'photo_field'=>array_key_exists('photo_field',$data)?($data['photo_field']??''):'profile_picture'];
         $link->update(['settings'=>$settings]);
         return back()->with('success','Membership form settings saved.');
+    }
+    public function import(Request $request, Link $link, \App\Modules\User\Services\ClubMembershipImportService $importer) {
+        $this->authorizeLink($link);
+        $request->validate(['csv'=>'required|file|mimes:csv,txt|max:5120','mode'=>'required|in:update,skip']);
+        $report=$importer->import($link,$request->file('csv')->getRealPath(),$request->input('mode'));
+        return back()->with('membership_import',$report)->with('success',"Import finished: {$report['created']} created, {$report['updated']} updated, {$report['skipped']} skipped.");
+    }
+    public function export(Request $request, Link $link) {
+        $this->authorizeLink($link);
+        return response()->streamDownload(function()use($link){
+            $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
+            fputcsv($out,\App\Modules\User\Services\ClubMembershipImportService::HEADERS,',','"','');
+            foreach(ClubMembership::where('link_id',$link->id)->orderBy('id')->cursor() as $member) {
+                $row=[$member->name,$member->email,$member->phone,$member->status,$member->expires_at?->toDateString()??'',json_encode((object)($member->custom_fields??[]),JSON_UNESCAPED_UNICODE)];
+                fputcsv($out,array_map([\App\Modules\User\Services\ClubMembershipImportService::class,'csvCell'],$row),',','"','');
+            }
+            fclose($out);
+        },'club-'.$link->id.'-members.csv',['Content-Type'=>'text/csv; charset=UTF-8','Cache-Control'=>'private, no-store']);
+    }
+    public function photo(Request $request, Link $link) {
+        $this->authorizeLink($link);
+        $request->validate(['id'=>'required|integer','photo'=>'nullable|image|mimes:jpg,jpeg,png,webp|max:5120','remove'=>'nullable|boolean']);
+        $member=ClubMembership::where('link_id',$link->id)->findOrFail($request->input('id'));
+        if($request->boolean('remove')) $member->update(['profile_photo_file_id'=>null]);
+        elseif($request->hasFile('photo')) {
+            try {$file=\App\Modules\User\Models\UserFile::createFromUpload($request->file('photo'),$link->user);} catch(\RuntimeException $e) {throw ValidationException::withMessages(['photo'=>$e->getMessage()]);}
+            $member->update(['profile_photo_file_id'=>$file->id]);
+        }
+        return back()->with('success','Member profile picture updated.');
     }
     public function configure(Request $request, Link $link) {
         $this->authorizeLink($link);
@@ -120,6 +150,7 @@ class ClubMembershipController extends Controller {
         DB::transaction(function()use($link){
             $fields=[['id'=>'name','type'=>'text','label'=>'Full name','required'=>true],['id'=>'email','type'=>'email','label'=>'Email','required'=>true],['id'=>'phone','type'=>'text','label'=>'Phone (include country code)','required'=>true]];
             foreach(data_get($link->settings,'membership.fields',[]) as $field) $fields[]=['id'=>$field['key'],'type'=>$field['type'],'label'=>$field['label'],'required'=>(bool)$field['required']];
+            $fields[]=['id'=>'profile_picture','type'=>'file','label'=>'Profile picture (optional)','required'=>false,'accept'=>'image/jpeg,image/png,image/webp'];
             $fields[]=['id'=>'consent','type'=>'checkbox','label'=>'I agree to join this club and have a free Sayzio account created when approved.','options'=>['I agree'],'required'=>true];
             $form=new Form(['title'=>($link->title?:$link->alias).' membership','description'=>'Membership applications are reviewed by the club. Approval creates a free Sayzio account or links your existing account.','fields'=>$fields,'design'=>Form::defaultDesign(),'settings'=>[],'is_active'=>true]);
             $form->forceFill(['user_id'=>$link->user_id,'workspace_id'=>$link->workspace_id])->save();

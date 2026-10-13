@@ -1256,6 +1256,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/business-starter', [\App\Modules\User\Controllers\BusinessStarterController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.business-starter.store');
 
         // ── Service Booking (links.type = service_booking) ─────────────
+        Route::post('links/{link}/memberships/import', [\App\Modules\User\Controllers\ClubMembershipController::class, 'import'])->middleware('workspace.can:links.edit')->name('links.memberships.import');
+        Route::get('links/{link}/memberships/export', [\App\Modules\User\Controllers\ClubMembershipController::class, 'export'])->middleware('workspace.can:links.view')->name('links.memberships.export');
+        Route::post('links/{link}/memberships/photo', [\App\Modules\User\Controllers\ClubMembershipController::class, 'photo'])->middleware('workspace.can:links.edit')->name('links.memberships.photo');
         Route::post('links/{link}/memberships/configure', [\App\Modules\User\Controllers\ClubMembershipController::class, 'configure'])->middleware('workspace.can:links.edit')->name('links.memberships.configure');
         Route::post('links/{link}/memberships/action/{action}', [\App\Modules\User\Controllers\ClubMembershipController::class, 'action'])->whereIn('action',['approve','renew','cancel','invoice'])->middleware('workspace.can:links.edit')->name('links.memberships.action');
         Route::get('links/{link}/memberships/card/{member}', [\App\Modules\User\Controllers\ClubMembershipController::class, 'card'])->whereNumber('member')->middleware('workspace.can:links.view')->name('links.memberships.card');

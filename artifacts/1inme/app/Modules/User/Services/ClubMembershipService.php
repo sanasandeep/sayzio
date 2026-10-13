@@ -77,6 +77,11 @@ class ClubMembershipService {
             $data=[]; foreach(['name','email','phone'] as $key) $data[$key]=$values[$map[$key]??$key]??null;
             $data['custom_fields']=$values;
             foreach($config['fields']??[] as $field) $data['custom_fields'][$field['key']]=$values[$map[$field['key']]??$field['key']]??null;
+            $photoUrl=($submission->files??[])[$config['photo_field']??'profile_picture']??null;
+            if(is_string($photoUrl) && preg_match('~^/f/(\d+)/~',parse_url($photoUrl,PHP_URL_PATH)??'', $photoMatch)) {
+                $photo=\App\Modules\User\Models\UserFile::withoutGlobalScope('workspace')->where('user_id',$link->user_id)->find($photoMatch[1]);
+                if($photo && in_array($photo->mime_type,['image/jpeg','image/png','image/webp'],true)) $data['profile_photo_file_id']=$photo->id;
+            }
             $validator=Validator::make($data,$this->rules($link));
             if($validator->fails()) continue; // Original submission remains available for manual review.
             $email=strtolower(trim($data['email']));
