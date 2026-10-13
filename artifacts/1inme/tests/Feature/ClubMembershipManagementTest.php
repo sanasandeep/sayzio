@@ -171,4 +171,57 @@ class ClubMembershipManagementTest extends TestCase {
         $this->post(route('user.links.memberships.configure',$link),$this->config(['company_id'=>999999]))->assertNotFound();
     }
 
+    private function csvUpload(string $contents) {
+        return \Illuminate\Http\UploadedFile::fake()->createWithContent('members.csv',$contents);
+    }
+    public function test_bulk_import_updates_matches_preserves_blank_values_and_reports_conflicts(): void {
+        $link=$this->club();
+        $existing=ClubMembership::create(['link_id'=>$link->id,...$this->member(['custom_fields'=>['keep'=>'yes']])]);
+        $csv="name,email,phone,status,expires_at,custom_fields\nUpdated,member@example.com,,,,\nNew,new@example.com,+919876543211,pending,,\nDuplicate,new@example.com,+919876543212,pending,,\nConflict,conflict@example.com,+919876543210,pending,,\nInvalid,invalid,abc,pending,,\n";
+        $this->post(route('user.links.memberships.import',$link),['csv'=>$this->csvUpload($csv),'mode'=>'update'])->assertRedirect()->assertSessionHas('membership_import.created',1)->assertSessionHas('membership_import.updated',1)->assertSessionHas('membership_import.skipped',3);
+        $this->assertSame('Updated',$existing->fresh()->name);$this->assertSame('+919876543210',$existing->fresh()->phone);
+        $this->assertSame(['keep'=>'yes'],$existing->fresh()->custom_fields);
+        $this->assertDatabaseCount('club_memberships',2);
+        $this->post(route('user.links.memberships.import',$link),['csv'=>$this->csvUpload("name,email,phone\nIgnored,member@example.com,+919876543210\n"),'mode'=>'skip'])->assertSessionHas('membership_import.skipped',1);
+        $this->assertSame('Updated',$existing->fresh()->name);
+    }
+    public function test_csv_export_round_trips_custom_fields_and_neutralizes_spreadsheet_formulas(): void {
+        $link=$this->club();$member=ClubMembership::create(['link_id'=>$link->id,...$this->member(['name'=>'=2+2','custom_fields'=>['choices'=>['A','B'],'address'=>'Road, City']])]);
+        $response=$this->get(route('user.links.memberships.export',$link))->assertOk();
+        $csv=$response->streamedContent();$this->assertStringContainsString("'=2+2",$csv);
+        $this->post(route('user.links.memberships.import',$link),['csv'=>$this->csvUpload($csv),'mode'=>'update'])->assertSessionHas('membership_import.updated',1);
+        $this->assertSame('=2+2',$member->fresh()->name);$this->assertSame(['A','B'],$member->fresh()->custom_fields['choices']);
+        $this->assertDatabaseCount('club_memberships',1);
+    }
+    public function test_bulk_import_rejects_invalid_headers_before_updating_any_member(): void {
+        $link=$this->club();
+        $this->post(route('user.links.memberships.import',$link),['csv'=>$this->csvUpload("name,email,email\nName,test@example.com,test@example.com"),'mode'=>'update'])->assertSessionHasErrors('csv');
+        $this->assertDatabaseCount('club_memberships',0);
+        $other=User::factory()->create();$foreign=Link::create(['user_id'=>$other->id,'workspace_id'=>$link->workspace_id,'type'=>'community_club','alias'=>'private-club']);
+        $this->get(route('user.links.memberships.export',$foreign))->assertForbidden();
+        $this->post(route('user.links.memberships.import',$foreign),['csv'=>$this->csvUpload("name,email,phone"),'mode'=>'update'])->assertForbidden();
+    }
+    public function test_optional_form_photo_is_used_on_member_cards_and_can_be_removed(): void {
+        $link=$this->club();$this->post(route('user.links.memberships.create-form',$link))->assertRedirect();
+        $form=Form::firstOrFail();$this->assertContains('profile_picture',array_column($form->fields,'id'));
+        $file=\App\Modules\User\Models\UserFile::create(['user_id'=>$link->user_id,'original_name'=>'profile.jpg','filename'=>'profile.jpg','mime_type'=>'image/jpeg','size_bytes'=>100,'type'=>'image','disk'=>'user_files','path'=>'test/profile.jpg','scan_status'=>'clean']);
+        $form->submissions()->create(['data'=>['name'=>'Photo Member','email'=>'member@example.com','phone'=>'+919876543210'],'files'=>['profile_picture'=>$file->url],'payment_status'=>'none','is_spam'=>false]);
+        $member=ClubMembership::firstOrFail();$this->assertSame($file->id,$member->profile_photo_file_id);
+        $this->get(route('user.links.memberships.card',['link'=>$link,'member'=>$member->id]))->assertOk()->assertSee('Member profile picture');
+        $this->post(route('user.links.memberships.photo',$link),['id'=>$member->id,'remove'=>1])->assertRedirect();
+        $this->assertNull($member->fresh()->profile_photo_file_id);
+        $this->post(route('user.links.memberships.photo',$link),['id'=>$member->id,'photo'=>\Illuminate\Http\UploadedFile::fake()->create('unsafe.svg',1,'image/svg+xml')])->assertSessionHasErrors('photo');
+    }
+
+    public function test_import_does_not_overlap_another_account_phone_or_merge_across_clubs(): void {
+        $link=$this->club();$existing=User::factory()->create(['email'=>'different@example.com','mobile'=>'+919876543210']);
+        $csv="name,email,phone,status\nConflict,new@example.com,+919876543210,active\n";
+        $this->post(route('user.links.memberships.import',$link),['csv'=>$this->csvUpload($csv),'mode'=>'update'])->assertSessionHas('membership_import.skipped',1);
+        $this->assertDatabaseCount('club_memberships',0);
+        $other=Link::create(['user_id'=>$link->user_id,'workspace_id'=>$link->workspace_id,'type'=>'community_club','alias'=>'another-import-club']);
+        $member=ClubMembership::create(['link_id'=>$other->id,...$this->member(['phone'=>'+919876543219'])]);
+        $this->post(route('user.links.memberships.import',$link),['csv'=>$this->csvUpload("name,email,phone,status\nHere,member@example.com,+919876543219,pending\n"),'mode'=>'update'])->assertSessionHas('membership_import.created',1);
+        $this->assertSame('Alex Member',$member->fresh()->name);
+    }
+
 }
