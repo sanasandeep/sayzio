@@ -13,6 +13,16 @@ class ClubMembershipManagementTest extends TestCase {
         return Link::create(['user_id'=>$user->id,'workspace_id'=>$ws->id,'type'=>'community_club','alias'=>'test-club','title'=>'Our club','settings'=>[]]);
     }
     private function member(array $extra=[]): array { return [...['name'=>'Alex Member','email'=>'member@example.com','phone'=>'+919876543210','status'=>'active','expires_at'=>now()->addYear()->toDateString()],...$extra]; }
+    public function test_studio_preview_qr_explicitly_uses_utf8(): void {
+        $link=$this->club();
+        $generator=\Mockery::mock(\SimpleSoftwareIO\QrCode\Generator::class)->makePartial();
+        $generator->shouldReceive('encoding')->once()->with('UTF-8')->passthru();
+        \SimpleSoftwareIO\QrCode\Facades\QrCode::swap($generator);
+        $response=$this->get(route('user.links.memberships',$link))->assertOk();
+        $preview=$response->viewData('cardDesign')['previewQr'];
+        $this->assertStringStartsWith('data:image/svg+xml;base64,',$preview);
+        $this->assertStringContainsString('<svg',base64_decode(substr($preview,strpos($preview,',')+1)));
+    }
     public function test_owner_can_add_edit_and_expire_member_with_unverified_free_account(): void {
         $link=$this->club();
         $this->get(route('user.links.memberships',$link))->assertOk()->assertSee('Membership form settings');
