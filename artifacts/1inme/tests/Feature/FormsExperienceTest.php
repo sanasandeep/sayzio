@@ -235,7 +235,7 @@ class FormsExperienceTest extends TestCase
     public function test_style_catalog_and_new_design_controls_round_trip(): void
     {
         $f = $this->form($this->owner());
-        $this->assertEquals(53, count(FormStyleCatalog::all()));
+        $this->assertEquals(61, count(FormStyleCatalog::all()));
         $data = array_merge(Form::defaultDesign(), ['surface_style' => 'liquid', 'label_style' => 'floating', 'character_boxes' => true, 'layout' => 'grid3']);
         $this->put('/user/forms/'.$f->id.'/design', $data)->assertSessionHasNoErrors();
         $this->assertEquals('liquid', $f->fresh()->design['surface_style']);
@@ -262,6 +262,19 @@ class FormsExperienceTest extends TestCase
         if (getenv('FORMS_UI_FIXTURE')) {
             file_put_contents('/tmp/forms-omr-preview.html', $preview->getContent());
         }
+    }
+
+    public function test_guided_slide_backgrounds_survive_save_and_preview(): void
+    {
+        $f = $this->form($this->owner());
+        $fields = [['id' => 'first', 'type' => 'text', 'label' => 'First', 'slide_background' => '#172033'], ['id' => 'second', 'type' => 'text', 'label' => 'Second', 'slide_background' => '#fff1df']];
+        $this->put('/user/forms/'.$f->id.'/builder', ['title' => $f->title, 'fields' => $fields])->assertSessionHasNoErrors();
+        $this->assertSame(['#172033', '#fff1df'], array_column($f->fresh()->fields, 'slide_background'));
+        $preview = $this->post('/user/forms/'.$f->id.'/preview', ['fields' => $fields, 'design' => ['layout' => 'oneq', 'surface_style' => 'wave']])->assertOk();
+        $preview->assertSee('#172033', false)->assertSee('#fff1df', false)->assertSee('slideStyle()', false);
+        if (getenv('FORMS_UI_FIXTURE')) file_put_contents('/tmp/forms-slides-preview.html', $preview->getContent());
+        $fields[0]['slide_background'] = 'invalid';
+        $this->put('/user/forms/'.$f->id.'/builder', ['title' => $f->title, 'fields' => $fields])->assertSessionHasErrors('fields.0.slide_background');
     }
 
     public function test_builder_preserves_quarter_and_three_quarter_grid_widths(): void

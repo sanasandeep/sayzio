@@ -102,7 +102,7 @@
         html, body { margin: 0; padding: 0; min-height: 100vh; font-family: '{{ $font }}', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 
         body.theme-light { background: var(--form-bg); color: var(--form-text); }
-        body.theme-dark  { background: #0f172a; color: #f1f5f9; }
+        body.theme-dark  { background: var(--form-bg); color: var(--form-text); }
         body.theme-glass {
             background:
               radial-gradient(ellipse at 20% 0%, rgba(92,131,255,0.18), transparent 55%),
@@ -593,7 +593,7 @@
 .character-cells{position:absolute;inset:0;display:flex;gap:3px;pointer-events:none;overflow:hidden}.character-cells span{display:flex;align-items:center;justify-content:center;flex:0 0 32px;height:32px;margin-top:7px;border:1px solid var(--form-border);font:16px monospace;color:var(--form-text);background:var(--form-card)}
 @media(max-width:640px){.layout-grid .form-grid>.form-grid-cell:not(.form-section-card):not(:has(.form-heading,.form-paragraph,.form-divider)),.layout-grid3 .form-grid>.form-grid-cell:not(.form-section-card):not(:has(.form-heading,.form-paragraph,.form-divider)){grid-column:span 12!important}}
 </style>
-<link rel="stylesheet" href="{{ asset('css/forms-surfaces.css') }}">
+<link rel="stylesheet" href="{{ asset('css/forms-surfaces.css').'?v='.filemtime(public_path('css/forms-surfaces.css')) }}">
 </head>
 <body data-label-style="{{ $design['label_style']??'above' }}" data-character-boxes="{{ (!empty($design['character_boxes']) || $inputStyle==='omr')?'1':'0' }}" class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }} input-{{ str_replace('_', '-', $inputStyle) }} ishape-{{ $inputShape }} density-{{ $density }} focus-{{ $focusStyle }}">
     <div class="form-page">
@@ -739,7 +739,8 @@
 
                     <form method="POST" action="{{ route('forms.public.submit', $form->slug) }}" enctype="multipart/form-data"
                           class="form-card surface-{{ $design['surface_style']??'clean' }} form-oneq {{ $cover ? 'has-cover' : '' }} {{ $showFieldPrices ? 'form-paid-pricing' : '' }}"
-                          x-data="formOneq({{ $slideCount }}, {{ $startSlide }}, @js($requiredBySlide))"
+                          x-data="formOneq({{ $slideCount }}, {{ $startSlide }}, @js($requiredBySlide), @js(array_map(fn($s) => $s['field']['slide_background'] ?? null, $slides)))"
+                          :class="{'slide-background': backgrounds[slide]}" :style="slideStyle()"
                           @keydown.enter="onEnter($event)">
                         @csrf
 <input type="hidden" name="_locale" value="{{ $locale??'' }}"><input type="hidden" name="_visit_token" value="{{ $visitToken ?? '' }}">
@@ -1155,10 +1156,18 @@
             };
         }
 
-        function formOneq(slideCount, startSlide, requiredBySlide) {
+        function formOneq(slideCount, startSlide, requiredBySlide, backgrounds) {
             return {
                 slide: startSlide || 0,
                 slideCount: slideCount,
+                backgrounds: backgrounds || [],
+                slideStyle() {
+                    const color = this.backgrounds[this.slide];
+                    if (!/^#[0-9a-f]{6}$/i.test(color || '')) return {};
+                    const rgb = [1,3,5].map(i => parseInt(color.slice(i,i+2),16)/255).map(v => v <= .04045 ? v/12.92 : Math.pow((v+.055)/1.055,2.4));
+                    const luminance = .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];
+                    return {'--slide-background':color,'--slide-text':luminance > .179 ? '#111827' : '#ffffff'};
+                },
                 requiredBySlide: requiredBySlide || {},
                 slideError: '',
                 init() {

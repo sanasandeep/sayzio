@@ -47,6 +47,7 @@
                 <input type="hidden" :name="`fields[${i}][rows]`" :value="f.rows || ''">
                 <input type="hidden" :name="`fields[${i}][min]`" :value="f.min ?? ''">
                 <input type="hidden" :name="`fields[${i}][max]`" :value="f.max ?? ''">
+                <input type="hidden" :name="`fields[${i}][slide_background]`" :value="f.slide_background || ''">
                 <input type="hidden" :name="`fields[${i}][width]`" :value="f.width || 12">
                 <input type="hidden" :name="`fields[${i}][min_length]`" :value="f.min_length ?? ''">
                 <input type="hidden" :name="`fields[${i}][max_length]`" :value="f.max_length ?? ''">
@@ -417,6 +418,10 @@
                             <div>
                                 <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Label</label>
                                 <input type="text" x-model="fields[selectedIndex].label" class="theme-input w-full text-xs">
+                            </div><div class="p-3 rounded-xl" style="background:var(--bg-glass-input)">
+                                <label class="block text-xs font-semibold mb-2">Guided slide background</label>
+                                <div class="flex items-center gap-2"><input type="color" :value="fields[selectedIndex].slide_background || '#ffffff'" @input="fields[selectedIndex].slide_background=$event.target.value" aria-label="Question background color"><button type="button" class="form-chip" @click="fields[selectedIndex].slide_background=''">Use theme</button></div>
+                                <p class="text-xs mt-2" style="color:var(--text-muted)">Used in the one-question-at-a-time layout. Text contrast adjusts automatically.</p>
                             </div>
                             <div x-show="['text','email','phone','url','number','textarea','date','time'].includes(fields[selectedIndex].type)">
                                 <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Placeholder</label>

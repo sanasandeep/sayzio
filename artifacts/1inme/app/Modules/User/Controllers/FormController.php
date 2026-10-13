@@ -290,6 +290,7 @@ class FormController extends Controller
             'fields.*.id' => 'required|string|max:64|regex:/^[a-zA-Z0-9_-]+$/',
             'fields.*.type' => 'required|string|max:32',
             'fields.*.label' => 'nullable|string|max:300',
+            'fields.*.slide_background' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'fields.*.show_if'=>'nullable|array',
             'fields.*.show_if.field'=>'nullable|string|max:64',
             'fields.*.show_if.value'=>'nullable|string|max:200',
@@ -312,7 +313,7 @@ class FormController extends Controller
                 'required' => filter_var($f['required'] ?? false, FILTER_VALIDATE_BOOL),
             ];
             // Optional common props
-            foreach (['placeholder', 'help', 'error_message', 'pattern', 'pattern_message', 'file_types', 'value', 'parent'] as $k) {
+            foreach (['slide_background', 'placeholder', 'help', 'error_message', 'pattern', 'pattern_message', 'file_types', 'value', 'parent'] as $k) {
                 if (isset($f[$k]) && $f[$k] !== '') $row[$k] = (string) $f[$k];
             }
             // Numeric props
@@ -443,7 +444,7 @@ class FormController extends Controller
         // arbitrary CSS that could escape the inline-style context.
         $colorRule = ['regex:/^(#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgba?\(\s*[\d.\s,%\/]+\)|hsla?\(\s*[\d.\s,%\/]+\))$/'];
         $data = $request->validate([
-            'surface_style' => 'nullable|in:clean,paper,newspaper,soft,gradient,liquid,frost,aurora,material,ledger,blueprint,notebook,receipt,terminal,brutalist,clay,neumorphic,mesh,luxury,museum,polaroid,omr,ticket,comic,minimal,fold,envelope,carbon,circuit,terrazzo,linen,vellum,stained,spotlight,ribbon,tabs,dossier,graph,scanline,pixel,halftone,stamp,arch,portal,framed,riso,wave,stripe,contour,accordion',
+            'surface_style' => 'nullable|in:clean,paper,newspaper,soft,gradient,liquid,frost,aurora,material,ledger,blueprint,notebook,receipt,terminal,brutalist,clay,neumorphic,mesh,luxury,museum,polaroid,omr,ticket,comic,minimal,fold,envelope,carbon,circuit,terrazzo,linen,vellum,stained,spotlight,ribbon,tabs,dossier,graph,scanline,pixel,halftone,stamp,arch,portal,framed,riso,wave,stripe,contour,accordion,scallop,woven,spectrum,duotone,emboss,mosaic,sprinkles,film',
             'label_style' => 'nullable|in:above,inside,floating',
             'character_boxes' => 'sometimes|boolean',
             'choice_style' => 'nullable|in:plain,cards,pills',
