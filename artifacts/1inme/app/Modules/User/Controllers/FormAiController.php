@@ -14,8 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Symfony\Component\Process\Exception\ExceptionInterface;
-use Symfony\Component\Process\Process;
 
 class FormAiController extends Controller
 {
@@ -157,52 +155,6 @@ class FormAiController extends Controller
 
     private function images($file): array
     {
-        $paths = [$file->getRealPath()];
-        $directory = null;
-        try {
-            if ($file->getMimeType() === 'application/pdf') {
-                $directory = sys_get_temp_dir().'/form-ai-'.Str::uuid();
-                mkdir($directory, 0700);
-                $info = new Process(['pdfinfo', $file->getRealPath()]);
-                $info->setTimeout(10);
-                $info->run();
-                abort_unless($info->isSuccessful() && preg_match('/Pages:\s+(\d+)/', $info->getOutput(), $m), 422, 'PDF reading is unavailable on this server; upload page images instead.');
-                abort_if((int) $m[1] > 6, 422, 'Upload a PDF of at most six pages.');
-                $p = new Process(['pdftoppm', '-jpeg', '-scale-to', '1024', '-f', '1', '-l', '6', $file->getRealPath(), $directory.'/page']);
-                $p->setTimeout(45);
-                $p->mustRun();
-                $paths = glob($directory.'/page-*.jpg');
-                sort($paths, SORT_NATURAL);
-            }
-            abort_unless(function_exists('imagecreatefromstring'), 422, 'Image processing is unavailable on this server.');
-            $images = [];
-            foreach ($paths as $path) {
-                $bytes = file_get_contents($path);
-                $size = getimagesizefromstring($bytes);
-                abort_unless($size && $size[0] * $size[1] <= 30000000, 422, 'Use an image smaller than 30 megapixels.');
-                $src = imagecreatefromstring($bytes);
-                abort_unless($src, 422, 'Image could not be read.');
-                $ratio = min(1, 1024 / max(imagesx($src), imagesy($src)));
-                $dst = imagecreatetruecolor(max(1, (int) (imagesx($src) * $ratio)), max(1, (int) (imagesy($src) * $ratio)));
-                $white = imagecolorallocate($dst, 255, 255, 255);
-                imagefill($dst, 0, 0, $white);
-                imagecopyresampled($dst, $src, 0, 0, 0, 0, imagesx($dst), imagesy($dst), imagesx($src), imagesy($src));
-                ob_start();
-                imagejpeg($dst, null, 85);
-                $images[] = ob_get_clean();
-                imagedestroy($dst);
-                imagedestroy($src);
-            }
-
-            return $images;
-        } catch (ExceptionInterface $e) {
-            abort(422, 'PDF reading is unavailable; upload page images instead.');
-        } finally {
-            if ($directory) {
-                foreach (glob($directory.'/*') as $p) {
-                    @unlink($p);
-                }@rmdir($directory);
-            }
-        }
+        return app(\App\Services\AI\NoteSourceReader::class)->images($file);
     }
 }

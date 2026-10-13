@@ -18,7 +18,7 @@ class AiFeatureCatalog
 
     /** Friendly labels for ledger / reporting surfaces. */
     public const FEATURE_LABELS = [
-        'mind'          => 'AI Note Summarizer',
+        'mind'          => 'Notes → Action Plan',
         'persona'       => 'Persona Generator',
         'companion'     => 'AI Chat',
         'coach'         => 'AI Link Optimizer',

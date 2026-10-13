@@ -147,7 +147,7 @@ class ReadonlyDemoAllowlistPersistenceTest extends TestCase
 
     /**
      * Swap the real OpenAI client for a stub so the AI-*generation* previews
-     * (coach.suggest / mind.think) never make a network call or charge coins —
+     * (coach.suggest) never make a network call or charge coins —
      * their only allowed-to-run behaviour is rendering a flashed result and
      * redirecting. The estimate routes are pure arithmetic and don't need this.
      */
@@ -737,11 +737,9 @@ class ReadonlyDemoAllowlistPersistenceTest extends TestCase
     }
 
     /**
-     * AI-*generation* preview that IS allowlisted — user.ai.mind.think
-     * (POST /user/ai/mind/think). Stub OpenAiService so no network/charge; its
-     * only allowed side effect is flashing the result and redirecting. No rows.
+     * Notes generation saves records, so readonly demo users must be blocked.
      */
-    public function test_allowlisted_ai_mind_think_persists_nothing(): void
+    public function test_notes_generation_is_blocked_for_readonly_demo(): void
     {
         AiEngineSettings::setEnabled(true);
         $this->mockOpenAi();
@@ -756,7 +754,7 @@ class ReadonlyDemoAllowlistPersistenceTest extends TestCase
             'user.ai.mind.think'
         );
 
-        $response->assertRedirect(route('user.ai.mind.show'));
+        $response->assertRedirect()->assertSessionHas('error', self::BLOCK_MESSAGE);
     }
 
     /**
