@@ -81,7 +81,7 @@
         </a>
         @endcanInWorkspace
         @endif
-        @if($link->type === 'community_club')
+        @if($link->type === 'community_club' && \Illuminate\Support\Facades\Route::has('user.links.memberships'))
         <a href="{{ route('user.links.memberships',$link) }}" class="editor-tab no-underline {{ $activeMainTab === 'members' ? 'is-active' : '' }}"><i class="fas fa-users text-[10px]"></i><span>Members</span></a>
         @endif
         @if($link->type === 'conversational')

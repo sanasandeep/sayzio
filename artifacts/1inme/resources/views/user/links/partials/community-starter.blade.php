@@ -13,7 +13,7 @@
     @canInWorkspace('inbox.view')
     <a class="btn-ghost inline-block mb-3" href="{{ route('user.inbox.index') }}"><i class="fas fa-inbox mr-2"></i>{{ $isCause ? 'Volunteer requests' : 'Membership requests' }}</a>
     @endcanInWorkspace
-    @if(!$isCause)
+    @if(!$isCause && \Illuminate\Support\Facades\Route::has('user.links.memberships'))
     <a class="btn-ghost inline-block mb-3" href="{{ route('user.links.memberships',$link) }}"><i class="fas fa-users mr-2"></i>Manage members</a>
     @endif
     @include('user.links.partials.business-starter-picker', ['link'=>$link])

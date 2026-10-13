@@ -99,4 +99,15 @@ class ClubMembershipManagementTest extends TestCase {
         $this->assertNull($member->fresh()->account_id);
     }
 
+    public function test_club_blocks_render_when_membership_route_is_missing_from_old_cache(): void {
+        $link=$this->club();
+        $url=route('user.links.blocks.editor',$link);
+        $routes=new \Illuminate\Routing\RouteCollection();
+        foreach(app('router')->getRoutes() as $route) {
+            if($route->getName()!=='user.links.memberships') $routes->add($route);
+        }
+        app('router')->setRoutes($routes);
+        $this->get($url)->assertOk()->assertSee('Bring your community together')->assertDontSee('Manage members');
+    }
+
 }
