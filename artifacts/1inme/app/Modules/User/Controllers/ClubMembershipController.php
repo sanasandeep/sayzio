@@ -4,6 +4,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\{Link, ClubMembership, Form};
 use App\Modules\User\Services\ClubMembershipService;
 use Illuminate\Http\Request;
+use App\Modules\User\Models\BillingCompany;
+use App\Services\Billing\ClientInvoiceService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\{Rule, ValidationException};
 
@@ -16,16 +18,34 @@ class ClubMembershipController extends Controller {
         $this->authorizeLink($link);
         $settings=data_get($link->settings,'membership',[]);
         $forms=auth()->user()->canInWorkspace(app('current_workspace'),'inbox.view') ? Form::where('user_id',$link->user_id)->orderBy('title')->get() : collect();
-        $members=ClubMembership::where('link_id',$link->id)->when($request->filled('q'),function($q)use($request){$term='%'.$request->string('q')->substr(0,150).'%';$q->where(fn($q)=>$q->where('name','like',$term)->orWhere('email','like',$term)->orWhere('phone','like',$term));})->latest()->paginate(20)->withQueryString();
+        $query=ClubMembership::where('link_id',$link->id);
+        $tab=$request->input('tab','all');
+        $upcoming=(int)($settings['upcoming_days']??30);
+        match($tab) {
+            'new'=>$query->where('status','pending'),
+            'active'=>$query->where('status','active')->where(fn($q)=>$q->whereNull('expires_at')->orWhereDate('expires_at','>=',today())),
+            'expired'=>$query->where('status','active')->whereDate('expires_at','<',today()),
+            'upcoming'=>$query->where('status','active')->whereBetween('expires_at',[today(),today()->addDays($upcoming)]),
+            'cancelled'=>$query->where('status','cancelled'),default=>null,
+        };
+        $query->when($request->filled('q'),function($q)use($request){$term='%'.$request->string('q')->substr(0,150).'%';$q->where(fn($q)=>$q->where('name','ilike',$term)->orWhere('email','ilike',$term)->orWhere('phone','like',$term));});
+        foreach(['from','to'] as $key) if($request->filled($key)) {$request->validate([$key=>'date']);$query->whereDate('created_at',$key==='from'?'>=':'<=',$request->input($key));}
+        if($request->input('account')==='linked') $query->whereNotNull('account_id');
+        if($request->input('account')==='unlinked') $query->whereNull('account_id');
+        $sort=in_array($request->input('sort'),['name','expires_at','created_at'],true)?$request->input('sort'):'created_at';
+        $members=$query->orderBy($sort,$sort==='created_at'?'desc':'asc')->paginate(20)->withQueryString();
+        $membershipForm=$forms->firstWhere('id',$settings['form_id']??null);
+        $companies=auth()->user()->canInWorkspace(app('current_workspace'),'tasks.view') ? BillingCompany::where('user_id',$link->user_id)->where('workspace_id',$link->workspace_id)->orderBy('name')->get():collect();
         $edit=$request->filled('edit')?ClubMembership::where('link_id',$link->id)->findOrFail($request->input('edit')):null;
-        return view('user.links.memberships',compact('link','settings','forms','members','edit'));
+        return view('user.links.memberships',compact('link','settings','forms','members','edit','membershipForm','companies','tab'));
     }
     public function save(Request $request, Link $link, ClubMembershipService $service) {
         $this->authorizeLink($link);
         $member=$request->filled('id')?ClubMembership::where('link_id',$link->id)->findOrFail($request->input('id')):null;
+        if($member) $request->merge(['custom_fields'=>$member->custom_fields??[]]);
         $data=$request->validate([...$service->rules($link),'expires_at'=>'nullable|date','status'=>'required|in:pending,active,cancelled']);
         $allowed=array_column(data_get($link->settings,'membership.fields',[]),'key');
-        $data['custom_fields']=array_intersect_key($data['custom_fields']??[],array_flip($allowed));
+        $data['custom_fields']=$member ? ($member->custom_fields??[]) : array_intersect_key($data['custom_fields']??[],array_flip($allowed));
         $service->save($link,$data,$member);
         return redirect()->route('user.links.memberships',$link)->with('success','Membership saved. Active members are linked to a free or existing Sayzio account.');
     }
@@ -44,9 +64,56 @@ class ClubMembershipController extends Controller {
             foreach($mapping as $id) if($id && !$fields->has($id)) throw ValidationException::withMessages(['mapping'=>'A mapped field does not exist on this form.']);
         }
         $settings=$link->settings??[];
-        $settings['membership']=['fields'=>$data['fields']??[],'form_id'=>$form?->id,'mapping'=>$mapping];
+        $settings['membership']=[...($settings['membership']??[]),'fields'=>$data['fields']??[],'form_id'=>$form?->id,'mapping'=>$mapping];
         $link->update(['settings'=>$settings]);
         return back()->with('success','Membership form settings saved.');
+    }
+    public function configure(Request $request, Link $link) {
+        $this->authorizeLink($link);
+        $data=$request->validate([
+            'approval'=>'required|in:manual,automatic','duration'=>'required|in:lifetime,fixed','duration_count'=>'required|integer|min:1|max:3650','duration_unit'=>'required|in:days,months,years','renewal'=>'required|in:one_time,renewable','upcoming_days'=>'required|integer|min:1|max:365',
+            'reminders_enabled'=>'required|boolean','reminder_days'=>'nullable|string|max:100',
+            'company_id'=>'nullable|integer','fee_minor'=>'required|integer|min:0|max:1000000000','currency'=>'required|in:INR,USD,EUR,GBP,AUD,CAD',
+            'card_layout'=>'required|in:horizontal,vertical','card_color'=>'required|regex:/^#[0-9a-fA-F]{6}$/','card_title'=>'nullable|string|max:100','card_footer'=>'nullable|string|max:150','card_fields'=>'nullable|array|max:12','card_fields.*'=>'string|max:100',
+        ]);
+        $days=array_values(array_unique(array_filter(array_map('trim',explode(',',$data['reminder_days']??'')),fn($v)=>$v!=='')));
+        foreach($days as $day) if(!ctype_digit($day)||(int)$day>365) throw ValidationException::withMessages(['reminder_days'=>'Use comma-separated days from 0 to 365.']);
+        $data['reminder_days']=array_map('intval',$days);
+        $data['card_fields']=$data['card_fields']??[];
+        if(!empty($data['company_id'])) {
+            abort_unless(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.edit'),403);
+            BillingCompany::where('user_id',$link->user_id)->where('workspace_id',$link->workspace_id)->findOrFail($data['company_id']);
+        }
+        $settings=$link->settings??[];$settings['membership']=[...($settings['membership']??[]),...$data];$link->update(['settings'=>$settings]);
+        return back()->with('success','Membership workflow, reminders, billing and card design saved.');
+    }
+    public function action(Request $request, Link $link, ClubMembershipService $service, string $action) {
+        $this->authorizeLink($link);
+        $request->validate(['id'=>'required|integer']);
+        $member=ClubMembership::where('link_id',$link->id)->findOrFail($request->input('id'));
+        if($action==='renew') $service->renew($link,$member);
+        elseif($action==='approve') $service->save($link,['name'=>$member->name,'email'=>$member->email,'phone'=>$member->phone,'status'=>'active','custom_fields'=>$member->custom_fields],$member);
+        elseif($action==='cancel') $member->update(['status'=>'cancelled']);
+        elseif($action==='invoice') {
+            abort_unless(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.edit'),403);
+            $config=data_get($link->settings,'membership',[]);
+            if(empty($config['fee_minor'])) throw ValidationException::withMessages(['invoice'=>'Configure a membership fee first.']);
+            $invoice=DB::transaction(function()use($member,$link,$config){
+                $member=ClubMembership::where('link_id',$link->id)->lockForUpdate()->findOrFail($member->id);
+                if($member->invoice_id) return $member->invoice_id;
+                if(!empty($config['company_id'])) BillingCompany::where('user_id',$link->user_id)->where('workspace_id',$link->workspace_id)->findOrFail($config['company_id']);
+                $invoice=app(ClientInvoiceService::class)->createStandalone(['billing_company_id'=>$config['company_id']??null,'currency'=>$config['currency']??'INR','recipient_name'=>$member->name,'recipient_email'=>$member->email,'line_items'=>[['label'=>($link->title?:$link->alias).' membership','amount_minor'=>(int)$config['fee_minor'],'quantity'=>1]],'notes_md'=>'Membership #'.$member->id.'; approval and payment are managed separately.'],app('current_workspace'),$link->user_id);
+                $member->update(['invoice_id'=>$invoice->id]);return $invoice->id;
+            });
+            return redirect()->route('user.client-invoices.edit',$invoice);
+        }
+        return back()->with('success','Membership updated.');
+    }
+    public function card(Link $link, int $member) {
+        $this->authorizeLink($link);
+        $member=ClubMembership::where('link_id',$link->id)->findOrFail($member);
+        $settings=data_get($link->settings,'membership',[]);
+        return view('user.links.membership-card',compact('link','member','settings'));
     }
     public function createForm(Link $link) {
         $this->authorizeLink($link);

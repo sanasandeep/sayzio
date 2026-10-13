@@ -110,4 +110,65 @@ class ClubMembershipManagementTest extends TestCase {
         $this->get($url)->assertOk()->assertSee('Bring your community together')->assertDontSee('Manage members');
     }
 
+    private function config(array $extra=[]): array {
+        return [...['approval'=>'manual','duration'=>'fixed','duration_count'=>12,'duration_unit'=>'months','renewal'=>'renewable','upcoming_days'=>30,'reminders_enabled'=>1,'reminder_days'=>'30, 7, 1','fee_minor'=>10000,'currency'=>'INR','card_layout'=>'horizontal','card_color'=>'#4255bc','card_title'=>'Club member'],...$extra];
+    }
+    public function test_native_form_values_and_automatic_approval_use_duration(): void {
+        $link=$this->club();
+        $this->post(route('user.links.memberships.configure',$link),$this->config(['approval'=>'automatic']))->assertRedirect();
+        $this->post(route('user.links.memberships.create-form',$link))->assertRedirect();
+        $form=Form::firstOrFail();
+        $form->submissions()->create(['data'=>['name'=>'Alex','email'=>'member@example.com','phone'=>'+919876543210','choices'=>['A','B'],'signature'=>'signature-file-reference','time'=>'09:30'],'is_spam'=>false,'payment_status'=>'none']);
+        $member=ClubMembership::firstOrFail();
+        $this->assertSame('active',$member->status);$this->assertNotNull($member->account_id);
+        $this->assertSame(now()->addMonthsNoOverflow(12)->toDateString(),$member->expires_at->toDateString());
+        $this->assertSame(['A','B'],$member->custom_fields['choices']);
+        $this->assertSame('signature-file-reference',$member->custom_fields['signature']);
+        $this->get(route('user.links.memberships',$link))->assertOk()->assertSee('Sayzio membership form')->assertSee('/iframe')->assertSee('ID card layout builder');
+    }
+    public function test_renewal_extends_current_period_and_one_time_rejects(): void {
+        $link=$this->club();$link->update(['settings'=>['membership'=>$this->config()]]);
+        $member=ClubMembership::create(['link_id'=>$link->id,...$this->member()]);
+        $date=$member->expires_at->copy()->addMonthsNoOverflow(12)->toDateString();
+        $this->post(route('user.links.memberships.action',['link'=>$link,'action'=>'renew']),['id'=>$member->id])->assertRedirect();
+        $this->assertSame($date,$member->fresh()->expires_at->toDateString());
+        $settings=$link->settings;$settings['membership']['renewal']='one_time';$link->update(['settings'=>$settings]);
+        $this->post(route('user.links.memberships.action',['link'=>$link,'action'=>'renew']),['id'=>$member->id])->assertSessionHasErrors('renewal');
+    }
+    public function test_member_tabs_and_private_card_layouts(): void {
+        $link=$this->club();
+        ClubMembership::create(['link_id'=>$link->id,...$this->member(['name'=>'Expired Person','expires_at'=>now()->subDay()])]);
+        $member=ClubMembership::create(['link_id'=>$link->id,...$this->member(['name'=>'Upcoming Person','email'=>'next@example.com','expires_at'=>now()->addDays(7)])]);
+        $this->get(route('user.links.memberships',['link'=>$link,'tab'=>'expired']))->assertOk()->assertSee('Expired Person')->assertDontSee('Upcoming Person');
+        $this->get(route('user.links.memberships',['link'=>$link,'tab'=>'upcoming']))->assertOk()->assertSee('Upcoming Person')->assertDontSee('Expired Person');
+        $this->get(route('user.links.memberships.card',['link'=>$link,'member'=>$member->id]))->assertOk()->assertSee('Upcoming Person')->assertSee('Print / save PDF');
+        $other=Link::create(['user_id'=>$link->user_id,'workspace_id'=>$link->workspace_id,'type'=>'community_club','alias'=>'other']);
+        $this->get(route('user.links.memberships.card',['link'=>$other,'member'=>$member->id]))->assertNotFound();
+    }
+    public function test_reminders_send_once_per_expiry_date(): void {
+        \Illuminate\Support\Facades\Mail::fake();
+        $link=$this->club();$link->update(['settings'=>['membership'=>['reminders_enabled'=>true,'reminder_days'=>[7]]]]);
+        $member=ClubMembership::create(['link_id'=>$link->id,...$this->member(['expires_at'=>today()->addDays(7)])]);
+        $this->artisan('clubs:send-membership-reminders')->assertSuccessful();
+        $this->artisan('clubs:send-membership-reminders')->assertSuccessful();
+        $this->assertDatabaseCount('club_membership_reminders',1);
+        $this->assertDatabaseHas('club_membership_reminders',['club_membership_id'=>$member->id,'lead_days'=>7]);
+    }
+    public function test_invoice_draft_is_member_scoped_and_does_not_approve(): void {
+        $link=$this->club();$link->update(['settings'=>['membership'=>$this->config()]]);
+        $member=ClubMembership::create(['link_id'=>$link->id,...$this->member(['status'=>'pending'])]);
+        $this->post(route('user.links.memberships.action',['link'=>$link,'action'=>'invoice']),['id'=>$member->id])->assertRedirect();
+        $invoice=\App\Modules\User\Models\Invoice::findOrFail($member->fresh()->invoice_id);
+        $this->assertSame('member@example.com',$invoice->recipient_email);
+        $this->assertSame(10000,$invoice->grand_total_minor);
+        $this->assertSame('pending',$member->fresh()->status);
+        $this->post(route('user.links.memberships.action',['link'=>$link,'action'=>'invoice']),['id'=>$member->id])->assertRedirect();
+        $this->assertSame($invoice->id,$member->fresh()->invoice_id);
+    }
+    public function test_invalid_reminders_and_foreign_company_are_rejected(): void {
+        $link=$this->club();
+        $this->post(route('user.links.memberships.configure',$link),$this->config(['reminder_days'=>'-7, bad']))->assertSessionHasErrors('reminder_days');
+        $this->post(route('user.links.memberships.configure',$link),$this->config(['company_id'=>999999]))->assertNotFound();
+    }
+
 }

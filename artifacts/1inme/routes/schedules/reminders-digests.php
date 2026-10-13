@@ -14,6 +14,7 @@
 */
 
 return [
+    ['key'=>'clubs:send-membership-reminders','description'=>'Send configured club membership expiry emails, deduplicated per expiry and lead time.','cadence'=>['dailyAt','08:00']],
     [
         'key'         => 'tasks:send-due-reminders',
         'description' => 'Email task assignees about cards due today or overdue (delivered at 8 AM in each workspace\'s own timezone).',
