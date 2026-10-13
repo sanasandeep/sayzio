@@ -2,7 +2,7 @@
 @section('title', 'Payments · ' . $form->title)
 
 @section('content')
-<div class="max-w-3xl mx-auto" x-data="{ paidEnabled: {{ ($payment['enabled'] ?? false) ? 'true' : 'false' }}, payMode: '{{ ($payment['mode'] ?? 'fixed') === 'per_field' ? 'per_field' : 'fixed' }}' }">
+<div class="forms-workspace" x-data="{ paidEnabled: {{ ($payment['enabled'] ?? false) ? 'true' : 'false' }}, payMode: '{{ ($payment['mode'] ?? 'fixed') === 'per_field' ? 'per_field' : 'fixed' }}' }">
     @include('user.partials.page-hero', [
         'title' => 'Payments',
         'subtitle' => 'Charge customers to submit this form. Funds go straight to your connected payment gateway, Sayzio takes 0%.',
@@ -41,12 +41,19 @@
         </div>
     @endunless
 
+    @if($connection)
+    <div class="card-premium p-5 mb-6 flex flex-wrap items-center gap-3">
+        <i class="fas fa-credit-card text-blue-500"></i>
+        <div><strong>{{ ucfirst($connection->provider) }}</strong><p class="text-xs" style="color:var(--text-muted)">{{ $connection->statusLabel() }} · {{ $connection->charges_enabled ? 'Charges enabled' : 'Charges not enabled yet' }}</p></div>
+        <a class="btn-ghost ml-auto" href="{{ route('user.payouts.show') }}">Manage gateways</a>
+    </div>
+    @endif
     @unless($hasGateway)
         <div class="mb-6 px-4 py-3 rounded-xl text-sm flex items-start gap-2" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #b45309;">
             <i class="fas fa-plug mt-0.5"></i>
             <span>
                 Connect a payment gateway before you can charge for this form, funds are paid straight to your own gateway.
-                <a href="{{ route('user.payouts') }}" class="underline font-semibold">Set up payouts →</a>
+                <a href="{{ route('user.payouts.show') }}" class="underline font-semibold">Set up payouts →</a>
             </span>
         </div>
     @endunless

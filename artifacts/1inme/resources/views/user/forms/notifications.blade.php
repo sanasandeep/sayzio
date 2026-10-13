@@ -2,7 +2,7 @@
 @section('title', 'Notifications · ' . $form->title)
 
 @section('content')
-<div class="max-w-5xl mx-auto" x-data="{
+<div class="forms-workspace" x-data="{
         emailEnabled: {{ ($notifications['email']['enabled'] ?? false) ? 'true' : 'false' }},
         autoEnabled: {{ ($notifications['autoresponder']['enabled'] ?? false) ? 'true' : 'false' }},
         smsEnabled: {{ ($notifications['sms']['enabled'] ?? false) ? 'true' : 'false' }},
@@ -18,6 +18,7 @@
     ])
 
     @include('user.forms._tabs')
+    <div class="card-premium p-4 mb-5"><strong>Sender in use</strong><p class="text-sm mt-1">{{ $emailSenderLabel }}. If a chosen connection is inactive or incomplete, notifications use Sayzio's system email sender.</p></div>
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -253,5 +254,10 @@
             @endcanInWorkspace
         </div>
     </form>
+    <div class="card-premium p-5 mt-5 space-y-3"><h3 class="font-bold">Google Sheets & CRM connections</h3><p class="text-sm">Connect a receiving webhook in your automation service, then add a Google Sheets “Add row” action or your CRM's “Create/update contact” action. Paste its public receiving URL above and save. Map <code>submission.data.FIELD_ID</code> to each destination column; field IDs appear in the builder. Use submission.id as the external record key to avoid duplicates.</p><p class="text-sm">A Google Sheet's sharing URL is not a webhook. Use a configured automation webhook or an Apps Script endpoint that accepts JSON. Keep authentication headers in the webhook settings. Connected Sayzio CRM integrations already receive eligible non-spam leads through the existing lead sync.</p><pre class="text-xs p-3 rounded-xl" style="background:var(--bg-glass-input)">{"form":{"id":144,"slug":"example","title":"Registration"},"submission":{"id":123,"data":{"name":"Sample member","email":"sample@example.com"},"files":[],"created_at":"2026-10-13T00:00:00Z"}}</pre><p class="text-xs">Save destinations first, then send a sample test. Tests contain example data and can create a row in the receiving system. Delivery history records HTTP status; it does not confirm that the destination processed the data.</p>
+    @foreach($notifications['webhooks']??[] as $i=>$hook)<form method="POST" action="{{ route('user.forms.webhook-test',$form) }}">@csrf<input type="hidden" name="index" value="{{ $i }}"><button class="btn-ghost">Send sample to webhook {{ $i+1 }}</button></form>@endforeach
+    <h4 class="font-bold">Recent deliveries</h4>@forelse($webhookDeliveries as $delivery)<p class="text-xs">{{ $delivery->created_at }} · webhook {{ $delivery->hook_index+1 }} · {{ $delivery->is_test?'Test':'Submission' }} · {{ $delivery->message }}</p>@empty<p class="text-sm">No deliveries recorded yet.</p>@endforelse
+    </div>
+
 </div>
 @endsection

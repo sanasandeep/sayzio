@@ -136,11 +136,11 @@ class FormController extends Controller
         $form->loadCount('submissions');
         $recent = $form->submissions()->completed()->latest()->limit(5)->get();
         $stats = [
-            'today' => $form->submissions()->completed()->whereDate('created_at', today())->count(),
-            'week'  => $form->submissions()->completed()->where('created_at', '>=', now()->subDays(7))->count(),
-            'month' => $form->submissions()->completed()->where('created_at', '>=', now()->subDays(30))->count(),
-            'unread' => $form->submissions()->completed()->where('is_read', false)->count(),
-            'conversion' => $form->total_views > 0 ? round(($form->total_submissions / $form->total_views) * 100, 1) : 0,
+            'today' => $form->submissions()->completed()->where('is_spam',false)->whereDate('created_at', today())->count(),
+            'week'  => $form->submissions()->completed()->where('is_spam',false)->where('created_at', '>=', now()->subDays(7))->count(),
+            'month' => $form->submissions()->completed()->where('is_spam',false)->where('created_at', '>=', now()->subDays(30))->count(),
+            'unread' => $form->submissions()->completed()->where('is_spam',false)->where('is_read', false)->count(),
+            'conversion' => $form->total_views > 0 ? round(($form->submissions()->completed()->where('is_spam',false)->count() / $form->total_views) * 100, 1) : 0,
         ];
 
         // Advanced form analytics (Task #2319) — Pro-and-above only. Built
@@ -290,6 +290,10 @@ class FormController extends Controller
             'fields.*.id' => 'required|string|max:64|regex:/^[a-zA-Z0-9_-]+$/',
             'fields.*.type' => 'required|string|max:32',
             'fields.*.label' => 'nullable|string|max:300',
+            'fields.*.show_if'=>'nullable|array',
+            'fields.*.show_if.field'=>'nullable|string|max:64',
+            'fields.*.show_if.value'=>'nullable|string|max:200',
+            'fields.*.show_if.operator'=>'nullable|in:equals,not_equals',
         ]);
 
         $allowedTypes = array_keys(Form::fieldTypes());
@@ -384,6 +388,11 @@ class FormController extends Controller
                     if ($rM !== null) $row['repeat_max'] = $rM;
                 }
             }
+            if(!empty($f['show_if']['field']) && empty($f['parent']) && !in_array($type,['section','page_break','hidden'],true)){
+                $source=collect($clean)->firstWhere('id',$f['show_if']['field']);
+                if(!$source) return back()->withInput()->withErrors(['fields'=>'A conditional question must follow the question it depends on.']);
+                if($source && empty($source['parent']) && in_array($source['type'],['text','radio','select','yes_no','checkbox'],true))$row['show_if']=['field'=>$source['id'],'operator'=>($f['show_if']['operator']??'equals')==='not_equals'?'not_equals':'equals','value'=>mb_substr((string)($f['show_if']['value']??''),0,200)];
+            }
             $clean[] = $row;
         }
 
@@ -408,6 +417,7 @@ class FormController extends Controller
         }
         unset($f);
 
+        if(($form->design['layout']??'')==='oneq' && collect($clean)->contains(fn($f)=>!empty($f['show_if'])))return back()->withInput()->withErrors(['fields'=>'Switch to stacked or inline layout before adding conditions.']);
         $form->update([
             'title' => $request->input('title'),
             'description' => $request->input('description'),
@@ -433,6 +443,7 @@ class FormController extends Controller
         // arbitrary CSS that could escape the inline-style context.
         $colorRule = ['regex:/^(#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgba?\(\s*[\d.\s,%\/]+\)|hsla?\(\s*[\d.\s,%\/]+\))$/'];
         $data = $request->validate([
+            'choice_style' => 'nullable|in:plain,cards,pills',
             'theme' => 'required|in:light,dark,glass',
             'accent' => array_merge(['required', 'string', 'max:32'], $colorRule),
             'background' => array_merge(['required', 'string', 'max:32'], $colorRule),
@@ -462,6 +473,7 @@ class FormController extends Controller
             'custom_css' => 'nullable|string|max:50000',
         ]);
 
+        if(($data['layout']??'')==='oneq' && collect($form->fields??[])->contains(fn($f)=>!empty($f['show_if'])))return back()->withInput()->withErrors(['layout'=>'Conditional fields currently require stacked or inline layout.']);
         $design = array_merge(Form::defaultDesign(), $form->design ?? [], $data);
         $design['show_branding'] = $request->boolean('show_branding');
 
@@ -538,6 +550,8 @@ class FormController extends Controller
             'delivery_enabled' => 'sometimes|boolean',
             'delivery_url'     => 'nullable|string|max:2000',
             'delivery_label'   => 'nullable|string|max:120',
+            'allow_resume'=>'sometimes|boolean',
+            'translations_json'=>'nullable|json|max:20000',
         ]);
 
         // Delivery file (Task #6624): accept an absolute http(s) URL or a
@@ -573,6 +587,10 @@ class FormController extends Controller
 
         $settings = array_merge(Form::defaultSettings(), $form->settings ?? []);
         $settings['captcha'] = $cap;
+        $settings['allow_resume']=$request->boolean('allow_resume');
+        $translations=json_decode($request->input('translations_json','{}'),true)??[];
+        if(!is_array($translations))return back()->withErrors(['translations_json'=>'Use a JSON object keyed by language code.']);
+        $cleanTranslations=[];foreach(array_slice($translations,0,10,true) as $locale=>$tr){if(!is_string($locale)||!preg_match('/^[a-z]{2}(?:-[A-Z]{2})?$/',$locale)||!is_array($tr))continue;$entry=[];foreach(['title','description','button_label','success_message'] as $k)if(isset($tr[$k])&&is_string($tr[$k])&&trim($tr[$k])!=='')$entry[$k]=mb_substr($tr[$k],0,1000);foreach(is_array($tr['fields']??null)?$tr['fields']:[] as $id=>$labels){if(!collect($form->fields??[])->contains('id',$id)||!is_array($labels))continue;foreach(['label','help','placeholder'] as $k)if(isset($labels[$k])&&is_string($labels[$k])&&trim($labels[$k])!=='')$entry['fields'][$id][$k]=mb_substr($labels[$k],0,500);}$cleanTranslations[$locale]=$entry;}$settings['translations']=$cleanTranslations;
 
         // After-submit settings (Task #6624) — saved alongside captcha.
         $settings['success_message'] = trim((string) $request->input('success_message', ''))
@@ -595,7 +613,10 @@ class FormController extends Controller
         $this->authorizeForm($request, $form);
         $notifications = array_replace_recursive(Form::defaultNotifications(), $form->notifications ?? []);
         $hasWhatsappNumber = (bool) $form->user?->hasWhatsappNumber();
-        return view('user.forms.notifications', compact('form', 'notifications', 'hasWhatsappNumber'));
+        $emailConnection = \App\Modules\User\Services\EmailConnectionMailer::resolve($form->user_id, $notifications['email']['config_id'] ?? null);
+        $emailSenderLabel = $emailConnection && \App\Modules\User\Services\EmailConnectionMailer::mailerConfig($emailConnection) ? 'Saved email connection: '.($emailConnection->name ?? ucfirst($emailConnection->provider)) : 'System email';
+        $webhookDeliveries = \Illuminate\Support\Facades\Schema::hasTable('form_webhook_deliveries') ? \Illuminate\Support\Facades\DB::table('form_webhook_deliveries')->where('form_id',$form->id)->latest('id')->limit(10)->get() : collect();
+        return view('user.forms.notifications', compact('form', 'notifications', 'hasWhatsappNumber','emailSenderLabel','webhookDeliveries'));
     }
 
     public function updateNotifications(Request $request, Form $form)
@@ -974,7 +995,7 @@ class FormController extends Controller
         $payment      = $form->paymentConfig();
         $canPaidForms = (bool) (workspace_owner()?->getPlanFeature('paid_forms', false));
         $connection   = $form->user?->defaultPaymentConnection();
-        $hasGateway   = (bool) $connection;
+        $hasGateway   = $connection && $connection->status === 'active' && $connection->charges_enabled;
         return view('user.forms.payment', compact('form', 'payment', 'canPaidForms', 'hasGateway', 'connection'));
     }
 
@@ -1008,7 +1029,8 @@ class FormController extends Controller
             return back()->withInput()->with('error', 'Add a price to at least one field (in the builder) or set a base fee before enabling per-field pricing.');
         }
 
-        if ($enabled && ! $form->user?->defaultPaymentConnection()) {
+        $gateway = $form->user?->defaultPaymentConnection();
+        if ($enabled && (! $gateway || $gateway->status !== 'active' || ! $gateway->charges_enabled)) {
             return back()->withInput()->with('error', 'Connect a payment gateway in Payouts before charging customers to submit this form.');
         }
 
@@ -1034,7 +1056,8 @@ class FormController extends Controller
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
         $form->increment('total_views');
         $mathQuestion = $this->seedMathCaptcha($form);
-        return view('common.form', ['form' => $form, 'embed' => false, 'mathQuestion' => $mathQuestion]);
+        $visitToken = app(\App\Modules\User\Services\FormVisitTracker::class)->create($form, $request);
+        return view('common.form', compact('form','mathQuestion','visitToken') + ['embed'=>false]);
     }
 
     public function publicIframe(Request $request, string $slug)
@@ -1042,7 +1065,8 @@ class FormController extends Controller
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
         $form->increment('total_views');
         $mathQuestion = $this->seedMathCaptcha($form);
-        return view('common.form', ['form' => $form, 'embed' => true, 'mathQuestion' => $mathQuestion]);
+        $visitToken = app(\App\Modules\User\Services\FormVisitTracker::class)->create($form, $request);
+        return view('common.form', compact('form','mathQuestion','visitToken') + ['embed'=>true]);
     }
 
     public function publicEmbedJs(Request $request, string $slug)
@@ -1076,6 +1100,8 @@ class FormController extends Controller
     {
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
 
+        $originalFields = $form->fields;
+        $form->fields = $form->visibleFields($request->all());
         $rules = $this->buildSubmissionRules($form);
 
         // Files attached inside repeatable copies can't be flashed back by old()
@@ -1340,7 +1366,8 @@ class FormController extends Controller
         // positive. If the gateway was removed after setup — or nothing priced
         // was selected — the submission degrades to a normal free submission
         // rather than stranding the customer at a dead checkout.
-        $canCharge      = $form->isPaid() && (bool) $form->user?->defaultPaymentConnection();
+        $gateway = $form->user?->defaultPaymentConnection();
+        $canCharge = $form->isPaid() && $gateway && $gateway->status === 'active' && $gateway->charges_enabled;
         $paymentEnabled = !empty($form->paymentConfig()['enabled']);
         $perFieldCents  = ($canCharge && $paymentEnabled) ? $form->computeAmountCents($data) : 0;
         $lineItems      = ($canCharge && $paymentEnabled) ? $form->priceLineItems($data) : [];
@@ -1348,6 +1375,7 @@ class FormController extends Controller
         $chargeCurrency = $form->paymentCurrency();
         $isPaid         = $canCharge && $chargeCents > 0;
 
+        $form->fields = $originalFields;
         $submission = $form->submissions()->create([
             'data' => $data,
             'files' => $files ?: null,
@@ -1365,6 +1393,10 @@ class FormController extends Controller
             // (or will be) charged for this submission.
             'line_items' => $isPaid ? $lineItems : null,
         ]);
+
+        $visitToken=$request->input('_visit_token');if(!is_string($visitToken))$visitToken=null;
+        if(!$spamCheck['is_spam'])app(\App\Modules\User\Services\FormVisitTracker::class)->attach($form,$visitToken,$submission->id);
+        if (!$isPaid && !$spamCheck['is_spam']) app(\App\Modules\User\Services\FormVisitTracker::class)->complete($form, $visitToken);
 
         // Fan the captured submission out to the owner's connected CRMs as a
         // lead (queued off the request cycle; no-op when no CRM is connected).
@@ -1441,6 +1473,7 @@ class FormController extends Controller
      */
     public function finalizePaidSubmission(Form $form, FormSubmission $submission): void
     {
+        app(\App\Modules\User\Services\FormVisitTracker::class)->completeSubmission($form,$submission->id);
         $this->fireNotifications($form, $submission);
         try {
             app(\App\Modules\User\Services\InboxForwarder::class)
@@ -2045,6 +2078,8 @@ class FormController extends Controller
     protected function successResponse(Request $request, Form $form, bool $silent, ?FormSubmission $submission = null)
     {
         $settings = array_merge(Form::defaultSettings(), $form->settings ?? []);
+        $locale = $request->input('_locale');
+        if (is_string($locale) && isset($settings['translations'][$locale]['success_message'])) $settings['success_message'] = $settings['translations'][$locale]['success_message'];
 
         // Deliver-a-file (Task #6624): only a real, stored, non-spam
         // submission unlocks the signed download. Paid forms never reach this
@@ -2197,33 +2232,11 @@ class FormController extends Controller
             }
         } catch (\Throwable $e) { logger()->warning('Form autoresponder failed: ' . $e->getMessage()); }
 
-        // Webhooks
-        foreach ($n['webhooks'] ?? [] as $hook) {
+        // Webhooks: failures are visible in the owner's delivery history.
+        foreach ($n['webhooks'] ?? [] as $index => $hook) {
             if (empty($hook['enabled']) || empty($hook['url'])) continue;
-            if (!$this->isSafeWebhookUrl($hook['url'])) {
-                logger()->warning('Form webhook blocked (unsafe URL): ' . $hook['url']);
-                continue;
-            }
-            try {
-                $headers = [];
-                if (!empty($hook['header_key']) && !empty($hook['header_value'])) {
-                    // Strip control characters from headers to prevent header-injection
-                    $hk = preg_replace('/[\r\n\t:\s]+/', '-', trim($hook['header_key']));
-                    $hv = preg_replace('/[\r\n]+/', ' ', trim($hook['header_value']));
-                    if ($hk !== '') $headers[$hk] = $hv;
-                }
-                $payload = [
-                    'form' => ['id' => $form->id, 'slug' => $form->slug, 'title' => $form->title],
-                    'submission' => [
-                        'id' => $submission->id,
-                        'data' => $submission->data,
-                        'files' => $submission->files,
-                        'created_at' => $submission->created_at?->toIso8601String(),
-                        'ip' => $submission->ip,
-                    ],
-                ];
-                Http::withHeaders($headers)->timeout(5)->{strtolower($hook['method'] ?? 'post')}($hook['url'], $payload);
-            } catch (\Throwable $e) { logger()->warning('Form webhook failed: ' . $e->getMessage()); }
+            $payload = ['form'=>['id'=>$form->id,'slug'=>$form->slug,'title'=>$form->title], 'submission'=>['id'=>$submission->id,'data'=>$submission->data,'files'=>$submission->files,'ip'=>$submission->ip,'created_at'=>$submission->created_at?->toIso8601String()]];
+            app(\App\Modules\User\Services\FormWebhookDispatcher::class)->send($form,$hook,$payload,(int)$index);
         }
 
         // SMS — dispatch via the user-selected SMS configuration (Twilio HTTP API
@@ -2361,7 +2374,7 @@ class FormController extends Controller
     /**
      * Reject webhook URLs that target private / loopback / link-local IPs (SSRF guard).
      */
-    protected function isSafeWebhookUrl(string $url): bool
+    public function isSafeWebhookUrl(string $url): bool
     {
         $parts = parse_url($url);
         if (!$parts || empty($parts['host']) || !in_array($parts['scheme'] ?? '', ['http', 'https'], true)) return false;

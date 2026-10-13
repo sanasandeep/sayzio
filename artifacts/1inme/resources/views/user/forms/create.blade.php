@@ -59,7 +59,8 @@
           x-data="formCreate()">
         @csrf
 
-        {{-- Basics --}}
+        <div class="card-premium p-4 mb-5 text-sm"><strong>Create with AI</strong><p class="mt-1" style="color:var(--text-muted)">Create a blank form below, then open Create / edit with AI in Build. Describe your questions or upload a PDF or image. Review the coin estimate and generated draft before saving.</p></div>
+    {{-- Basics --}}
         <div class="card-premium p-6">
             <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Basics</h3>
             <p class="text-[11px] mb-5" style="color: var(--text-faint);">Give your form a name and an optional description. You can change all of this later.</p>

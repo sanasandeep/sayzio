@@ -2,7 +2,7 @@
 @section('title', 'Embed · ' . $form->title)
 
 @section('content')
-<div class="max-w-5xl mx-auto" x-data="{ tab: 'iframe', copied: '' }">
+<div class="forms-workspace" x-data="{ tab: 'iframe', copied: '' }">
     @include('user.partials.page-hero', [
         'title' => 'Share &amp; Embed',
         'subtitle' => 'Use anywhere, share the public link, embed an iframe, drop a script tag, or add to a Link in Bio page.',
@@ -42,9 +42,9 @@
     </form>
     @endif
 
-    <div class="card-premium p-1 mb-6 inline-flex">
+    <div class="card-premium p-1 mb-6 flex flex-wrap gap-2">
         @foreach(['iframe' => ['Iframe', 'fa-window-maximize'], 'script' => ['Script tag', 'fa-code'], 'link' => ['Direct link', 'fa-link'], 'biolink' => ['Link in Bio block', 'fa-th-large']] as $key => [$label, $icon])
-            <button @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'bg-blue-500 text-white' : ''" class="px-4 py-2 rounded-lg text-xs font-semibold" style="color: var(--text-muted);">
+            <button @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'bg-blue-500 text-white' : ''" class="px-4 py-2 rounded-lg text-xs font-semibold" :style="tab === '{{ $key }}' ? 'background:#3155eb;color:white' : 'color:var(--text-muted)'">
                 <i class="fas {{ $icon }} text-[10px] mr-1"></i> {{ $label }}
             </button>
         @endforeach

@@ -29,6 +29,15 @@ protected $fillable = [
         ];
     }
 
+    /** Evaluate only backward references; hidden answers cannot activate another field. */
+    public function visibleFields(array $answers): array {
+        $visible=[]; $visibleIds=[];
+        foreach($this->fields??[] as $field){$condition=$field['show_if']??null;
+            if($condition && !empty($condition['field'])){$source=$condition['field'];$raw=$answers[$source]??null;$values=is_array($raw)?array_filter($raw,'is_scalar'):[$raw];$match=in_array((string)($condition['value']??''),array_map(fn($v)=>is_scalar($v)?(string)$v:'',$values),true);if(!isset($visibleIds[$source]) || (($condition['operator']??'equals')==='not_equals'?$match:!$match))continue;}
+            $visible[]=$field;$visibleIds[$field['id']??'']=true;
+        }return $visible;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -124,6 +133,7 @@ protected $fillable = [
             'input_style' => 'soft',      // soft | outline | underline | filled | ghost | elevated | accent_bar
             'input_shape' => 'auto',      // auto (follow border_radius) | pill | square
             'density' => 'comfortable',   // comfortable | compact
+            'choice_style' => 'plain',
             'focus_style' => 'glow',      // glow | border | fill
             'font' => 'Plus Jakarta Sans',
             'show_branding' => true,

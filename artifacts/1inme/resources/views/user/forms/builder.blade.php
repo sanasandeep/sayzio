@@ -2,15 +2,16 @@
 @section('title', 'Build · ' . $form->title)
 
 @section('content')
-<div class="max-w-7xl mx-auto"
+<div class="forms-workspace"
      x-data="formBuilder({
-        title: @js($form->title),
-        description: @js($form->description ?? ''),
-        fields: @js($form->fields ?? []),
+        title: @js(old('title',$form->title)),
+        description: @js(old('description',$form->description ?? '')),
+        fields: @js(old('fields',$form->fields ?? [])),
         types: @js($fieldTypes),
         canPrice: @js($canPrice),
+        previewUrl: @js(route('user.forms.preview',$form)),
      })"
-     x-init="$nextTick(() => initSortable())">
+     x-init="$nextTick(() => initSortable())" @form-ai-apply.window="fields=$event.detail.fields;title=$event.detail.title;description=$event.detail.description;selectedIndex=null;selectedIds=[]">
 
     @include('user.partials.page-hero', [
         'title' => 'Build: ' . $form->title,
@@ -20,6 +21,7 @@
     ])
 
     @include('user.forms._tabs')
+    @include('user.forms._ai')
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -37,6 +39,7 @@
                 <input type="hidden" :name="`fields[${i}][id]`" :value="f.id">
                 <input type="hidden" :name="`fields[${i}][type]`" :value="f.type">
                 <input type="hidden" :name="`fields[${i}][label]`" :value="f.label || ''">
+                <input type="hidden" :name="`fields[${i}][show_if][field]`" :value="f.show_if?.field||''"><input type="hidden" :name="`fields[${i}][show_if][operator]`" :value="f.show_if?.operator||'equals'"><input type="hidden" :name="`fields[${i}][show_if][value]`" :value="f.show_if?.value||''">
                 <input type="hidden" :name="`fields[${i}][placeholder]`" :value="f.placeholder || ''">
                 <input type="hidden" :name="`fields[${i}][help]`" :value="f.help || ''">
                 <input type="hidden" :name="`fields[${i}][required]`" :value="f.required ? 1 : 0">
@@ -107,9 +110,9 @@
             </div>
         </template>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 form-studio-grid gap-6">
             {{-- LEFT: field type palette --}}
-            <aside class="lg:col-span-3">
+            <aside class="lg:col-span-2">
                                 {{-- The scroll container must NOT be the .card-premium element:
                      theme-styles.blade.php sets `.card-premium { overflow: hidden }`
                      from an inline <style> in the head, so it loads after Tailwind's
@@ -117,8 +120,9 @@
                      `lg:overflow-y-auto` and the panel clips instead of scrolling.
                      Keep sticky/max-height/overflow on a plain wrapper and let the
                      card size naturally inside it. --}}
-                <div class="lg:sticky lg:top-4 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar">
+                <div class="lg:sticky lg:top-24 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar">
                 <div class="card-premium p-4" x-data="{ search: '' }">
+                    <div x-ref="palette"></div><p x-show="insertionAfter!==null" class="text-xs mb-3">Choose a type to insert after the selected field. <button type="button" @click="insertionAfter=null">Cancel</button></p>
                     <h4 class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Add a field</h4>
                     <div class="relative mb-2">
                         <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>
@@ -150,12 +154,20 @@
                     <textarea x-model="description" rows="2" placeholder="Optional description shown under the title…" class="w-full text-sm bg-transparent border-0 outline-none resize-none" style="color: var(--text-muted);"></textarea>
                 </div>
 
+                <div class="card-premium p-3 mb-4 flex flex-wrap gap-2 items-center">
+                    <button type="button" class="form-chip" @click="selectedIds=fields.map(f=>f.id)">Select all</button><button type="button" class="form-chip" @click="selectedIds=[]">Clear</button><span class="text-xs" x-text="selectedIds.length+' selected'"></span>
+                    <button type="button" class="form-chip" @click="bulkMove('top')">Move to top</button><button type="button" class="form-chip" @click="bulkMove('bottom')">Move to end</button>
+                    <select class="theme-input text-xs" x-model="bulkTarget"><option value="">Move after…</option><template x-for="f in fields.filter(f=>!selectedIds.includes(f.id))" :key="f.id"><option :value="f.id" x-text="f.label||f.type"></option></template></select><button type="button" class="form-chip" @click="bulkMove(bulkTarget)">Move</button>
+                    <button type="button" class="form-chip" @click="bulkDelete()">Delete selected</button><button type="button" class="form-chip" @click="saveGroup()">Save question group</button>
+                    <template x-for="(g,j) in groups" :key="j"><button type="button" class="form-chip" @click="insertGroup(g)" x-text="'+ '+g.name"></button></template>
+                </div>
                 <div id="fieldsList" class="min-h-[300px]"
                      style="display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.75rem;">
                     <template x-for="(f, i) in fields" :key="f.id + '-' + i">
                         <div :data-id="f.id"
                              :style="`grid-column: span ${f.type === 'section' ? 12 : (f.width || 12)} / span ${f.type === 'section' ? 12 : (f.width || 12)}; ${(!isTopLevel(f)) ? 'display:none;' : ''}`"
                              :class="f.type === 'section' ? 'section-card' : ''">
+                            <div class="flex justify-between items-center py-2"><label class="text-xs flex gap-2"><input type="checkbox" :checked="selectedIds.includes(f.id)" @change="toggleSelected(f.id)" :aria-label="'Select '+f.label">Select</label><button class="form-chip text-xs" type="button" @click="chooseAfter(i)">+ Insert after</button></div>
                             {{-- ============ SECTION (group) card ============ --}}
                             <template x-if="f.type === 'section'">
                                 <div class="card-premium p-5 field-card"
@@ -372,8 +384,9 @@
             </main>
 
             {{-- RIGHT: per-field editor --}}
-            <aside class="lg:col-span-3">
-                <div x-ref="fieldPanel" class="lg:sticky lg:top-4 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar">
+            <aside class="lg:col-span-4 forms-preview">
+                <div class="forms-preview card-premium p-3 mb-4" style="position:static"><header><strong class="text-sm">Live form</strong><span class="text-xs">Unsaved · preview only</span></header><iframe x-ref="liveFrame" sandbox="allow-scripts" title="Live form preview" style="height:420px"></iframe></div>
+                <div x-ref="fieldPanel" class="lg:sticky lg:top-24 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar">
                 <div class="card-premium p-5">
                     <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">
                         <span x-show="selectedIndex === null">Field options</span>
@@ -748,7 +761,8 @@
                                             <input type="number" min="1" x-model.number="fields[selectedIndex].file_max_kb" class="theme-input w-full text-xs" placeholder="10240">
                                         </div>
                                     </div>
-                                    {{-- Custom required-error message --}}
+                                    <div class="mt-4" x-show="!fields[selectedIndex].parent && !['section','page_break','hidden'].includes(fields[selectedIndex].type)"><h4 class="text-xs font-bold">Show only when</h4><p class="text-xs my-2">Use a preceding top-level answer. Available in stacked and inline layouts.</p><select class="theme-input w-full text-xs" :value="fields[selectedIndex].show_if?.field||''" @change="fields[selectedIndex].show_if={field:$event.target.value,operator:'equals',value:''}"><option value="">Always visible</option><template x-for="source in fields.slice(0,selectedIndex).filter(f=>!f.parent && ['text','select','radio','checkbox','yes_no'].includes(f.type))" :key="source.id"><option :value="source.id" x-text="source.label"></option></template></select><template x-if="fields[selectedIndex].show_if?.field"><div class="flex flex-wrap gap-2 mt-2"><select class="theme-input text-xs" x-model="fields[selectedIndex].show_if.operator"><option value="equals">Equals / includes</option><option value="not_equals">Does not equal / include</option></select><input class="theme-input text-xs" x-model="fields[selectedIndex].show_if.value" placeholder="Exact option value"></div></template></div>
+                            {{-- Custom required-error message --}}
                                     <div>
                                         <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Custom error message <span class="text-[10px]" style="color: var(--text-faint);"> - shown on any validation failure</span></label>
                                         <input type="text" x-model="fields[selectedIndex].error_message" class="theme-input w-full text-xs" placeholder="This field is invalid">
@@ -764,6 +778,7 @@
     </form>
 </div>
 
+<script src="{{ asset('js/forms-studio.js') }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 <script>
 function formBuilder(initial) {
@@ -774,13 +789,33 @@ function formBuilder(initial) {
         types: initial.types,
         canPrice: !!initial.canPrice,
         PRICED_TYPES: ['number', 'select', 'radio', 'checkbox', 'consent'],
-        selectedIndex: null,
+        selectedIndex: null, selectedIds: [], insertionAfter: null, bulkTarget: '',
+        chooseAfter(i) { this.insertionAfter=i; this.$refs.palette?.scrollIntoView({behavior:'smooth',block:'nearest'}); },
+        toggleSelected(id) { this.selectedIds=this.selectedIds.includes(id)?this.selectedIds.filter(v=>v!==id):[...this.selectedIds,id]; },
+        bulkMove(where) {
+            const chosen=this.fields.filter(f=>this.selectedIds.includes(f.id));
+            if(!chosen.length)return; const rest=this.fields.filter(f=>!this.selectedIds.includes(f.id));
+            // Keep children attached to selected section when moving groups.
+            const sectionIds=chosen.filter(f=>f.type==='section').map(f=>f.id);
+            const children=rest.filter(f=>sectionIds.includes(f.parent));
+            const moving=[...chosen,...children], remaining=rest.filter(f=>!sectionIds.includes(f.parent));
+            let at=where==='top'?0:remaining.length;
+            if(where!=='top'&&where!=='bottom'){const target=remaining.findIndex(f=>f.id===where);if(target<0)return;at=target+1;}
+            remaining.splice(at,0,...moving);this.fields=remaining;this.selectedIndex=null;
+        },
+        bulkDelete(){if(!confirm('Delete selected fields and the fields inside selected sections?'))return;const sections=this.fields.filter(f=>this.selectedIds.includes(f.id)&&f.type==='section').map(f=>f.id);this.fields=this.fields.filter(f=>!this.selectedIds.includes(f.id)&&!sections.includes(f.parent));this.selectedIds=[];this.selectedIndex=null;},
+        saveGroup(){const sections=this.fields.filter(f=>this.selectedIds.includes(f.id)&&f.type==='section').map(f=>f.id);const chosen=this.fields.filter(f=>this.selectedIds.includes(f.id)||sections.includes(f.parent));if(!chosen.length)return;const name=prompt('Question group name');if(!name)return;this.groups=[...this.groups,{name,fields:JSON.parse(JSON.stringify(chosen))}];try{localStorage.setItem('sayzio-form-groups-'+@js(auth()->id().':'.($form->workspace_id??'personal')),JSON.stringify(this.groups));}catch(e){alert('This browser cannot save reusable question groups.');}},
+        groups: [],
+        insertGroup(g){const map={};g.fields.forEach(f=>map[f.id]=f.type+'_'+Math.random().toString(36).slice(2,9));g.fields.forEach(f=>{const copy=JSON.parse(JSON.stringify(f));copy.id=map[f.id];copy.parent=map[f.parent]||null;if(copy.show_if){if(map[copy.show_if.field])copy.show_if.field=map[copy.show_if.field];else delete copy.show_if;}this.fields.push(copy);});},
 
         init() {
+            try{this.groups=JSON.parse(localStorage.getItem('sayzio-form-groups-'+@js(auth()->id().':'.($form->workspace_id??'personal')))||'[]');}catch(e){}
+            this.$nextTick(()=>{const render=window.formStudioPreview(initial.previewUrl,this.$refs.liveFrame,()=>({fields:this.fields,title:this.title,description:this.description}));['fields','title','description'].forEach(k=>this.$watch(k,render));render();});
             // Stored pricing is in cents; the editor works in dollars. Normalize
             // each field's price_cents → price and option_prices (cents → dollars)
             // once on load. Hidden inputs convert back to cents on submit.
             (this.fields || []).forEach(f => {
+                ['required','repeatable','allow_multiple','allow_addons'].forEach(key=>{if(key in f)f[key]=[true,1,'1'].includes(f[key]);});f.width=Number(f.width)||12;
                 if (f.price_cents != null && f.price == null) {
                     f.price = Number(((Number(f.price_cents) || 0) / 100).toFixed(2));
                 }
@@ -861,8 +896,7 @@ function formBuilder(initial) {
             if (type === 'image_choice') { f.image_options = [{ label: 'Option 1', url: '' }]; }
             if (type === 'currency') { f.currency_code = 'USD'; }
             if (type === 'hidden') { f.label = 'Hidden Field'; f.auto_collect = ''; f.auto_collect_param = 'ip'; }
-            this.fields.push(f);
-            this.selectedIndex = this.fields.length - 1;
+            if(this.insertionAfter!==null){const at=this.insertionAfter+1;this.fields.splice(at,0,f);this.selectedIndex=at;this.insertionAfter=null;}else{this.fields.push(f);this.selectedIndex=this.fields.length-1;}
             this.$nextTick(() => this.initSortable());
         },
         addImageOption() {
@@ -893,14 +927,15 @@ function formBuilder(initial) {
             if (f.addons) f.addons.splice(j, 1);
         },
         removeField(i) {
-            this.fields.splice(i, 1);
+            const removed=this.fields[i];this.fields.splice(i,1);if(removed?.type==='section')this.fields=this.fields.filter(f=>f.parent!==removed.id);
             if (this.selectedIndex === i) this.selectedIndex = null;
             else if (this.selectedIndex > i) this.selectedIndex--;
         },
         duplicateField(i) {
             const copy = JSON.parse(JSON.stringify(this.fields[i]));
             copy.id = copy.id + '_copy_' + Math.random().toString(36).slice(2,5);
-            this.fields.splice(i + 1, 0, copy);
+            const children=this.fields.filter(f=>f.parent===this.fields[i].id).map(f=>({...JSON.parse(JSON.stringify(f)),id:f.id+'_copy_'+Math.random().toString(36).slice(2,5),parent:copy.id}));
+            this.fields.splice(i + 1, 0, copy,...children);
             this.$nextTick(() => this.initSortable());
         },
         initSortable() {

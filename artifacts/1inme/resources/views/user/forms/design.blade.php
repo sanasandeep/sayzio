@@ -2,8 +2,20 @@
 @section('title', 'Design · ' . $form->title)
 
 @section('content')
-<div class="max-w-6xl mx-auto"
+<div class="forms-workspace"
      x-data="{
+        customCss:@js($design['custom_css']??''),choiceStyle:@js($design['choice_style']??'plain'),previewMode: 'phone',
+        applyPreset(p) { Object.assign(this,p); },
+
+        init() {
+            this.$nextTick(() => {
+                const render = window.formStudioPreview(@js(route('user.forms.preview',$form)), this.$refs.liveFrame, () => ({design: {custom_css:this.customCss,choice_style:this.choiceStyle,theme:this.theme,accent:this.accent,background:this.background,card_color:this.cardColor,card_image:this.cardImage,card_image_mode:this.cardImageMode,card_image_opacity:this.cardImageOpacity,text:this.text,border_radius:this.radius,button_label:this.buttonLabel,button_style:this.buttonStyle,layout:this.layout,show_branding:this.showBranding,input_style:this.inputStyle,input_shape:this.inputShape,density:this.density,focus_style:this.focusStyle,font:this.font,logo:this.logoUrl,cover:this.coverUrl}}));
+                this.$root.addEventListener('form-asset-preview',e=>{const key={card_image:'cardImage',logo:'logoUrl',cover_image:'coverUrl'}[e.detail.name];if(key)this[key]=e.detail.url;});
+                this.$root.addEventListener('change',e=>{const key={remove_card_image:'cardImage',remove_logo:'logoUrl',remove_cover:'coverUrl'}[e.target.name];if(key)this[key]=e.target.checked?null:({cardImage:@js($design['card_image']??null),logoUrl:@js($design['logo']??null),coverUrl:@js($design['cover']??null)})[key];});
+                ['customCss','choiceStyle','theme','accent','background','cardColor','cardImage','cardImageMode','cardImageOpacity','text','radius','buttonLabel','buttonStyle','layout','showBranding','inputStyle','inputShape','density','focusStyle','font','logoUrl','coverUrl'].forEach(key=>this.$watch(key,render)); render();
+            });
+        },
+        font: @js($design['font']), logoUrl: @js($design['logo']??null), coverUrl: @js($design['cover']??null),
         theme: @js($design['theme']),
         accent: @js($design['accent']),
         background: @js($design['background']),
@@ -54,6 +66,19 @@
     ])
 
     @include('user.forms._tabs')
+    <div class="card-premium p-5 mb-5"><h3 class="font-bold">Signature styles</h3><p class="text-sm mt-1 mb-4" style="color:var(--text-muted)">Choose a starting point, then refine your colors, inputs, spacing and branding.</p><div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    @foreach([
+        ['Studio','#365ce9','#f5f5f8','#ffffff','#1a1b26','light','outline','auto',16],
+        ['Midnight','#a78bfa','#111827','#1e293b','#f8fafc','dark','filled','auto',20],
+        ['Botanical','#15803d','#eef6ee','#ffffff','#183e2a','light','underline','square',8],
+        ['Editorial','#b45309','#fff8eb','#fffcf5','#382b20','light','ghost','square',0],
+        ['Candy','#db2777','#fff1f7','#ffffff','#4a1634','light','soft','pill',24],
+        ['Ocean','#0891b2','#edfaff','#ffffff','#123c52','light','accent_bar','auto',20]
+    ] as [$name,$a,$bg,$card,$txt,$theme,$style,$shape,$radius])
+    @php($preset=["accent"=>$a,"background"=>$bg,"cardColor"=>$card,"text"=>$txt,"theme"=>$theme,"inputStyle"=>$style,"inputShape"=>$shape,"radius"=>$radius])
+    <button type="button" class="rounded-xl p-3 text-left border" style="background:{{ $bg }};color:{{ $txt }};border-color:{{ $a }}40" @click='applyPreset(@json($preset))'><span class="block h-2 rounded mb-3" style="background:{{ $a }}"></span><strong>{{ $name }}</strong><span class="block text-xs mt-1">{{ ucfirst($style) }} inputs</span></button>
+    @endforeach</div></div>
+
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -61,7 +86,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('user.forms.design.update', $form) }}" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <form method="POST" action="{{ route('user.forms.design.update', $form) }}" enctype="multipart/form-data" class="form-studio-grid grid grid-cols-1 lg:grid-cols-3 gap-6">
         @csrf @method('PUT')
 
         {{-- Settings --}}
@@ -164,7 +189,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Font family</label>
-                        <select name="font" class="theme-input w-full text-sm">
+                        <select name="font" x-model="font" class="theme-input w-full text-sm">
                             @foreach(['Plus Jakarta Sans', 'Inter', 'Manrope', 'Poppins', 'Roboto', 'System default'] as $f)
                                 <option value="{{ $f }}" @selected(($design['font'] ?? '') === $f)>{{ $f }}</option>
                             @endforeach
@@ -284,6 +309,7 @@
                 </label>
             </div>
 
+            <div class="card-premium p-6"><h3 class="font-bold mb-3">Choice presentation</h3><p class="text-sm mb-4" style="color:var(--text-muted)">Style radio buttons and checkbox answers with clear selected states.</p><select name="choice_style" x-model="choiceStyle" class="theme-input w-full"><option value="plain">Simple list</option><option value="cards">Selectable cards</option><option value="pills">Compact pills</option></select></div>
             <div class="card-premium p-6" x-data="{ open: {{ !empty($design['custom_css']) ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" class="flex items-center gap-3 w-full text-left">
                     <i class="fas fa-code text-cyan-400 text-xs"></i>
@@ -291,39 +317,17 @@
                     <i class="fas fa-chevron-down text-xs" :class="open ? 'rotate-180' : ''" style="color: var(--text-faint); transition: transform 0.2s;"></i>
                 </button>
                 <div x-show="open" x-transition class="mt-4">
-                    <textarea name="custom_css" rows="8" placeholder=".form-card { background: …; }" class="theme-input w-full font-mono text-[12px]">{{ old('custom_css', $design['custom_css'] ?? '') }}</textarea>
+                    <textarea name="custom_css" x-model="customCss" rows="8" placeholder=".form-card { background: …; }" class="theme-input w-full font-mono text-[12px]">{{ old('custom_css', $design['custom_css'] ?? '') }}</textarea>
                 </div>
             </div>
         </div>
 
         {{-- Live preview --}}
-        <aside>
-            <div class="card-premium p-5 lg:sticky lg:top-4">
+        <aside class="forms-preview" :class="previewMode==='desktop'?'forms-expanded':''">
+            <div class="card-premium p-5 ">
                 <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">Live Preview</h4>
-                <div class="rounded-2xl overflow-hidden" :style="`background: ${theme === 'dark' ? '#0f172a' : (theme === 'glass' ? 'linear-gradient(160deg,#1a1230,#0a0b10)' : background)}; padding: 1.5rem;`">
-                    <div :style="`position: relative; background-color: ${theme === 'dark' ? '#1e293b' : (theme === 'glass' ? 'rgba(255,255,255,0.05)' : cardColor)}; ${cardImage ? `background-image: url('${cardImage}'); background-size: ${cardImageMode === 'contain' ? 'contain' : (cardImageMode === 'tile' ? 'auto' : 'cover')}; background-position: center; background-repeat: ${cardImageMode === 'tile' ? 'repeat' : 'no-repeat'};` : ''} border-radius: ${radius}px; padding: 1.5rem; ${theme === 'glass' ? 'border:1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px);' : ''}`">
-                        <template x-if="cardImage && cardImageOpacity < 100">
-                            <div :style="`position: absolute; inset: 0; background: ${cardColor}; opacity: ${(100 - cardImageOpacity) / 100}; border-radius: ${radius}px; pointer-events: none;`"></div>
-                        </template>
-                        <div style="position: relative; z-index: 1;">
-                        <div :style="`color: ${theme === 'light' ? text : 'white'}; font-weight: 800; font-size: 1.25rem; margin-bottom: 0.5rem;`">{{ $form->title }}</div>
-                        <div class="text-xs mb-4" :style="`color: ${theme === 'light' ? text : 'rgba(255,255,255,0.6)'}; opacity: 0.7;`">Preview of how visitors will see your form.</div>
-                        <div class="space-y-3 mb-4">
-                            <div>
-                                <div class="text-[10px] font-semibold mb-1" :style="`color: ${theme === 'light' ? text : 'white'}; opacity: 0.75;`">Sample label</div>
-                                <input type="text" placeholder="Sample input" :style="inputCss('input')">
-                            </div>
-                            <textarea rows="3" placeholder="Another example field" :style="inputCss('textarea')"></textarea>
-                        </div>
-                        <button type="button"
-                                :style="buttonStyle === 'gradient' ? `background: linear-gradient(135deg, ${accent}, ${accent}cc); color: white; border-radius: ${Math.max(4, radius/2)}px; padding: 0.7rem 1.5rem; font-weight: 700; font-size: 0.85rem; box-shadow: 0 8px 24px -8px ${accent}88;`
-                                  : (buttonStyle === 'outline' ? `background: transparent; color: ${accent}; border: 2px solid ${accent}; border-radius: ${Math.max(4, radius/2)}px; padding: 0.7rem 1.5rem; font-weight: 700; font-size: 0.85rem;`
-                                  : `background: ${accent}; color: white; border-radius: ${Math.max(4, radius/2)}px; padding: 0.7rem 1.5rem; font-weight: 700; font-size: 0.85rem;`)"
-                                x-text="buttonLabel"></button>
-                        <div x-show="showBranding" class="text-[10px] mt-4 opacity-50" :style="`color: ${theme === 'light' ? text : 'white'};`">Powered by Sayzio</div>
-                        </div>{{-- /relative inner --}}
-                    </div>
-                </div>
+                <header><button type="button" class="form-chip" :class="previewMode==='phone'?'active':''" @click="previewMode='phone'">Phone</button><button type="button" class="form-chip" :class="previewMode==='desktop'?'active':''" @click="previewMode='desktop'">Desktop</button><button type="button" class="form-chip" x-show="previewMode==='desktop'" @click="previewMode='phone'">Close expanded preview</button><span class="text-xs">Actual fields · unsaved preview</span></header>
+                <iframe x-ref="liveFrame" title="Live form design" sandbox="allow-scripts" :style="previewMode==='phone'?'max-width:390px;margin:auto':'max-width:none'"></iframe>
                 @canInWorkspace('inbox.edit')
                 <button type="submit" class="btn-primary w-full mt-4 px-6 py-3 text-sm font-semibold inline-flex items-center justify-center gap-2">
                     <i class="fas fa-save text-xs"></i> Save Design
@@ -338,4 +342,5 @@
         </aside>
     </form>
 </div>
+<script src="{{ asset('js/forms-studio.js') }}"></script>
 @endsection

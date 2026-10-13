@@ -26,7 +26,7 @@
 @elseif($type === 'hidden')
     <input type="hidden" name="{{ $id }}" value="{{ $field['value'] ?? '' }}">
 @else
-<div class="form-field">
+<div class="form-field" @if(!empty($field['show_if'])) data-form-condition='@json($field['show_if'])' data-field-id="{{ $id }}" @endif>
     @unless(in_array($type, ['consent', 'checkbox']))
         <label class="form-label" for="f_{{ $id }}">
             {{ $label }}@if($required)<span class="form-required">*</span>@endif
