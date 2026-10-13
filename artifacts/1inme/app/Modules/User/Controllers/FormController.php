@@ -443,7 +443,7 @@ class FormController extends Controller
         // arbitrary CSS that could escape the inline-style context.
         $colorRule = ['regex:/^(#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgba?\(\s*[\d.\s,%\/]+\)|hsla?\(\s*[\d.\s,%\/]+\))$/'];
         $data = $request->validate([
-            'surface_style' => 'nullable|in:clean,paper,newspaper,soft,gradient,liquid,frost,aurora,material,ledger,blueprint,notebook,receipt,terminal,brutalist,clay,neumorphic,mesh,luxury,museum,polaroid,omr,ticket,comic,minimal',
+            'surface_style' => 'nullable|in:clean,paper,newspaper,soft,gradient,liquid,frost,aurora,material,ledger,blueprint,notebook,receipt,terminal,brutalist,clay,neumorphic,mesh,luxury,museum,polaroid,omr,ticket,comic,minimal,fold,envelope,carbon,circuit,terrazzo,linen,vellum,stained,spotlight,ribbon,tabs,dossier,graph,scanline,pixel,halftone,stamp,arch,portal,framed,riso,wave,stripe,contour,accordion',
             'label_style' => 'nullable|in:above,inside,floating',
             'character_boxes' => 'sometimes|boolean',
             'choice_style' => 'nullable|in:plain,cards,pills',
@@ -461,7 +461,7 @@ class FormController extends Controller
             // Nullable rather than required: a form saved before these controls
             // shipped posts none of them, and array_merge with defaultDesign()
             // then keeps the stored value instead of blanking it.
-            'input_style' => 'nullable|in:soft,outline,underline,filled,ghost,elevated,accent_bar',
+            'input_style' => 'nullable|in:soft,outline,underline,filled,ghost,elevated,accent_bar,omr',
             'input_shape' => 'nullable|in:auto,pill,square',
             'density' => 'nullable|in:comfortable,compact',
             'focus_style' => 'nullable|in:glow,border,fill',

@@ -27,3 +27,36 @@
 .surface-omr .form-radio-group>label,.surface-omr .form-check-group>label{border:1px solid currentColor;border-radius:0;padding:8px 12px}.surface-omr input[type=radio],.surface-omr input[type=checkbox]{width:20px;height:20px;accent-color:#111827}
 
 .form-style-tile[aria-pressed=true]{outline:3px solid #365ce9;outline-offset:1px}
+/* Additional structural surfaces. */
+.surface-fold{border-top:12px solid var(--form-accent)!important;clip-path:polygon(0 0,calc(100% - 24px) 0,100% 24px,100% 100%,0 100%);box-shadow:inset -12px 0 0 #00000008!important}
+.surface-envelope{border:1px solid var(--form-accent)!important;border-top:16px solid var(--form-accent)!important;background-image:linear-gradient(150deg,#00000005 25%,transparent 25%)!important}
+.surface-carbon{background-image:repeating-linear-gradient(45deg,#ffffff08 0 2px,transparent 2px 8px),repeating-linear-gradient(-45deg,#ffffff05 0 2px,transparent 2px 8px)!important}
+.surface-circuit{border:2px solid #34d399!important;background-image:linear-gradient(90deg,#34d39910 1px,transparent 1px),linear-gradient(#34d39910 1px,transparent 1px)!important;background-size:36px 36px!important;box-shadow:inset 0 0 40px #34d3990c!important}
+.surface-terrazzo{background-image:radial-gradient(ellipse at 12% 15%,#f472b633 0 3px,transparent 4px),radial-gradient(ellipse at 70% 80%,#2563eb33 0 4px,transparent 5px)!important;background-size:37px 43px,53px 59px!important}
+.surface-linen{background-image:repeating-linear-gradient(0deg,#00000003 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,#00000003 0 1px,transparent 1px 3px)!important;border:1px solid #a8a29e!important}
+.surface-vellum{background:#fffbebdf!important;box-shadow:0 12px 32px #78350f20!important;font-family:Georgia,serif!important;border:1px solid #d6c5a0!important}
+.surface-stained{border:6px solid var(--form-accent)!important;background-image:conic-gradient(from 30deg at 10% 5%,#e0f2fe,#fae8ff,#ecfdf5,#e0f2fe)!important;box-shadow:inset 0 0 0 2px #111!important}
+.surface-spotlight{background:radial-gradient(ellipse at top,#fff,#e2e8f0)!important;box-shadow:0 28px 60px #0f172a25!important;border-top:2px solid white!important}
+.surface-ribbon{border-left:12px solid var(--form-accent)!important;border-radius:0 24px 24px 0!important;box-shadow:6px 8px 0 color-mix(in srgb,var(--form-accent) 15%,transparent)!important}
+.surface-tabs{border-top:14px solid var(--form-accent)!important;border-radius:8px 32px 8px 8px!important;box-shadow:4px 4px 0 #cbd5e1,8px 8px 0 #e2e8f0!important}
+.surface-dossier{border:2px solid #64748b!important;border-left:16px solid #64748b!important;border-radius:0!important;font-family:'Courier New',monospace!important}
+.surface-graph{background-image:linear-gradient(#2563eb14 1px,transparent 1px),linear-gradient(90deg,#2563eb14 1px,transparent 1px)!important;background-size:10px 10px!important;border:1px solid #2563eb!important;border-radius:0!important}
+.surface-scanline{background-image:repeating-linear-gradient(0deg,#0003 0 1px,transparent 1px 4px)!important;font-family:'Courier New',monospace!important;border:1px solid #a3e635!important}
+.surface-pixel{border:4px solid var(--form-accent)!important;border-radius:0!important;box-shadow:8px 0 0 #000,0 8px 0 #000!important;font-family:'Courier New',monospace!important}
+.surface-halftone{background-image:radial-gradient(#0000000c 1px,transparent 1px)!important;background-size:6px 6px!important;border:3px solid currentColor!important;box-shadow:5px 5px 0 var(--form-accent)!important}
+.surface-stamp{border:5px dotted var(--form-accent)!important;border-radius:0!important;box-shadow:inset 0 0 0 4px white!important}
+.surface-arch{border-radius:80px 80px 12px 12px!important;border-top:5px solid var(--form-accent)!important}
+.surface-portal{border:2px solid var(--form-accent)!important;box-shadow:0 0 0 5px #ffffff18,0 0 0 10px #ffffff08,0 0 45px var(--form-accent)!important;border-radius:40px!important}
+.surface-framed{border:12px solid #44403c!important;box-shadow:inset 0 0 0 3px #d6d3d1,0 12px 24px #0002!important;border-radius:0!important;font-family:Georgia,serif!important}
+.surface-riso{border:2px solid var(--form-accent)!important;box-shadow:6px 6px 0 #fb718555,-4px -4px 0 #38bdf833!important;background-image:radial-gradient(#0000000a 1px,transparent 1px)!important;background-size:3px 3px!important}
+.surface-wave{border-bottom:12px double var(--form-accent)!important;border-radius:8px 8px 48px 48px!important;background-image:linear-gradient(175deg,transparent 85%,#00000004 85%)!important}
+.surface-stripe{border-top:12px solid var(--form-accent)!important;border-bottom:3px solid var(--form-accent)!important;border-radius:0!important}
+.surface-contour{background-image:repeating-radial-gradient(ellipse at top left,transparent 0 18px,#0478570c 19px 20px)!important;border:1px solid #047857!important}
+.surface-accordion{background-image:repeating-linear-gradient(90deg,transparent 0 59px,#00000006 60px,#00000002 61px,transparent 62px)!important;border-top:2px dashed #78716c!important;border-bottom:2px dashed #78716c!important;border-radius:0!important}
+/* OMR is an input treatment independent of the card surface. */
+body.input-omr .form-input,body.input-omr .form-textarea,body.input-omr .form-select,body.input-omr [data-signature-pad],body.input-omr .form-file{border-radius:0!important;border:1px solid var(--form-text)!important;background:transparent}
+body.input-omr .form-radio-group>label,body.input-omr .form-check-group>label{border:1px solid currentColor;border-radius:0!important;padding:10px 12px}
+body.input-omr input[type=radio],body.input-omr input[type=checkbox]{appearance:none;width:22px;height:22px;border:2px solid currentColor;border-radius:50%;background:transparent;flex-shrink:0}
+body.input-omr input[type=radio]:checked,body.input-omr input[type=checkbox]:checked{background:var(--form-accent);box-shadow:inset 0 0 0 3px var(--form-card)}
+body.input-omr .character-input-wrap>.form-input,body.input-omr .character-input-wrap>.form-textarea{border:0!important}
+.character-multiline{height:80px}.character-multiline .character-cells{align-items:flex-start}.character-multiline .character-cells span{height:46px}.character-multiline textarea{white-space:pre;resize:vertical}
