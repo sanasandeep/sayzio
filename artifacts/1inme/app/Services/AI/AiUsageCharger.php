@@ -2,6 +2,7 @@
 
 namespace App\Services\AI;
 
+use App\Modules\User\Models\PlannerHandoff;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\WalletTransaction;
 use App\Services\Billing\InsufficientCoinsException;
@@ -71,7 +72,7 @@ class AiUsageCharger
             throw new \InvalidArgumentException('Charge amount must be positive.');
         }
         try {
-            return $this->wallets->debit($user, $coins, $this->walletOpts($opts));
+            return $this->wallets->debit($user, $coins, $this->walletOpts($this->plannerContext($user, $opts)));
         } catch (InsufficientCoinsException $e) {
             throw new InsufficientCoinsForAiException($e->required, $e->balance);
         }
@@ -83,7 +84,8 @@ class AiUsageCharger
         if ($coins <= 0) {
             throw new \InvalidArgumentException('Refund amount must be positive.');
         }
-        return $this->wallets->refundCoins($user, $coins, $this->walletOpts($opts));
+
+        return $this->wallets->refundCoins($user, $coins, $this->walletOpts($this->plannerContext($user, $opts)));
     }
 
     /**
@@ -93,6 +95,36 @@ class AiUsageCharger
      * analytics can isolate AI spend from coin purchases and other
      * coin-priced add-ons.
      */
+    protected function plannerContext(User $user, array $opts): array
+    {
+        if (isset($opts['meta']['planner_run_id']) || ! app()->bound('request')) {
+            return $opts;
+        }
+        $r = request();
+        if (! $r->hasSession() || ! $r->is('user/*') || $r->is('user/ai/mind*', 'user/ai/planner/*')) {
+            return $opts;
+        }
+        $id = $r->session()->get('planner_handoff');
+        if (! $id) {
+            return $opts;
+        }
+        $handoff = PlannerHandoff::where('user_id', $user->id)->whereNull('closed_at')->find($id);
+        if (! $handoff) {
+            return $opts;
+        }
+        $feature = (string) ($opts['feature'] ?? '');
+        $eligible = match ($handoff->tool) {
+            'staff' => str_starts_with($feature, 'ai_staff_'),'coach' => str_starts_with($feature, 'ask_coach'),'chat','agents','companions' => str_starts_with($feature, 'companion'),
+            'minds' => $feature === 'mind','persona' => $feature === 'persona','brand','studio' => str_starts_with($feature, 'brand'),'optimizer' => $feature === 'coach','growth' => str_contains($feature, 'growth'),
+            'inbox' => str_contains($feature, 'inbox'),'builders' => str_ends_with($feature, '_builder'),default => false
+        };
+        if ($eligible) {
+            $opts['meta'] = array_merge($opts['meta'] ?? [], ['planner_handoff_id' => $handoff->id, 'planner_plan_id' => $handoff->plan_id]);
+        }
+
+        return $opts;
+    }
+
     protected function walletOpts(array $opts): array
     {
         $meta = is_array($opts['meta'] ?? null) ? $opts['meta'] : [];
@@ -104,10 +136,10 @@ class AiUsageCharger
         $meta['ai'] = true;
 
         return [
-            'reason'          => $opts['reason'] ?? null,
+            'reason' => $opts['reason'] ?? null,
             'idempotency_key' => $opts['idempotency_key'] ?? null,
-            'admin_id'        => $opts['admin_id'] ?? null,
-            'meta'            => $meta,
+            'admin_id' => $opts['admin_id'] ?? null,
+            'meta' => $meta,
         ];
     }
 }

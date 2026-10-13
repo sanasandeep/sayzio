@@ -13,6 +13,7 @@
 */
 
 return [
+    ['key' => 'planner:dispatch', 'description' => 'Queue opted-in AI Planner reviews with spending limits.', 'cadence' => ['everyMinute']],
     [
         'key'         => 'biolink:promote-experiment-winners',
         'description' => 'End any Link in Bio layout A/B test whose sample-size or end-date stop condition has been met.',

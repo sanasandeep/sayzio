@@ -50,7 +50,7 @@
             <p class="ov-muted">Open a folder to manage its links and view its reports.</p>
             <div class="ov-folders">
                 @foreach($folders as $folder)
-                <a class="ov-folder" style="--ov-color: {{ preg_match('/^#[0-9a-f]{6}$/i', (string) $folder->color) ? $folder->color : '#3b82f6' }}" href="{{ route('user.links.index', ['project_id' => $folder->id]) }}">@include('user.partials.folder-art')<div class="ov-folder-caption"><strong>{{ $folder->name }}</strong><span class="ov-muted">{{ number_format($folder->links_count) }} links</span></div><span class="ov-folder-arrow" aria-hidden="true">↗</span></a>
+                <a class="ov-folder" style="--ov-color: {{ preg_match('/^#[0-9a-f]{6}$/i', (string) $folder->color) ? $folder->color : '#3b82f6' }}" href="{{ route('user.projects.show', $folder) }}">@include('user.partials.folder-art')<div class="ov-folder-caption"><strong>{{ $folder->name }}</strong><span class="ov-muted">{{ number_format($folder->links_count) }} links</span></div><span class="ov-folder-arrow" aria-hidden="true">↗</span></a>
                 @endforeach
             </div>
             @if($folders->isEmpty())<p class="ov-empty">Create a folder to keep related links together.</p>@endif

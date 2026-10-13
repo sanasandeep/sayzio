@@ -1,7 +1,7 @@
 @extends('user.layouts.app')
 @php
     $__aiLabelMap = [
-        'Mind'       => 'Notes → Action Plan',
+        'Mind'       => 'AI Planner',
         'Minds'      => 'AI Minds',
         'Persona'    => 'AI Persona Generator',
         'Personas'   => 'AI Agents',
@@ -51,7 +51,7 @@
     // Per-feature one-liner so a user who clicks in knows exactly what this
     // particular surface does — keyed off the `title` each controller passes.
     $__featureBlurbs = [
-        'Mind'       => 'Notes → Action Plan turns notes into a saved summary, decisions, priorities and reviewed next actions.',
+        'Mind'       => 'AI Planner turns notes into a saved summary, decisions, priorities and reviewed next actions.',
         'Minds'      => 'AI Minds let you build and manage several AI Minds, each trained on its own set of sources.',
         'Persona'    => 'AI Persona Generator creates a brand persona that shapes the tone and personality your AI uses when it writes or replies on your behalf.',
         'Personas'   => 'AI Agents let you create and switch between configurable agents (each with its own prompt, tone, and knowledge) for different audiences.',

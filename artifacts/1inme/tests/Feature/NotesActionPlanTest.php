@@ -162,7 +162,7 @@ class NotesActionPlanTest extends TestCase
     public function test_new_screen_and_record_deletion(): void
     {
         $u = $this->owner();
-        $page = $this->get('/user/ai/mind')->assertOk()->assertSee('Notes → Action Plan')->assertSee('Estimate coins')->assertSee('Past plans');
+        $page = $this->get('/user/ai/mind')->assertOk()->assertSee('AI Planner')->assertSee('Estimate coins')->assertSee('Past plans');
         if (getenv('FORMS_UI_FIXTURE')) {
             file_put_contents('/tmp/notes-new.html', $page->getContent());
         }

@@ -1060,8 +1060,8 @@
                            class="sidebar-link {{ nav_route_is('user.ai.mind.*') ? 'active' : '' }}"
                            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-brain"></i></div>
-                            <span class="nav-label">Notes → Action Plan</span>
-                            <span class="sidebar-tooltip">Notes → Action Plan</span>
+                            <span class="nav-label">AI Planner</span>
+                            <span class="sidebar-tooltip">AI Planner</span>
                         </a>
                         @if($__can['settings_view'])
                         <a href="{{ route('user.minds.index') }}"
@@ -1856,7 +1856,7 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                <a href="{{ route('user.ai.mind.show') }}" class="sidebar-link {{ nav_route_is('user.ai.mind.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-brain"></i></div> <span>Notes → Action Plan</span></a>
+                                <a href="{{ route('user.ai.mind.show') }}" class="sidebar-link {{ nav_route_is('user.ai.mind.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-brain"></i></div> <span>AI Planner</span></a>
                                 @if($__can['settings_view'])
                                 <a href="{{ route('user.minds.index') }}" class="sidebar-link {{ nav_route_is('user.minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div> <span>AI Minds</span></a>
                                 @endif
@@ -2071,6 +2071,7 @@
                     </div>
                 @endif
 
+                @include('user.planner.context')
                 @yield('content')
 
                 <footer class="mt-10 pt-5 pb-2 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3"

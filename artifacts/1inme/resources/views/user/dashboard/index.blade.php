@@ -301,7 +301,7 @@
             @foreach($deskFolders as $folder)
                 @php $fc = $folder->color ?: '#3b82f6'; @endphp
                 <div class="desk-item group relative">
-                    <a href="{{ route('user.links.index', ['project_id' => $folder->id]) }}"
+                    <a href="{{ route('user.projects.show', $folder) }}"
                        class="desk-icon-link" title="Open {{ $folder->name }}">
                         <div class="fld" style="--fc: {{ $fc }};">
                             <span class="fld-back"></span>

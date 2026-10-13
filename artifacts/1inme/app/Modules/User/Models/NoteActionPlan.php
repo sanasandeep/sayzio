@@ -13,6 +13,6 @@ class NoteActionPlan extends Model
 
     protected function casts(): array
     {
-        return ['result' => 'array', 'actions' => 'array'];
+        return ['result' => 'array', 'actions' => 'array', 'planner_settings' => 'array', 'shared' => 'boolean', 'automation_enabled' => 'boolean', 'next_run_at' => 'datetime'];
     }
 }
