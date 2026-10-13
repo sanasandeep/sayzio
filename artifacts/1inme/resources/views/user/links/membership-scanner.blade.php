@@ -1,0 +1,13 @@
+@extends('user.layouts.app')
+@section('title','Scan member pass')
+@section('content')
+<section style="padding:24px;background:var(--bg-card);border:1px solid var(--border-strong);border-radius:20px"><h1>Scan member pass</h1><p>Only the club owner can verify passes. Scan a member’s QR using your camera or paste its link.</p><button id="start-camera" class="btn-primary">Start camera</button><button id="stop-camera" class="btn-ghost">Stop camera</button><video id="camera" playsinline muted style="width:100%;max-width:480px;display:block;margin:20px 0"></video><canvas id="scan-canvas" hidden></canvas><label>QR pass link<input id="pass-url" style="width:100%;padding:12px" placeholder="Paste the scanned URL"></label><button id="verify-pass" class="btn-ghost">Verify pass</button><p id="scan-status" role="status"></p></section>
+<script src="{{ asset('js/vendor/jsqr.min.js') }}"></script>
+<script>
+(()=>{let stream=null,frame=null;const video=document.getElementById('camera'),canvas=document.getElementById('scan-canvas'),status=document.getElementById('scan-status');const prefix=@js(url('/user/links/'.$link->id.'/memberships/pass/'));
+function stop(){if(frame)cancelAnimationFrame(frame);frame=null;stream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null}
+function verify(value){try{const url=new URL(value);if(url.origin!==location.origin||!url.href.startsWith(prefix)||!/^\d+$/.test(url.pathname.slice(new URL(prefix).pathname.length))||!url.searchParams.has('signature'))throw Error('Use a signed member pass from this club.');stop();location.assign(url.href)}catch(e){status.textContent=e.message}}
+function scan(){if(!stream)return;if(video.readyState>=2){canvas.width=video.videoWidth;canvas.height=video.videoHeight;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(video,0,0);const data=ctx.getImageData(0,0,canvas.width,canvas.height);const qr=jsQR(data.data,data.width,data.height);if(qr){verify(qr.data);if(!stream)return}}frame=requestAnimationFrame(scan)}
+document.getElementById('start-camera').onclick=async()=>{stop();try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});video.srcObject=stream;await video.play();status.textContent='Point the camera at the membership QR.';scan()}catch(e){stop();status.textContent='Camera unavailable. Allow camera access or paste the QR link.'}};document.getElementById('stop-camera').onclick=stop;document.getElementById('verify-pass').onclick=()=>verify(document.getElementById('pass-url').value.trim());window.addEventListener('pagehide',stop)})();
+</script>
+@endsection

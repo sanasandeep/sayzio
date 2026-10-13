@@ -204,6 +204,7 @@ class ClubMembershipManagementTest extends TestCase {
     public function test_optional_form_photo_is_used_on_member_cards_and_can_be_removed(): void {
         $link=$this->club();$this->post(route('user.links.memberships.create-form',$link))->assertRedirect();
         $form=Form::firstOrFail();$this->assertContains('profile_picture',array_column($form->fields,'id'));
+        \Illuminate\Support\Facades\Storage::fake('user_files');\Illuminate\Support\Facades\Storage::disk('user_files')->put('test/profile.jpg',base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='));
         $file=\App\Modules\User\Models\UserFile::create(['user_id'=>$link->user_id,'original_name'=>'profile.jpg','filename'=>'profile.jpg','mime_type'=>'image/jpeg','size_bytes'=>100,'type'=>'image','disk'=>'user_files','path'=>'test/profile.jpg','scan_status'=>'clean']);
         $form->submissions()->create(['data'=>['name'=>'Photo Member','email'=>'member@example.com','phone'=>'+919876543210'],'files'=>['profile_picture'=>$file->url],'payment_status'=>'none','is_spam'=>false]);
         $member=ClubMembership::firstOrFail();$this->assertSame($file->id,$member->profile_photo_file_id);
@@ -222,6 +223,36 @@ class ClubMembershipManagementTest extends TestCase {
         $member=ClubMembership::create(['link_id'=>$other->id,...$this->member(['phone'=>'+919876543219'])]);
         $this->post(route('user.links.memberships.import',$link),['csv'=>$this->csvUpload("name,email,phone,status\nHere,member@example.com,+919876543219,pending\n"),'mode'=>'update'])->assertSessionHas('membership_import.created',1);
         $this->assertSame('Alex Member',$member->fresh()->name);
+    }
+
+    public function test_card_studio_saves_sizes_positions_and_pdf_export(): void {
+        $link=$this->club();$elements=app(\App\Modules\User\Services\ClubMembershipCardService::class)->defaults();$elements['name']['x']=12;$elements['logo']['show']=false;
+        $this->post(route('user.links.memberships.configure',$link),$this->config(['card_size'=>'cr80','card_text_color'=>'#112233','card_elements'=>$elements]))->assertRedirect();
+        $member=ClubMembership::create(['link_id'=>$link->id,...$this->member()]);
+        $svg=$this->get(route('user.links.memberships.card',['link'=>$link,'member'=>$member->id,'format'=>'svg']))->assertOk()->assertHeader('Content-Type','image/svg+xml');
+        $this->assertStringContainsString('x="120"',$svg->getContent());$this->assertStringContainsString('fill="#112233"',$svg->getContent());
+        $pdf=$this->get(route('user.links.memberships.card',['link'=>$link,'member'=>$member->id,'format'=>'pdf']))->assertOk()->assertHeader('Content-Type','application/pdf');
+        $this->assertStringStartsWith('%PDF-',$pdf->getContent());
+        $this->get(route('user.links.memberships',$link))->assertOk()->assertSee('PVC / CR80')->assertSee('AI Brand Kit')->assertSee('Upload card images');
+        $this->post(route('user.links.memberships.configure',$link),$this->config(['card_elements'=>['name'=>['x'=>-1,'y'=>10,'w'=>20,'h'=>10,'font'=>20,'show'=>true]]]))->assertSessionHasErrors('card_elements.name.x');
+    }
+    public function test_signed_pass_uses_live_status_and_is_owner_only(): void {
+        $link=$this->club();$member=ClubMembership::create(['link_id'=>$link->id,...$this->member()]);
+        $url=\Illuminate\Support\Facades\URL::signedRoute('user.links.memberships.pass',['link'=>$link,'member'=>$member->id]);
+        $this->get($url)->assertOk()->assertSee('Valid pass');
+        $member->update(['expires_at'=>today()->subDay()]);$this->get($url)->assertOk()->assertSee('Invalid pass');
+        $this->get(route('user.links.memberships.pass',['link'=>$link,'member'=>$member->id]))->assertForbidden();
+        $this->get($url.'&extra=1')->assertForbidden();
+        $this->get(route('user.links.memberships.scanner',$link))->assertOk()->assertSee('Start camera');
+        $other=User::factory()->create();$this->actingAs($other);$this->get($url)->assertForbidden();
+    }
+    public function test_brand_kit_apply_is_owned_and_preserves_membership_settings(): void {
+        $link=$this->club();$link->update(['settings'=>['membership'=>['approval'=>'manual','duration'=>'fixed']]]);
+        $kit=\App\Modules\User\Models\BrandKit::create(['user_id'=>$link->user_id,'name'=>'Club brand','config'=>['palette'=>['primary'=>'#123456'],'fonts'=>['body'=>'Arial']]]);
+        $this->post(route('user.links.memberships.brand',$link),['brand_kit_id'=>$kit->id])->assertRedirect();
+        $this->assertSame('#123456',data_get($link->fresh()->settings,'membership.card_color'));$this->assertSame('manual',data_get($link->fresh()->settings,'membership.approval'));
+        $other=User::factory()->create();$foreign=\App\Modules\User\Models\BrandKit::create(['user_id'=>$other->id,'name'=>'Private kit','config'=>[]]);
+        $this->post(route('user.links.memberships.brand',$link),['brand_kit_id'=>$foreign->id])->assertNotFound();
     }
 
 }
