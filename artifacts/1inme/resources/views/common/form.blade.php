@@ -589,13 +589,13 @@
 .label-inset.has-answer>.form-label,.label-inset:focus-within>.form-label{top:5px;font-size:10px;opacity:1}
 .label-inset:not(:focus-within):not(.has-answer):not(.label-inside)>input::placeholder,.label-inset:not(:focus-within):not(.has-answer):not(.label-inside)>textarea::placeholder{opacity:0}
 .label-inset.label-inside>.form-label{top:5px;font-size:11px;opacity:1}
-.character-input-wrap{position:relative;max-width:100%;overflow-x:auto}.character-input-wrap>.form-input{font-family:monospace!important;letter-spacing:17.4px!important;padding:12px 8px!important;background:transparent!important;border:0!important;position:relative;z-index:2;box-shadow:none!important;border-radius:0!important;color:transparent!important;caret-color:var(--form-accent);height:46px}
-.character-cells{position:absolute;inset:0;display:flex;gap:3px;pointer-events:none;overflow:hidden}.character-cells span{display:flex;align-items:center;justify-content:center;flex:0 0 24px;border:1px solid var(--form-border);font:16px monospace;color:var(--form-text);background:var(--form-card)}
+.character-input-wrap{position:relative;max-width:100%;overflow-x:auto}.character-input-wrap>.form-input,.character-input-wrap>.form-textarea{font-family:monospace!important;letter-spacing:25.4px!important;padding:12px 8px!important;background:transparent!important;border:0!important;position:relative;z-index:2;box-shadow:none!important;border-radius:0!important;color:transparent!important;caret-color:var(--form-accent);height:46px}
+.character-cells{position:absolute;inset:0;display:flex;gap:3px;pointer-events:none;overflow:hidden}.character-cells span{display:flex;align-items:center;justify-content:center;flex:0 0 32px;height:32px;margin-top:7px;border:1px solid var(--form-border);font:16px monospace;color:var(--form-text);background:var(--form-card)}
 @media(max-width:640px){.layout-grid .form-grid>.form-grid-cell:not(.form-section-card):not(:has(.form-heading,.form-paragraph,.form-divider)),.layout-grid3 .form-grid>.form-grid-cell:not(.form-section-card):not(:has(.form-heading,.form-paragraph,.form-divider)){grid-column:span 12!important}}
 </style>
 <link rel="stylesheet" href="{{ asset('css/forms-surfaces.css') }}">
 </head>
-<body data-label-style="{{ $design['label_style']??'above' }}" data-character-boxes="{{ !empty($design['character_boxes'])?'1':'0' }}" class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }} input-{{ str_replace('_', '-', $inputStyle) }} ishape-{{ $inputShape }} density-{{ $density }} focus-{{ $focusStyle }}">
+<body data-label-style="{{ $design['label_style']??'above' }}" data-character-boxes="{{ (!empty($design['character_boxes']) || $inputStyle==='omr')?'1':'0' }}" class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }} input-{{ str_replace('_', '-', $inputStyle) }} ishape-{{ $inputShape }} density-{{ $density }} focus-{{ $focusStyle }}">
     <div class="form-page">
         <div style="width: 100%; max-width: 640px;">
             @if($cover)
@@ -738,7 +738,7 @@
                     @endphp
 
                     <form method="POST" action="{{ route('forms.public.submit', $form->slug) }}" enctype="multipart/form-data"
-                          class="form-card form-oneq {{ $cover ? 'has-cover' : '' }} {{ $showFieldPrices ? 'form-paid-pricing' : '' }}"
+                          class="form-card surface-{{ $design['surface_style']??'clean' }} form-oneq {{ $cover ? 'has-cover' : '' }} {{ $showFieldPrices ? 'form-paid-pricing' : '' }}"
                           x-data="formOneq({{ $slideCount }}, {{ $startSlide }}, @js($requiredBySlide))"
                           @keydown.enter="onEnter($event)">
                         @csrf
@@ -1518,13 +1518,15 @@ document.addEventListener('DOMContentLoaded',()=>{const key='sayzio-form-draft-'
 document.addEventListener('DOMContentLoaded',()=>{
  const mode=document.body.dataset.labelStyle;
  document.querySelectorAll('.form-field').forEach(field=>{
-  const input=field.querySelector(':scope > input.form-input, :scope > textarea.form-textarea');const label=field.querySelector(':scope > .form-label');
-  if(!input||!label)return;
-  if(document.body.dataset.characterBoxes==='1' && ['text','tel','number'].includes(input.type)){
-   const wrap=document.createElement('div');wrap.className='character-input-wrap';input.before(wrap);wrap.append(input);const cells=document.createElement('div');cells.className='character-cells';cells.setAttribute('aria-hidden','true');wrap.append(cells);
-   const render=()=>{const chars=Array.from(input.value);input.style.width=(Math.max(12,chars.length+1)*27)+'px';cells.style.width=input.style.width;cells.replaceChildren();for(let i=0;i<Math.max(12,chars.length+1);i++){const cell=document.createElement('span');cell.textContent=chars[i]||'';cells.append(cell);}};input.addEventListener('input',render);render();return;
+  const label=field.querySelector(':scope > .form-label');
+  field.querySelectorAll('input.form-input, textarea.form-textarea').forEach(input=>{
+  if(input.closest('.form-field')!==field)return;
+  if(document.body.dataset.characterBoxes==='1' && (['text','tel','number','email','url','search'].includes(input.type)||input.tagName==='TEXTAREA')){
+   const wrap=document.createElement('div');wrap.className='character-input-wrap'+(input.tagName==='TEXTAREA'?' character-multiline':'');input.before(wrap);wrap.append(input);const cells=document.createElement('div');cells.className='character-cells';cells.setAttribute('aria-hidden','true');wrap.append(cells);
+   const render=()=>{const chars=Array.from(input.value);input.style.width=(Math.max(12,chars.length+1)*35)+'px';cells.style.width=input.style.width;cells.replaceChildren();for(let i=0;i<Math.max(12,chars.length+1);i++){const cell=document.createElement('span');cell.textContent=chars[i]||'';cells.append(cell);}};input.addEventListener('input',render);render();return;
   }
-  if(['inside','floating'].includes(mode)){field.classList.add('label-inset');if(mode==='inside')field.classList.add('label-inside');const update=()=>field.classList.toggle('has-answer',!!input.value);input.addEventListener('input',update);input.addEventListener('change',update);update();}
+  if(label && input.parentElement===field && ['inside','floating'].includes(mode)){field.classList.add('label-inset');if(mode==='inside')field.classList.add('label-inside');const update=()=>field.classList.toggle('has-answer',!!input.value);input.addEventListener('input',update);input.addEventListener('change',update);update();}
+  });
  });
 });
 </script>

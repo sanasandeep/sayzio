@@ -235,7 +235,7 @@ class FormsExperienceTest extends TestCase
     public function test_style_catalog_and_new_design_controls_round_trip(): void
     {
         $f = $this->form($this->owner());
-        $this->assertGreaterThanOrEqual(25, count(FormStyleCatalog::all()));
+        $this->assertEquals(53, count(FormStyleCatalog::all()));
         $data = array_merge(Form::defaultDesign(), ['surface_style' => 'liquid', 'label_style' => 'floating', 'character_boxes' => true, 'layout' => 'grid3']);
         $this->put('/user/forms/'.$f->id.'/design', $data)->assertSessionHasNoErrors();
         $this->assertEquals('liquid', $f->fresh()->design['surface_style']);
@@ -244,6 +244,23 @@ class FormsExperienceTest extends TestCase
         $preview->assertSee('surface-liquid')->assertSee('data-label-style="floating"', false)->assertSee('data-character-boxes="1"', false)->assertSee('layout-grid3');
         if (getenv('FORMS_UI_FIXTURE')) {
             file_put_contents('/tmp/forms-style-preview.html', $preview->getContent());
+        }
+    }
+
+    public function test_extra_surfaces_and_omr_work_in_saved_and_conversational_forms(): void
+    {
+        $f = $this->form($this->owner());
+        $f->update(['fields' => [['id' => 'answer', 'type' => 'text', 'label' => 'Answer']]]);
+        foreach (FormStyleCatalog::all() as $preset) {
+            $data = array_merge(Form::defaultDesign(), ['surface_style' => $preset['surface'], 'input_style' => $preset['inputStyle'], 'layout' => 'oneq']);
+            $this->put('/user/forms/'.$f->id.'/design', $data)->assertSessionHasNoErrors();
+            $this->post('/user/forms/'.$f->id.'/preview', ['design' => $data])->assertOk()->assertSee('surface-'.$preset['surface']);
+        }
+        $f->update(['fields' => [['id' => 'name', 'type' => 'name', 'label' => 'Name'], ['id' => 'address', 'type' => 'address', 'label' => 'Address'], ['id' => 'email', 'type' => 'email', 'label' => 'Email'], ['id' => 'long', 'type' => 'textarea', 'label' => 'Notes'], ['id' => 'choice', 'type' => 'radio', 'label' => 'Choice', 'options' => ['A', 'B']]]]);
+        $data = array_merge(Form::defaultDesign(), ['input_style' => 'omr']);
+        $preview = $this->post('/user/forms/'.$f->id.'/preview', ['design' => $data])->assertOk()->assertSee('input-omr')->assertSee('data-character-boxes="1"', false);
+        if (getenv('FORMS_UI_FIXTURE')) {
+            file_put_contents('/tmp/forms-omr-preview.html', $preview->getContent());
         }
     }
 
@@ -275,7 +292,7 @@ class FormsExperienceTest extends TestCase
         $this->assertStringContainsString('person', $result);
         $this->assertStringContainsString('One', $result);
         $this->assertStringContainsString('Two', $result);
-        $json=$this->get('/user/forms/'.$f->id.'/submissions/export?columns[]=person&format=json')->assertOk()->streamedContent();
-        $this->assertEquals(['One','Two'],json_decode($json,true)[0]['data']['person']);
+        $json = $this->get('/user/forms/'.$f->id.'/submissions/export?columns[]=person&format=json')->assertOk()->streamedContent();
+        $this->assertEquals(['One', 'Two'], json_decode($json, true)[0]['data']['person']);
     }
 }

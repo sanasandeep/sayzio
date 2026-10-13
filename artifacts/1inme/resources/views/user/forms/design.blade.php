@@ -7,7 +7,7 @@
      x-data="{
         styleTab:'controls',styleCategory:'All',surfaceStyle:@js($design['surface_style']??'clean'),labelStyle:@js($design['label_style']??'above'),characterBoxes:{{ !empty($design['character_boxes'])?'true':'false' }},
         customCss:@js($design['custom_css']??''),choiceStyle:@js($design['choice_style']??'plain'),previewMode: 'phone',
-        applyPreset(p) { Object.assign(this,p); },
+        applyPreset(p) { Object.assign(this,{labelStyle:'above',density:'comfortable',focusStyle:'glow',buttonStyle:'solid',customCss:'',...p}); },
 
         init() {
             this.$nextTick(() => {
@@ -68,18 +68,6 @@
     ])
 
     @include('user.forms._tabs')
-    <div class="card-premium p-5 mb-5">
-        <div class="flex flex-wrap gap-2 mb-4"><button type="button" class="form-chip" :style="styleTab==='controls'?'background:#365ce9;color:white':''" @click="styleTab='controls'">Design controls</button><button type="button" class="form-chip" :style="styleTab==='gallery'?'background:#365ce9;color:white':''" @click="styleTab='gallery'">Style gallery · 28 styles</button></div>
-        <div x-show="styleTab==='gallery'" x-cloak>
-        <h3 class="font-bold">Choose a complete visual style</h3><p class="text-sm my-3">Distinct surfaces, typography and input treatments. Refine every style using the controls below.</p>
-        <div class="flex flex-wrap gap-2 mb-4">@foreach(['All','Modern','Glass','Paper','Editorial'] as $category)<button type="button" class="form-chip" @click="styleCategory=@js($category)" :style="styleCategory===@js($category)?'background:#365ce9;color:white':''">{{ $category }}</button>@endforeach</div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" style="max-height:460px;overflow:auto;padding:3px">
-        @foreach(\App\Modules\User\Services\FormStyleCatalog::all() as $id=>$preset)
-        @php($values=array_merge(\Illuminate\Support\Arr::except($preset,['name','category','surface']),['surfaceStyle'=>$preset['surface'],'theme'=>in_array($id,['midnight','blueprint','terminal','luxury'])?'dark':'light','radius'=>in_array($id,['newspaper','ledger','blueprint','receipt','brutalist','terminal','omr'])?0:20,'inputShape'=>'auto','font'=>in_array($preset['surface'],['newspaper','museum'])?'Georgia':(in_array($preset['surface'],['terminal','receipt','ledger'])?'Courier New':'Plus Jakarta Sans'),'characterBoxes'=>in_array($id,['ledger','omr']),'choiceStyle'=>$id==='omr'?'cards':'plain']))
-        <button type="button" x-show="styleCategory==='All'||styleCategory===@js($preset['category'])" class="form-style-tile rounded-xl p-4 text-left border" :aria-pressed="surfaceStyle===@js($preset['surface']) &amp;&amp; accent===@js($preset['accent'])" style="background:{{ $preset['background'] }};color:{{ $preset['text'] }};border-color:{{ $preset['accent'] }}80" @click='applyPreset(@json($values))'><div class="style-sample surface-{{ $preset['surface'] }}" style="--form-accent:{{ $preset['accent'] }};background:{{ $preset['cardColor'] }}"><span class="block text-xs mb-2">{{ $preset['category'] }}</span><span class="block border rounded p-2 text-xs" style="border-color:{{ $preset['accent'] }}">Your answer</span></div><strong class="block mt-3">{{ $preset['name'] }}</strong><span class="text-xs">{{ ucfirst($preset['surface']) }} · {{ $preset['inputStyle'] }}</span></button>
-        @endforeach</div></div>
-    </div>
-
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
         <i class="fas fa-check-circle mr-1.5"></i> {{ session('success') }}
@@ -92,6 +80,19 @@
 
         {{-- Settings --}}
         <div class="lg:col-span-2 space-y-6">
+    <div class="card-premium p-5">
+        <div class="flex flex-wrap gap-2 mb-4"><button type="button" class="form-chip" :style="styleTab==='controls'?'background:#365ce9;color:white':''" @click="styleTab='controls'">Design controls</button><button type="button" class="form-chip" :style="styleTab==='gallery'?'background:#365ce9;color:white':''" @click="styleTab='gallery'">Style gallery · 53 styles</button></div>
+        <div x-show="styleTab==='gallery'" x-cloak>
+        <h3 class="font-bold">Choose a complete visual style</h3><p class="text-sm my-3">Distinct surfaces, typography and input treatments. Refine every style using the controls below.</p>
+        <div class="flex flex-wrap gap-2 mb-4">@foreach(['All','Modern','Glass','Paper','Editorial'] as $category)<button type="button" class="form-chip" @click="styleCategory=@js($category)" :style="styleCategory===@js($category)?'background:#365ce9;color:white':''">{{ $category }}</button>@endforeach</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" style="max-height:560px;overflow:auto;padding:3px">
+        @foreach(\App\Modules\User\Services\FormStyleCatalog::all() as $id=>$preset)
+        @php($values=array_merge(\Illuminate\Support\Arr::except($preset,['name','category','surface']),['surfaceStyle'=>$preset['surface'],'theme'=>in_array($id,['midnight','blueprint','terminal','luxury','carbon','circuit','scanline','pixel','portal'])?'dark':'light','radius'=>in_array($id,['newspaper','ledger','blueprint','receipt','brutalist','terminal','omr'])?0:20,'inputShape'=>$preset['inputStyle']==='omr'?'square':'auto','font'=>in_array($preset['surface'],['newspaper','museum'])?'Georgia':(in_array($preset['surface'],['terminal','receipt','ledger'])?'Courier New':'Plus Jakarta Sans'),'characterBoxes'=>in_array($id,['ledger','omr']),'choiceStyle'=>'plain']))
+        <button type="button" x-show="styleCategory==='All'||styleCategory===@js($preset['category'])" class="form-style-tile rounded-xl p-4 text-left border" :aria-pressed="surfaceStyle===@js($preset['surface']) &amp;&amp; accent===@js($preset['accent'])" style="background:{{ $preset['background'] }};color:{{ $preset['text'] }};border-color:{{ $preset['accent'] }}80" @click='applyPreset(@json($values))'><div class="style-sample surface-{{ $preset['surface'] }}" style="--form-accent:{{ $preset['accent'] }};background:{{ $preset['cardColor'] }}"><span class="block text-xs mb-2">{{ $preset['category'] }}</span><span class="block border rounded p-2 text-xs" style="border-color:{{ $preset['accent'] }};{{ in_array($preset['inputStyle'],['underline','ghost']) ? 'border:0;border-bottom:1px solid currentColor;border-radius:0' : '' }}">Your answer</span></div><strong class="block mt-3">{{ $preset['name'] }}</strong><span class="text-xs">{{ ucfirst($preset['surface']) }} · {{ $preset['inputStyle'] }}</span></button>
+        @endforeach</div></div>
+    </div>
+
+
             <div class="card-premium p-6">
                 <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Theme & Colors</h3>
                 <p class="text-[11px] mb-5" style="color: var(--text-faint);">Pick a base theme then fine-tune colors. The preview on the right updates live.</p>
@@ -217,7 +218,7 @@
                             <option value="filled">Filled, no border</option>
                             <option value="ghost">Borderless</option>
                             <option value="elevated">Elevated, with shadow</option>
-                            <option value="accent_bar">Accent bar on the left</option>
+                            <option value="accent_bar">Accent bar on the left</option><option value="omr">OMR · character boxes & bubble choices</option>
                         </select>
                     </div>
                     <div>
@@ -310,7 +311,7 @@
                 </label>
             </div>
 
-            <div class="card-premium p-6"><h3 class="font-bold mb-3">Labels & character boxes</h3><label class="block text-sm mb-2">Label position<select name="label_style" x-model="labelStyle" class="theme-input w-full mt-2"><option value="above">Above input</option><option value="inside">Inside input</option><option value="floating">Floating · moves on focus or answer</option></select></label><input type="hidden" name="character_boxes" value="0"><label class="flex gap-2 mt-4"><input type="checkbox" name="character_boxes" value="1" x-model="characterBoxes">Character boxes · bank application style</label><p class="text-xs mt-2">Applies to short text, number and phone fields, one character per box. Long answers scroll within the field; answer limits are unchanged. Other field types keep their normal controls. Floating labels retain a visible label when an answer is entered.</p></div>
+            <div class="card-premium p-6"><h3 class="font-bold mb-3">Labels & character boxes</h3><label class="block text-sm mb-2">Label position<select name="label_style" x-model="labelStyle" class="theme-input w-full mt-2"><option value="above">Above input</option><option value="inside">Inside input</option><option value="floating">Floating · moves on focus or answer</option></select></label><input type="hidden" name="character_boxes" value="0"><label class="flex gap-2 mt-4"><input type="checkbox" name="character_boxes" value="1" x-model="characterBoxes">Character boxes · bank application style</label><p class="text-xs mt-2">Applies to text, email, URL, phone, number, long text, name and address inputs, one character per box. Long answers scroll within the field; answer limits are unchanged. Date, time, choices, uploads and signatures keep their native controls with square borders in OMR mode. Floating labels retain a visible label when an answer is entered.</p></div>
             <div class="card-premium p-6"><h3 class="font-bold mb-3">Choice presentation</h3><p class="text-sm mb-4" style="color:var(--text-muted)">Style radio buttons and checkbox answers with clear selected states.</p><select name="choice_style" x-model="choiceStyle" class="theme-input w-full"><option value="plain">Simple list</option><option value="cards">Selectable cards</option><option value="pills">Compact pills</option></select></div>
             <div class="card-premium p-6" x-data="{ open: {{ !empty($design['custom_css']) ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" class="flex items-center gap-3 w-full text-left">
