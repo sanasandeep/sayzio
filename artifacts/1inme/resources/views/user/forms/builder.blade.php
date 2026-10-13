@@ -9,6 +9,7 @@
         fields: @js(old('fields',$form->fields ?? [])),
         types: @js($fieldTypes),
         canPrice: @js($canPrice),
+        previewMode:'phone',
         previewUrl: @js(route('user.forms.preview',$form)),
      })"
      x-init="$nextTick(() => initSortable())" @form-ai-apply.window="fields=$event.detail.fields;title=$event.detail.title;description=$event.detail.description;selectedIndex=null;selectedIds=[]">
@@ -110,7 +111,7 @@
             </div>
         </template>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 form-studio-grid gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 form-studio-grid forms-builder-grid gap-6">
             {{-- LEFT: field type palette --}}
             <aside class="lg:col-span-2">
                                 {{-- The scroll container must NOT be the .card-premium element:
@@ -136,7 +137,7 @@
                                     class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-left transition-all hover:translate-x-1"
                                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
                                 <i :class="`fas ${meta.icon}`" class="text-blue-400 text-xs w-4 text-center"></i>
-                                <span class="flex-1 truncate" x-text="meta.label"></span>
+                                <span class="flex-1 min-w-0" style="white-space:normal" x-text="meta.label"></span>
                                 <i class="fas fa-plus text-[9px] opacity-40"></i>
                             </button>
                         </template>
@@ -162,13 +163,15 @@
                     <details><summary class="form-chip">More actions</summary><div class="forms-selection-more"><button type="button" class="form-chip" @click="bulkMove('top')">Move to top</button><button type="button" class="form-chip" @click="bulkMove('bottom')">Move to end</button><select class="theme-input text-xs" x-model="bulkTarget"><option value="">Move after…</option><template x-for="f in fields.filter(f=>isTopLevel(f)&&!selectedIds.includes(f.id))" :key="f.id"><option :value="f.id" x-text="f.label||f.type"></option></template></select><button type="button" class="form-chip" @click="bulkMove(bulkTarget)">Move</button><button type="button" class="form-chip" @click="saveGroup()">Save question group</button></div></details>
                     <button type="button" class="form-chip text-red-500" @click="bulkDelete()"><i class="fas fa-trash"></i> Delete</button><button type="button" class="form-chip" @click="selectedIds=[]" aria-label="Clear selection">×</button>
                 </div>
+                <p class="text-xs mb-3" style="color:var(--text-muted)"><i class="fas fa-grip-vertical"></i> Drag to reorder · width controls arrange fields in the live form.</p>
+                <div class="forms-between-insert" style="position:relative;bottom:auto;margin-bottom:16px"><button type="button" @click="chooseAfter(-1)" aria-label="Insert field at start"><i class="fas fa-plus"></i></button></div>
                 <div id="fieldsList" class="min-h-[300px]"
                      style="display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.75rem;">
                     <template x-for="(f, i) in fields" :key="f.id + '-' + i">
                         <div :data-id="f.id"
-                             :style="`grid-column: span ${f.type === 'section' ? 12 : (f.width || 12)} / span ${f.type === 'section' ? 12 : (f.width || 12)}; ${(!isTopLevel(f)) ? 'display:none;' : ''}`"
-                             :class="{'section-card':f.type==='section','forms-field-selected':selectedIds.includes(f.id)}">
-                            <div class="flex justify-between items-center py-2"><label class="text-xs flex gap-2"><input type="checkbox" :checked="selectedIds.includes(f.id)" @change="toggleSelected(f.id)" :aria-label="'Select '+f.label">Select</label><button class="form-chip text-xs" type="button" @click="chooseAfter(i)">+ Insert after</button></div>
+                             :style="`grid-column:span 12; ${(!isTopLevel(f)) ? 'display:none;' : ''}`"
+                             :class="{'section-card':f.type==='section','forms-field-selected':selectedIds.includes(f.id)}" class="forms-field-unit">
+                            <div class="forms-card-select"><input type="checkbox" :checked="selectedIds.includes(f.id)" @change="toggleSelected(f.id)" :aria-label="'Select '+f.label"></div>
                             {{-- ============ SECTION (group) card ============ --}}
                             <template x-if="f.type === 'section'">
                                 <div class="card-premium p-5 field-card"
@@ -222,7 +225,7 @@
 
                             {{-- ============ NORMAL field card (top-level only) ============ --}}
                             <template x-if="f.type !== 'section'">
-                                <div class="card-premium p-4 field-card"
+                                <div class="card-premium p-4 field-card forms-compact-card"
                                      :class="selectedIndex === i ? 'ring-2 ring-blue-500' : ''"
                                      @click="selectedIndex = i">
                                     <div class="flex items-start gap-3">
@@ -236,10 +239,11 @@
                                                 </template>
                                                 <template x-if="(f.width || 12) !== 12">
                                                     <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(92,131,255,0.14); color: #90acff;"
-                                                          x-text="f.width === 6 ? '½ row' : (f.width === 4 ? '⅓ row' : '⅔ row')"></span>
+                                                          x-text="({3:'¼ row',4:'⅓ row',6:'½ row',8:'⅔ row',9:'¾ row'})[f.width]||'Full row'"></span>
                                                 </template>
                                             </div>
                                             <div class="text-sm font-semibold mb-2" style="color: var(--text-primary);" x-text="f.label || '(no label)'"></div>
+                                            <div class="forms-field-detail" x-show="selectedIndex===i" x-cloak>
                                             <div x-show="f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'url' || f.type === 'number'">
                                                 <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.placeholder || 'Enter value…'"></div>
                                             </div>
@@ -350,14 +354,18 @@
                                             </div>
                                             <div x-show="f.type === 'heading'" class="mt-1 text-base font-bold" style="color: var(--text-primary);" x-text="f.label || 'Section heading'"></div>
                                             <div x-show="f.help" class="text-[11px] mt-2" style="color: var(--text-faint);" x-text="f.help"></div>
+                                            </div>
                                         </div>
-                                        <div class="flex flex-col gap-1">
+                                        <div class="flex gap-1 forms-card-actions">
+                                            <button type="button" @click.stop="selectedIndex=i;$refs.fieldPanel?.scrollIntoView({behavior:'smooth',block:'nearest'})" class="w-7 h-7 rounded-lg" title="Edit field"><i class="fas fa-pen text-xs"></i></button>
                                             <button type="button" @click.stop="duplicateField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: var(--bg-glass-input); color: var(--text-muted);" title="Duplicate"><i class="fas fa-clone"></i></button>
                                             <button type="button" @click.stop="removeField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;" title="Delete"><i class="fas fa-trash"></i></button>
                                         </div>
                                     </div>
                                 </div>
                             </template>
+                            <div class="forms-width-strip" x-show="f.type!=='section'" @click.stop><span><i class="fas fa-columns"></i> Width</span><template x-for="opt in [{v:3,l:'¼'},{v:4,l:'⅓'},{v:6,l:'½'},{v:8,l:'⅔'},{v:9,l:'¾'},{v:12,l:'Full'}]" :key="opt.v"><button type="button" :aria-label="'Set '+f.label+' width '+opt.l" :aria-pressed="(f.width||12)===opt.v" @click="f.width=opt.v" x-text="opt.l"></button></template></div>
+                            <div class="forms-between-insert"><button type="button" @click="chooseAfter(i)" :aria-label="'Insert field after '+f.label" :class="insertionAfter===i?'active':''"><i class="fas fa-plus"></i></button></div>
                         </div>
                     </template>
                     <div x-show="fields.length === 0" class="card-premium p-12 text-center" style="grid-column: span 12;">
@@ -386,7 +394,7 @@
 
             {{-- RIGHT: per-field editor --}}
             <aside class="lg:col-span-4 forms-preview">
-                <div class="forms-preview card-premium p-3 mb-4" style="position:static"><header><strong class="text-sm">Live form</strong><span class="text-xs">Unsaved · preview only</span></header><iframe x-ref="liveFrame" sandbox="allow-scripts" title="Live form preview" style="height:420px"></iframe></div>
+                <div class="forms-preview card-premium p-3 mb-4" :class="previewMode==='phone'?'is-phone':'forms-expanded'" style="position:static"><header><strong class="text-sm">Live preview</strong><span class="text-xs">Unsaved</span><button type="button" class="form-chip text-xs" @click="previewMode=previewMode==='phone'?'desktop':'phone'" x-text="previewMode==='phone'?'Expand desktop':'Close desktop'"></button></header><iframe x-ref="liveFrame" sandbox="allow-scripts" title="Live form preview" style="height:420px"></iframe></div>
                 <div x-ref="fieldPanel" class="lg:sticky lg:top-24 lg:max-h-[calc(100vh_-_2rem)] lg:overflow-y-auto lg:custom-scrollbar">
                 <div class="card-premium p-5">
                     <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">
@@ -714,7 +722,7 @@
                             <div x-show="!['hidden','page_break','section'].includes(fields[selectedIndex].type)" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
                                 <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">Field width <span class="text-[10px]" style="color: var(--text-faint);"> - place 2+ fields per row</span></label>
                                 <div class="grid grid-cols-4 gap-1">
-                                    <template x-for="opt in [{v:12,l:'Full'},{v:8,l:'⅔'},{v:6,l:'½'},{v:4,l:'⅓'}]" :key="opt.v">
+                                    <template x-for="opt in [{v:12,l:'Full'},{v:9,l:'¾'},{v:8,l:'⅔'},{v:6,l:'½'},{v:4,l:'⅓'},{v:3,l:'¼'}]" :key="opt.v">
                                         <button type="button" @click="fields[selectedIndex].width = opt.v"
                                                 :class="(fields[selectedIndex].width || 12) === opt.v ? 'ring-2 ring-blue-500' : ''"
                                                 class="px-2 py-2 rounded-lg text-[11px] font-semibold"
@@ -790,7 +798,7 @@ function formBuilder(initial) {
         types: initial.types,
         canPrice: !!initial.canPrice,
         PRICED_TYPES: ['number', 'select', 'radio', 'checkbox', 'consent'],
-        selectedIndex: null, selectedIds: [], insertionAfter: null, bulkTarget: '',
+        previewMode:'phone', selectedIndex: null, selectedIds: [], insertionAfter: null, bulkTarget: '',
         chooseAfter(i) { this.insertionAfter=i; this.$refs.palette?.scrollIntoView({behavior:'smooth',block:'nearest'}); },
         toggleSelected(id) { this.selectedIds=this.selectedIds.includes(id)?this.selectedIds.filter(v=>v!==id):[...this.selectedIds,id]; },
         fieldUnits(){const units=[];this.fields.forEach(f=>{if(this.isTopLevel(f)){const children=f.type==='section'?this.fields.filter(c=>c.parent===f.id):[];units.push([f,...children]);}});return units;},

@@ -950,7 +950,7 @@
                                                                 @php
                                                                     $cid  = $child['id'] ?? '';
                                                                     $cw   = (int) ($child['width'] ?? 12);
-                                                                    if (!in_array($cw, [4,6,8,12], true)) $cw = 12;
+                                                                    if (!in_array($cw, [3,4,6,8,9,12], true)) $cw = 12;
                                                                     $rn = "rep_{$secId}[{$ci}][{$cid}]";
                                                                 @endphp
                                                                 <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
@@ -980,7 +980,7 @@
                                             @endif
                                             <div class="form-grid">
                                                 @foreach($sChildren as $child)
-                                                    @php $cw = (int) ($child['width'] ?? 12); if (!in_array($cw, [4,6,8,12], true)) $cw = 12; @endphp
+                                                    @php $cw = (int) ($child['width'] ?? 12); if (!in_array($cw, [3,4,6,8,9,12], true)) $cw = 12; @endphp
                                                     <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
                                                         @include('common.form-field', ['field' => $child, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency, 'formCurrency' => $form->paymentCurrency()])
                                                     </div>
@@ -989,7 +989,7 @@
                                         </div>
                                     @endif
                                 @else
-                                    @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [4,6,8,12], true)) $w = 12; @endphp
+                                    @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [3,4,6,8,9,12], true)) $w = 12; @endphp
                                     <div class="form-grid-cell" style="grid-column: span {{ $w }};">
                                         @include('common.form-field', ['field' => $field, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency, 'formCurrency' => $form->paymentCurrency()])
                                     </div>
