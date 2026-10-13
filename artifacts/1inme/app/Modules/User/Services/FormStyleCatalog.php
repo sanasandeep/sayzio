@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Modules\User\Services;
+
+class FormStyleCatalog
+{
+    public static function all(): array
+    {
+        return [
+            'studio' => ['name' => 'Studio', 'category' => 'Modern', 'surface' => 'clean', 'accent' => '#365ce9', 'background' => '#f5f5f8', 'cardColor' => '#ffffff', 'text' => '#1a1b26', 'inputStyle' => 'outline'],
+            'midnight' => ['name' => 'Midnight', 'category' => 'Modern', 'surface' => 'clean', 'accent' => '#a78bfa', 'background' => '#111827', 'cardColor' => '#1e293b', 'text' => '#f8fafc', 'inputStyle' => 'filled'],
+            'botanical' => ['name' => 'Botanical', 'category' => 'Paper', 'surface' => 'paper', 'accent' => '#15803d', 'background' => '#eef6ee', 'cardColor' => '#ffffff', 'text' => '#183e2a', 'inputStyle' => 'underline'],
+            'editorial' => ['name' => 'Editorial', 'category' => 'Editorial', 'surface' => 'newspaper', 'accent' => '#b45309', 'background' => '#fff8eb', 'cardColor' => '#fffcf5', 'text' => '#382b20', 'inputStyle' => 'ghost'],
+            'candy' => ['name' => 'Candy', 'category' => 'Modern', 'surface' => 'soft', 'accent' => '#db2777', 'background' => '#fff1f7', 'cardColor' => '#ffffff', 'text' => '#4a1634', 'inputStyle' => 'soft'],
+            'ocean' => ['name' => 'Ocean', 'category' => 'Modern', 'surface' => 'gradient', 'accent' => '#0891b2', 'background' => '#edfaff', 'cardColor' => '#ffffff', 'text' => '#123c52', 'inputStyle' => 'accent_bar'],
+            'liquid' => ['name' => 'Liquid glass', 'category' => 'Glass', 'surface' => 'liquid', 'accent' => '#2563eb', 'background' => '#ddeafe', 'cardColor' => '#ffffff', 'text' => '#12314d', 'inputStyle' => 'outline'],
+            'frost' => ['name' => 'Frosted glass', 'category' => 'Glass', 'surface' => 'frost', 'accent' => '#7c3aed', 'background' => '#ece8ff', 'cardColor' => '#ffffff', 'text' => '#30205b', 'inputStyle' => 'soft'],
+            'aurora' => ['name' => 'Aurora', 'category' => 'Glass', 'surface' => 'aurora', 'accent' => '#9333ea', 'background' => '#eef2ff', 'cardColor' => '#ffffff', 'text' => '#302052', 'inputStyle' => 'outline'],
+            'material' => ['name' => 'Material', 'category' => 'Modern', 'surface' => 'material', 'accent' => '#6750a4', 'background' => '#f5f0fa', 'cardColor' => '#fffbfe', 'text' => '#1c1b1f', 'inputStyle' => 'filled'],
+            'newspaper' => ['name' => 'Newspaper', 'category' => 'Editorial', 'surface' => 'newspaper', 'accent' => '#222222', 'background' => '#eeeae1', 'cardColor' => '#fffdf8', 'text' => '#222222', 'inputStyle' => 'underline'],
+            'ledger' => ['name' => 'Bank ledger', 'category' => 'Paper', 'surface' => 'ledger', 'accent' => '#164e63', 'background' => '#f1f5f9', 'cardColor' => '#ffffff', 'text' => '#163344', 'inputStyle' => 'outline'],
+            'blueprint' => ['name' => 'Blueprint', 'category' => 'Paper', 'surface' => 'blueprint', 'accent' => '#bae6fd', 'background' => '#0c3550', 'cardColor' => '#164563', 'text' => '#ffffff', 'inputStyle' => 'outline'],
+            'notebook' => ['name' => 'Notebook', 'category' => 'Paper', 'surface' => 'notebook', 'accent' => '#2563eb', 'background' => '#faf8ee', 'cardColor' => '#fffdf5', 'text' => '#29374a', 'inputStyle' => 'underline'],
+            'receipt' => ['name' => 'Receipt', 'category' => 'Editorial', 'surface' => 'receipt', 'accent' => '#333333', 'background' => '#ececec', 'cardColor' => '#ffffff', 'text' => '#222222', 'inputStyle' => 'ghost'],
+            'terminal' => ['name' => 'Terminal', 'category' => 'Editorial', 'surface' => 'terminal', 'accent' => '#4ade80', 'background' => '#07120c', 'cardColor' => '#102117', 'text' => '#bbf7d0', 'inputStyle' => 'underline'],
+            'brutalist' => ['name' => 'Brutalist', 'category' => 'Modern', 'surface' => 'brutalist', 'accent' => '#111111', 'background' => '#fff168', 'cardColor' => '#ffffff', 'text' => '#111111', 'inputStyle' => 'outline'],
+            'clay' => ['name' => 'Clay', 'category' => 'Modern', 'surface' => 'clay', 'accent' => '#c2410c', 'background' => '#fff0e6', 'cardColor' => '#ffeadb', 'text' => '#593226', 'inputStyle' => 'soft'],
+            'neumorphic' => ['name' => 'Neumorphic', 'category' => 'Modern', 'surface' => 'neumorphic', 'accent' => '#4f46e5', 'background' => '#e8ecf3', 'cardColor' => '#e8ecf3', 'text' => '#273248', 'inputStyle' => 'soft'],
+            'mesh' => ['name' => 'Mesh gradient', 'category' => 'Glass', 'surface' => 'mesh', 'accent' => '#be185d', 'background' => '#fce7f3', 'cardColor' => '#ffffff', 'text' => '#502a4b', 'inputStyle' => 'soft'],
+            'sunset' => ['name' => 'Sunset', 'category' => 'Glass', 'surface' => 'gradient', 'accent' => '#c2410c', 'background' => '#fff1df', 'cardColor' => '#ffffff', 'text' => '#5a2f21', 'inputStyle' => 'elevated'],
+            'luxury' => ['name' => 'Luxury foil', 'category' => 'Editorial', 'surface' => 'luxury', 'accent' => '#f5cc72', 'background' => '#191714', 'cardColor' => '#29251f', 'text' => '#fff6dd', 'inputStyle' => 'underline'],
+            'museum' => ['name' => 'Museum', 'category' => 'Editorial', 'surface' => 'museum', 'accent' => '#9f1239', 'background' => '#f4eee8', 'cardColor' => '#fffaf5', 'text' => '#352a25', 'inputStyle' => 'ghost'],
+            'polaroid' => ['name' => 'Polaroid', 'category' => 'Paper', 'surface' => 'polaroid', 'accent' => '#0369a1', 'background' => '#e7f0f5', 'cardColor' => '#ffffff', 'text' => '#263745', 'inputStyle' => 'outline'],
+            'omr' => ['name' => 'OMR sheet', 'category' => 'Paper', 'surface' => 'omr', 'accent' => '#111827', 'background' => '#eef2f6', 'cardColor' => '#ffffff', 'text' => '#111827', 'inputStyle' => 'outline'],
+            'ticket' => ['name' => 'Event ticket', 'category' => 'Paper', 'surface' => 'ticket', 'accent' => '#6d28d9', 'background' => '#ede9fe', 'cardColor' => '#ffffff', 'text' => '#33205c', 'inputStyle' => 'outline'],
+            'comic' => ['name' => 'Comic', 'category' => 'Modern', 'surface' => 'comic', 'accent' => '#be123c', 'background' => '#fff7cc', 'cardColor' => '#ffffff', 'text' => '#231d24', 'inputStyle' => 'outline'],
+            'minimal' => ['name' => 'Minimal line', 'category' => 'Editorial', 'surface' => 'minimal', 'accent' => '#444444', 'background' => '#ffffff', 'cardColor' => '#ffffff', 'text' => '#222222', 'inputStyle' => 'underline'],
+        ];
+    }
+}

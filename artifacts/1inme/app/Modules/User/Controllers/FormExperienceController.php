@@ -26,8 +26,9 @@ class FormExperienceController extends Controller
         }
         $r->validate(['from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d|after_or_equal:from', 'fields' => 'nullable|array|max:100', 'fields.*' => 'string|max:100', 'filters' => 'nullable|array|max:20', 'filters.*' => 'nullable|string|max:200', 'export' => 'nullable|in:csv', 'chart' => 'nullable|in:bars,table']);
         $r->merge(['fields' => $r->input('fields') ?? [], 'filters' => $r->input('filters') ?? [], 'chart' => $r->input('chart') ?: 'bars']);
-        $from = $r->input('from') ?: now()->subDays(29)->toDateString();
-        $to = $r->input('to') ?: now()->toDateString();
+        $localNow = now()->timezone(\App\Support\PlatformTimezone::forUser($form->user));
+        $from = $r->input('from') ?: $localNow->copy()->subDays(29)->toDateString();
+        $to = $r->input('to') ?: $localNow->toDateString();
         abort_if($from > $to, 422, 'The end date must follow the start date.');
         abort_if(Carbon::parse($from)->diffInDays($to) > 366, 422, 'Choose a range of up to one year.');
         $report = app(FormResponseAnalytics::class)->build($form, $from, $to, $r->input('fields', []), $r->input('filters', []));
@@ -104,8 +105,8 @@ class FormExperienceController extends Controller
         foreach ($data['design'] ?? [] as $key => $value) {
             if ($key === 'custom_css' && is_string($value)) {
                 $design[$key] = str_ireplace('</style', '', mb_substr($value, 0, 50000));
-            } elseif (in_array($key, ['choice_style', 'theme', 'button_style', 'layout', 'input_style', 'input_shape', 'density', 'focus_style', 'card_image_mode'], true)) {
-                $sets = ['choice_style' => ['plain', 'cards', 'pills'], 'theme' => ['light', 'dark', 'glass'], 'button_style' => ['gradient', 'solid', 'outline'], 'layout' => ['stacked', 'inline', 'oneq'], 'input_style' => ['soft', 'outline', 'underline', 'filled', 'ghost', 'elevated', 'accent_bar'], 'input_shape' => ['auto', 'pill', 'square'], 'density' => ['comfortable', 'compact'], 'focus_style' => ['glow', 'border', 'fill'], 'card_image_mode' => ['cover', 'contain', 'tile']];
+            } elseif (in_array($key, ['surface_style', 'label_style', 'choice_style', 'theme', 'button_style', 'layout', 'input_style', 'input_shape', 'density', 'focus_style', 'card_image_mode'], true)) {
+                $sets = ['surface_style' => ['clean', 'paper', 'newspaper', 'soft', 'gradient', 'liquid', 'frost', 'aurora', 'material', 'ledger', 'blueprint', 'notebook', 'receipt', 'terminal', 'brutalist', 'clay', 'neumorphic', 'mesh', 'luxury', 'museum', 'polaroid', 'omr', 'ticket', 'comic', 'minimal'], 'label_style'=>['above','inside','floating'], 'choice_style' => ['plain', 'cards', 'pills'], 'theme' => ['light', 'dark', 'glass'], 'button_style' => ['gradient', 'solid', 'outline'], 'layout' => ['stacked', 'inline', 'oneq', 'grid', 'grid3'], 'input_style' => ['soft', 'outline', 'underline', 'filled', 'ghost', 'elevated', 'accent_bar'], 'input_shape' => ['auto', 'pill', 'square'], 'density' => ['comfortable', 'compact'], 'focus_style' => ['glow', 'border', 'fill'], 'card_image_mode' => ['cover', 'contain', 'tile']];
                 if (in_array($value, $sets[$key], true)) {
                     $design[$key] = $value;
                 }
@@ -115,7 +116,7 @@ class FormExperienceController extends Controller
                 $design[$key] = max(0, min($key === 'border_radius' ? 48 : 100, (int) $value));
             } elseif (in_array($key, ['button_label', 'font'], true) && is_string($value)) {
                 $design[$key] = mb_substr($value, 0, 60);
-            } elseif ($key === 'show_branding') {
+            } elseif (in_array($key, ['show_branding','character_boxes'], true)) {
                 $design[$key] = (bool) $value;
             } elseif (in_array($key, ['logo', 'cover', 'card_image'], true) && is_string($value) && (preg_match('#^data:image/(jpeg|png|webp);base64,[a-zA-Z0-9+/=]+$#', $value) || str_starts_with($value, '/') || preg_match('#^https?://#', $value))) {
                 $design[$key] = $value;

@@ -52,16 +52,9 @@
             ['Unread', $stats['unread'], 'fa-envelope',     '#ec4899'],
             ['Lifetime conv.',$stats['conversion'] . '%', 'fa-percentage', '#10b981'],
         ] as [$label, $val, $icon, $color])
-            <div class="p-4 rounded-2xl" style="background:linear-gradient(135deg,{{ $color }}dd,{{ $color }});color:white;min-height:112px">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(255,255,255,.16);">
-                        <i class="fas {{ $icon }} text-sm" style="color:white;"></i>
-                    </div>
-                    <div class="min-w-0">
-                        <div class="text-[10px] uppercase tracking-wider" style="color:rgba(255,255,255,.85);">{{ $label }}</div>
-                        <div class="text-lg font-bold leading-none mt-1" style="color:white;">{{ $val }}</div>
-                    </div>
-                </div>
+            <div class="forms-rich-stat" style="background:radial-gradient(at 95% 0%,{{ $color }},transparent 70%),linear-gradient(135deg,#172a4a,{{ $color }}99)">
+                @include('user.forms._stat-art',['art'=>$loop->index===3?'document':($loop->index===4?'check':'clock')])
+                <p class="stat-label">{{ $label }}</p><p class="stat-value">{{ $val }}</p><p class="stat-caption">{{ $loop->index===4?'Completed / lifetime views':'Completed, non-spam responses' }}</p>
             </div>
         @endforeach
     </div>

@@ -17,11 +17,12 @@
             ['icon' => 'fa-database text-pink-400', 'text' => number_format($form->total_submissions) . ' total'],
         ],
         'actions' => [
-            ['label' => 'Export CSV', 'url' => route('user.forms.submissions.export', $form), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'],
+            ['label' => 'Export CSV', 'url' => route('user.forms.submissions.export', array_merge(['form'=>$form->id], request()->query())), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'],
         ],
     ])
 
     @include('user.forms._tabs')
+    @if($errors->any())<p class="card-premium p-4 mb-4 text-red-500" role="alert">{{ $errors->first() }}</p>@endif
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -67,11 +68,22 @@
     </div>
     @endif
 
+    <form method="GET" class="card-premium p-5 mb-5 flex flex-wrap gap-3 items-end">
+        <label class="text-sm">Search answers<input class="theme-input block mt-2" name="q" value="{{ request('q') }}" placeholder="Name, email or answer"></label>
+        <label class="text-sm">From<input class="theme-input block mt-2" type="date" name="from" value="{{ request('from') }}"></label><label class="text-sm">To<input class="theme-input block mt-2" type="date" name="to" value="{{ request('to') }}"></label>
+        <details><summary class="form-chip">+ Answer filter</summary><div class="p-3 space-y-2"><select name="answer_field" class="theme-input"><option value="">Any question</option>@foreach($form->fields??[] as $f)@if(!in_array($f['type'],['heading','paragraph','divider','page_break','section']))<option value="{{ $f['id'] }}" @selected(request('answer_field')===$f['id'])>{{ $f['label']??$f['id'] }}</option>@endif @endforeach</select><select name="answer_state" class="theme-input">@foreach(['filled'=>'Has answer','empty'=>'Empty / missing','equals'=>'Equals'] as $value=>$label)<option value="{{ $value }}" @selected(request('answer_state')===$value)>{{ $label }}</option>@endforeach</select><input name="answer_value" class="theme-input" value="{{ request('answer_value') }}" placeholder="Exact answer for Equals"></div></details>
+        <select name="filter" class="theme-input"><option value="">Completed · non-spam</option>@foreach(['unread'=>'Unread','starred'=>'Starred','spam'=>'Spam'] as $v=>$label)<option value="{{ $v }}" @selected(request('filter')===$v)>{{ $label }}</option>@endforeach</select>
+        <select name="payment" class="theme-input"><option value="">All payment states</option>@foreach(['paid','unpaid','refunded'] as $v)<option @selected(request('payment')===$v) value="{{ $v }}">{{ ucfirst($v) }}</option>@endforeach</select>
+        <details><summary class="form-chip">+ Export columns</summary><div class="p-3" style="max-height:240px;overflow:auto">@foreach($form->fields??[] as $f)@if(!in_array($f['type'],['heading','paragraph','divider','page_break']))<label class="block text-sm py-1"><input type="checkbox" name="columns[]" value="{{ $f['id'] }}" @checked(in_array($f['id'],request('columns',[])))> {{ $f['label']??$f['id'] }}</label>@endif @endforeach</div></details>
+        <select name="format" class="theme-input">@foreach(['csv'=>'CSV · wide table','tsv'=>'TSV · spreadsheet','long_csv'=>'CSV · one answer per row','json'=>'JSON · structured','ndjson'=>'NDJSON · stream'] as $v=>$label)<option value="{{ $v }}" @selected(request('format')===$v)>{{ $label }}</option>@endforeach</select>
+        <button class="btn-primary">Apply filters</button><button class="btn-ghost" formaction="{{ route('user.forms.submissions.export',$form) }}">Export matching</button><a class="form-chip" href="{{ route('user.forms.submissions',$form) }}">Reset</a>
+        <p class="text-xs w-full">Exports use these same filters across all matching pages. No columns selected means all columns. Empty matches missing values, blank text and empty arrays/objects.</p>
+    </form>
     {{-- Filter pills --}}
     <div class="flex items-center gap-2 mb-5 flex-wrap">
         @foreach(['' => 'All', 'unread' => 'Unread', 'starred' => 'Starred', 'spam' => 'Spam'] as $val => $label)
             @php $active = (request('filter') ?? '') === $val; @endphp
-            <a href="?filter={{ $val }}" class="text-xs px-3 py-1.5 rounded-full font-semibold" style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);' }}">{{ $label }}</a>
+            <a href="{{ route('user.forms.submissions',array_merge(['form'=>$form->id],request()->except('page'),['filter'=>$val])) }}" class="text-xs px-3 py-1.5 rounded-full font-semibold" style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);' }}">{{ $label }}</a>
         @endforeach
     </div>
 
