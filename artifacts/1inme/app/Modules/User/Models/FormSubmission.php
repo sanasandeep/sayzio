@@ -39,6 +39,7 @@ protected $fillable = [
      */
     protected static function booted(): void
     {
+        static::saved(fn (FormSubmission $submission) => app(\App\Modules\User\Services\ClubMembershipService::class)->capture($submission));
         static::created(function (FormSubmission $submission): void {
             if ($submission->is_spam) {
                 return;
