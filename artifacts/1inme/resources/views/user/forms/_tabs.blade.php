@@ -34,3 +34,14 @@
 @media(max-width:640px){.forms-tabs a{flex:1 1 110px;justify-content:center}.forms-workspace .p-6{padding:16px}.forms-workspace .ml-13{margin-left:0}.forms-workspace .grid-cols-2{grid-template-columns:1fr}.forms-workspace .field-card{padding:14px}}
 @container(max-width:800px){.forms-workspace .form-studio-grid{display:flex;flex-direction:column}.forms-workspace .form-studio-grid>aside,.forms-workspace .form-studio-grid>main{width:100%}}
 </style>
+
+<style>
+.forms-selection-bar{position:fixed;z-index:60;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:max-content;max-width:calc(100vw - 24px);padding:12px 16px;background:var(--bg-card,#fff);color:var(--text-primary);border:1px solid #8a9fff;border-radius:18px;box-shadow:0 16px 40px #17264b33}
+.forms-selection-more{position:absolute;bottom:70px;left:0;display:flex;gap:8px;flex-wrap:wrap;background:var(--bg-card,#fff);padding:16px;border:1px solid var(--border-glass);border-radius:16px;width:min(600px,calc(100vw - 30px))}
+.forms-field-selected{border:2px solid #5573ff;border-radius:20px;padding:8px;background:#5573ff08}.forms-selection-bar~#fieldsList{padding-bottom:100px}
+.forms-rich-stat{position:relative;overflow:hidden;border-radius:24px;padding:24px;min-height:178px;color:#fff;border:1px solid #ffffff40;box-shadow:inset 0 2px 0 #ffffff40,0 16px 24px -18px #14275b99}
+.forms-rich-stat .stat-art{position:absolute;right:20px;top:38px;width:80px;height:80px;filter:drop-shadow(0 6px 0 #0002);animation:form-stat-float 5s ease-in-out infinite}
+.forms-rich-stat .stat-value{font-size:44px;font-weight:800;line-height:1.1;margin-top:38px;position:relative}.forms-rich-stat .stat-label{font-size:14px;font-weight:600;position:relative}.forms-rich-stat .stat-caption{font-size:12px;opacity:.85;margin-top:10px}
+@keyframes form-stat-float{50%{transform:translateY(-5px) rotate(3deg)}}@media(prefers-reduced-motion:reduce){.forms-rich-stat .stat-art{animation:none}}
+@media(max-width:640px){.forms-rich-stat{padding:18px;min-height:155px}.forms-rich-stat .stat-art{width:54px;height:54px;right:12px;top:42px}.forms-rich-stat .stat-value{font-size:32px}.forms-selection-bar{bottom:10px;gap:5px;padding:10px}}
+</style>

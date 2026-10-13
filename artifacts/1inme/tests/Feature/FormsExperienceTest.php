@@ -7,6 +7,7 @@ use App\Modules\User\Controllers\FormAiController;
 use App\Modules\User\Models\Form;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\FormResponseAnalytics;
+use App\Modules\User\Services\FormStyleCatalog;
 use App\Modules\User\Services\FormVisitTracker;
 use App\Modules\User\Services\FormWebhookDispatcher;
 use App\Modules\User\Services\WorkspaceContext;
@@ -68,7 +69,7 @@ class FormsExperienceTest extends TestCase
         $f = $this->form($this->owner());
         foreach ([['Yes', 4, false, 'none'], ['No', 8, false, 'none'], ['Yes', 90, true, 'none'], ['Yes', 100, false, 'pending']] as [$join,$rating,$spam,$payment]) {
             $f->submissions()->create(['data' => compact('join', 'rating'), 'is_spam' => $spam, 'payment_status' => $payment, 'created_at' => now()]);
-        }$a = app(FormResponseAnalytics::class)->build($f, now()->subDay()->toDateString(), now()->toDateString(), [], ['join' => 'Yes']);
+        }$a = app(FormResponseAnalytics::class)->build($f, now()->timezone($f->user->timezone)->subDay()->toDateString(), now()->timezone($f->user->timezone)->toDateString(), [], ['join' => 'Yes']);
         $this->assertEquals(1, $a['total']);
         $this->assertEquals(4, collect($a['reports'])->firstWhere('id', 'rating')['numeric']['sum']);
         $this->get('/user/forms/'.$f->id.'/reports?export=csv')->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
@@ -229,5 +230,52 @@ class FormsExperienceTest extends TestCase
             $mock->shouldNotReceive('chat');
         });
         $this->postJson('/user/forms/'.$f->id.'/ai/estimate', ['instruction' => 'Read the handwritten questions', 'mode' => 'create', 'file' => UploadedFile::fake()->image('questions.png', 100, 200)])->assertOk();
+    }
+
+    public function test_style_catalog_and_new_design_controls_round_trip(): void
+    {
+        $f = $this->form($this->owner());
+        $this->assertGreaterThanOrEqual(25, count(FormStyleCatalog::all()));
+        $data = array_merge(Form::defaultDesign(), ['surface_style' => 'liquid', 'label_style' => 'floating', 'character_boxes' => true, 'layout' => 'grid3']);
+        $this->put('/user/forms/'.$f->id.'/design', $data)->assertSessionHasNoErrors();
+        $this->assertEquals('liquid', $f->fresh()->design['surface_style']);
+        $this->assertEquals('grid3', $f->fresh()->design['layout']);
+        $preview = $this->post('/user/forms/'.$f->id.'/preview', ['design' => $data])->assertOk();
+        $preview->assertSee('surface-liquid')->assertSee('data-label-style="floating"', false)->assertSee('data-character-boxes="1"', false)->assertSee('layout-grid3');
+        if (getenv('FORMS_UI_FIXTURE')) {
+            file_put_contents('/tmp/forms-style-preview.html', $preview->getContent());
+        }
+    }
+
+    public function test_submission_exports_share_filters_and_preserve_nested_json(): void
+    {
+        $f = $this->form($this->owner());
+        $yes = $f->submissions()->create(['data' => ['join' => 'Yes', 'reason' => '', 'rating' => 7], 'payment_status' => 'none']);
+        $f->submissions()->create(['data' => ['join' => 'No', 'reason' => 'filled', 'rating' => 9], 'payment_status' => 'none']);
+        $f->submissions()->create(['data' => ['join' => 'Yes', 'rating' => 99], 'payment_status' => 'none', 'is_spam' => true]);
+        $base = '/user/forms/'.$f->id.'/submissions';
+        $filter = ['answer_field' => 'reason', 'answer_state' => 'empty', 'payment' => 'unpaid'];
+        $this->get($base.'?'.http_build_query($filter))->assertOk()->assertViewHas('submissions', fn ($rows) => $rows->count() === 1 && $rows->first()->id === $yes->id);
+        $response = $this->get($base.'/export?'.http_build_query($filter + ['format' => 'json', 'columns' => ['join']]))->assertOk();
+        $rows = json_decode($response->streamedContent(), true);
+        $this->assertCount(1, $rows);
+        $this->assertEquals(['join' => 'Yes'], $rows[0]['data']);
+        $this->get($base.'/export?'.http_build_query(['format' => 'long_csv', 'answer_field' => 'join', 'answer_state' => 'equals', 'answer_value' => 'No']))->assertOk();
+        $this->get($base.'?q=filled')->assertOk()->assertViewHas('submissions', fn ($rows) => $rows->count() === 1);
+        $this->getJson($base.'/export?columns[]=not_a_field')->assertStatus(422);
+        $this->getJson($base.'?answer_field=not_a_field&answer_state=empty')->assertStatus(422);
+    }
+
+    public function test_selected_repeatable_child_columns_export_each_copy(): void
+    {
+        $f = $this->form($this->owner());
+        $f->update(['fields' => [['id' => 'people', 'type' => 'section', 'repeatable' => true, 'label' => 'People'], ['id' => 'person', 'type' => 'text', 'parent' => 'people', 'label' => 'Name']]]);
+        $f->submissions()->create(['payment_status' => 'none', 'data' => ['people' => ['_repeatable_group' => true, 'copies' => [['person' => 'One'], ['person' => 'Two']]]]]);
+        $result = $this->get('/user/forms/'.$f->id.'/submissions/export?columns[]=person')->assertOk()->streamedContent();
+        $this->assertStringContainsString('person', $result);
+        $this->assertStringContainsString('One', $result);
+        $this->assertStringContainsString('Two', $result);
+        $json=$this->get('/user/forms/'.$f->id.'/submissions/export?columns[]=person&format=json')->assertOk()->streamedContent();
+        $this->assertEquals(['One','Two'],json_decode($json,true)[0]['data']['person']);
     }
 }

@@ -1,0 +1,29 @@
+/* Distinct surfaces are shared by the public form and gallery samples. */
+.surface-liquid{background:linear-gradient(135deg,#ffffffa6,#ffffff40)!important;backdrop-filter:blur(24px) saturate(160%);border:1px solid #ffffffb3!important;box-shadow:inset 0 2px 2px #fff,0 24px 70px #315b9733!important}
+.surface-frost{background:#ffffffb8!important;backdrop-filter:blur(18px);border:1px solid #ffffff!important;box-shadow:0 20px 50px #5c429529!important}
+.surface-aurora{background:linear-gradient(145deg,#dbeafecc,#f5d0fecc,#ccfbf1cc)!important;backdrop-filter:blur(16px)}
+.surface-material{box-shadow:0 3px 6px #0002,0 12px 24px #0001!important;border-radius:28px!important;border:0!important}
+.surface-newspaper{font-family:Georgia,serif!important;border:3px double currentColor!important;border-radius:0!important;box-shadow:none!important;background-image:repeating-linear-gradient(0deg,transparent,transparent 22px,#00000003 23px)!important}
+.surface-ledger{border:2px solid #164e63!important;border-radius:0!important;background-image:linear-gradient(#164e630c 1px,transparent 1px),linear-gradient(90deg,#164e630c 1px,transparent 1px)!important;background-size:24px 24px!important}
+.surface-blueprint{border:1px solid #bae6fd!important;background-image:linear-gradient(#ffffff0f 1px,transparent 1px),linear-gradient(90deg,#ffffff0f 1px,transparent 1px)!important;background-size:20px 20px!important}
+.surface-notebook{border-left:4px solid #ef4444!important;background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,#2563eb18 28px)!important}
+.surface-receipt{font-family:'Courier New',monospace!important;border:2px dashed #777!important;border-radius:0!important;box-shadow:0 8px 16px #0002!important}
+.surface-terminal{font-family:'Courier New',monospace!important;border:1px solid #4ade80!important;box-shadow:0 0 35px #4ade801c!important}
+.surface-brutalist{border:3px solid #111!important;border-radius:0!important;box-shadow:8px 8px 0 #111!important}
+.surface-clay{border:0!important;box-shadow:inset 8px 8px 16px #fff9,inset -8px -8px 16px #b5674033,0 16px 24px #b5674022!important;border-radius:32px!important}
+.surface-neumorphic{border:0!important;box-shadow:12px 12px 28px #b8c1d0,-12px -12px 28px #fff!important}
+.surface-mesh{background:radial-gradient(at 0% 0%,#fbcfe8,transparent 65%),radial-gradient(at 100% 100%,#c7d2fe,transparent 65%),#fff!important}
+.surface-gradient{background:linear-gradient(145deg,#fff,color-mix(in srgb,var(--form-accent) 14%,white))!important}
+.surface-luxury{border:1px solid #c9a859!important;box-shadow:inset 0 0 0 7px #29251f,inset 0 0 0 8px #c9a859,0 20px 50px #0004!important}
+.surface-museum{font-family:Georgia,serif!important;border-top:6px solid var(--form-accent)!important;border-radius:0!important;box-shadow:none!important}
+.surface-polaroid{border-radius:2px!important;box-shadow:0 10px 20px #0003!important;border-bottom:24px solid white!important}
+.surface-omr{border:3px solid #111827!important;border-radius:0!important;background-image:radial-gradient(#11182715 1px,transparent 1px)!important;background-size:12px 12px!important}
+.surface-ticket{border:2px dashed var(--form-accent)!important;border-radius:24px!important;box-shadow:0 12px 24px #6d28d91a!important}
+.surface-comic{border:3px solid #231d24!important;box-shadow:6px 6px 0 #231d24!important;border-radius:28px 8px 28px 8px!important}
+.surface-minimal{box-shadow:none!important;border:0!important;border-top:1px solid currentColor!important;border-radius:0!important}
+.surface-soft{box-shadow:0 18px 50px #db27771a!important;border-radius:32px!important}
+.style-sample{padding:16px;min-height:100px;--form-accent:#365ce9}.form-style-tile{transition:transform .15s}.form-style-tile:hover{transform:translateY(-2px)}
+
+.surface-omr .form-radio-group>label,.surface-omr .form-check-group>label{border:1px solid currentColor;border-radius:0;padding:8px 12px}.surface-omr input[type=radio],.surface-omr input[type=checkbox]{width:20px;height:20px;accent-color:#111827}
+
+.form-style-tile[aria-pressed=true]{outline:3px solid #365ce9;outline-offset:1px}

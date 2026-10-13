@@ -443,6 +443,9 @@ class FormController extends Controller
         // arbitrary CSS that could escape the inline-style context.
         $colorRule = ['regex:/^(#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgba?\(\s*[\d.\s,%\/]+\)|hsla?\(\s*[\d.\s,%\/]+\))$/'];
         $data = $request->validate([
+            'surface_style' => 'nullable|in:clean,paper,newspaper,soft,gradient,liquid,frost,aurora,material,ledger,blueprint,notebook,receipt,terminal,brutalist,clay,neumorphic,mesh,luxury,museum,polaroid,omr,ticket,comic,minimal',
+            'label_style' => 'nullable|in:above,inside,floating',
+            'character_boxes' => 'sometimes|boolean',
             'choice_style' => 'nullable|in:plain,cards,pills',
             'theme' => 'required|in:light,dark,glass',
             'accent' => array_merge(['required', 'string', 'max:32'], $colorRule),
@@ -454,7 +457,7 @@ class FormController extends Controller
             'border_radius' => 'required|integer|min:0|max:48',
             'button_label' => 'required|string|max:60',
             'button_style' => 'required|in:gradient,solid,outline',
-            'layout' => 'required|in:stacked,inline,oneq',
+            'layout' => 'required|in:stacked,inline,oneq,grid,grid3',
             // Nullable rather than required: a form saved before these controls
             // shipped posts none of them, and array_merge with defaultDesign()
             // then keeps the stored value instead of blanking it.
@@ -715,19 +718,47 @@ class FormController extends Controller
         return back()->with('success', 'Form domain updated.');
     }
 
+    private function filteredSubmissions(Request $request, Form $form)
+    {
+        $v = $request->validate([
+            'filter' => 'nullable|in:unread,starred,spam', 'from' => 'nullable|date_format:Y-m-d',
+            'to' => 'nullable|date_format:Y-m-d|after_or_equal:from', 'q' => 'nullable|string|max:200',
+            'answer_field' => 'nullable|string|max:100', 'answer_state' => 'nullable|in:empty,filled,equals',
+            'answer_value' => 'nullable|string|max:200', 'payment' => 'nullable|in:paid,unpaid,refunded',
+            'columns' => 'nullable|array|max:200', 'columns.*' => 'string|max:100',
+            'format' => 'nullable|in:csv,tsv,json,ndjson,long_csv',
+        ]);
+        $query = $form->submissions();
+        if (($v['filter'] ?? '') === 'unread') $query->where('is_read', false);
+        if (($v['filter'] ?? '') === 'starred') $query->where('is_starred', true);
+        if (($v['filter'] ?? '') === 'spam') $query->where('is_spam', true);
+        else $query->where('is_spam', false)->completed();
+        if (!empty($v['from'])) $query->where('created_at', '>=', \Illuminate\Support\Carbon::parse($v['from'], workspace_owner()->timezone ?? 'UTC')->startOfDay()->utc());
+        if (!empty($v['to'])) $query->where('created_at', '<=', \Illuminate\Support\Carbon::parse($v['to'], workspace_owner()->timezone ?? 'UTC')->endOfDay()->utc());
+        if (($v['payment'] ?? '') === 'unpaid') $query->where(fn($q) => $q->whereNull('payment_status')->orWhere('payment_status','none'));
+        elseif (!empty($v['payment'])) $query->where('payment_status', $v['payment']);
+        $ids = collect($form->fields ?? [])->pluck('id')->filter()->all();
+        abort_if(array_diff($v['columns'] ?? [], $ids), 422, 'Choose existing form fields.');
+        $key = $v['answer_field'] ?? '';
+        if ($key !== '') {
+            abort_unless(in_array($key, $ids, true) && preg_match('/^[a-zA-Z0-9_-]+$/', $key), 422, 'Choose an existing answer field.');
+            $path = 'data->'.$key;
+            if (($v['answer_state'] ?? '') === 'empty') $query->where(fn($q) => $q->whereNull($path)->orWhere($path, '')->orWhere($path, '[]')->orWhere($path, '{}'));
+            if (($v['answer_state'] ?? '') === 'filled') $query->whereNotNull($path)->where($path, '!=', '')->where($path, '!=', '[]')->where($path, '!=', '{}');
+            if (($v['answer_state'] ?? '') === 'equals') $query->where($path, $v['answer_value'] ?? '');
+        }
+        if (!empty($v['q'])) {
+            $needle = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $v['q']);
+            $cast = $query->getModel()->getConnection()->getDriverName() === 'mysql' ? 'CHAR' : 'TEXT';
+            $query->whereRaw('LOWER(CAST(data AS '.$cast.')) LIKE ?', ['%'.mb_strtolower($needle).'%']);
+        }
+        return $query;
+    }
+
     public function submissions(Request $request, Form $form)
     {
         $this->authorizeForm($request, $form);
-        $query = $form->submissions();
-        if ($request->get('filter') === 'unread') $query->where('is_read', false);
-        if ($request->get('filter') === 'starred') $query->where('is_starred', true);
-        if ($request->get('filter') === 'spam') {
-            // The Spam tab is the one place unpaid attempts may surface (a paid
-            // form's spam is stored 'pending' and never charged).
-            $query->where('is_spam', true);
-        } else {
-            $query->where('is_spam', false)->completed();
-        }
+        $query = $this->filteredSubmissions($request, $form);
         $submissions = $query->latest()->paginate(25)->withQueryString();
         return view('user.forms.submissions', compact('form', 'submissions'));
     }
@@ -803,6 +834,34 @@ class FormController extends Controller
     public function exportSubmissions(Request $request, Form $form): StreamedResponse
     {
         $this->authorizeForm($request, $form);
+        $query = $this->filteredSubmissions($request, $form);
+        $format = $request->input('format', 'csv');
+        if (in_array($format, ['json','ndjson','long_csv'], true)) {
+            $columns = $request->input('columns', []);
+            $childParents = collect($form->fields ?? [])->filter(fn($f)=>!empty($f['parent']))->pluck('parent','id')->all();
+            return response()->streamDownload(function () use ($query, $format, $columns, $childParents) {
+                $out = fopen('php://output', 'w'); $first = true;
+                if ($format === 'json') fwrite($out, '[');
+                if ($format === 'long_csv') fputcsv($out, ['submission_id','submitted_at','field','answer']);
+                foreach ($query->orderBy('id')->cursor() as $row) {
+                    $data = $columns ? \Illuminate\Support\Arr::only($row->data ?? [], $columns) : ($row->data ?? []);
+                    foreach ($columns as $column) {
+                        if (isset($childParents[$column]) && !empty($row->data[$childParents[$column]]['_repeatable_group'])) $data[$column] = collect($row->data[$childParents[$column]]['copies'] ?? [])->pluck($column)->all();
+                    }
+                    if ($format === 'long_csv') {
+                        foreach ($data as $key=>$value) {
+                            $value = is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : (string)$value;
+                            if (preg_match('/^[=+@\-\t\r]/', $value)) $value = "'".$value;
+                            fputcsv($out, [$row->id,$row->created_at?->toIso8601String(),$key,$value]);
+                        }
+                    } else {
+                        $record = json_encode(['id'=>$row->id,'submitted_at'=>$row->created_at?->toIso8601String(),'payment_status'=>$row->payment_status,'data'=>$data], JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
+                        fwrite($out, ($format==='json' ? ($first?'':',') : '').$record.($format==='ndjson'?"\n":'')); $first=false;
+                    }
+                }
+                if ($format === 'json') fwrite($out, ']'); fclose($out);
+            }, 'form-'.$form->slug.'.'.($format==='long_csv'?'csv':$format), ['Content-Type'=>$format==='long_csv'?'text/csv':($format==='json'?'application/json':'application/x-ndjson')]);
+        }
         // Build export header ids: standard non-structural fields, plus repeatable sections.
         // New submissions store repeatable data under the section id as {_repeatable_group,copies}.
         // Old submissions (created before the section was made repeatable) still store values under
@@ -832,16 +891,21 @@ class FormController extends Controller
             if ($parent !== '' && isset($repeatableSectionIdsForExport[$parent])) return false;
             return true;
         })->pluck('id')->all();
-        $filename = 'form-' . $form->slug . '-' . now()->format('Ymd-His') . '.csv';
+        $headers = $request->filled('columns') ? array_values(array_unique($request->input('columns'))) : $headers;
+        $childParents = [];
+        foreach ($repeatableSectionChildIds as $parent => $children) foreach ($children as $child) $childParents[$child] = $parent;
+        $delimiter = $format === 'tsv' ? "\t" : ',';
+        $filename = 'form-' . $form->slug . '-' . now()->format('Ymd-His') . ($format === 'tsv' ? '.tsv' : '.csv');
 
-        return response()->streamDownload(function () use ($form, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds) {
+        return response()->streamDownload(function () use ($query, $delimiter, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds, $childParents) {
             $h = fopen('php://output', 'w');
-            fputcsv($h, array_merge(['submitted_at', 'ip'], $headers));
-            $form->submissions()->completed()->orderBy('id')->chunk(500, function ($rows) use ($h, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds) {
+            fputcsv($h, array_merge(['submitted_at', 'ip'], $headers), $delimiter);
+            $query->orderBy('id')->chunk(500, function ($rows) use ($h, $delimiter, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds, $childParents) {
                 foreach ($rows as $row) {
                     $line = [$row->created_at?->toIso8601String(), $row->ip];
                     foreach ($headers as $key) {
                         $val = $row->data[$key] ?? '';
+                        if (isset($childParents[$key]) && !empty($row->data[$childParents[$key]]['_repeatable_group'])) $val = collect($row->data[$childParents[$key]]['copies'] ?? [])->pluck($key)->all();
                         if (is_array($val) && !empty($val['_pricing'])) {
                             // Flatten a pricing-field breakdown into a single human-
                             // readable cell: "Option + Addon, Addon = TOTAL CUR".
@@ -865,7 +929,7 @@ class FormController extends Controller
                                     $copyLabel = '[Copy ' . ($rci + 1) . ']';
                                     $fieldParts = [];
                                     foreach ((array) $rcopy as $rck => $rcv) {
-                                        $flat = is_array($rcv) ? implode(', ', $rcv) : ($rcv === null ? '' : (string) $rcv);
+                                        $flat = is_array($rcv) ? json_encode($rcv, JSON_UNESCAPED_UNICODE) : ($rcv === null ? '' : (string) $rcv);
                                         if ($flat === '') continue;
                                         $fieldParts[] = ucfirst(str_replace('_', ' ', (string) $rck)) . ': ' . $flat;
                                     }
@@ -878,14 +942,14 @@ class FormController extends Controller
                                 $fieldParts = [];
                                 foreach ($childIds as $cid) {
                                     $cv = $row->data[$cid] ?? '';
-                                    $flat = is_array($cv) ? implode(', ', $cv) : ($cv === null ? '' : (string) $cv);
+                                    $flat = is_array($cv) ? json_encode($cv, JSON_UNESCAPED_UNICODE) : ($cv === null ? '' : (string) $cv);
                                     if ($flat === '') continue;
                                     $fieldParts[] = $flat;
                                 }
                                 $val = implode(' | ', $fieldParts);
                             }
                         } elseif (is_array($val)) {
-                            $val = implode(', ', $val);
+                            $val = json_encode($val, JSON_UNESCAPED_UNICODE);
                         }
                         $val = (string) $val;
                         // Mitigate CSV formula injection — prefix risky leading chars with apostrophe
@@ -894,11 +958,11 @@ class FormController extends Controller
                         }
                         $line[] = $val;
                     }
-                    fputcsv($h, $line);
+                    fputcsv($h, $line, $delimiter);
                 }
             });
             fclose($h);
-        }, $filename, ['Content-Type' => 'text/csv']);
+        }, $filename, ['Content-Type' => $format === 'tsv' ? 'text/tab-separated-values' : 'text/csv']);
     }
 
     public function destroy(Request $request, Form $form)
@@ -2174,7 +2238,7 @@ class FormController extends Controller
                         foreach (array_values($v['copies'] ?? []) as $rci => $rcopy) {
                             $copyLines[] = '  Copy ' . ($rci + 1) . ':';
                             foreach ((array) $rcopy as $rck => $rcv) {
-                                $flat = is_array($rcv) ? implode(', ', $rcv) : ($rcv === null ? '' : (string) $rcv);
+                                $flat = is_array($rcv) ? json_encode($rcv, JSON_UNESCAPED_UNICODE) : ($rcv === null ? '' : (string) $rcv);
                                 $copyLines[] = '    ' . ucfirst(str_replace('_', ' ', (string) $rck)) . ': ' . $flat;
                             }
                         }

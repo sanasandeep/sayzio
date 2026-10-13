@@ -2,17 +2,19 @@
 @section('title', 'Design · ' . $form->title)
 
 @section('content')
+<link rel="stylesheet" href="{{ asset('css/forms-surfaces.css') }}">
 <div class="forms-workspace"
      x-data="{
+        styleTab:'controls',styleCategory:'All',surfaceStyle:@js($design['surface_style']??'clean'),labelStyle:@js($design['label_style']??'above'),characterBoxes:{{ !empty($design['character_boxes'])?'true':'false' }},
         customCss:@js($design['custom_css']??''),choiceStyle:@js($design['choice_style']??'plain'),previewMode: 'phone',
         applyPreset(p) { Object.assign(this,p); },
 
         init() {
             this.$nextTick(() => {
-                const render = window.formStudioPreview(@js(route('user.forms.preview',$form)), this.$refs.liveFrame, () => ({design: {custom_css:this.customCss,choice_style:this.choiceStyle,theme:this.theme,accent:this.accent,background:this.background,card_color:this.cardColor,card_image:this.cardImage,card_image_mode:this.cardImageMode,card_image_opacity:this.cardImageOpacity,text:this.text,border_radius:this.radius,button_label:this.buttonLabel,button_style:this.buttonStyle,layout:this.layout,show_branding:this.showBranding,input_style:this.inputStyle,input_shape:this.inputShape,density:this.density,focus_style:this.focusStyle,font:this.font,logo:this.logoUrl,cover:this.coverUrl}}));
+                const render = window.formStudioPreview(@js(route('user.forms.preview',$form)), this.$refs.liveFrame, () => ({design: {surface_style:this.surfaceStyle,label_style:this.labelStyle,character_boxes:this.characterBoxes,custom_css:this.customCss,choice_style:this.choiceStyle,theme:this.theme,accent:this.accent,background:this.background,card_color:this.cardColor,card_image:this.cardImage,card_image_mode:this.cardImageMode,card_image_opacity:this.cardImageOpacity,text:this.text,border_radius:this.radius,button_label:this.buttonLabel,button_style:this.buttonStyle,layout:this.layout,show_branding:this.showBranding,input_style:this.inputStyle,input_shape:this.inputShape,density:this.density,focus_style:this.focusStyle,font:this.font,logo:this.logoUrl,cover:this.coverUrl}}));
                 this.$root.addEventListener('form-asset-preview',e=>{const key={card_image:'cardImage',logo:'logoUrl',cover_image:'coverUrl'}[e.detail.name];if(key)this[key]=e.detail.url;});
                 this.$root.addEventListener('change',e=>{const key={remove_card_image:'cardImage',remove_logo:'logoUrl',remove_cover:'coverUrl'}[e.target.name];if(key)this[key]=e.target.checked?null:({cardImage:@js($design['card_image']??null),logoUrl:@js($design['logo']??null),coverUrl:@js($design['cover']??null)})[key];});
-                ['customCss','choiceStyle','theme','accent','background','cardColor','cardImage','cardImageMode','cardImageOpacity','text','radius','buttonLabel','buttonStyle','layout','showBranding','inputStyle','inputShape','density','focusStyle','font','logoUrl','coverUrl'].forEach(key=>this.$watch(key,render)); render();
+                ['surfaceStyle','labelStyle','characterBoxes','customCss','choiceStyle','theme','accent','background','cardColor','cardImage','cardImageMode','cardImageOpacity','text','radius','buttonLabel','buttonStyle','layout','showBranding','inputStyle','inputShape','density','focusStyle','font','logoUrl','coverUrl'].forEach(key=>this.$watch(key,render)); render();
             });
         },
         font: @js($design['font']), logoUrl: @js($design['logo']??null), coverUrl: @js($design['cover']??null),
@@ -66,19 +68,17 @@
     ])
 
     @include('user.forms._tabs')
-    <div class="card-premium p-5 mb-5"><h3 class="font-bold">Signature styles</h3><p class="text-sm mt-1 mb-4" style="color:var(--text-muted)">Choose a starting point, then refine your colors, inputs, spacing and branding.</p><div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-    @foreach([
-        ['Studio','#365ce9','#f5f5f8','#ffffff','#1a1b26','light','outline','auto',16],
-        ['Midnight','#a78bfa','#111827','#1e293b','#f8fafc','dark','filled','auto',20],
-        ['Botanical','#15803d','#eef6ee','#ffffff','#183e2a','light','underline','square',8],
-        ['Editorial','#b45309','#fff8eb','#fffcf5','#382b20','light','ghost','square',0],
-        ['Candy','#db2777','#fff1f7','#ffffff','#4a1634','light','soft','pill',24],
-        ['Ocean','#0891b2','#edfaff','#ffffff','#123c52','light','accent_bar','auto',20]
-    ] as [$name,$a,$bg,$card,$txt,$theme,$style,$shape,$radius])
-    @php($preset=["accent"=>$a,"background"=>$bg,"cardColor"=>$card,"text"=>$txt,"theme"=>$theme,"inputStyle"=>$style,"inputShape"=>$shape,"radius"=>$radius])
-    <button type="button" class="rounded-xl p-3 text-left border" style="background:{{ $bg }};color:{{ $txt }};border-color:{{ $a }}40" @click='applyPreset(@json($preset))'><span class="block h-2 rounded mb-3" style="background:{{ $a }}"></span><strong>{{ $name }}</strong><span class="block text-xs mt-1">{{ ucfirst($style) }} inputs</span></button>
-    @endforeach</div></div>
-
+    <div class="card-premium p-5 mb-5">
+        <div class="flex flex-wrap gap-2 mb-4"><button type="button" class="form-chip" :style="styleTab==='controls'?'background:#365ce9;color:white':''" @click="styleTab='controls'">Design controls</button><button type="button" class="form-chip" :style="styleTab==='gallery'?'background:#365ce9;color:white':''" @click="styleTab='gallery'">Style gallery · 28 styles</button></div>
+        <div x-show="styleTab==='gallery'" x-cloak>
+        <h3 class="font-bold">Choose a complete visual style</h3><p class="text-sm my-3">Distinct surfaces, typography and input treatments. Refine every style using the controls below.</p>
+        <div class="flex flex-wrap gap-2 mb-4">@foreach(['All','Modern','Glass','Paper','Editorial'] as $category)<button type="button" class="form-chip" @click="styleCategory=@js($category)" :style="styleCategory===@js($category)?'background:#365ce9;color:white':''">{{ $category }}</button>@endforeach</div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" style="max-height:460px;overflow:auto;padding:3px">
+        @foreach(\App\Modules\User\Services\FormStyleCatalog::all() as $id=>$preset)
+        @php($values=array_merge(\Illuminate\Support\Arr::except($preset,['name','category','surface']),['surfaceStyle'=>$preset['surface'],'theme'=>in_array($id,['midnight','blueprint','terminal','luxury'])?'dark':'light','radius'=>in_array($id,['newspaper','ledger','blueprint','receipt','brutalist','terminal','omr'])?0:20,'inputShape'=>'auto','font'=>in_array($preset['surface'],['newspaper','museum'])?'Georgia':(in_array($preset['surface'],['terminal','receipt','ledger'])?'Courier New':'Plus Jakarta Sans'),'characterBoxes'=>in_array($id,['ledger','omr']),'choiceStyle'=>$id==='omr'?'cards':'plain']))
+        <button type="button" x-show="styleCategory==='All'||styleCategory===@js($preset['category'])" class="form-style-tile rounded-xl p-4 text-left border" :aria-pressed="surfaceStyle===@js($preset['surface']) &amp;&amp; accent===@js($preset['accent'])" style="background:{{ $preset['background'] }};color:{{ $preset['text'] }};border-color:{{ $preset['accent'] }}80" @click='applyPreset(@json($values))'><div class="style-sample surface-{{ $preset['surface'] }}" style="--form-accent:{{ $preset['accent'] }};background:{{ $preset['cardColor'] }}"><span class="block text-xs mb-2">{{ $preset['category'] }}</span><span class="block border rounded p-2 text-xs" style="border-color:{{ $preset['accent'] }}">Your answer</span></div><strong class="block mt-3">{{ $preset['name'] }}</strong><span class="text-xs">{{ ucfirst($preset['surface']) }} · {{ $preset['inputStyle'] }}</span></button>
+        @endforeach</div></div>
+    </div>
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -88,6 +88,7 @@
 
     <form method="POST" action="{{ route('user.forms.design.update', $form) }}" enctype="multipart/form-data" class="form-studio-grid grid grid-cols-1 lg:grid-cols-3 gap-6">
         @csrf @method('PUT')
+        <input type="hidden" name="surface_style" :value="surfaceStyle">
 
         {{-- Settings --}}
         <div class="lg:col-span-2 space-y-6">
@@ -182,7 +183,7 @@
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Layout</label>
                         <select name="layout" x-model="layout" class="theme-input w-full text-sm">
-                            <option value="stacked">Stacked (one field per row)</option>
+                            <option value="grid">Grid · two columns</option><option value="grid3">Grid · three columns</option><option value="stacked">Stacked (one field per row)</option>
                             <option value="inline">Inline (compact)</option>
                             <option value="oneq">One question at a time (Typeform-style)</option>
                         </select>
@@ -190,7 +191,7 @@
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Font family</label>
                         <select name="font" x-model="font" class="theme-input w-full text-sm">
-                            @foreach(['Plus Jakarta Sans', 'Inter', 'Manrope', 'Poppins', 'Roboto', 'System default'] as $f)
+                            @foreach(['Plus Jakarta Sans', 'Inter', 'Manrope', 'Poppins', 'Roboto', 'Georgia', 'Courier New', 'System default'] as $f)
                                 <option value="{{ $f }}" @selected(($design['font'] ?? '') === $f)>{{ $f }}</option>
                             @endforeach
                         </select>
@@ -309,6 +310,7 @@
                 </label>
             </div>
 
+            <div class="card-premium p-6"><h3 class="font-bold mb-3">Labels & character boxes</h3><label class="block text-sm mb-2">Label position<select name="label_style" x-model="labelStyle" class="theme-input w-full mt-2"><option value="above">Above input</option><option value="inside">Inside input</option><option value="floating">Floating · moves on focus or answer</option></select></label><input type="hidden" name="character_boxes" value="0"><label class="flex gap-2 mt-4"><input type="checkbox" name="character_boxes" value="1" x-model="characterBoxes">Character boxes · bank application style</label><p class="text-xs mt-2">Applies to short text, number and phone fields, one character per box. Long answers scroll within the field; answer limits are unchanged. Other field types keep their normal controls. Floating labels retain a visible label when an answer is entered.</p></div>
             <div class="card-premium p-6"><h3 class="font-bold mb-3">Choice presentation</h3><p class="text-sm mb-4" style="color:var(--text-muted)">Style radio buttons and checkbox answers with clear selected states.</p><select name="choice_style" x-model="choiceStyle" class="theme-input w-full"><option value="plain">Simple list</option><option value="cards">Selectable cards</option><option value="pills">Compact pills</option></select></div>
             <div class="card-premium p-6" x-data="{ open: {{ !empty($design['custom_css']) ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" class="flex items-center gap-3 w-full text-left">

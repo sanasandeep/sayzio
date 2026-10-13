@@ -74,7 +74,7 @@
     @if($logo)<link rel="icon" href="{{ $logo }}">@endif
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family={{ urlencode($font) }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    @unless(in_array($font,['Georgia','Courier New','System default']))<link href="https://fonts.googleapis.com/css2?family={{ urlencode($font) }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">@endunless
     @include('common.partials.fontawesome')
     @if($captchaProvider === 'recaptcha_v2' && $captchaSiteKey)
         <script src="https://www.google.com/recaptcha/api.js" async defer></script>
@@ -92,6 +92,8 @@
             --form-accent: {{ $accent }};
             --form-bg: {{ $background }};
             --form-text: {{ $text }};
+            --form-border: {{ $theme==='light'?'#cbd5e1':'rgba(255,255,255,.3)' }};
+            --form-card: {{ $design['card_color']??'#ffffff' }};
             --form-radius: {{ $radius }}px;
             --form-radius-sm: {{ max(4, $radius / 2) }}px;
         }
@@ -580,9 +582,20 @@
         .form-radio-group>label:has(input:checked),.form-check-group>label:has(input:checked){border-color:var(--form-accent);box-shadow:0 0 0 1px var(--form-accent)}
         .form-radio-group>label:hover,.form-check-group>label:hover{border-color:var(--form-accent)}
         @endif
-    </style>
+
+.layout-grid .form-grid>.form-grid-cell:not(.form-section-card):not(:has(.form-heading,.form-paragraph,.form-divider)){grid-column:span 6!important}.layout-grid3 .form-grid>.form-grid-cell:not(.form-section-card):not(:has(.form-heading,.form-paragraph,.form-divider)){grid-column:span 4!important}
+.form-field.label-inset{position:relative;padding-top:0}.label-inset>.form-label{position:absolute;top:14px;left:14px;z-index:2;pointer-events:none;transition:transform .16s,font-size .16s;opacity:.8}
+.label-inset>.form-input,.label-inset>.form-textarea{padding-top:28px!important;padding-bottom:8px!important;min-height:60px}
+.label-inset.has-answer>.form-label,.label-inset:focus-within>.form-label{top:5px;font-size:10px;opacity:1}
+.label-inset:not(:focus-within):not(.has-answer):not(.label-inside)>input::placeholder,.label-inset:not(:focus-within):not(.has-answer):not(.label-inside)>textarea::placeholder{opacity:0}
+.label-inset.label-inside>.form-label{top:5px;font-size:11px;opacity:1}
+.character-input-wrap{position:relative;max-width:100%;overflow-x:auto}.character-input-wrap>.form-input{font-family:monospace!important;letter-spacing:17.4px!important;padding:12px 8px!important;background:transparent!important;border:0!important;position:relative;z-index:2;box-shadow:none!important;border-radius:0!important;color:transparent!important;caret-color:var(--form-accent);height:46px}
+.character-cells{position:absolute;inset:0;display:flex;gap:3px;pointer-events:none;overflow:hidden}.character-cells span{display:flex;align-items:center;justify-content:center;flex:0 0 24px;border:1px solid var(--form-border);font:16px monospace;color:var(--form-text);background:var(--form-card)}
+@media(max-width:640px){.layout-grid .form-grid>.form-grid-cell:not(.form-section-card):not(:has(.form-heading,.form-paragraph,.form-divider)),.layout-grid3 .form-grid>.form-grid-cell:not(.form-section-card):not(:has(.form-heading,.form-paragraph,.form-divider)){grid-column:span 12!important}}
+</style>
+<link rel="stylesheet" href="{{ asset('css/forms-surfaces.css') }}">
 </head>
-<body class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }} input-{{ str_replace('_', '-', $inputStyle) }} ishape-{{ $inputShape }} density-{{ $density }} focus-{{ $focusStyle }}">
+<body data-label-style="{{ $design['label_style']??'above' }}" data-character-boxes="{{ !empty($design['character_boxes'])?'1':'0' }}" class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }} input-{{ str_replace('_', '-', $inputStyle) }} ishape-{{ $inputShape }} density-{{ $density }} focus-{{ $focusStyle }}">
     <div class="form-page">
         <div style="width: 100%; max-width: 640px;">
             @if($cover)
@@ -590,7 +603,7 @@
             @endif
 
             @if(session('form_success') || request('paid'))
-                <div class="form-card {{ $cover ? 'has-cover' : '' }}">
+                <div class="form-card surface-{{ $design['surface_style']??'clean' }} {{ $cover ? 'has-cover' : '' }}">
                     <div class="form-success">
                         <div class="form-success-icon"><i class="fas fa-check-circle"></i></div>
                         <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0 0 0.5rem;">All done!</h2>
@@ -836,7 +849,7 @@
                     </form>
                 @else
                 <form method="POST" action="{{ route('forms.public.submit', $form->slug) }}" enctype="multipart/form-data"
-                      class="form-card {{ $cover ? 'has-cover' : '' }} {{ $design['layout'] === 'inline' ? 'form-row-inline' : '' }} {{ $showFieldPrices ? 'form-paid-pricing' : '' }}"
+                      class="form-card surface-{{ $design['surface_style']??'clean' }} {{ $cover ? 'has-cover' : '' }} {{ $design['layout'] === 'inline' ? 'form-row-inline' : '' }} {{ in_array($design['layout'],['grid','grid3'])?'layout-'.$design['layout']:'' }} {{ $showFieldPrices ? 'form-paid-pricing' : '' }}"
                       x-data="formRunner({{ $pageCount }})">
                     @csrf
 <input type="hidden" name="_locale" value="{{ $locale??'' }}"><input type="hidden" name="_visit_token" value="{{ $visitToken ?? '' }}">
@@ -1500,5 +1513,21 @@
 document.addEventListener('DOMContentLoaded',()=>{const key='sayzio-form-draft-'+@js($form->id),removeDraft=()=>{try{localStorage.removeItem(key);}catch(e){}},schema=@js($resumeSchema),done=@js((bool)session('form_success'));if(done){removeDraft();return;}const form=document.querySelector('.form-card');if(!form)return;const controls=()=>[...form.querySelectorAll('input,select,textarea')].filter(e=>e.name&&!e.name.startsWith('_')&&!['file','hidden','password','submit'].includes(e.type)&&!e.closest('[data-signature-pad]'));const bar=document.createElement('div');bar.style.cssText='padding:12px;border:1px solid #cbd5e1;border-radius:12px;margin-bottom:16px;font:13px sans-serif';const opt=document.createElement('input');opt.type='checkbox';const label=document.createElement('label');label.append(opt,document.createTextNode(' Save my answers on this device for 7 days'));const clear=document.createElement('button');clear.type='button';clear.textContent='Clear saved draft';clear.style.marginLeft='12px';clear.onclick=()=>{removeDraft();opt.checked=false;};bar.append(label,clear);form.prepend(bar);let draft;try{draft=JSON.parse(localStorage.getItem(key)||'null');}catch(e){}if(draft&&draft.schema===schema&&draft.expires>Date.now()){opt.checked=true;controls().forEach(e=>{if(draft.values[e.name]!==undefined){if(['radio','checkbox'].includes(e.type))e.checked=draft.values[e.name].includes(e.value);else e.value=draft.values[e.name][0]||'';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));}});form.dispatchEvent(new Event('change',{bubbles:true}));}else removeDraft();function save(){if(!opt.checked){removeDraft();return;}const values={};controls().forEach(e=>{if(['radio','checkbox'].includes(e.type)&&!e.checked)return;(values[e.name]??=[]).push(e.value);});try{localStorage.setItem(key,JSON.stringify({schema,expires:Date.now()+7*86400000,values}));}catch(e){opt.checked=false;}}form.addEventListener('input',save);form.addEventListener('change',save);});
 </script>
 @endif
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+ const mode=document.body.dataset.labelStyle;
+ document.querySelectorAll('.form-field').forEach(field=>{
+  const input=field.querySelector(':scope > input.form-input, :scope > textarea.form-textarea');const label=field.querySelector(':scope > .form-label');
+  if(!input||!label)return;
+  if(document.body.dataset.characterBoxes==='1' && ['text','tel','number'].includes(input.type)){
+   const wrap=document.createElement('div');wrap.className='character-input-wrap';input.before(wrap);wrap.append(input);const cells=document.createElement('div');cells.className='character-cells';cells.setAttribute('aria-hidden','true');wrap.append(cells);
+   const render=()=>{const chars=Array.from(input.value);input.style.width=(Math.max(12,chars.length+1)*27)+'px';cells.style.width=input.style.width;cells.replaceChildren();for(let i=0;i<Math.max(12,chars.length+1);i++){const cell=document.createElement('span');cell.textContent=chars[i]||'';cells.append(cell);}};input.addEventListener('input',render);render();return;
+  }
+  if(['inside','floating'].includes(mode)){field.classList.add('label-inset');if(mode==='inside')field.classList.add('label-inside');const update=()=>field.classList.toggle('has-answer',!!input.value);input.addEventListener('input',update);input.addEventListener('change',update);update();}
+ });
+});
+</script>
+
 </body>
 </html>

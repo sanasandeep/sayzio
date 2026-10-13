@@ -154,19 +154,20 @@
                     <textarea x-model="description" rows="2" placeholder="Optional description shown under the title…" class="w-full text-sm bg-transparent border-0 outline-none resize-none" style="color: var(--text-muted);"></textarea>
                 </div>
 
-                <div class="card-premium p-3 mb-4 flex flex-wrap gap-2 items-center">
-                    <button type="button" class="form-chip" @click="selectedIds=fields.map(f=>f.id)">Select all</button><button type="button" class="form-chip" @click="selectedIds=[]">Clear</button><span class="text-xs" x-text="selectedIds.length+' selected'"></span>
-                    <button type="button" class="form-chip" @click="bulkMove('top')">Move to top</button><button type="button" class="form-chip" @click="bulkMove('bottom')">Move to end</button>
-                    <select class="theme-input text-xs" x-model="bulkTarget"><option value="">Move after…</option><template x-for="f in fields.filter(f=>!selectedIds.includes(f.id))" :key="f.id"><option :value="f.id" x-text="f.label||f.type"></option></template></select><button type="button" class="form-chip" @click="bulkMove(bulkTarget)">Move</button>
-                    <button type="button" class="form-chip" @click="bulkDelete()">Delete selected</button><button type="button" class="form-chip" @click="saveGroup()">Save question group</button>
-                    <template x-for="(g,j) in groups" :key="j"><button type="button" class="form-chip" @click="insertGroup(g)" x-text="'+ '+g.name"></button></template>
+                <div class="flex flex-wrap gap-2 mb-4 items-center"><button type="button" class="form-chip" @click="selectedIds=fields.filter(f=>isTopLevel(f)).map(f=>f.id)">Select all fields</button><span class="form-chip text-xs" x-text="fields.filter(f=>isTopLevel(f)).length+' fields'"></span><template x-for="(g,j) in groups" :key="j"><button type="button" class="form-chip" @click="insertGroup(g)" x-text="'+ '+g.name"></button></template></div>
+                <div class="forms-selection-bar" x-show="selectedIds.length" x-cloak role="toolbar" aria-label="Selected field actions">
+                    <strong class="text-sm" x-text="selectedIds.length+' selected'"></strong>
+                    <button type="button" class="form-chip" @click="bulkNudge(-1)"><i class="fas fa-arrow-up"></i> Up</button><button type="button" class="form-chip" @click="bulkNudge(1)"><i class="fas fa-arrow-down"></i> Down</button>
+                    <button type="button" class="form-chip" @click="bulkDuplicate()"><i class="fas fa-copy"></i> Duplicate</button>
+                    <details><summary class="form-chip">More actions</summary><div class="forms-selection-more"><button type="button" class="form-chip" @click="bulkMove('top')">Move to top</button><button type="button" class="form-chip" @click="bulkMove('bottom')">Move to end</button><select class="theme-input text-xs" x-model="bulkTarget"><option value="">Move after…</option><template x-for="f in fields.filter(f=>isTopLevel(f)&&!selectedIds.includes(f.id))" :key="f.id"><option :value="f.id" x-text="f.label||f.type"></option></template></select><button type="button" class="form-chip" @click="bulkMove(bulkTarget)">Move</button><button type="button" class="form-chip" @click="saveGroup()">Save question group</button></div></details>
+                    <button type="button" class="form-chip text-red-500" @click="bulkDelete()"><i class="fas fa-trash"></i> Delete</button><button type="button" class="form-chip" @click="selectedIds=[]" aria-label="Clear selection">×</button>
                 </div>
                 <div id="fieldsList" class="min-h-[300px]"
                      style="display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.75rem;">
                     <template x-for="(f, i) in fields" :key="f.id + '-' + i">
                         <div :data-id="f.id"
                              :style="`grid-column: span ${f.type === 'section' ? 12 : (f.width || 12)} / span ${f.type === 'section' ? 12 : (f.width || 12)}; ${(!isTopLevel(f)) ? 'display:none;' : ''}`"
-                             :class="f.type === 'section' ? 'section-card' : ''">
+                             :class="{'section-card':f.type==='section','forms-field-selected':selectedIds.includes(f.id)}">
                             <div class="flex justify-between items-center py-2"><label class="text-xs flex gap-2"><input type="checkbox" :checked="selectedIds.includes(f.id)" @change="toggleSelected(f.id)" :aria-label="'Select '+f.label">Select</label><button class="form-chip text-xs" type="button" @click="chooseAfter(i)">+ Insert after</button></div>
                             {{-- ============ SECTION (group) card ============ --}}
                             <template x-if="f.type === 'section'">
@@ -792,16 +793,14 @@ function formBuilder(initial) {
         selectedIndex: null, selectedIds: [], insertionAfter: null, bulkTarget: '',
         chooseAfter(i) { this.insertionAfter=i; this.$refs.palette?.scrollIntoView({behavior:'smooth',block:'nearest'}); },
         toggleSelected(id) { this.selectedIds=this.selectedIds.includes(id)?this.selectedIds.filter(v=>v!==id):[...this.selectedIds,id]; },
+        fieldUnits(){const units=[];this.fields.forEach(f=>{if(this.isTopLevel(f)){const children=f.type==='section'?this.fields.filter(c=>c.parent===f.id):[];units.push([f,...children]);}});return units;},
+        bulkNudge(direction){const units=this.fieldUnits(),selected=u=>this.selectedIds.includes(u[0].id);if(direction<0){for(let i=1;i<units.length;i++){if(selected(units[i])&&!selected(units[i-1]))[units[i-1],units[i]]=[units[i],units[i-1]];}}else{for(let i=units.length-2;i>=0;i--){if(selected(units[i])&&!selected(units[i+1]))[units[i],units[i+1]]=[units[i+1],units[i]];}}this.fields=units.flat();this.selectedIndex=null;},
+        bulkDuplicate(){const units=this.fieldUnits(),copies=[];units.forEach(unit=>{copies.push(...unit);if(!this.selectedIds.includes(unit[0].id))return;const ids={};unit.forEach(f=>ids[f.id]=f.type+'_'+Math.random().toString(36).slice(2,10));unit.forEach(f=>{const copy=JSON.parse(JSON.stringify(f));copy.id=ids[f.id];if(copy.parent)copy.parent=ids[copy.parent]||copy.parent;if(copy.show_if&&ids[copy.show_if.field])copy.show_if.field=ids[copy.show_if.field];copies.push(copy);});});this.fields=copies;this.selectedIndex=null;},
         bulkMove(where) {
-            const chosen=this.fields.filter(f=>this.selectedIds.includes(f.id));
-            if(!chosen.length)return; const rest=this.fields.filter(f=>!this.selectedIds.includes(f.id));
-            // Keep children attached to selected section when moving groups.
-            const sectionIds=chosen.filter(f=>f.type==='section').map(f=>f.id);
-            const children=rest.filter(f=>sectionIds.includes(f.parent));
-            const moving=[...chosen,...children], remaining=rest.filter(f=>!sectionIds.includes(f.parent));
+            const units=this.fieldUnits(),moving=units.filter(u=>this.selectedIds.includes(u[0].id)),remaining=units.filter(u=>!this.selectedIds.includes(u[0].id));if(!moving.length)return;
             let at=where==='top'?0:remaining.length;
-            if(where!=='top'&&where!=='bottom'){const target=remaining.findIndex(f=>f.id===where);if(target<0)return;at=target+1;}
-            remaining.splice(at,0,...moving);this.fields=remaining;this.selectedIndex=null;
+            if(where!=='top'&&where!=='bottom'){const target=remaining.findIndex(u=>u[0].id===where);if(target<0)return;at=target+1;}
+            remaining.splice(at,0,...moving);this.fields=remaining.flat();this.selectedIndex=null;
         },
         bulkDelete(){if(!confirm('Delete selected fields and the fields inside selected sections?'))return;const sections=this.fields.filter(f=>this.selectedIds.includes(f.id)&&f.type==='section').map(f=>f.id);this.fields=this.fields.filter(f=>!this.selectedIds.includes(f.id)&&!sections.includes(f.parent));this.selectedIds=[];this.selectedIndex=null;},
         saveGroup(){const sections=this.fields.filter(f=>this.selectedIds.includes(f.id)&&f.type==='section').map(f=>f.id);const chosen=this.fields.filter(f=>this.selectedIds.includes(f.id)||sections.includes(f.parent));if(!chosen.length)return;const name=prompt('Question group name');if(!name)return;this.groups=[...this.groups,{name,fields:JSON.parse(JSON.stringify(chosen))}];try{localStorage.setItem('sayzio-form-groups-'+@js(auth()->id().':'.($form->workspace_id??'personal')),JSON.stringify(this.groups));}catch(e){alert('This browser cannot save reusable question groups.');}},
