@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'Google Image Search')
-@section('page-title', 'Google Image Search')
+@section('title', 'Google Custom Search')
+@section('page-title', 'Google Custom Search')
 
 @php
     $toneClass = function (string $tone) {
@@ -21,16 +21,16 @@
     </a>
 
     <p class="ak-muted text-sm text-white/50">
-        Google Custom Search JSON API credentials powering image suggestions in the AI Link-in-Bio builder.
+        Google Custom Search JSON API credentials powering AI Growth Insights market research and image suggestions in the AI Link-in-Bio builder.
         The API key is encrypted at rest and never displayed back &mdash; leave it blank to keep the stored value.
-        Both the API key and the Programmable Search Engine ID are required for image search to turn on; until then
-        the platform falls back to the <span class="font-mono">GOOGLE_CSE_API_KEY</span> /
+        Both the API key and the Programmable Search Engine ID are required for market research and image search to turn on; until then
+        configuration can also come from the <span class="font-mono">GOOGLE_CSE_API_KEY</span> /
         <span class="font-mono">GOOGLE_CSE_ENGINE_ID</span> environment variables, and when neither is set the
-        search option is hidden from creators (preview mode).
+        market research is disabled with a setup explanation; image suggestions use their existing fallback.
     </p>
 
     @include('admin.partials.help-note', [
-        'body' => '<strong>How to set up Google Custom Search for image suggestions</strong>
+        'body' => '<strong>How to set up Google Custom Search for research and image suggestions</strong>
             <ol class="list-decimal pl-4 mt-1 space-y-0.5">
                 <li>Open <a class="underline" href="https://programmablesearchengine.google.com/controlpanel/all" target="_blank" rel="noopener">Programmable Search Engine</a> and create a new search engine that searches the entire web, with <strong>Image search</strong> turned on.</li>
                 <li>Copy the <strong>Search engine ID</strong> (the <code>cx</code> value) into the form below.</li>
