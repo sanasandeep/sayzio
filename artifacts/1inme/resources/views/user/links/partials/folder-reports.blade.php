@@ -25,6 +25,7 @@
     $scopeName = $folder?->name ?? 'All links';
 @endphp
 
+
 <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
 
 {{-- ===================== FILTERS ===================== --}}
@@ -94,6 +95,8 @@
         </article>
     @endforeach
 </div>
+
+@include('user.links.partials.ai-growth')
 
 {{-- ===================== CLICKS OVER TIME ===================== --}}
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#3d6bff,#6366f1);">
