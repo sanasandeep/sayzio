@@ -41,8 +41,28 @@ class ClubMembershipService {
                 }
                 $member->account_id=$account->id;
             }
-            if($data['status']==='active' && !$member->joined_at) $member->joined_at=now();
+            if($data['status']==='active' && !$member->joined_at) {
+                $member->joined_at=now();
+                if(empty($data['expires_at'])) $member->expires_at=$this->expiry($link,now());
+            }
             $member->save(); return $member;
+        });
+    }
+    public function expiry(Link $link, $from) {
+        $config=data_get($link->settings,'membership',[]);
+        if(($config['duration']??'lifetime')==='lifetime') return null;
+        return $from->copy()->{match($config['duration_unit']??'months') {'days'=>'addDays','years'=>'addYearsNoOverflow',default=>'addMonthsNoOverflow'}}((int)($config['duration_count']??12));
+    }
+    public function renew(Link $link, ClubMembership $member): ClubMembership {
+        if(data_get($link->settings,'membership.renewal','renewable')!=='renewable' || data_get($link->settings,'membership.duration','lifetime')==='lifetime') throw ValidationException::withMessages(['renewal'=>'This membership does not allow renewal.']);
+        return DB::transaction(function()use($link,$member) {
+            $member=ClubMembership::where('link_id',$link->id)->lockForUpdate()->findOrFail($member->id);
+            if($member->status!=='active') throw ValidationException::withMessages(['renewal'=>'Approve this member before renewing.']);
+            $from=$member->expires_at && $member->expires_at->isFuture() ? $member->expires_at : now();
+            $member->expires_at=$this->expiry($link,$from);
+            $member->renewed_at=now();
+            if($member->invoice_id) $member->invoice_history=[...($member->invoice_history??[]),$member->invoice_id];
+            $member->invoice_id=null; $member->save(); return $member;
         });
     }
     public function capture(FormSubmission $submission): void {
@@ -55,13 +75,18 @@ class ClubMembershipService {
             if((int)($config['form_id']??0)!==$form->id) continue;
             $values=$submission->data??[]; $map=$config['mapping']??[];
             $data=[]; foreach(['name','email','phone'] as $key) $data[$key]=$values[$map[$key]??$key]??null;
-            $data['custom_fields']=[];
+            $data['custom_fields']=$values;
             foreach($config['fields']??[] as $field) $data['custom_fields'][$field['key']]=$values[$map[$field['key']]??$field['key']]??null;
             $validator=Validator::make($data,$this->rules($link));
             if($validator->fails()) continue; // Original submission remains available for manual review.
             $email=strtolower(trim($data['email']));
             if(ClubMembership::where('link_id',$link->id)->where('email',$email)->exists()) continue;
-            ClubMembership::firstOrCreate(['link_id'=>$link->id,'email'=>$email],[...$data,'email'=>$email,'status'=>'pending','submission_id'=>$submission->id]);
+            try {
+                $this->save($link,[...$data,'email'=>$email,'status'=>($config['approval']??'manual')==='automatic'?'active':'pending','submission_id'=>$submission->id]);
+            } catch (ValidationException $e) {
+                // Keep the application reviewable when account identity conflicts prevent activation.
+                ClubMembership::firstOrCreate(['link_id'=>$link->id,'email'=>$email],[...$data,'status'=>'pending','submission_id'=>$submission->id]);
+            }
         }
     }
 }
