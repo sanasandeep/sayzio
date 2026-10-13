@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Controllers\AI\PlannerController;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Project;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class ProjectController extends Controller
     {
         // The standalone Folders page is retired — folders now live on the
         // dashboard desk. Keep the route for old bookmarks/deep links.
-        return redirect(route('user.dashboard') . '#folders');
+        return redirect(route('user.dashboard').'#folders');
     }
 
     /** @deprecated Standalone folders page retired; kept for reference. */
@@ -47,21 +48,21 @@ class ProjectController extends Controller
             ->withSum('links as total_clicks_sum', 'total_clicks');
 
         match ($sort) {
-            'name'     => $query->orderBy('name', $dir),
-            'links'    => $query->orderBy('links_count', $dir),
-            'active'   => $query->orderBy('active_links_count', $dir),
-            'clicks'   => $query->orderBy('total_clicks_sum', $dir),
+            'name' => $query->orderBy('name', $dir),
+            'links' => $query->orderBy('links_count', $dir),
+            'active' => $query->orderBy('active_links_count', $dir),
+            'clicks' => $query->orderBy('total_clicks_sum', $dir),
             'modified' => $query->orderBy('updated_at', $dir),
-            default    => $query->orderBy('created_at', $dir),
+            default => $query->orderBy('created_at', $dir),
         };
 
         $projects = $query->paginate(24)->withQueryString();
 
         return view('user.projects.index', [
             'projects' => $projects,
-            'sort'     => $sort,
-            'dir'      => $dir,
-            'colors'   => self::COLORS,
+            'sort' => $sort,
+            'dir' => $dir,
+            'colors' => self::COLORS,
         ]);
     }
 
@@ -89,7 +90,7 @@ class ProjectController extends Controller
                     'id' => $project->id,
                     'name' => $project->name,
                     'color' => $project->color,
-                    'url' => route('user.links.index', ['project_id' => $project->id]),
+                    'url' => route('user.projects.show', $project),
                 ],
             ]);
         }
@@ -104,7 +105,7 @@ class ProjectController extends Controller
 
         // Folders open the full My Links experience filtered to the folder so
         // every link action (stats, edit, view, share…) is available.
-        return redirect()->route('user.links.index', ['project_id' => $project->id]);
+        return app(PlannerController::class)->folder($request, $project);
     }
 
     public function edit(Request $request, Project $project)

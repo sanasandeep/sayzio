@@ -1373,6 +1373,22 @@ Route::prefix('user')->name('user.')->group(function () {
             // own a feature-specific estimate route (persona, ask-coach, card
             // scan, QR art, voice, minds, resume import/cover-letter).
             Route::post('cost-estimate', [\App\Modules\User\Controllers\AI\AiCostEstimateController::class, 'estimate'])->middleware('throttle:60,1')->name('cost-estimate');
+            Route::prefix('planner')->name('planner.')->group(function () {
+                Route::post('plans/{plan}/settings', [\App\Modules\User\Controllers\AI\PlannerController::class, 'settings'])->middleware('workspace.can:edit')->name('settings');
+                Route::post('plans/{plan}/pause', [\App\Modules\User\Controllers\AI\PlannerController::class, 'pause'])->name('pause');
+                Route::post('plans/{plan}/estimate', [\App\Modules\User\Controllers\AI\PlannerController::class, 'estimate'])->middleware(['workspace.can:create', 'throttle:30,1'])->name('estimate');
+                Route::post('plans/{plan}/run', [\App\Modules\User\Controllers\AI\PlannerController::class, 'run'])->middleware(['workspace.can:create', 'throttle:10,1'])->name('run');
+                Route::post('plans/{plan}/runs/{run}/apply', [\App\Modules\User\Controllers\AI\PlannerController::class, 'applyRun'])->middleware('workspace.can:edit')->name('apply');
+                Route::post('plans/{plan}/runs/{run}/revert', [\App\Modules\User\Controllers\AI\PlannerController::class, 'revert'])->middleware('workspace.can:edit')->name('revert');
+                Route::post('plans/{plan}/tasks', [\App\Modules\User\Controllers\AI\PlannerController::class, 'tasks'])->middleware('workspace.can:create')->name('tasks');
+                Route::post('plans/{plan}/handoff', [\App\Modules\User\Controllers\AI\PlannerController::class, 'handoff'])->middleware('workspace.can:create')->name('handoff');
+                Route::post('plans/{plan}/memory', [\App\Modules\User\Controllers\AI\PlannerController::class, 'memory'])->middleware('workspace.can:create')->name('memory');
+                Route::post('dismiss', [\App\Modules\User\Controllers\AI\PlannerController::class, 'dismiss'])->name('dismiss');
+                Route::post('capture', [\App\Modules\User\Controllers\AI\PlannerController::class, 'capture'])->middleware('workspace.can:create')->name('capture');
+                Route::post('notes', [\App\Modules\User\Controllers\AI\PlannerController::class, 'note'])->middleware('workspace.can:create')->name('notes');
+                Route::post('notes/{note}', [\App\Modules\User\Controllers\AI\PlannerController::class, 'updateNote'])->middleware('workspace.can:edit')->name('notes.update');
+                Route::post('folders/{project}/items', [\App\Modules\User\Controllers\AI\PlannerController::class, 'attach'])->middleware('workspace.can:edit')->name('attach');
+            });
             Route::post('mind/estimate', [\App\Modules\User\Controllers\AI\MindController::class, 'estimate'])->middleware(['workspace.can:create','throttle:30,1'])->name('mind.estimate');
             Route::get('mind/records/{plan}/export', [\App\Modules\User\Controllers\AI\MindController::class, 'export'])->whereNumber('plan')->name('mind.export');
             Route::delete('mind/records/{plan}', [\App\Modules\User\Controllers\AI\MindController::class, 'destroy'])->whereNumber('plan')->middleware('workspace.can:delete')->name('mind.destroy');

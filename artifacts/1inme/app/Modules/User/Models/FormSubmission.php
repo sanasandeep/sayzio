@@ -2,20 +2,46 @@
 
 namespace App\Modules\User\Models;
 
-
+use App\Jobs\LinkCaptureToContactJob;
 use App\Modules\User\Concerns\BelongsToWorkspace;
+use App\Modules\User\Services\ClubMembershipService;
+use App\Modules\User\Services\Contacts\ContactIdentityResolver;
+use App\Services\Planner\PlannerEngine;
 use Illuminate\Database\Eloquent\Model;
 
 class FormSubmission extends Model
 {
-    
     use BelongsToWorkspace;
-protected $fillable = [
+
+    protected $fillable = [
         'form_id', 'data', 'files', 'ip', 'user_agent', 'referrer',
         'country', 'is_spam', 'spam_reason', 'is_read', 'is_starred',
         'payment_status', 'amount_cents', 'currency', 'gateway',
         'gateway_charge_id', 'paid_at', 'line_items', 'refunded_at',
     ];
+
+    protected static function registerPlannerHooks(): void
+    {
+        static::created(function ($submission) {
+            if ($submission->is_spam) {
+                return;
+            }
+            $form = Form::withoutWorkspaceScope()->find($submission->form_id);
+            if (! $form) {
+                return;
+            }
+            foreach (NoteActionPlan::withoutWorkspaceScope()->where('workspace_id', $form->workspace_id)->where('automation_enabled', true)->where('planner_settings->trigger', 'form_submission')->get() as $plan) {
+                $settings = $plan->planner_settings ?? [];
+                if (($settings['trigger'] ?? 'schedule') !== 'form_submission') {
+                    continue;
+                }
+                $selected = collect($settings['resources'] ?? [])->contains(fn ($r) => $r['kind'] === 'form' && (int) $r['id'] === $form->id);
+                if ($selected) {
+                    app(PlannerEngine::class)->enqueue($plan, 'submission:'.$submission->id, 'form_submission');
+                }
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -39,17 +65,18 @@ protected $fillable = [
      */
     protected static function booted(): void
     {
-        static::saved(fn (FormSubmission $submission) => app(\App\Modules\User\Services\ClubMembershipService::class)->capture($submission));
+        static::registerPlannerHooks();
+        static::saved(fn (FormSubmission $submission) => app(ClubMembershipService::class)->capture($submission));
         static::created(function (FormSubmission $submission): void {
             if ($submission->is_spam) {
                 return;
             }
             $ownerId = Form::withoutGlobalScope('workspace')->whereKey($submission->form_id)->value('user_id');
-            if (!$ownerId) {
+            if (! $ownerId) {
                 return;
             }
-            $identity = \App\Modules\User\Services\Contacts\ContactIdentityResolver::identityFromFormData((array) $submission->data);
-            \App\Jobs\LinkCaptureToContactJob::forRecord(
+            $identity = ContactIdentityResolver::identityFromFormData((array) $submission->data);
+            LinkCaptureToContactJob::forRecord(
                 $submission, (int) $ownerId, $identity['email'], $identity['phone'], $identity['name'], 'form'
             );
         });
@@ -117,6 +144,7 @@ protected $fillable = [
         if ($this->form_id) {
             return Form::withoutGlobalScope('workspace')->find($this->form_id);
         }
+
         return null;
     }
 }

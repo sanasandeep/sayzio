@@ -280,6 +280,7 @@
     }
     // Export the currently-filtered list as CSV. Available to anyone who can
     // view links (viewers included) — it's the same data already on screen.
+    if($folder)$__heroActions[]=['label'=>'Folder workspace','url'=>route('user.projects.show',$folder),'icon'=>'fa-folder-open','class'=>'btn-ghost'];
     $__heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.export', request()->only('search', 'type', 'project_id', 'status')), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'];
     // Move-to-workspace: only the workspace owner can move links, and only
     // makes sense if they own more than one workspace.

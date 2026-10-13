@@ -11,7 +11,7 @@ The former `/user/ai/mind` note summarizer now estimates, generates and saves a 
 5. Review the suggested form and page copy before creating an inactive form draft or private, inactive Link in Bio draft. These actions reuse the saved result without another AI charge. Repeated clicks reopen the same draft.
 6. Add individual tasks to an owned calendar by choosing title, date/time and timezone. Calendar visibility determines who can see the event. Existing calendar validation and capacity checks apply. Repeated clicks do not create a second event for the same task.
 
-Past plans are private to their author within the active workspace. Search titles, filter by project, reopen for free, export JSON, or delete a record. Deleting a plan does not delete already-created forms/pages/events. Saved plans remain readable while AI is disabled. Previous flash-session summaries cannot be backfilled; durable history starts with this feature.
+Past plans are private to their author within the active workspace unless explicitly shared through AI Planner. Search titles, filter by project, reopen for free, export JSON, or delete a record. Deleting a plan does not delete already-created forms/pages/events. Saved plans remain readable while AI is disabled. Previous flash-session summaries cannot be backfilled; durable history starts with this feature.
 
 ## Configuration and source limitations
 
@@ -20,6 +20,8 @@ The administrator enables AI and selects the `mind` feature model in AI Engine s
 Source picker URLs use the existing Vault import controls. The separate webpage reader accepts public HTTP(S) HTML/text, with standard ports only, a 2 MB response limit and bounded timeouts. Resolved public IPs are pinned, private/reserved networks and redirects are rejected, and scripts/styles are removed. Login-protected sources should be pasted or uploaded instead. Source attachments are not duplicated in plan history; structured results and pasted notes are saved.
 
 Generation uses the existing coin ledger. Invalid output or failure to save a generated result refunds the charged coins. Estimate tokens are single-use and protected against concurrent submissions. The feature is blocked for readonly demo accounts because it now saves records.
+
+For tasks, background reviews, AI handoffs and folder workspaces, see [AI Planner](ai-planner.md).
 
 ## Deployment
 
