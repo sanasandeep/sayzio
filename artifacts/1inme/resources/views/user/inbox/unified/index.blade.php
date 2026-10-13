@@ -71,7 +71,7 @@
                         <a href="?{{ http_build_query(array_merge(request()->except(['channel','page']), $active ? [] : ['channel' => $key])) }}"
                            class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs"
                            style="{{ $active ? 'background: linear-gradient(135deg,#5c83ff,#2342c7); color:white;' : 'color: var(--text-secondary);' }}">
-                            <i class="{{ $icon }} w-4 text-center" style="color: {{ $active ? 'white' : $color }};"></i> {{ $lbl }}
+                            <i class="{{ $icon }} w-4 text-center" style="color: {{ $active ? 'white' : ($color === '#000000' ? 'var(--text-primary)' : $color) }};"></i> {{ $lbl }}
                         </a>
                     @endforeach
                 </div>
@@ -159,7 +159,7 @@
                                             @if($t->is_starred)<span title="Starred" aria-label="Starred">★</span>@endif
                                             @if($t->is_private)<span class="inbox-private">Private</span>@endif
                                             <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-flex items-center gap-1 inb-badge-dim"
-                                                  style="color: {{ $t->channelColor() }};">
+                                                  style="color: {{ $t->channelColor() === '#000000' ? 'var(--text-primary)' : $t->channelColor() }};">
                                                 <i class="{{ $t->channelIcon() }}"></i> {{ $t->channelLabel() }}
                                             </span>
                                             <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: {{ $t->categoryColor() }}22; color: {{ $t->categoryColor() }};">{{ $t->categoryLabel() }}</span>
