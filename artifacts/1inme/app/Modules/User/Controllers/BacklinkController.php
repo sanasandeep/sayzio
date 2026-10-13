@@ -35,8 +35,8 @@ class BacklinkController extends Controller
         if ($days) {
             $q->where('first_seen_at', '>=', now()->subDays($days));
         }
-        if ($type) {
-            $q->where('matched_property_type', $type);
+        if ($values = \App\Support\FilterValues::get($request, 'property_type', self::PROPERTY_TYPES)) {
+            $q->whereIn('matched_property_type', $values);
         }
 
         $backlinks = $q->orderByDesc('first_seen_at')
@@ -76,11 +76,11 @@ class BacklinkController extends Controller
 
         $userId = $request->user()->id;
         $days   = $request->integer('days');
-        $type   = $request->string('property_type')->toString() ?: null;
+        $types = \App\Support\FilterValues::get($request, 'property_type', self::PROPERTY_TYPES);
 
         $filename = 'backlinks-' . now()->format('Y-m-d') . '.csv';
 
-        return response()->streamDownload(function () use ($userId, $days, $type) {
+        return response()->streamDownload(function () use ($userId, $days, $types) {
             $out = fopen('php://output', 'w');
             fputcsv($out, [
                 'first_seen_at', 'page_url', 'page_title', 'anchor_text',
@@ -88,7 +88,7 @@ class BacklinkController extends Controller
             ]);
             $q = Backlink::where('user_id', $userId);
             if ($days) $q->where('first_seen_at', '>=', now()->subDays($days));
-            if ($type) $q->where('matched_property_type', $type);
+            if ($types) $q->whereIn('matched_property_type', $types);
             $q->orderByDesc('first_seen_at')->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $r) {
                     fputcsv($out, [

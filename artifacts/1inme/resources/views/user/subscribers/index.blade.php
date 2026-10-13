@@ -102,7 +102,7 @@
             </div>
             <div>
                 <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Type</label>
-                <select name="type" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                <select data-filter-multiple name="type" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                     <option value="">All Types</option>
                     <option value="phone" {{ request('type') === 'phone' ? 'selected' : '' }}>Phone</option>
                     <option value="email" {{ request('type') === 'email' ? 'selected' : '' }}>Email</option>
@@ -112,7 +112,7 @@
             </div>
             <div>
                 <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Status</label>
-                <select name="status" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                <select data-filter-multiple name="status" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                     <option value="">All</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="unsubscribed" {{ request('status') === 'unsubscribed' ? 'selected' : '' }}>Unsubscribed</option>
@@ -120,7 +120,7 @@
             </div>
             <div>
                 <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Link in Bio</label>
-                <select name="link_id" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                <select data-filter-multiple name="link_id" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                     <option value="">All Links</option>
                     @foreach($links as $l)
                     <option value="{{ $l->id }}" {{ request('link_id') == $l->id ? 'selected' : '' }}>{{ $l->alias }}</option>
@@ -129,7 +129,7 @@
             </div>
             <div>
                 <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Visitor Type</label>
-                <select name="visitor_type" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                <select data-filter-multiple name="visitor_type" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                     <option value="">All</option>
                     <option value="student" {{ request('visitor_type') === 'student' ? 'selected' : '' }}>Student</option>
                     <option value="professional" {{ request('visitor_type') === 'professional' ? 'selected' : '' }}>Professional</option>

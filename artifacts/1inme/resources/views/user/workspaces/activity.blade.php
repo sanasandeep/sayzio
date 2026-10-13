@@ -29,7 +29,7 @@
           style="border-color: var(--border-strong); background: var(--bg-card);">
         <div>
             <label class="block text-xs font-semibold mb-1 opacity-70">Member</label>
-            <select name="member" class="w-full px-2 py-2 border rounded text-sm"
+            <select data-filter-multiple name="member" class="w-full px-2 py-2 border rounded text-sm"
                     style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
                 <option value="">All members</option>
                 @foreach($members as $m)
@@ -39,7 +39,7 @@
         </div>
         <div>
             <label class="block text-xs font-semibold mb-1 opacity-70">Action</label>
-            <select name="action" class="w-full px-2 py-2 border rounded text-sm"
+            <select data-filter-multiple name="action" class="w-full px-2 py-2 border rounded text-sm"
                     style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
                 <option value="">All actions</option>
                 @foreach($actionList as $a)
@@ -49,7 +49,7 @@
         </div>
         <div>
             <label class="block text-xs font-semibold mb-1 opacity-70">Object type</label>
-            <select name="object_type" class="w-full px-2 py-2 border rounded text-sm"
+            <select data-filter-multiple name="object_type" class="w-full px-2 py-2 border rounded text-sm"
                     style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
                 <option value="">All types</option>
                 @foreach($objectTypes as $ot)

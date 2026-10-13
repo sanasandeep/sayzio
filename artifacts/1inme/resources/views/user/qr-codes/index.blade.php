@@ -23,7 +23,7 @@
                    class="w-full pl-9 pr-3 py-2 text-sm rounded-lg outline-none"
                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
         </div>
-        <select name="type" onchange="this.form.submit()"
+        <select data-filter-multiple name="type" onchange="this.form.submit()"
                 class="px-3 py-2 text-sm rounded-lg outline-none"
                 style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
             <option value="">All types</option>
@@ -32,7 +32,7 @@
             @endforeach
         </select>
         @if($projects->count())
-            <select name="project_id" onchange="this.form.submit()"
+            <select data-filter-multiple name="project_id" onchange="this.form.submit()"
                     class="px-3 py-2 text-sm rounded-lg outline-none"
                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                 <option value="">All projects</option>

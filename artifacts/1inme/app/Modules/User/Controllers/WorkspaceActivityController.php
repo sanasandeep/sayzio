@@ -123,14 +123,14 @@ class WorkspaceActivityController extends Controller
     {
         $q = WorkspaceActivityEvent::query()->where('workspace_id', $ws->id);
 
-        if ($member = $request->input('member')) {
-            $q->where('actor_user_id', (int) $member);
+        if ($values = \App\Support\FilterValues::ids($request, 'member')) {
+            $q->whereIn('actor_user_id', $values);
         }
-        if ($action = $request->input('action')) {
-            $q->where('action', $action);
+        if ($values = \App\Support\FilterValues::get($request, 'action')) {
+            $q->whereIn('action', $values);
         }
-        if ($otype = $request->input('object_type')) {
-            $q->where('object_type', $otype);
+        if ($values = \App\Support\FilterValues::get($request, 'object_type')) {
+            $q->whereIn('object_type', $values);
         }
         if ($from = $request->input('from')) {
             try { $q->where('created_at', '>=', \Carbon\Carbon::parse($from)->startOfDay()); }

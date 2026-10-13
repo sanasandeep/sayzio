@@ -14,11 +14,11 @@ class SubscriberController
         $user = $request->user();
         $query = Subscriber::where('user_id', $user->id);
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
+        if ($values = \App\Support\FilterValues::get($request, 'type')) {
+            $query->whereIn('type', $values);
         }
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($values = \App\Support\FilterValues::get($request, 'status')) {
+            $query->whereIn('status', $values);
         }
         if ($request->filled('search')) {
             $s = $request->search;
@@ -28,11 +28,11 @@ class SubscriberController
                   ->orWhere('phone', 'ilike', "%{$s}%");
             });
         }
-        if ($request->filled('link_id')) {
-            $query->where('link_id', $request->link_id);
+        if ($values = \App\Support\FilterValues::ids($request, 'link_id')) {
+            $query->whereIn('link_id', $values);
         }
-        if ($request->filled('visitor_type')) {
-            $query->where('visitor_type', $request->visitor_type);
+        if ($values = \App\Support\FilterValues::get($request, 'visitor_type')) {
+            $query->whereIn('visitor_type', $values);
         }
 
         // Sorted by the query, not the browser: only one page is ever on screen.
@@ -87,13 +87,23 @@ class SubscriberController
         $user = $request->user();
         $query = Subscriber::where('user_id', $user->id);
 
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
+        if ($values = \App\Support\FilterValues::get($request, 'type')) {
+            $query->whereIn('type', $values);
         }
-        if ($request->filled('visitor_type')) {
-            $query->where('visitor_type', $request->visitor_type);
+        if ($values = \App\Support\FilterValues::get($request, 'visitor_type')) {
+            $query->whereIn('visitor_type', $values);
         }
 
+        if ($values = \App\Support\FilterValues::get($request, 'status')) {
+            $query->whereIn('status', $values);
+        }
+        if ($values = \App\Support\FilterValues::ids($request, 'link_id')) {
+            $query->whereIn('link_id', $values);
+        }
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $query->where(fn($q) => $q->where('email', 'ilike', "%{$search}%")->orWhere('name', 'ilike', "%{$search}%")->orWhere('phone', 'ilike', "%{$search}%"));
+        }
         $subscribers = $query->orderByDesc('subscribed_at')->get();
         $filename = 'subscribers_' . date('Y-m-d') . '.csv';
 

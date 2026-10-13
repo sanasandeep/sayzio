@@ -46,7 +46,7 @@
                class="px-3 py-2 rounded-lg border text-sm bg-transparent"
                style="border-color: var(--border-strong); color: var(--text-primary);">
 
-        <select name="action" class="px-3 py-2 rounded-lg border text-sm bg-transparent"
+        <select data-filter-multiple name="action" class="px-3 py-2 rounded-lg border text-sm bg-transparent"
                 style="border-color: var(--border-strong); color: var(--text-primary);">
             <option value="">All actions</option>
             @foreach($catalog as $slug => $meta)

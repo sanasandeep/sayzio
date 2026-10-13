@@ -471,20 +471,22 @@ class CalendarController extends Controller
                 ->pluck('id');
         }
 
-        $source      = $request->query('source', 'all');
-        $calendarIds = match ($source) {
-            'owned'    => $ownedIds,
-            'followed' => $followedIds,
-            default    => $ownedIds->merge($followedIds)->merge($wsProjectIds)->unique()->values(),
-        };
-
-        // Optional per-calendar filter — only honoured when the calendar is one
-        // the user actually owns or follows.
-        $calendarId = $request->query('calendar');
-        if ($calendarId !== null && $calendarId !== '' && $calendarIds->contains((int) $calendarId)) {
-            $calendarIds = collect([(int) $calendarId]);
+        $source = $request->query('source', 'all');
+        $sources = \App\Support\FilterValues::get($request, 'source', ['all','owned','followed']);
+        $calendarIds = collect();
+        if (!$sources || in_array('all', $sources, true)) {
+            $calendarIds = $ownedIds->merge($followedIds)->merge($wsProjectIds)->unique()->values();
         } else {
-            $calendarId = '';
+            if (in_array('owned', $sources, true)) $calendarIds = $calendarIds->merge($ownedIds);
+            if (in_array('followed', $sources, true)) $calendarIds = $calendarIds->merge($followedIds);
+            $calendarIds = $calendarIds->unique()->values();
+        }
+        $displayCalendarIds = $ownedIds->merge($followedIds)->merge($wsProjectIds)->unique()->values();
+        $calendarId = $request->query('calendar', '');
+        $selectedCalendars = \App\Support\FilterValues::ids($request, 'calendar');
+        if ($selectedCalendars) {
+            // Intersect with accessible sources; inaccessible selections never broaden results.
+            $calendarIds = $calendarIds->intersect(array_map('intval', $selectedCalendars))->values();
         }
 
         // Selected view (Month / Week / Day / Agenda) + the focus date the grid
@@ -562,7 +564,7 @@ class CalendarController extends Controller
             'query'       => $query,
             'ownedIds'    => $ownedIds,
             'followedIds' => $followedIds,
-            'calendarIds' => $calendarIds,
+            'calendarIds' => $displayCalendarIds,
             'source'      => $source,
             'calendar'    => $calendarId,
             'view'        => $view,

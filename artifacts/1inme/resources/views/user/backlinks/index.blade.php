@@ -53,7 +53,7 @@
         </div>
         <div>
             <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Property type</label>
-            <select name="property_type" class="theme-input appearance-none pr-8">
+            <select data-filter-multiple name="property_type" class="theme-input appearance-none pr-8">
                 <option value="" class="bg-[#0a0612]">All types</option>
                 @foreach($propertyTypes as $t)
                     <option value="{{ $t }}" @selected($propertyType === $t) class="bg-[#0a0612]">{{ $propertyLabels[$t] ?? $t }}</option>
