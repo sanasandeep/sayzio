@@ -603,8 +603,10 @@
       const cardR = radius || 0;
       const card = cardR ? `<rect x="0" y="0" width="${W}" height="${totalH}" rx="${cardR}" fill="${frame.bg_color}" opacity="0.0"/>` : '';
       const textColor = shape === 'double' ? frame.bg_color : frame.text_color;
-      const textY = barY + barH / 2 + (barH * 0.18);
-      const text = `<text x="${W / 2}" y="${textY}" text-anchor="middle" font-family="${fontFamily}, sans-serif" font-weight="700" font-size="${barH * 0.45}" fill="${textColor}">${escText(frame.text || '')}</text>`;
+      const label = String(frame.text || '');
+      const fontSize = Math.min(barH * 0.45, (qrSize - 24) / Math.max(1, label.length));
+      const textY = barY + barH / 2 + fontSize * 0.35;
+      const text = `<text x="${W / 2}" y="${textY}" text-anchor="middle" font-family="${fontFamily}, sans-serif" font-weight="700" font-size="${fontSize}" fill="${textColor}">${escText(label)}</text>`;
       const body = `${card}${barShape}${text}<g transform="translate(${qrX} ${qrY})">${qrSvgInner}</g>`;
       return { width: W, height: totalH, body };
     };
@@ -638,11 +640,15 @@
         return `M${r} 0H${W - r}A${r} ${r} 0 0 1 ${W} ${r}V${H / 2 - 20}L${W + tail + 20} ${H / 2}L${W} ${H / 2 + 20}V${H - r}A${r} ${r} 0 0 1 ${W - r} ${H}H${r}A${r} ${r} 0 0 1 0 ${H - r}V${r}A${r} ${r} 0 0 1 ${r} 0z`;
       })();
       body = `<path d="${path}" fill="${frame.bg_color}"/><g transform="translate(${qrX} ${qrY})">${qrSvgInner}</g>`;
-      // text below if direction!=down else inside tail
-      const textY = direction === 'down' ? totalH - 4 : (direction === 'up' ? 22 : totalH / 2 + 6);
-      const textX = direction === 'left' ? 14 : direction === 'right' ? totalW - 14 : totalW / 2;
-      const anchor = direction === 'left' ? 'start' : direction === 'right' ? 'end' : 'middle';
-      const text = `<text x="${textX}" y="${textY}" text-anchor="${anchor}" font-family="${fontFamily}, sans-serif" font-weight="700" font-size="20" fill="${frame.text_color}">${escText(frame.text || '')}</text>`;
+      // Side callouts reserve a narrow gutter: rotate the label there so it
+      // cannot cover the QR's finder eyes or data modules.
+      const vertical = direction === 'left' || direction === 'right';
+      const textY = vertical ? H / 2 : (direction === 'down' ? totalH - 15 : 22);
+      const textX = direction === 'left' ? (tail + 20) / 2 : direction === 'right' ? W + (tail + 20) / 2 : totalW / 2;
+      const label = String(frame.text || '');
+      const fontSize = Math.min(20, ((vertical ? H : W) - 24) / Math.max(1, label.length));
+      const rotation = vertical ? ` transform="rotate(${direction === 'left' ? -90 : 90} ${textX} ${textY})"` : '';
+      const text = `<text x="${textX}" y="${textY}" text-anchor="middle" dominant-baseline="middle"${rotation} font-family="${fontFamily}, sans-serif" font-weight="700" font-size="${fontSize}" fill="${frame.text_color}">${escText(label)}</text>`;
       return { width: totalW, height: totalH, body: body + text };
     };
   }
@@ -699,10 +705,10 @@
       } else if (dir === 'up') {
         arrowPath = `M${W / 2 + 30} ${arrow + 10}H${W / 2 - 30}L${W / 2 - 30} ${arrow * 0.6 + 10}L${W / 2 - 50} ${arrow * 0.6 + 10}L${W / 2} 10L${W / 2 + 50} ${arrow * 0.6 + 10}L${W / 2 + 30} ${arrow * 0.6 + 10}z`;
       } else if (dir === 'left') {
-        arrowPath = `M${arrow + 10} ${H / 2 - 30}V${H / 2 + 30}L${arrow * 0.6 + 10} ${H / 2 + 30}L${arrow * 0.6 + 10} ${H / 2 + 50}L10 ${H / 2}L${arrow * 0.6 + 10} ${H / 2 - 50}L${arrow * 0.6 + 10} ${H / 2 - 30}z`;
+        arrowPath = `M${arrow + 10} ${(qrSize + 2 * pad) / 2 - 30}V${(qrSize + 2 * pad) / 2 + 30}L${arrow * 0.6 + 10} ${(qrSize + 2 * pad) / 2 + 30}L${arrow * 0.6 + 10} ${(qrSize + 2 * pad) / 2 + 50}L10 ${(qrSize + 2 * pad) / 2}L${arrow * 0.6 + 10} ${(qrSize + 2 * pad) / 2 - 50}L${arrow * 0.6 + 10} ${(qrSize + 2 * pad) / 2 - 30}z`;
         return { width: W + arrow + 20, height: qrSize + 2 * pad, body: `<path d="${arrowPath}" fill="${frame.bg_color}"/><g transform="translate(${arrow + 20 + pad} ${pad})">${qrSvgInner}</g>` };
       } else {
-        arrowPath = `M${W} ${H / 2 - 30}V${H / 2 + 30}L${W + arrow * 0.4} ${H / 2 + 30}L${W + arrow * 0.4} ${H / 2 + 50}L${W + arrow + 10} ${H / 2}L${W + arrow * 0.4} ${H / 2 - 50}L${W + arrow * 0.4} ${H / 2 - 30}z`;
+        arrowPath = `M${W} ${(qrSize + 2 * pad) / 2 - 30}V${(qrSize + 2 * pad) / 2 + 30}L${W + arrow * 0.4} ${(qrSize + 2 * pad) / 2 + 30}L${W + arrow * 0.4} ${(qrSize + 2 * pad) / 2 + 50}L${W + arrow + 10} ${(qrSize + 2 * pad) / 2}L${W + arrow * 0.4} ${(qrSize + 2 * pad) / 2 - 50}L${W + arrow * 0.4} ${(qrSize + 2 * pad) / 2 - 30}z`;
         return { width: W + arrow + 20, height: qrSize + 2 * pad, body: `<g transform="translate(${pad} ${pad})">${qrSvgInner}</g><path d="${arrowPath}" fill="${frame.bg_color}"/>` };
       }
       const text = `<text x="${W / 2}" y="${dir === 'down' ? arrowY + arrow / 2 + 7 : arrow / 2 + 17}" text-anchor="middle" font-family="${fontFamily}, sans-serif" font-weight="700" font-size="18" fill="${frame.text_color}">${escText(frame.text || '')}</text>`;

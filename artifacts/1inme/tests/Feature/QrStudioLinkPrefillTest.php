@@ -78,7 +78,7 @@ class QrStudioLinkPrefillTest extends TestCase
         $resp->assertSee('linkId: ' . $link->id, false);
         // The inactive link falls outside the active-links picker query but
         // must still appear as a selectable <option>.
-        $resp->assertSee('value="' . $link->id . '"', false);
+        $resp->assertSee('linkId=' . $link->id . '; resolveLinkPayload()', false);
         $resp->assertSee('Paused Page');
     }
 
