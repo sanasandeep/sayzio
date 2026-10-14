@@ -688,7 +688,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     if(!window.confirm('Start a fresh Zio conversation? Previous chats remain available for export, but will not be used in this session.'))return;
     var previousToken=token;token='';localStorage.removeItem(TOKEN_KEY);
     Object.keys(sessionStorage).forEach(function(key){if(key==='zio_navigation_handoff'||key.startsWith('zio_social_draft_'+previousToken+'_'))sessionStorage.removeItem(key);});
-    messages=[];vrMessages=[];vrPending=[];vrPendingNav=null;vrHandsFree=false;body.innerHTML='';ta.value='';disableInput(false,'');if(voiceConfirmEl)voiceConfirmEl.classList.remove('sa-show');var navigationCancel=document.querySelector('.zio-guide button');if(navigationCancel)navigationCancel.click();bootstrapped=false;bootstrap();
+    messages=[];vrMessages=[];vrPending=[];vrPendingNav=null;vrHandsFree=false;body.innerHTML='';ta.value='';disableInput(false,'');zioQuestion='';clearSnapshot();if(voiceConfirmEl)voiceConfirmEl.classList.remove('sa-show');var navigationCancel=document.querySelector('.zio-guide button');if(navigationCancel)navigationCancel.click();bootstrapped=false;bootstrap();
   };
   headerTools.append(resetButton,exportButton,expandButton);header.appendChild(headerTools);
   // "Contact us" entry point: opens the multi-channel quick-contact form
@@ -1581,7 +1581,21 @@ window.__SA_LOGIN_URL = @json(url('/login'));
         x: window.scrollX, y: window.scrollY,
         width: window.innerWidth, height: window.innerHeight,
         windowWidth: window.innerWidth, windowHeight: window.innerHeight,
-        scale: 1, logging: false,
+        scale: 1, logging: false, useCORS: true, allowTaint: false,
+        onclone: function(doc){
+          // html2canvas cannot parse modern CSS color functions. Normalize
+          // computed colors only in its detached clone; leave the live UI intact.
+          var canvas=doc.createElement('canvas');canvas.width=canvas.height=1;var ctx=canvas.getContext('2d',{willReadFrequently:true});
+          doc.querySelectorAll('*').forEach(function(node){
+            var style=doc.defaultView.getComputedStyle(node);
+            ['color','background-color','border-top-color','border-right-color','border-bottom-color','border-left-color','outline-color'].forEach(function(prop){
+              var value=style.getPropertyValue(prop);if(!/(?:oklch|oklab|lab|lch|color)\(/i.test(value))return;
+              ctx.clearRect(0,0,1,1);ctx.fillStyle=value;ctx.fillRect(0,0,1,1);var pixel=ctx.getImageData(0,0,1,1).data;
+              node.style.setProperty(prop,'rgba('+pixel[0]+','+pixel[1]+','+pixel[2]+','+(pixel[3]/255)+')','important');
+            });
+            if(/(?:oklch|oklab|lab|lch|color)\(/i.test(style.backgroundImage))node.style.setProperty('background-image','none','important');
+          });
+        },
         ignoreElements: function(n){
           return (panelWrap && panelWrap.contains(n)) || (launcherWrap && launcherWrap.contains(n));
         }
@@ -1625,7 +1639,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   function sendMessage(){
     if(busy || AUTH_REQUIRED) return;
     var text=ta.value.trim(); if(!text) return;
-    if(zioQuestion && !text.startsWith(zioQuestion)) text=zioQuestion+' Answer: '+text;
+    // The main composer is always a new user message. Only explicit question-card answers carry the question label.
     zioQuestion='';
     // Detach the pending snapshot up-front: it rides along on this turn
     // only (stream + non-stream fallback share the same captured value).
