@@ -18,26 +18,8 @@
         <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Company</span>
         <input type="text" name="company" value="{{ old('company', $item->company ?? '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
     </label>
-    <label class="block">
-        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Website</span>
-        <input type="text" name="website" value="{{ old('website', $item->website ?? '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-    </label>
-    <label class="block">
-        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Visibility</span>
-        <select name="visibility" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-            <option value="shared" @selected(old('visibility', $item->visibility ?? 'shared') === 'shared')>Shared with workspace</option>
-            <option value="private" @selected(old('visibility', $item->visibility ?? '') === 'private')>Private, creator + owner only</option>
-        </select>
-    </label>
-    <label class="block md:col-span-2">
-        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Tags (comma-separated)</span>
-        <input type="text" name="tags" value="{{ old('tags', isset($item) ? implode(',', (array) ($item->tags ?? [])) : '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-    </label>
-    <label class="block md:col-span-2">
-        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Notes (encrypted)</span>
-        <textarea name="notes" rows="4" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">{{ old('notes', $item?->getEncrypted('notes')) }}</textarea>
-    </label>
 </div>
+
 
 <div class="mt-6" x-data="{ rows: @js($emails ?: [['email'=>'','label'=>'']]) }">
     <h3 class="text-sm font-semibold text-gray-300 mb-2">Emails <span class="text-xs" style="color: var(--text-muted);">(first row is primary)</span></h3>
@@ -65,6 +47,25 @@
     <button type="button" @click="rows.push({phone:'',label:''})" class="text-xs text-amber-400">+ Add phone</button>
 </div>
 
+<details class="client-extra"><summary>Additional details · optional</summary><div class="grid grid-cols-1 md:grid-cols-2 gap-4">    <label class="block">
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Website</span>
+        <input type="text" name="website" value="{{ old('website', $item->website ?? '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+    </label>
+    <label class="block">
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Visibility</span>
+        <select name="visibility" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            <option value="shared" @selected(old('visibility', $item->visibility ?? 'shared') === 'shared')>Shared with workspace</option>
+            <option value="private" @selected(old('visibility', $item->visibility ?? '') === 'private')>Private, creator + owner only</option>
+        </select>
+    </label>
+    <label class="block md:col-span-2">
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Tags (comma-separated)</span>
+        <input type="text" name="tags" value="{{ old('tags', isset($item) ? implode(',', (array) ($item->tags ?? [])) : '') }}" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+    </label>
+    <label class="block md:col-span-2">
+        <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Notes (encrypted)</span>
+        <textarea name="notes" rows="4" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">{{ old('notes', $item?->getEncrypted('notes')) }}</textarea>
+    </label></div>
 <div class="mt-6" x-data="{ rows: @js($addresses).map((row, idx) => ({ ...row, _key: idx })) }">
     <h3 class="text-sm font-semibold text-gray-300 mb-2">Addresses</h3>
     <template x-for="(row, i) in rows" :key="i">
@@ -114,8 +115,9 @@
     </template>
 </div>
 
+</details>
 <div class="mt-6 flex items-center gap-3">
-    <button class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">{{ $item ? 'Save profile changes' : 'Create client' }}</button>
+    <button type="submit" class="client-primary">{{ $item ? 'Save client' : 'Create client' }}</button>
     <a href="{{ route('user.vault.clients.index') }}" class="text-sm hover:text-white" style="color: var(--text-faint);">Cancel</a>
 </div>
 

@@ -4,6 +4,7 @@
 @include('user.planner.styles')
 @include('user.partials.client-create-styles')
 @include('user.partials.page-hero',['title'=>$item->name,'subtitle'=>$item->company ?: 'Client contacts, projects and connected work.','emblemIcon'=>'fa-user','favicon'=>null,'url'=>null,'back'=>route('user.vault.clients.index'),'chips'=>[['text'=>'Client','icon'=>'fa-user']],'actions'=>[]])
+<div x-data="{tab:'overview'}">
 @include('user.vault.clients.projects')
 
 @php
@@ -15,7 +16,7 @@
 @endphp
 
 <div class="client-create-page" x-data="vaultClientView({{ $item->id }})">
-    <div class="flex items-start justify-between gap-4 mb-6">
+    <div x-show="tab==='overview' || tab==='files'" class="client-toolbar">
         <div>
             <h2 class="text-2xl font-bold">{{ $item->name }}</h2>
             <p class="text-sm mt-1" style="color: var(--text-faint);">
@@ -23,16 +24,17 @@
             </p>
         </div>
         <div class="flex items-center gap-2">
-            @if($canEdit)<a href="{{ route('user.vault.clients.edit', $item) }}" class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">Edit</a>@endif
+            @if($canEdit)<a href="{{ route('user.vault.clients.edit', $item) }}" class="client-secondary">Edit client</a>@endif
             @if($canDelete)
                 <form method="post" action="{{ route('user.vault.clients.destroy', $item) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this client?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                     @csrf @method('DELETE')
-                    <button class="px-3 py-2 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500/20 text-sm">Delete</button>
+                    <button class="client-danger">Delete</button>
                 </form>
             @endif
         </div>
     </div>
 
+    <section x-show="tab==='overview'">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div class="rounded-lg p-3 bg-white/5">
             <h3 class="text-xs uppercase mb-2" style="color: var(--text-faint);">Emails</h3>
@@ -60,6 +62,8 @@
         </div>
     @endif
 
+    </section>
+    <section x-show="tab==='files'" x-cloak>
     <div class="rounded-lg p-3 bg-white/5 mb-6">
         <h3 class="text-xs uppercase mb-2 flex items-center justify-between" style="color: var(--text-faint);">
             <span>Notes (encrypted)</span>
@@ -106,10 +110,10 @@
         <div class="flex items-center justify-between mb-2">
             <h3 class="text-xs uppercase" style="color: var(--text-faint);">Files &amp; scannable QR codes</h3>
             @if($canEdit)
-                <form method="post" enctype="multipart/form-data" action="{{ route('user.vault.attachments.store', $item) }}" class="flex items-center gap-2">
+                <form method="post" enctype="multipart/form-data" action="{{ route('user.vault.attachments.store', $item) }}" class="client-file-form">
                     @csrf
                     <select name="purpose" aria-label="Attachment purpose"><option value="document">Document</option><option value="qr">QR image</option></select><input type="file" name="file" required class="text-xs">
-                    <button class="text-xs text-amber-400 hover:underline">Upload (5 MB max)</button>
+                    <button type="submit" class="client-primary">Upload (5 MB max)</button>
                 </form>
             @endif
         </div>
@@ -128,6 +132,8 @@
             </div>
         @empty<div class="text-sm" style="color: var(--text-muted);">No attachments.</div>@endforelse
     </div>
+</section>
+</div>
 </div>
 
 <script>
