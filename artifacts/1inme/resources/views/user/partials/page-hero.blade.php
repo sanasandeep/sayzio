@@ -6,6 +6,7 @@
         'title'    => 'Page Title',
         'subtitle' => 'Optional one-liner under the title',
         'icon'     => 'fa-link',                          // FA icon class (default fa-rocket)
+        'emblemIcon' => null,                             // optional square icon instead of a letter
         'favicon'  => null,                               // image URL — preferred avatar
         'url'      => null,                               // optional short URL row with copy + open
         'chips'    => [                                   // small status pills
@@ -48,7 +49,7 @@
                          x-show="!failed" @@error="failed = true">
                     <span x-show="failed" x-cloak class="hero-emblem-letter">{{ $letter }}</span>
                 @else
-                    <span class="hero-emblem-letter">{{ $letter }}</span>
+                    @if(!empty($emblemIcon))<i class="fas {{ $emblemIcon }} text-2xl" aria-hidden="true"></i>@else<span class="hero-emblem-letter">{{ $letter }}</span>@endif
                 @endif
             </div>
             <div class="min-w-0 flex-1">

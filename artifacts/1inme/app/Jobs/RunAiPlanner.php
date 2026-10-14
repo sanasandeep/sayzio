@@ -59,6 +59,7 @@ class RunAiPlanner implements ShouldQueue
             $max = $run->trigger === 'manual' ? min(max(1, $run->reserved_coins), (int) ($s['run_budget'] ?? max(1, $run->reserved_coins))) : (int) ($s['run_budget'] ?? 0);
             DB::transaction(function () use ($run, $plan, $quote, $actor, $s, $max) {
                 $locked = NoteActionPlan::whereKey($plan->id)->lockForUpdate()->firstOrFail();
+                abort_unless($run->trigger === 'manual' || $locked->automation_enabled, 422, 'Automation is paused.');
                 $claim = PlannerRun::whereKey($run->id)->lockForUpdate()->firstOrFail();
                 abort_unless($claim->status === 'queued', 409, 'Run already claimed.');
                 $tz = $s['timezone'] ?? 'UTC';
@@ -78,7 +79,8 @@ class RunAiPlanner implements ShouldQueue
                 $quote['staff']->markUsed();
             }
             // Only internal tasks are eligible for opt-in automatic application. Content remains a draft.
-            if (! empty($s['auto_tasks'])) {
+            $currentPlan = $plan->fresh();
+            if (! empty($s['auto_tasks']) && $currentPlan && $currentPlan->project_id === $plan->project_id && ($run->trigger === 'manual' || $currentPlan->automation_enabled)) {
                 try {
                     app(PlannerTasks::class)->create($plan, $actor, array_keys($plan->result['tasks'] ?? []), $s['board_id'] ?? null);
                 } catch (\Throwable $e) {

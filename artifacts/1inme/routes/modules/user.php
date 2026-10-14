@@ -1373,6 +1373,11 @@ Route::prefix('user')->name('user.')->group(function () {
             // own a feature-specific estimate route (persona, ask-coach, card
             // scan, QR art, voice, minds, resume import/cover-letter).
             Route::post('cost-estimate', [\App\Modules\User\Controllers\AI\AiCostEstimateController::class, 'estimate'])->middleware('throttle:60,1')->name('cost-estimate');
+            Route::post('folders/{project}/tasks', [\App\Modules\User\Controllers\FolderWorkController::class,'task'])->middleware('workspace.can:tasks.create')->name('folders.task');
+            Route::post('folders/{project}/tasks/{card}', [\App\Modules\User\Controllers\FolderWorkController::class,'complete'])->middleware('workspace.can:tasks.edit')->name('folders.complete');
+            Route::post('folders/{project}/connections', [\App\Modules\User\Controllers\FolderWorkController::class,'relationship'])->middleware('workspace.can:edit')->name('folders.relationship');
+            Route::delete('folders/{project}/connections/{relationship}', [\App\Modules\User\Controllers\FolderWorkController::class,'disconnect'])->middleware('workspace.can:edit')->name('folders.disconnect');
+            Route::post('folders/{project}/move', [\App\Modules\User\Controllers\FolderWorkController::class,'move'])->middleware('workspace.can:edit')->name('folders.move');
             Route::prefix('planner')->name('planner.')->group(function () {
                 Route::post('plans/{plan}/settings', [\App\Modules\User\Controllers\AI\PlannerController::class, 'settings'])->middleware('workspace.can:edit')->name('settings');
                 Route::post('plans/{plan}/pause', [\App\Modules\User\Controllers\AI\PlannerController::class, 'pause'])->name('pause');

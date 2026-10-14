@@ -3,15 +3,15 @@
     $current = old('color', $project->color ?? $colors[0]);
     $isPreset = in_array(strtolower($current), array_map('strtolower', $colors), true);
 @endphp
-<div class="glass rounded-2xl p-6 space-y-5">
+<div class="notes-card space-y-5">
     <div>
-        <label class="block text-sm font-medium text-white/60 mb-1">Name <span class="text-red-500">*</span></label>
-        <input type="text" name="name" value="{{ old('name', $project->name ?? '') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40" required autofocus>
+        <label class="block text-sm font-medium text-secondary mb-1">Name <span class="text-red-500">*</span></label>
+        <input type="text" name="name" value="{{ old('name', $project->name ?? '') }}" class="theme-input" required autofocus>
         @error('name') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
     </div>
 
     <div x-data="{ color: @js($current) }">
-        <label class="block text-sm font-medium text-white/60 mb-2">Folder color</label>
+        <label class="block text-sm font-medium text-secondary mb-2">Folder color</label>
         <input type="hidden" name="color" :value="color">
         <div class="flex items-center gap-3 flex-wrap">
             @foreach($colors as $swatch)
@@ -22,7 +22,7 @@
             @endforeach
             <label class="w-9 h-9 rounded-xl border border-dashed border-white/25 flex items-center justify-center cursor-pointer hover:border-white/50" title="Custom color">
                 <input type="color" class="sr-only" :value="color" @input="color = $event.target.value">
-                <i class="fas fa-eye-dropper text-xs text-white/40"></i>
+                <i class="fas fa-eye-dropper text-xs text-muted"></i>
             </label>
         </div>
         <div class="mt-4 flex items-center gap-3">
@@ -31,12 +31,12 @@
                 <rect x="6" y="22" width="84" height="44" rx="6" :fill="color"/>
                 <rect x="6" y="22" width="84" height="10" rx="5" fill="#ffffff" opacity="0.18"/>
             </svg>
-            <span class="text-xs text-white/40">Preview</span>
+            <span class="text-xs text-muted">Preview</span>
         </div>
     </div>
 
     <div>
-        <label class="block text-sm font-medium text-white/60 mb-1">Description</label>
-        <textarea name="description" rows="3" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40" placeholder="Optional description...">{{ old('description', $project->description ?? '') }}</textarea>
+        <label class="block text-sm font-medium text-secondary mb-1">Description</label>
+        <textarea name="description" rows="3" class="theme-input" placeholder="Optional description...">{{ old('description', $project->description ?? '') }}</textarea>
     </div>
 </div>

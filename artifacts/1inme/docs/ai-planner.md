@@ -25,3 +25,17 @@ Plans and notes are private by default. Sharing a plan exposes its approved resu
 ## Deployment
 
 Run normal migrations, including `2029_11_02_000001_add_ai_planner_workspaces.php`, and deploy PHP/views together. The server must run Laravel's scheduler and queue worker. `planner:dispatch` is registered every minute and publishes a heartbeat through the database cache. The UI warns when the dispatcher heartbeat is missing. Background work continues without an open browser only while this server infrastructure runs. No production scheduler or deployment is configured by this change.
+
+## Project hub interface
+
+Folder Overview includes Hub and Flow views. Hub counts come from visible assigned resources. Flow is a suggested process, not conversion attribution. AI plan suggestions come from saved plans and require review; no connection is applied implicitly. Explicit item-to-item relationships can be saved or disconnected under Resources. Relationships never grant access to private resources.
+
+AI team lists assigned Minds, personas, Agents, Companions and Staff. Marketing shows assigned strategies, budgets, Buzz campaigns and brand resources, with lifetime Buzz counts. These tools retain native permissions and their own reviewed actions; folder assignment does not activate an assistant or campaign. Reports distinguish current project status, lifetime counts and recent AI runs from date-filtered link charts. My Links no longer exposes a Reports tab; legacy report/export URLs remain compatible.
+
+Tasks support direct creation (including a project board when requested), assignment, checklists, deadlines, list/board/date views and completion/reopening. Notes support private/shared/pinned context and active, completed and snoozed filters. The activity timeline includes visible resource changes, note updates, task events and AI reviews. Mobile navigation uses one scrolling row and a section selector.
+
+Folder settings can move all contents to another folder, retaining schedules. Deleting a folder keeps and unassigns links, forms, QR codes, plans, notes and generic resources, removes folder relationships, and pauses scheduled AI plans before clearing their folder. A queued nonmanual review checks paused state under lock before claiming work. Already-running provider calls cannot be retroactively cancelled by folder deletion.
+
+Deploy with the new `2029_11_03_000001_create_folder_relationships.php` migration. No AI calls are made by migration or these presentation changes.
+
+The notebook offers recent unassigned notes so notes kept after deleting a folder can be moved into another folder by their author. Private notes remain private.

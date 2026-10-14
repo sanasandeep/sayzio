@@ -3,7 +3,7 @@
 @section('content')
 @include('user.planner.styles')
 <div class="notes-studio" x-data="notesActionStudio()" @media-source-selected.window="if($event.detail.name==='notes_source'){file=$event.detail.file;quote=null}">
-<div class="notes-hero"><div><span class="notes-label" style="color:#365ce9">THINK CLEARLY · TAKE THE NEXT STEP</span><h1>AI Planner</h1><p>Turn meeting notes, feedback and ideas into a plan you can review and use.</p></div><div class="notes-wallet"><span class="notes-hint">Coin balance</span><br><strong>{{ number_format($balance) }}</strong><p class="notes-hint">coins</p></div></div>
+@include('user.partials.page-hero',['title'=>'AI Planner','subtitle'=>'Turn notes, feedback and ideas into reviewed work.','icon'=>'fa-brain','emblemIcon'=>'fa-brain','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'actions'=>[],'chips'=>[['text'=>number_format($balance).' coins','icon'=>'fa-coins'],['text'=>'Plan · review · act','icon'=>'fa-wand-magic-sparkles']]])
 <div class="notes-grid"><main class="notes-stack">
 @if($plan)
 @include('user.planner.plan')

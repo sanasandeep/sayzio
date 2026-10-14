@@ -4,6 +4,9 @@ namespace App\Services\Planner;
 
 use App\Modules\User\Models\AiCompanion;
 use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\MarketingStrategy;
+use App\Modules\User\Models\MarketingPlanCalc;
+use App\Modules\User\Models\SocialProof;
 use App\Modules\User\Models\AiPersona;
 use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\AiStaff;
@@ -22,12 +25,17 @@ use Illuminate\Support\Facades\Route;
 
 class PlannerResources
 {
-    public const TYPES = ['link' => Link::class, 'form' => Form::class, 'qr' => QrCode::class, 'file' => UserFile::class, 'calendar' => Calendar::class, 'board' => TaskBoard::class, 'task' => TaskCard::class, 'plan' => NoteActionPlan::class, 'mind' => AiMind::class, 'persona' => AiPersona::class, 'brand' => BrandKit::class, 'staff' => AiStaff::class, 'agent' => AiPersonaAgent::class, 'companion' => AiCompanion::class, 'studio' => BrandStudioKit::class];
+    public const TYPES = ['link' => Link::class, 'form' => Form::class, 'qr' => QrCode::class, 'file' => UserFile::class, 'calendar' => Calendar::class, 'board' => TaskBoard::class, 'task' => TaskCard::class, 'plan' => NoteActionPlan::class, 'mind' => AiMind::class, 'persona' => AiPersona::class, 'brand' => BrandKit::class, 'staff' => AiStaff::class, 'agent' => AiPersonaAgent::class, 'companion' => AiCompanion::class, 'studio' => BrandStudioKit::class, 'strategy' => MarketingStrategy::class, 'budget' => MarketingPlanCalc::class, 'buzz' => SocialProof::class];
 
     public function query(string $kind, $user)
     {
         abort_unless(isset(self::TYPES[$kind]), 422, 'Unsupported resource type.');
         $q = self::TYPES[$kind]::query();
+        $permission = match($kind){'task','board'=>'tasks.view','link','qr','calendar','buzz'=>'links.view','form'=>'inbox.view','file'=>'files.view',default=>null};
+        if($permission && !$user->canInWorkspace(app('current_workspace'),$permission)) return $q->whereRaw('1=0');
+        if (in_array($kind, ['strategy', 'budget'])) {
+            return $q->where('user_id', $user->id)->where('workspace_id', app('current_workspace')->id);
+        }
         if ($kind === 'calendar') {
             return $q->whereHas('link', fn ($q) => $q->where('user_id', workspace_owner_id()));
         }
@@ -59,7 +67,7 @@ class PlannerResources
 
     public function url(string $kind, $row): string
     {
-        $routes = ['link' => 'user.links.show', 'form' => 'user.forms.show', 'qr' => 'user.qr-codes.edit', 'file' => 'user.files.index', 'calendar' => 'user.calendars.show', 'board' => 'user.tasks.show', 'task' => 'user.tasks.show', 'mind' => 'user.minds.edit', 'persona' => 'user.ai.persona.show', 'brand' => 'user.brand-kits.show', 'staff' => 'user.ai.staff.show', 'agent' => 'user.ai-personas.edit', 'companion' => 'user.ai-companions.edit', 'studio' => 'user.brand-studio.show'];
+        $routes = ['link' => 'user.links.show', 'form' => 'user.forms.show', 'qr' => 'user.qr-codes.edit', 'file' => 'user.files.index', 'calendar' => 'user.calendars.show', 'board' => 'user.tasks.show', 'task' => 'user.tasks.show', 'mind' => 'user.minds.edit', 'persona' => 'user.ai.persona.show', 'brand' => 'user.brand-kits.show', 'staff' => 'user.ai.staff.show', 'agent' => 'user.ai-personas.edit', 'companion' => 'user.ai-companions.edit', 'studio' => 'user.brand-studio.show', 'strategy' => 'user.ai.marketing-strategist.show', 'budget' => 'user.marketing-plan.edit', 'buzz' => 'user.social-proofs.edit'];
         if ($kind === 'plan') {
             return route('user.ai.mind.show', ['record' => $row->id]);
         }
