@@ -1119,7 +1119,7 @@ class SiteAssistantRuntime
     protected function sanitizeBlocks(array $blocks): array
     {
         $out = [];
-        $allowedTypes = ['buttons', 'list', 'form', 'image', 'question', 'social_setup'];
+        $allowedTypes = ['buttons', 'list', 'form', 'image', 'question', 'social_setup', 'biolink_sample'];
         foreach ($blocks as $b) {
             if (!is_array($b)) continue;
             // Hydrate from a named template (admin-defined → trusted).
@@ -1132,6 +1132,12 @@ class SiteAssistantRuntime
             }
             $type = $b['type'] ?? null;
             if (!in_array($type, $allowedTypes, true)) continue;
+            if ($type === 'biolink_sample') {
+                $actor = auth()->user();
+                $preview = $actor ? \App\Services\AI\ZioPageKnowledge::samplePreview($actor, (int) ($b['link_id'] ?? 0)) : [];
+                foreach (($preview['blocks'] ?? []) as $sample) $out[] = $sample;
+                continue;
+            }
             if ($type === 'social_setup') {
                 $actor=auth()->user();
                 $link=$actor ? ZioPageKnowledge::link($actor,(int)($b['link_id']??0),true) : null;

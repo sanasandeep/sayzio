@@ -22,6 +22,13 @@ class AssistantActionChat
         return (bool) preg_match('/\b(?:open|go\s*to|navigate\s*to|take\s+me\s*to|edit)\b.{0,240}\b(?:link\s*(?:in\s*)?bio|biolink)\b/iu', $text);
     }
 
+    public static function isSampleRequest(string $text, array $page): bool
+    {
+        return (bool) preg_match('/\b(?:sample|preview|visually)\b/iu', $text)
+            && ! preg_match('/\b(?:not|never|stop)\b/iu', $text)
+            && (bool) preg_match('#^/user/links/\d+(?:/|$)#', (string) ($page['path'] ?? ''));
+    }
+
     public static function isSocialBlockRequest(string $text, array $page): bool
     {
         return (bool) preg_match('/\badd\b.{0,100}\bsocial\b/iu', $text)
@@ -51,12 +58,13 @@ class AssistantActionChat
         if (is_array($text)) {
             $text = (string) ($text[0]['text'] ?? '');
         }
+        $forceSample = isset($visible['preview_biolink_sample']) && self::isSampleRequest((string) $text, (array) ($options['page'] ?? []));
         $forceSocial = isset($visible['prepare_social_block']) && self::isSocialBlockRequest((string) $text, (array) ($options['page'] ?? []));
         $forceOpen = isset($visible['open_biolink']) && self::isBiolinkNavigationRequest((string) $text);
         $results = [];
         $cost = 0;
         for ($i = 0; $i < 4; $i++) {
-            $choice = $i === 0 && $forceSocial ? ['type' => 'function', 'function' => ['name' => 'prepare_social_block']] : ($i === 0 && $forceOpen ? ['type' => 'function', 'function' => ['name' => 'open_biolink']] : 'auto');
+            $choice = $i === 0 && $forceSample ? ['type' => 'function', 'function' => ['name' => 'preview_biolink_sample']] : ($i === 0 && $forceSocial ? ['type' => 'function', 'function' => ['name' => 'prepare_social_block']] : ($i === 0 && $forceOpen ? ['type' => 'function', 'function' => ['name' => 'open_biolink']] : 'auto'));
             $out = $this->openai->chat($payer, $model, $messages, $options + ['tools' => $defs, 'tool_choice' => $choice]);
             $cost += (int) ($out['credits_spent'] ?? 0);
             $calls = (array) ($out['tool_calls'] ?? []);

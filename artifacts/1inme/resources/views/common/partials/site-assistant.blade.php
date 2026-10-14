@@ -1420,6 +1420,12 @@ window.__SA_LOGIN_URL = @json(url('/login'));
         other.onclick=function(){ta.value=(b.question||'Answer')+' ';ta.focus();};card.appendChild(other);
       }
       wrap.appendChild(card);
+    } else if(b.type==='biolink_sample'){
+      var sample=el('div',{class:'sa-biolink-sample'});
+      sample.append(el('small',{},'SAMPLE PREVIEW · NOT SAVED'),el('h3',{},b.title||'Your page'),el('p',{},'Welcome! Explore my work, services and latest updates.'));
+      ['Explore my work','Work with me','Get in touch'].forEach(function(label){sample.appendChild(el('div',{class:'sa-sample-link'},label));});
+      sample.append(el('strong',{},'Latest highlight'),el('p',{},'Sample: a new project, useful resource or special offer.'),el('small',{},'Illustrative content. Add and edit the real blocks in your Blocks editor.'));
+      var edit=el('button',{type:'button',class:'sa-btn'},'Open Blocks editor');edit.onclick=function(){window.VoiceRuntime.navigateWithGuide('/user/links/'+Number(b.link_id)+'/blocks','Opening your Blocks editor. This sample has not been saved.');};sample.appendChild(edit);wrap.appendChild(sample);
     } else if(b.type==='buttons'){
       var row=el('div',{class:'sa-buttons'});
       (b.options||[]).forEach(function(opt){
@@ -2215,3 +2221,5 @@ window.__SA_LOGIN_URL = @json(url('/login'));
 <style>
 .sa-header-tools{margin-left:auto!important;flex-shrink:0;align-items:center}.sa-header .sa-close{margin-left:2px}.sa-header-tool{display:inline-flex;align-items:center;justify-content:center;line-height:1}.sa-actions{display:flex;align-items:center;gap:8px;padding:10px 16px 4px}.sa-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:6px 16px 10px}.sa-export-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:20px}.sa-export-form{width:420px;max-width:100%;max-height:calc(100dvh - 40px);box-sizing:border-box;border:1px solid #dbe2ef;border-radius:18px;box-shadow:0 24px 80px #0003;gap:16px;padding:22px}.sa-modal-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.sa-modal-footer{display:flex;justify-content:flex-end;gap:8px}.sa-modal-footer .sa-btn{width:auto;flex:none;padding:10px 16px}.sa-modal-footer .sa-export-primary{background:#3454ef;color:#fff;border-color:#3454ef}.sa-export-form input:invalid{border-color:#dc2626}.sa-export-form [role=status]:empty{display:none}
 </style>
+
+<style>.sa-biolink-sample{padding:22px;border-radius:20px;background:linear-gradient(145deg,#eff2ff,#fff);color:#17213a;border:1px solid #dbe2ef;text-align:center;max-width:360px;margin:12px auto}.sa-biolink-sample h3{margin:16px 0 8px}.sa-biolink-sample small{font-size:11px;display:block}.sa-sample-link{padding:12px;background:#3454ef;color:white;border-radius:12px;margin:10px 0}.sa-biolink-sample strong{display:block;margin-top:20px}</style>

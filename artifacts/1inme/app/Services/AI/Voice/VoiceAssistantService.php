@@ -118,11 +118,11 @@ class VoiceAssistantService
                         'temperature' => 0.4,
                         'max_tokens'  => 600,
                         'tools'       => $toolDefs,
-                        'tool_choice' => $i === 0 && \App\Services\AI\AssistantActionChat::isSocialBlockRequest($userText,(array)$surface) && in_array('prepare_social_block',$allowedTools,true)
+                        'tool_choice' => $i === 0 && \App\Services\AI\AssistantActionChat::isSampleRequest($userText,(array)$surface) && in_array('preview_biolink_sample',$allowedTools,true) ? ['type'=>'function','function'=>['name'=>'preview_biolink_sample']] : ($i === 0 && \App\Services\AI\AssistantActionChat::isSocialBlockRequest($userText,(array)$surface) && in_array('prepare_social_block',$allowedTools,true)
                             ? ['type'=>'function','function'=>['name'=>'prepare_social_block']] : ($i === 0
                             && \App\Services\AI\AssistantActionChat::isBiolinkNavigationRequest($userText)
                             && in_array('open_biolink', array_column(array_column($toolDefs, 'function'), 'name'), true)
-                                ? ['type' => 'function', 'function' => ['name' => 'open_biolink']] : 'auto'),
+                                ? ['type' => 'function', 'function' => ['name' => 'open_biolink']] : 'auto')),
                         'reason'      => 'Voice Assistant: reasoning turn',
                     ]
                 );
