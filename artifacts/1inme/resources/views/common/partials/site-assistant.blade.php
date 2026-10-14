@@ -644,18 +644,33 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   var exportButton=el('button',{type:'button',class:'sa-header-tool','aria-label':'Export Zio chats',title:'Export chats'},'↓');
   exportButton.onclick=function(){
     if(AUTH_REQUIRED){showLoginGate();return;}
-    var old=panel.querySelector('.sa-export-form');if(old){old.remove();return;}
-    var form=el('div',{class:'sa-export-form'});
-    form.appendChild(el('strong',{},'Export my Zio chats'));
-    form.appendChild(el('p',{},'Choose your local start and end time. Exports are free.'));
+    var old=document.getElementById('sa-export-overlay');if(old){old.remove();return;}
+    var overlay=el('div',{id:'sa-export-overlay',class:'sa-export-overlay'});
+    var form=el('div',{class:'sa-export-form',role:'dialog','aria-modal':'true','aria-labelledby':'sa-export-title'});
+    var titleRow=el('div',{class:'sa-modal-title'}),closeExport=el('button',{type:'button',class:'sa-header-tool','aria-label':'Close export'},'×');
+    var previousFocus=document.activeElement;
+    function closeModal(){overlay.remove();document.removeEventListener('keydown',modalKeys);if(previousFocus)previousFocus.focus();}
+    function modalKeys(e){if(e.key==='Escape')closeModal();if(e.key==='Tab'){var controls=Array.from(form.querySelectorAll('button,input')).filter(function(n){return !n.disabled;});var first=controls[0],last=controls[controls.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}}
+    closeExport.onclick=closeModal;overlay.onclick=function(e){if(e.target===overlay)closeModal();};document.addEventListener('keydown',modalKeys);
+    titleRow.append(el('strong',{id:'sa-export-title'},'Export Zio chats'),closeExport);form.appendChild(titleRow);
+    form.appendChild(el('p',{},'Select a date and time range in your local timezone. Exports are free.'));
     function localValue(date){return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,19);}
-    var end=new Date(),start=new Date(end);start.setHours(0,0,0,0);
-    var from=el('input',{type:'datetime-local',step:'1',value:localValue(start),'aria-label':'Export start date and time'});
-    var to=el('input',{type:'datetime-local',step:'1',value:localValue(end),'aria-label':'Export end date and time'});
+    var end=new Date(),start=new Date(end.getTime()-24*60*60*1000);
+    var from=el('input',{type:'datetime-local',step:'1',required:'required',value:localValue(start),max:localValue(end),'aria-label':'Export start date and time'});
+    var to=el('input',{type:'datetime-local',step:'1',required:'required',value:localValue(end),max:localValue(end),'aria-label':'Export end date and time'});
     form.append(el('label',{},['From',from]),el('label',{},['To',to]));
-    var status=el('div',{role:'status'}),download=el('button',{type:'button',class:'sa-btn'},'Download chat');
+    var status=el('div',{role:'status','aria-live':'polite'}),download=el('button',{type:'button',class:'sa-btn sa-export-primary'},'Download chat');
+    function validateRange(){
+      from.setCustomValidity('');to.setCustomValidity('');
+      var f=new Date(from.value),t=new Date(to.value),now=new Date();
+      if(!from.value||!to.value||!Number.isFinite(f.getTime())||!Number.isFinite(t.getTime())||!from.checkValidity()||!to.checkValidity()){status.textContent='Enter a valid date and time in both fields.';return false;}
+      if(f>=t){to.setCustomValidity('End time must be after start time.');status.textContent='End time must be after start time.';return false;}
+      if(t>now||f>now){to.setCustomValidity('Choose a time that is not in the future.');status.textContent='Future dates cannot be exported.';return false;}
+      status.textContent='';return true;
+    }
+    from.oninput=to.oninput=function(){validateRange();};
     download.onclick=async function(){
-      if(!from.value||!to.value||new Date(from.value)>new Date(to.value)){status.textContent='Choose a valid start and end time.';return;}
+      if(!validateRange()){if(!from.checkValidity())from.reportValidity();else to.reportValidity();return;}
       download.disabled=true;status.textContent='Preparing your export…';
       try{
         var params=new URLSearchParams({from:new Date(from.value).toISOString(),to:new Date(to.value).toISOString()});
@@ -664,10 +679,18 @@ window.__SA_LOGIN_URL = @json(url('/login'));
         var blob=await r.blob(),url=URL.createObjectURL(blob),a=el('a',{href:url,download:'zio-chats.txt'});document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);status.textContent='Export downloaded.';
       }catch(e){status.textContent=e.message;}finally{download.disabled=false;}
     };
-    var cancel=el('button',{type:'button',class:'sa-btn'},'Close export');cancel.onclick=function(){form.remove();};
-    form.append(download,cancel,status);panel.insertBefore(form,body);
+    var cancel=el('button',{type:'button',class:'sa-btn'},'Cancel');cancel.onclick=closeModal;
+    var footer=el('div',{class:'sa-modal-footer'});footer.append(cancel,download);form.append(status,footer);overlay.appendChild(form);document.body.appendChild(overlay);closeExport.focus();
   };
-  headerTools.append(expandButton,exportButton);header.appendChild(headerTools);
+  var resetButton=el('button',{type:'button',class:'sa-header-tool','aria-label':'Start fresh Zio session',title:'Start fresh session'},'↻');
+  resetButton.onclick=function(){
+    if(busy||vrRecording){document.getElementById('sa-sub').textContent='Finish the current reply or recording before starting fresh.';return;}
+    if(!window.confirm('Start a fresh Zio conversation? Previous chats remain available for export, but will not be used in this session.'))return;
+    var previousToken=token;token='';localStorage.removeItem(TOKEN_KEY);
+    Object.keys(sessionStorage).forEach(function(key){if(key==='zio_navigation_handoff'||key.startsWith('zio_social_draft_'+previousToken+'_'))sessionStorage.removeItem(key);});
+    messages=[];vrMessages=[];vrPending=[];vrPendingNav=null;vrHandsFree=false;body.innerHTML='';ta.value='';disableInput(false,'');if(voiceConfirmEl)voiceConfirmEl.classList.remove('sa-show');var navigationCancel=document.querySelector('.zio-guide button');if(navigationCancel)navigationCancel.click();bootstrapped=false;bootstrap();
+  };
+  headerTools.append(resetButton,exportButton,expandButton);header.appendChild(headerTools);
   // "Contact us" entry point: opens the multi-channel quick-contact form
   // (Call back / WhatsApp / Email) right inside the panel. This is the
   // former standalone quick-contact widget, folded into the assistant so
@@ -679,7 +702,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   contactBtn.onclick=function(){ openContact(); };
   var closeBtn=el('button',{class:'sa-close',type:'button','aria-label':'Close'},'×');
   closeBtn.onclick=function(){ togglePanel(false); };
-  header.appendChild(closeBtn);
+  headerTools.appendChild(closeBtn);
   panel.appendChild(header);
 
   // "Contact us" entry point lives on its own action row directly below
@@ -2174,3 +2197,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
 })();
 </script>
 @endif
+
+<style>
+.sa-header-tools{margin-left:auto!important;flex-shrink:0;align-items:center}.sa-header .sa-close{margin-left:2px}.sa-header-tool{display:inline-flex;align-items:center;justify-content:center;line-height:1}.sa-actions{display:flex;align-items:center;gap:8px;padding:10px 16px 4px}.sa-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:6px 16px 10px}.sa-export-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:20px}.sa-export-form{width:420px;max-width:100%;max-height:calc(100dvh - 40px);box-sizing:border-box;border:1px solid #dbe2ef;border-radius:18px;box-shadow:0 24px 80px #0003;gap:16px;padding:22px}.sa-modal-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.sa-modal-footer{display:flex;justify-content:flex-end;gap:8px}.sa-modal-footer .sa-btn{width:auto;flex:none;padding:10px 16px}.sa-modal-footer .sa-export-primary{background:#3454ef;color:#fff;border-color:#3454ef}.sa-export-form input:invalid{border-color:#dc2626}.sa-export-form [role=status]:empty{display:none}
+</style>
