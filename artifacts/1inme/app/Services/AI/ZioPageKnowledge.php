@@ -57,6 +57,9 @@ class ZioPageKnowledge
             return ['error' => 'Which Sayzio feature would you like to open?'];
         }
         $friendly = ['user.vault.clients.index' => 'Clients', 'user.projects.index' => 'Folders', 'user.calendars.mine' => 'Calendar', 'user.qr-codes.index' => 'QR Codes'];
+        if (in_array($needle, ['block', 'blocks', 'biolink blocks', 'social blocks'], true)) {
+            return ['error' => 'Link in Bio blocks are inside the current link editor, not Bot Blocks. Use a sample preview or the native Blocks editor.'];
+        }
         $matches = [];
         foreach (Route::getRoutes()->getRoutesByName() as $name => $route) {
             if (! str_starts_with($name, 'user.') || (! str_ends_with($name, '.index') && ! str_ends_with($name, '.dashboard') && ! isset($friendly[$name])) || ! in_array('GET', $route->methods(), true) || str_contains($route->uri(), '{') || str_contains((string) $route->getDomain(), '{')) {
@@ -95,6 +98,15 @@ class ZioPageKnowledge
         }
 
         return ['error' => 'No accessible Sayzio page matched that feature. Ask for its name or guide the current page; do not invent a route.'];
+    }
+
+    public static function samplePreview(User $actor, int $id): array
+    {
+        $link = self::link($actor, $id);
+        if (! $link || ! $link->isBiolinkFamily()) {
+            return ['error' => 'Open an accessible Link in Bio editor before requesting a sample.'];
+        }
+        return ['summary' => 'Here is a sample layout using your page title. The sample text is illustrative; nothing has been added or saved.', 'blocks' => [['type' => 'biolink_sample', 'link_id' => $link->id, 'title' => $link->title]]];
     }
 
     public static function blockSchema(string $type): array

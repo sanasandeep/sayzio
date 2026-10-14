@@ -60,6 +60,13 @@ class VoiceToolRegistry
                 'parameters'=>['type'=>'object','properties'=>['type'=>['type'=>'string']],'required'=>['type'],'additionalProperties'=>false],
                 'handler'=>fn(User $u,array $a)=>\App\Services\AI\ZioPageKnowledge::blockSchema((string)($a['type']??'')),
             ],
+            'preview_biolink_sample' => [
+                'category' => 'guidance', 'role' => 'user', 'destructive' => false, 'permission' => 'links.view',
+                'ui_description' => 'Show a sample Link in Bio layout without saving.',
+                'description' => 'Show an in-chat visual sample when the user asks for sample content or wants to see how blocks look. Uses the current link title and illustrative editable content. Does not create or save blocks. Never navigate to Bot Blocks for this request.',
+                'parameters' => ['type' => 'object', 'properties' => ['link_id' => ['type' => 'integer']], 'required' => ['link_id'], 'additionalProperties' => false],
+                'handler' => fn(User $u, array $a) => \App\Services\AI\ZioPageKnowledge::samplePreview($u, (int) ($a['link_id'] ?? 0)),
+            ],
             'prepare_social_block' => [
                 'ui_description'=>'Prepare your social links together, then review and add the block.',
                 'category'=>'creator','role'=>'user','destructive'=>false,'permission'=>'links.edit',

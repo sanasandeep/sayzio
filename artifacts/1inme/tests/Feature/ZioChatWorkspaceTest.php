@@ -71,6 +71,14 @@ class ZioChatWorkspaceTest extends TestCase
         }
     }
 
+    public function test_generic_blocks_never_resolve_to_bot_blocks_and_samples_are_detected(): void
+    {
+        $this->assertArrayNotHasKey('navigate_to', ZioPageKnowledge::openFeature('blocks'));
+        $this->assertTrue(\App\Services\AI\AssistantActionChat::isSampleRequest('suggest sample content so I can see visually', ['path' => '/user/links/2855/settings/appearance']));
+        $this->assertFalse(\App\Services\AI\AssistantActionChat::isSampleRequest('not a preview', ['path' => '/user/links/2855/settings/appearance']));
+        $this->assertArrayHasKey('error', ZioPageKnowledge::samplePreview(User::factory()->create(), 999999));
+    }
+
     public function test_transcript_recorder_refuses_another_users_token_and_records_voice_cost_without_charging(): void
     {
         $actor = User::factory()->create();
