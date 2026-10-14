@@ -339,7 +339,13 @@ class TaskBoardTest extends TestCase
         // Viewer cannot delete a card or a board.
         $this->actingAs($viewer)->delete("/user/tasks/cards/{$card->id}")->assertStatus(403);
 
-        // Editor can delete a card.
+        // Feature permissions now require an explicit delete grant.
+        $this->actingAs($editor)->delete("/user/tasks/cards/{$card->id}")->assertForbidden();
+        $matrix=\App\Modules\User\Services\WorkspaceRoleMatrix::forWorkspace($ws);
+        $matrix['editor']['tasks.delete']=true;
+        $matrix['editor']['tasks.delete_others']=true;
+        \App\Modules\User\Services\WorkspaceRoleMatrix::save($ws,$matrix,$owner);
+        // The configured editor can delete a card.
         $this->actingAs($editor)->delete("/user/tasks/cards/{$card->id}")->assertOk();
         $this->assertDatabaseMissing('task_cards', ['id' => $card->id]);
 

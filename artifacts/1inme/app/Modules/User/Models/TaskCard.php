@@ -12,7 +12,7 @@ class TaskCard extends Model
     protected $fillable = [
         'workspace_id', 'board_id', 'column_id', 'created_by_user_id',
         'title', 'description', 'description_html', 'position',
-        'due_date', 'priority', 'progress', 'completed_at', 'archived_at',
+        'start_date', 'due_date', 'priority', 'progress', 'completed_at', 'archived_at',
         'billable', 'rate_type', 'rate_amount_minor', 'client_invoice_id',
         'roadmap_item_id', 'calendar_event_id',
     ];
@@ -20,6 +20,7 @@ class TaskCard extends Model
     public function roadmapItem() { return $this->belongsTo(RoadmapItem::class, 'roadmap_item_id'); }
 
     protected $casts = [
+        'start_date'        => 'date',
         'due_date'          => 'date',
         'completed_at'      => 'datetime',
         'archived_at'       => 'datetime',

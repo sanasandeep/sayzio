@@ -25,6 +25,8 @@ class TaskBoard extends Model
         'archived_at' => 'datetime',
     ];
 
+    public function projectAssignment() { return $this->hasOne(ProjectItem::class,'resource_id')->where('kind','board'); }
+
     public function columns()
     {
         return $this->hasMany(TaskColumn::class, 'board_id')->orderBy('position');

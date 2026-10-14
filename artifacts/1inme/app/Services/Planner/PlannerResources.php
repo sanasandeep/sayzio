@@ -125,6 +125,14 @@ class PlannerResources
             }
         }
 
+        $boardIds=collect($result)->where('kind','board')->pluck('row.id');
+        $seen=collect($result)->mapWithKeys(fn($item)=>[$item['kind'].':'.$item['row']->id=>true])->all();
+        $elsewhere=ProjectItem::where('kind','task')->where('project_id','!=',$project->id)->pluck('resource_id');
+        foreach($this->query('task',$user)->whereIn('board_id',$boardIds)->whereNotIn('id',$elsewhere)->whereNull('archived_at')->get() as $task) {
+            if(isset($seen['task:'.$task->id])) continue;
+            $result[]=['kind'=>'task','row'=>$task,'label'=>$this->label($task),'url'=>$this->url('task',$task)];
+        }
+
         return $result;
     }
 }

@@ -2038,6 +2038,7 @@ Route::prefix('user')->name('user.')->group(function () {
             // that a viewer-role member can still maintain a private personal
             // board. The controller enforces tasks.create for team boards.
             Route::post('boards',                 [\App\Modules\User\Controllers\TaskBoardController::class, 'store'])->middleware(CheckPlanLimit::class . ':tasks')->name('boards.store');
+            Route::get('boards/{board}/sync', [\App\Modules\User\Controllers\TaskBoardController::class, 'sync'])->name('boards.sync');
             Route::get('boards/{board}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'show'])->name('show');
             Route::put('boards/{board}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'updateBoard'])->name('boards.update');
             Route::post('boards/{board}/archive',   [\App\Modules\User\Controllers\TaskBoardController::class, 'archiveBoard'])->name('boards.archive');
