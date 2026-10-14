@@ -163,8 +163,8 @@
                 <tbody>
                     <tr x-show="ownerMatches" class="border-t" style="border-color: var(--border-strong);">
                         <td class="px-4 py-3">
-                            <div class="font-medium">{{ $workspace->owner->name ?? 'Owner' }} @if(auth()->id()==$workspace->owner_user_id)<span class="text-xs opacity-60">(you)</span>@endif</div>
-                            <div class="text-xs opacity-60">{{ $workspace->owner->email ?? '' }}</div>
+                            <div class="flex items-center gap-3"><img src="{{ $workspace->owner?->resolveAvatarUrl() }}" alt="" class="w-10 h-10 rounded-full object-cover" onerror="this.hidden=true"><div><div class="font-medium">{{ $workspace->owner->name ?? 'Owner' }} @if(auth()->id()==$workspace->owner_user_id)<span class="text-xs opacity-60">(you)</span>@endif</div>
+                            <div class="text-xs opacity-60">{{ $workspace->owner->email ?? '' }}</div></div></div>
                         </td>
                         <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-indigo-100 text-indigo-700">Owner</span></td>
                         <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">Active</span></td>
@@ -181,7 +181,7 @@
                     <template x-for="m in filteredRows" :key="m.id">
                         <tr class="border-t" style="border-color: var(--border-strong);">
                             <td class="px-4 py-3">
-                                <div class="font-medium" x-text="m.name"></div>
+                                <div class="flex items-center gap-3" x-data="{photoFailed:false}"><span class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-indigo-100 text-indigo-700"><img :src="m.avatar_url" alt="" x-show="m.avatar_url&&!photoFailed" x-on:error="photoFailed=true" class="w-full h-full object-cover"><span x-show="!m.avatar_url||photoFailed" x-text="m.name.slice(0,1)"></span></span><div class="font-medium" x-text="m.name"></div></div>
                                 <div class="text-xs opacity-60" x-text="m.email"></div>
                             </td>
                             <td class="px-4 py-3">

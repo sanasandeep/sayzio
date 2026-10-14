@@ -26,7 +26,7 @@ class FolderPeopleTest extends TestCase
         app()->instance('current_workspace', $ws);
         app()->instance('workspace_owner', $owner);
         $project = Project::create(['user_id' => $owner->id, 'name' => 'Launch & learn']);
-        $member = User::factory()->create(['name' => 'Active reviewer']);
+        $member = User::factory()->create(['name' => 'Active reviewer', 'avatar'=>'https://example.com/reviewer.png']);
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $member->id, 'role' => 'editor']);
         $suspended = User::factory()->create(['name' => 'Suspended reviewer']);
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $suspended->id, 'role' => 'editor', 'suspended_at' => now()]);
@@ -45,6 +45,7 @@ class FolderPeopleTest extends TestCase
         $this->assertFalse($people->contains('name', 'Denied viewer'));
         $this->assertFalse($people->contains('name', 'Suspended reviewer'));
         $active = $people->firstWhere('id', $member->id);
+        $this->assertSame('https://example.com/reviewer.png',$active['avatar_url']);
         $this->assertSame(1, $active['open']);
         $this->assertSame(45, $active['minutes']);
         foreach (['hub', 'flow', 'people'] as $mode) {

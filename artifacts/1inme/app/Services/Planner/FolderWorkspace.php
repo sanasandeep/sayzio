@@ -30,9 +30,9 @@ class FolderWorkspace
             $timeline->push(['date' => $note->updated_at, 'title' => 'Note '.($note->completed_at ? 'completed' : 'saved'), 'detail' => mb_substr($note->body, 0, 120), 'url' => route('user.projects.show', ['project' => $project->id, 'tab' => 'remember']), 'kind' => 'note', 'actor' => null]);
         }
         $taskItems = $tasks->keyBy(fn ($i) => $i['row']->id);
-        foreach (TaskActivity::whereIn('card_id', $tasks->pluck('row.id'))->with('user:id,name')->latest('created_at')->limit(30)->get() as $activity) {
+        foreach (TaskActivity::whereIn('card_id', $tasks->pluck('row.id'))->with('user:id,name,email,avatar')->latest('created_at')->limit(30)->get() as $activity) {
             $task = $taskItems[$activity->card_id];
-            $timeline->push(['date' => $activity->created_at, 'title' => $task['label'], 'detail' => 'Task '.str_replace('_', ' ', $activity->type), 'url' => $task['url'], 'kind' => 'task', 'actor' => $activity->user?->name]);
+            $timeline->push(['date' => $activity->created_at, 'title' => $task['label'], 'detail' => 'Task '.str_replace('_', ' ', $activity->type), 'url' => $task['url'], 'kind' => 'task', 'actor' => $activity->user?->name, 'avatar_url'=>$activity->user?->resolveAvatarUrl()]);
         }
         $attention = [];
         foreach ($tasks->filter(fn ($i) => ! $i['row']->completed_at && $i['row']->due_date?->isBefore(today())) as $i) {

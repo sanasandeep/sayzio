@@ -76,6 +76,7 @@ class TeamController extends Controller
                 'id'              => $m->id,
                 'user_id'         => (int) $m->user_id,
                 'name'            => $u->name ?? '—',
+                'avatar_url'      => $u?->resolveAvatarUrl(),
                 'email'           => $u->email ?? '—',
                 'role'            => $m->role,
                 'role_name'       => $roleNames[$m->role] ?? $m->role,
