@@ -141,7 +141,7 @@ class WorkspaceRoleMatrix
      */
     public static function recentAudits(Workspace $ws, int $limit = 10): array
     {
-        return WorkspaceRolePermissionAudit::with('user:id,name,email')
+        return WorkspaceRolePermissionAudit::with('user:id,name,email,avatar')
             ->where('workspace_id', $ws->id)
             ->orderByDesc('id')
             ->limit($limit)
@@ -158,6 +158,7 @@ class WorkspaceRoleMatrix
                 return [
                     'id'        => $a->id,
                     'when'      => $a->created_at,
+                    'avatar_url' => $a->user?->resolveAvatarUrl(),
                     'actor'     => optional($a->user)->name ?: optional($a->user)->email ?: 'Unknown',
                     'lines'     => $lines,
                     'noop'      => empty($lines),
