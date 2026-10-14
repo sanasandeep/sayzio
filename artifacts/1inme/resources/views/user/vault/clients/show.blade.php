@@ -1,7 +1,10 @@
 @extends('user.layouts.app')
 @section('title', $item->name)
 @section('content')
-@include('user.vault._tabs')
+@include('user.planner.styles')
+@include('user.partials.client-create-styles')
+@include('user.partials.page-hero',['title'=>$item->name,'subtitle'=>$item->company ?: 'Client contacts, projects and connected work.','emblemIcon'=>'fa-user','favicon'=>null,'url'=>null,'back'=>route('user.vault.clients.index'),'chips'=>[['text'=>'Client','icon'=>'fa-user']],'actions'=>[]])
+@include('user.vault.clients.projects')
 
 @php
     use App\Modules\User\Services\WorkspacePermissions as WP;
@@ -11,7 +14,7 @@
     $socials = $item->getEncrypted('social_handles', true) ?? [];
 @endphp
 
-<div class="max-w-3xl" x-data="vaultClientView({{ $item->id }})">
+<div class="client-create-page" x-data="vaultClientView({{ $item->id }})">
     <div class="flex items-start justify-between gap-4 mb-6">
         <div>
             <h2 class="text-2xl font-bold">{{ $item->name }}</h2>
@@ -101,16 +104,18 @@
 
     <div class="rounded-lg p-3 bg-white/5">
         <div class="flex items-center justify-between mb-2">
-            <h3 class="text-xs uppercase" style="color: var(--text-faint);">Attachments</h3>
+            <h3 class="text-xs uppercase" style="color: var(--text-faint);">Files &amp; scannable QR codes</h3>
             @if($canEdit)
                 <form method="post" enctype="multipart/form-data" action="{{ route('user.vault.attachments.store', $item) }}" class="flex items-center gap-2">
                     @csrf
-                    <input type="file" name="file" required class="text-xs">
+                    <select name="purpose" aria-label="Attachment purpose"><option value="document">Document</option><option value="qr">QR image</option></select><input type="file" name="file" required class="text-xs">
                     <button class="text-xs text-amber-400 hover:underline">Upload (5 MB max)</button>
                 </form>
             @endif
         </div>
+        <p class="text-sm mb-3">Choose QR image to save a PNG, JPEG or WebP for scanning. Images remain protected by client access permissions.</p>
         @forelse($item->attachments as $a)
+            @if($a->purpose==='qr')<details class="client-create-intro"><summary>Show QR · {{ $a->filename }}</summary><p>Opening records an audited reveal. Close this panel after scanning.</p><div x-data="{open:false}" x-init="$el.parentElement.addEventListener('toggle',e=>open=e.target.open)"><template x-if="open"><img src="{{ route('user.vault.attachments.preview',$a) }}" alt="Saved QR code" style="max-width:280px;width:100%;background:white;padding:16px"></template></div></details>@endif
             <div class="flex items-center justify-between py-1 text-sm">
                 <a href="{{ route('user.vault.attachments.download', $a) }}" class="text-blue-400 hover:underline">{{ $a->filename }}</a>
                 <span class="text-xs" style="color: var(--text-muted);">{{ number_format($a->size / 1024, 1) }} KB</span>

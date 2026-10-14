@@ -4,16 +4,21 @@ namespace Tests\Feature;
 
 use App\Modules\User\Models\DeliveryProject;
 use App\Modules\User\Models\Invoice;
+use App\Modules\User\Models\Project;
 use App\Modules\User\Models\Receipt;
 use App\Modules\User\Models\TaskBoard;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\VaultAttachment;
 use App\Modules\User\Models\VaultAudit;
 use App\Modules\User\Models\VaultClient;
 use App\Modules\User\Models\VaultCredential;
 use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\WorkspaceContext;
+use App\Modules\User\Services\WorkspaceRoleMatrix;
 use App\Services\Clients\ClientTracker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ClientTrackingVaultTest extends TestCase
@@ -32,23 +37,56 @@ class ClientTrackingVaultTest extends TestCase
             file_put_contents('/tmp/client-workspace-create.html', $this->get('/user/delivery-projects/create')->assertOk()->getContent());
             file_put_contents('/tmp/client-profile-create.html', $this->get('/user/vault/clients/create')->assertOk()->getContent());
         }
+
         return [$u, $ws];
+    }
+
+    public function test_client_has_multiple_projects_and_scannable_private_qr_storage(): void
+    {
+        [$owner,$ws] = $this->owner();
+        config(['filesystems.default' => 'local']);
+        Storage::fake('local');
+        $client = VaultClient::create(['name' => 'Single identity', 'visibility' => 'private']);
+        $folder = Project::create(['user_id' => $owner->id, 'name' => 'Delivery Folder', 'color' => '#3155ef']);
+        foreach (['Website delivery', 'Monthly support'] as $title) {
+            $this->post('/user/delivery-projects', ['title' => $title, 'vault_client_id' => $client->id, 'folder_id' => $folder->id])->assertRedirect()->assertSessionHasNoErrors();
+        }
+        $this->assertSame(1, VaultClient::count());
+        $this->get('/user/projects/'.$folder->id)->assertOk()->assertSee('Client projects in this Folder')->assertSee('Monthly support');
+        $page = $this->get('/user/vault/clients/'.$client->id)->assertOk()->assertSee('Website delivery')->assertSee('Monthly support')->assertSee('Add project');
+        $this->get('/user/delivery-projects/create?client='.$client->id)->assertOk()->assertSee('New client project');
+        $file = UploadedFile::fake()->image('scan.png', 200, 200);
+        $this->post('/user/vault/clients/'.$client->id.'/attachments', ['file' => $file, 'purpose' => 'qr'])->assertRedirect()->assertSessionHasNoErrors();
+        $attachment = VaultAttachment::firstOrFail();
+        $this->assertTrue($attachment->encrypted);
+        $this->assertSame('qr', $attachment->purpose);
+        $page = $this->get('/user/vault/clients/'.$client->id)->assertOk();
+        $preview = $this->get('/user/vault/attachments/'.$attachment->id.'/preview')->assertOk();
+        $this->assertSame('inline', $preview->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('no-store', $preview->headers->get('Cache-Control'));
+        $this->post('/user/vault/clients/'.$client->id.'/attachments', ['file' => UploadedFile::fake()->createWithContent('bad.svg', '<svg/>'), 'purpose' => 'qr'])->assertSessionHasErrors('file');
+        $member = User::factory()->create();
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $member->id, 'role' => 'editor']);
+        $this->actingAs($member)->withSession([WorkspaceContext::SESSION_KEY => $ws->id])->get('/user/vault/attachments/'.$attachment->id.'/preview')->assertNotFound();
+        if (getenv('CLIENT_CREATE_FIXTURE')) {
+            file_put_contents('/tmp/unified-client.html', $page->getContent());
+        }
     }
 
     public function test_read_only_member_can_record_access_without_edit_permission(): void
     {
         [$owner, $ws] = $this->owner();
-        $credential = VaultCredential::create(['label'=>'Shared account','visibility'=>'shared']);
-        $matrix = \App\Modules\User\Services\WorkspaceRoleMatrix::forWorkspace($ws);
+        $credential = VaultCredential::create(['label' => 'Shared account', 'visibility' => 'shared']);
+        $matrix = WorkspaceRoleMatrix::forWorkspace($ws);
         $matrix['editor']['vault.edit'] = false;
         $matrix['editor']['vault.create'] = false;
-        $this->put('/user/team/roles', ['matrix_json'=>json_encode($matrix),'selected_role'=>'editor'])->assertRedirect();
+        $this->put('/user/team/roles', ['matrix_json' => json_encode($matrix), 'selected_role' => 'editor'])->assertRedirect();
         $member = User::factory()->create();
-        WorkspaceMember::create(['workspace_id'=>$ws->id,'user_id'=>$member->id,'role'=>'editor']);
-        $this->actingAs($member)->withSession([WorkspaceContext::SESSION_KEY=>$ws->id]);
-        $this->postJson('/user/vault/events/credential/'.$credential->id, ['action'=>'copy','field'=>'username'])->assertNoContent();
-        $this->assertDatabaseHas('vault_audit',['actor_user_id'=>$member->id,'action'=>'copy','target_id'=>$credential->id]);
-        $this->put('/user/vault/credentials/'.$credential->id,['label'=>'Forbidden edit'])->assertForbidden();
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $member->id, 'role' => 'editor']);
+        $this->actingAs($member)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        $this->postJson('/user/vault/events/credential/'.$credential->id, ['action' => 'copy', 'field' => 'username'])->assertNoContent();
+        $this->assertDatabaseHas('vault_audit', ['actor_user_id' => $member->id, 'action' => 'copy', 'target_id' => $credential->id]);
+        $this->put('/user/vault/credentials/'.$credential->id, ['label' => 'Forbidden edit'])->assertForbidden();
     }
 
     public function test_authenticator_is_encrypted_and_only_revealed_explicitly_with_audit(): void

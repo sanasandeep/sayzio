@@ -89,7 +89,7 @@ class VaultClientController extends Controller
         $this->ensureVisible($request, $client);
         $client->load(['emails', 'phones', 'addresses', 'attachments']);
         VaultAudit::record('open','client',$client->id,$client->name);
-        return response()->view('user.vault.clients.show', ['item' => $client])->header('Cache-Control','no-store');
+        return response()->view('user.vault.clients.show', ['item' => $client, 'clientInvoices'=>app(\App\Services\Clients\ClientTracker::class)->query('invoice')?->where('vault_client_id',$client->id)->latest()->get() ?? collect(), 'clientProjects'=>\App\Modules\User\Services\WorkspacePermissions::userCan('delivery-projects.view') && \App\Modules\User\Services\WorkspacePermissions::userCan('tasks.view') ? \App\Modules\User\Models\DeliveryProject::where('vault_client_id',$client->id)->withCount('tasks')->latest()->get() : collect()])->header('Cache-Control','no-store');
     }
 
     public function edit(Request $request, VaultClient $client)

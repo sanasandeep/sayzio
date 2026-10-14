@@ -1,10 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'New client profile')
+@section('title', 'New client')
 @section('content')
-@include('user.vault._tabs')
+@include('user.planner.styles')
+@include('user.partials.page-hero',['title'=>'New client','subtitle'=>'Save one client record, then add projects and connected work.','emblemIcon'=>'fa-user-plus','favicon'=>null,'url'=>null,'back'=>route('user.vault.clients.index'),'chips'=>[],'actions'=>[]])
 @include('user.partials.client-create-styles')
 <div class="client-create-page">
-    <div class="client-create-intro"><strong>New client profile</strong><p>Save contact details and protected notes. Link this profile to a client workspace when you are ready to track work and billing.</p><a href="{{ route('user.delivery-projects.create') }}">Already have a profile? Create a client workspace →</a></div>
+    <div class="client-create-intro"><strong>New client</strong><p>Save contact details and protected notes. After saving, add projects and connect invoices, tasks and conversations from the client page.</p></div>
     <form method="post" action="{{ route('user.vault.clients.store') }}">
         @csrf
         @include('user.vault.clients._form', ['item' => null])

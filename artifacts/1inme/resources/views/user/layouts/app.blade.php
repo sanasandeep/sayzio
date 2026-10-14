@@ -1183,8 +1183,10 @@
                             <span class="nav-label">Tasks</span>
                             <span class="sidebar-tooltip">Task Boards</span>
                         </a>
-                        <a href="{{ route('user.delivery-projects.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"
+                        @endif
+                        @if($__can['vault_view'])
+                        <a href="{{ route('user.vault.clients.index') }}"
+                           class="sidebar-link {{ nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"
                            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div>
                             <span class="nav-label">Clients</span>
@@ -1193,7 +1195,7 @@
                         @endif
                         @if($__can['vault_view'])
                         <a href="{{ route('user.vault.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.vault.*') ? 'active' : '' }}"
+                           class="sidebar-link {{ nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*') ? 'active' : '' }}"
                            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-vault"></i></div>
                             <span class="nav-label">Vault</span>
@@ -1902,10 +1904,10 @@
                             <div x-show="open" x-cloak class="space-y-0.5">
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.tasks.index') }}" class="sidebar-link {{ nav_route_is('user.tasks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div> <span>Tasks</span></a>
-                                <a href="{{ route('user.delivery-projects.index') }}" class="sidebar-link {{ nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div> <span>Clients</span></a>
                                 @endif
+                                @if($__can['vault_view'])<a href="{{ route('user.vault.clients.index') }}" class="sidebar-link {{ nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div> <span>Clients</span></a>@endif
                                 @if($__can['vault_view'])
-                                <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ nav_route_is('user.vault.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>
+                                <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>
                                 @endif
                                 @if($__can['settings_view'])
                                 @if(\App\Modules\Common\Support\EventsModule::enabled())

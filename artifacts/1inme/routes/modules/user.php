@@ -2214,6 +2214,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('clients/{client}/reveal-notes',           [\App\Modules\User\Controllers\VaultClientController::class, 'revealNotes'])->name('clients.reveal-notes');
 
             Route::post('clients/{client}/attachments',            [\App\Modules\User\Controllers\VaultAttachmentController::class, 'storeForClient'])->middleware('workspace.can:vault.edit')->name('attachments.store');
+            Route::get('attachments/{attachment}/preview', [\App\Modules\User\Controllers\VaultAttachmentController::class,'preview'])->name('attachments.preview');
             Route::get('attachments/{attachment}/download',        [\App\Modules\User\Controllers\VaultAttachmentController::class, 'download'])->name('attachments.download');
             Route::delete('attachments/{attachment}',              [\App\Modules\User\Controllers\VaultAttachmentController::class, 'destroy'])->middleware('workspace.can:vault.delete')->name('attachments.destroy');
 

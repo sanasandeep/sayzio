@@ -29,8 +29,10 @@ class VaultAttachmentController extends Controller
 
         $request->validate([
             'file' => ['required', 'file', 'max:5120'],
+            'purpose'=>['nullable','in:document,qr'],
         ]);
 
+        if ($request->input('purpose')==='qr') $request->validate(['file'=>['required','image','mimes:png,jpg,jpeg,webp','max:5120']]);
         $file = $request->file('file');
         $disk = config('filesystems.default', 'local');
         $ws = app('current_workspace');
@@ -43,6 +45,7 @@ class VaultAttachmentController extends Controller
         Storage::disk($disk)->put($path, $cipher);
 
         VaultAttachment::create([
+            'purpose'=>$request->input('purpose','document'),
             'uploaded_by_user_id' => $request->user()->id,
             'parent_type' => 'client',
             'parent_id'   => $client->id,
@@ -57,6 +60,12 @@ class VaultAttachmentController extends Controller
         VaultAudit::record('update', 'client', $client->id, $client->name . ' (attachment)');
 
         return back()->with('status', 'Attachment uploaded.');
+    }
+
+    public function preview(Request $request,VaultAttachment $attachment)
+    {
+        abort_unless($attachment->purpose==='qr' && in_array($attachment->mime,['image/png','image/jpeg','image/webp']),404);
+        return $this->download($request,$attachment)->header('Content-Disposition','inline')->header('Cache-Control','no-store')->header('X-Content-Type-Options','nosniff');
     }
 
     public function download(Request $request, VaultAttachment $attachment)
@@ -84,6 +93,8 @@ class VaultAttachmentController extends Controller
             'Content-Type'        => $attachment->mime ?: 'application/octet-stream',
             'Content-Disposition' => 'attachment; filename="' . addslashes($attachment->filename) . '"',
             'Content-Length'      => strlen($bytes),
+            'Cache-Control'=>'no-store',
+            'X-Content-Type-Options'=>'nosniff',
         ]);
     }
 
