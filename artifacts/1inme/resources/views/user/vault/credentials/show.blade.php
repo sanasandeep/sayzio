@@ -33,13 +33,13 @@
 
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         @if($item->url)
-            <div class="rounded-lg p-3 bg-white/5"><dt class="text-xs uppercase" style="color: var(--text-faint);">URL</dt><dd class="mt-1"><a href="{{ $item->url }}" target="_blank" class="text-blue-400 hover:underline">{{ $item->url }}</a></dd></div>
+            <div class="rounded-lg p-3 bg-white/5"><dt class="text-xs uppercase" style="color: var(--text-faint);">URL</dt><dd class="mt-1"><a href="#" @click.prevent="openUrl(@js($item->url))" class="text-blue-400 hover:underline">{{ $item->url }}</a></dd></div>
         @endif
         @if($item->username)
             <div class="rounded-lg p-3 bg-white/5">
                 <dt class="text-xs uppercase flex items-center justify-between" style="color: var(--text-faint);">
                     <span>Username</span>
-                    <button type="button" onclick="vaultCopyClear(this.dataset.v)" data-v="{{ $item->username }}" class="text-xs hover:text-white" style="color: var(--text-faint);" title="Copy (auto-clears in 30s)"><i class="fas fa-copy"></i></button>
+                    <button type="button" @click="copyField('username',$el.dataset.v)" data-v="{{ $item->username }}" class="text-xs hover:text-white" style="color: var(--text-faint);" title="Copy (auto-clears in 30s)"><i class="fas fa-copy"></i></button>
                 </dt>
                 <dd class="mt-1 font-mono text-sm">{{ $item->username }}</dd>
             </div>
@@ -51,7 +51,7 @@
             </dt>
             <dd class="mt-2 font-mono text-sm">
                 <span x-show="!shown">••••••••••••</span>
-                <span x-show="shown" x-text="value"></span>
+                <span x-show="shown" x-transition.opacity.duration.200ms x-text="value"></span>
                 <button x-show="shown" @click="copy()" class="ml-2 text-xs hover:text-white" style="color: var(--text-faint);"><i class="fas fa-copy"></i></button>
                 <span x-show="error" class="text-red-300 text-xs ml-2" x-text="error"></span>
             </dd>
@@ -85,6 +85,7 @@
         </div>
     @endif
 
+    <section x-show="shown && authenticatorQr" x-cloak class="vault-security-panel mb-6" x-transition.opacity><h3 class="font-semibold mb-2">Authenticator setup QR</h3><img :src="authenticatorQr" alt="Authenticator setup QR" width="220" height="220" class="rounded-xl bg-white p-2"><button type="button" class="form-chip mt-3" @click="copyField('authenticator',authenticatorUri)">Copy setup URI</button><p class="text-xs opacity-60 mt-2">Scan with your authenticator app. Hidden again after 30 seconds; reveals and copies are recorded.</p></section>
     @if(!empty($item->tags))
         <div class="mb-6">
             @foreach($item->tags as $t)<span class="px-2 py-1 text-xs rounded-full bg-white/5 mr-1">{{ $t }}</span>@endforeach
@@ -95,9 +96,11 @@
 <script>
 function vaultCredentialView(id) {
     return {
-        shown: false, value: '', revealedNotes: '', revealedFields: [], error: '', clearTimer: null,
+        authenticatorQr:'',authenticatorUri:'',shown: false, value: '', revealedNotes: '', revealedFields: [], error: '', clearTimer: null,
+        init(){this.copyListener=()=>this.audit('copy','profile').catch(error=>this.error=error.message);this.$el.addEventListener('copy',this.copyListener);this.hideListener=()=>{if(document.hidden){this.shown=false;this.value='';this.revealedNotes='';this.revealedFields=[];this.authenticatorQr='';this.authenticatorUri='';}};document.addEventListener('visibilitychange',this.hideListener);},
+        destroy(){clearTimeout(this.clearTimer);this.$el.removeEventListener('copy',this.copyListener);document.removeEventListener('visibilitychange',this.hideListener);},
         async reveal() {
-            if (this.shown) { this.shown = false; this.value = ''; this.revealedNotes = ''; this.revealedFields = []; return; }
+            if (this.shown) { this.shown = false; this.value = ''; this.revealedNotes = ''; this.revealedFields = []; this.authenticatorQr='';this.authenticatorUri=''; return; }
             // Explicit confirm so a misclick doesn't reveal a secret + write an audit row.
             if (!await window.themedConfirmAsync({
                 title: 'Reveal credential?',
@@ -113,17 +116,20 @@ function vaultCredentialView(id) {
             });
             if (!r.ok) { this.error = 'Could not decrypt.'; return; }
             const j = await r.json();
+            this.authenticatorQr=j.authenticator_qr??'';this.authenticatorUri=j.authenticator_uri??'';
             this.value = j.password ?? '';
             this.revealedNotes = j.notes ?? '';
             this.revealedFields = (j.custom_fields ?? []).map(f => ({ key: f.key ?? '', value: f.value ?? '' }));
             this.shown = true;
             // Auto-clear after 30s so revealed secrets don't linger on screen.
             clearTimeout(this.clearTimer);
-            this.clearTimer = setTimeout(() => { this.shown = false; this.value = ''; this.revealedNotes = ''; this.revealedFields = []; }, 30000);
+            this.clearTimer = setTimeout(() => { this.shown = false; this.value = ''; this.revealedNotes = ''; this.revealedFields = []; this.authenticatorQr='';this.authenticatorUri=''; }, 30000);
         },
-        async copy() {
-            await vaultCopyClear(this.value);
-        }
+        async audit(action,field){const response=await fetch(`/user/vault/events/credential/${id}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify({action,field})});if(!response.ok)throw new Error('Audit could not be saved.');},
+        async copyField(field,value){try{if(!value)return;await navigator.clipboard.writeText(value);await this.audit('copy',field);setTimeout(()=>navigator.clipboard.writeText('').catch(()=>{}),30000);}catch(error){this.error=error.message;}},
+        async openUrl(value){const url=new URL(value,location.origin);if(!['http:','https:'].includes(url.protocol)){this.error='Only web URLs can be opened.';return;}const target=window.open('about:blank','_blank');if(!target)return;target.opener=null;try{await this.audit('open','url');target.location=url.href;}catch(error){target.close();this.error=error.message;}},
+        async copy() {await this.copyField('password',this.value);}
+
     }
 }
 function vaultCopyClear(text) {

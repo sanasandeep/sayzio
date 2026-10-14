@@ -1,6 +1,8 @@
+<div class="vault-fields vault-security-panel">
 @php
     $cfs = $item?->getEncrypted('custom_fields', true) ?? [];
 @endphp
+<section class="vault-security-panel mb-5"><h3 class="font-semibold mb-2">Authenticator backup</h3><label class="block text-sm">TOTP setup URI or Base32 key<input type="password" name="authenticator" autocomplete="off" maxlength="2000" class="theme-input mt-2" placeholder="otpauth://totp/… or your setup key"></label><p class="text-xs opacity-60 mt-2">Encrypted with this workspace’s Vault key. Leave blank to keep the existing setup. The QR is revealed only on request.</p>@if(isset($item))<label class="block text-sm mt-2"><input type="checkbox" name="remove_authenticator" value="1"> Remove saved authenticator setup</label>@endif</section>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <label class="block">
         <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Label *</span>
@@ -35,7 +37,7 @@
     <label class="block">
         <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Visibility</span>
         <select name="visibility" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-            <option value="shared" @selected(old('visibility', $item->visibility ?? 'shared') === 'shared')>Shared with workspace</option>
+            <option value="shared" @selected(old('visibility', $item->visibility ?? 'private') === 'shared')>Shared with workspace</option>
             <option value="private" @selected(old('visibility', $item->visibility ?? '') === 'private')>Private, creator + owner only</option>
         </select>
     </label>
@@ -58,4 +60,6 @@
 <div class="mt-6 flex items-center gap-3">
     <button class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">Save</button>
     <a href="{{ route('user.vault.credentials.index') }}" class="text-sm hover:text-white" style="color: var(--text-faint);">Cancel</a>
+</div>
+
 </div>

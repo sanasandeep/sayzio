@@ -17,6 +17,8 @@ class VaultCredential extends Model
         'label', 'url', 'username', 'visibility', 'tags',
     ];
 
+    protected $hidden=['authenticator_encrypted'];
+
     protected $casts = [
         'tags' => 'array',
     ];
@@ -24,6 +26,7 @@ class VaultCredential extends Model
     /** virtual field => db column */
     public array $encryptedFields = [
         'password'       => 'password_encrypted',
+        'authenticator' => 'authenticator_encrypted',
         'notes'          => 'notes_encrypted',
         'custom_fields'  => 'custom_fields_encrypted',
     ];

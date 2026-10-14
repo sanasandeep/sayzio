@@ -57,10 +57,11 @@ class VaultCredentialController extends Controller
             'label'      => $data['label'],
             'url'        => $data['url'] ?? null,
             'username'   => $data['username'] ?? null,
-            'visibility' => $data['visibility'] ?? 'shared',
+            'visibility' => $data['visibility'] ?? 'private',
             'tags'       => $this->parseTags($data['tags'] ?? null),
         ]);
         $cred->setEncrypted('password', $data['password'] ?? null);
+        $cred->setEncrypted('authenticator',$this->authenticatorUri($data['authenticator']??null,$cred));
         $cred->setEncrypted('notes', $data['notes'] ?? null);
         $cred->setEncrypted('custom_fields', $this->parseKv($data['custom_fields'] ?? null));
         $cred->save();
@@ -73,7 +74,8 @@ class VaultCredentialController extends Controller
     public function show(Request $request, VaultCredential $credential)
     {
         $this->ensureVisible($request, $credential);
-        return view('user.vault.credentials.show', ['item' => $credential]);
+        VaultAudit::record('open','credential',$credential->id,$credential->label);
+        return response()->view('user.vault.credentials.show', ['item' => $credential])->header('Cache-Control','no-store');
     }
 
     public function edit(Request $request, VaultCredential $credential)
@@ -93,13 +95,15 @@ class VaultCredentialController extends Controller
             'label'      => $data['label'],
             'url'        => $data['url'] ?? null,
             'username'   => $data['username'] ?? null,
-            'visibility' => $data['visibility'] ?? 'shared',
+            'visibility' => $data['visibility'] ?? $credential->visibility,
             'tags'       => $this->parseTags($data['tags'] ?? null),
         ]);
         // Empty string in the password field means "leave existing".
         if (array_key_exists('password', $data) && $data['password'] !== null && $data['password'] !== '') {
             $credential->setEncrypted('password', $data['password']);
         }
+        if($request->boolean('remove_authenticator')) $credential->setEncrypted('authenticator',null);
+        elseif(!empty($data['authenticator'])) $credential->setEncrypted('authenticator',$this->authenticatorUri($data['authenticator'],$credential));
         $credential->setEncrypted('notes', $data['notes'] ?? null);
         $credential->setEncrypted('custom_fields', $this->parseKv($data['custom_fields'] ?? null));
         $credential->save();
@@ -137,19 +141,42 @@ class VaultCredentialController extends Controller
     {
         $this->ensureVisible($request, $credential);
 
+        $authenticator=$credential->getEncrypted('authenticator');
         $password = $credential->getEncrypted('password');
         $notes = $credential->getEncrypted('notes');
         $custom = $credential->getEncrypted('custom_fields', true) ?? [];
         VaultAudit::record('reveal', 'credential', $credential->id, $credential->label);
 
-        if ($password === null && $notes === null && empty($custom)) {
+        if ($password === null && $notes === null && empty($custom) && !$authenticator) {
             return response()->json(['error' => 'could_not_decrypt'], 422);
         }
         return response()->json([
+            'authenticator_qr'=>$authenticator ? 'data:image/svg+xml;base64,'.base64_encode(app(\App\Modules\User\Services\TotpService::class)->qrSvg($authenticator)) : null,
+            'authenticator_uri'=>$authenticator,
             'password'      => $password,
             'notes'         => $notes,
             'custom_fields' => $custom,
-        ]);
+        ])->header('Cache-Control','no-store');
+    }
+
+    private function authenticatorUri(?string $input,VaultCredential $credential): ?string
+    {
+        if(!$input)return null;
+        $input=trim($input);
+        if(preg_match('/^[A-Z2-7]{16,128}$/i',$input)) return app(\App\Modules\User\Services\TotpService::class)->provisioningUri(strtoupper($input),$credential->username?:$credential->label,$credential->label);
+        $parts = parse_url($input);
+        parse_str($parts['query'] ?? '', $parameters);
+        $valid = is_array($parts) && ($parts['scheme'] ?? '') === 'otpauth'
+            && ($parts['host'] ?? '') === 'totp' && !empty($parts['path'])
+            && !isset($parts['user']) && !isset($parts['pass']) && !isset($parts['fragment']) && !isset($parts['port'])
+            && count(array_filter($parameters, 'is_array')) === 0
+            && preg_match('/^[A-Z2-7]{16,128}$/i', $parameters['secret'] ?? '')
+            && in_array(strtoupper($parameters['algorithm'] ?? 'SHA1'), ['SHA1', 'SHA256', 'SHA512'], true)
+            && in_array((string) ($parameters['digits'] ?? '6'), ['6', '8'], true)
+            && preg_match('/^[0-9]+$/', (string) ($parameters['period'] ?? 30))
+            && (int) ($parameters['period'] ?? 30) >= 15 && (int) ($parameters['period'] ?? 30) <= 120;
+        if (!$valid) throw \Illuminate\Validation\ValidationException::withMessages(['authenticator' => 'Enter a valid TOTP setup URI or Base32 key.']);
+        return 'otpauth://totp'.$parts['path'].'?'.http_build_query(array_intersect_key($parameters, array_flip(['secret', 'issuer', 'algorithm', 'digits', 'period'])), '', '&', PHP_QUERY_RFC3986);
     }
 
     protected function validateCredential(Request $request): array
@@ -159,6 +186,8 @@ class VaultCredentialController extends Controller
             'url'           => ['nullable', 'string', 'max:500'],
             'username'      => ['nullable', 'string', 'max:240'],
             'password'      => ['nullable', 'string', 'max:2000'],
+            'authenticator'=>['nullable','string','max:2000'],
+            'remove_authenticator'=>['nullable','boolean'],
             'notes'         => ['nullable', 'string', 'max:20000'],
             'visibility'    => ['nullable', 'in:shared,private'],
             'tags'          => ['nullable', 'string', 'max:500'],

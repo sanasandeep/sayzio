@@ -28,14 +28,14 @@ class WorkspaceActivityRecorder
         'inbox.reply',
         'billing.upgrade', 'billing.cancel', 'billing.resume', 'billing.refund',
         'member.invite', 'member.invite.revoke', 'member.update', 'member.remove',
-        'role.update',
+        'role.update','client.open','client.copy','client.connect',
         'domain.add', 'domain.verify', 'domain.remove',
         'workspace.update',
     ];
 
     public const OBJECT_TYPES = [
         'link', 'biolink', 'post', 'inbox_thread', 'billing',
-        'member', 'invite', 'role', 'domain', 'workspace',
+        'member', 'invite', 'role', 'domain', 'workspace','delivery-project',
     ];
 
     /**

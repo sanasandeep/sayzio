@@ -2,13 +2,11 @@
     use App\Modules\User\Services\WorkspacePermissions as WP;
     $isOwner = WP::userIsOwner();
 @endphp
-<div class="page-hero mb-6 flex items-center gap-4">
-    <div class="hero-emblem"><i class="fas fa-vault"></i></div>
-    <div class="flex-1 min-w-0">
-        <h1 class="hero-title">Workspace Vault</h1>
-        <p class="hero-subtitle">Encrypted credentials and client records, scoped to this workspace.</p>
-    </div>
-</div>
+@include('user.planner.styles')
+@include('user.partials.page-hero',['title'=>'Workspace Vault','subtitle'=>'Encrypted credentials and client profiles, governed by workspace permissions.','emblemIcon'=>'fa-vault','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'chips'=>[['text'=>'Workspace encrypted','icon'=>'fa-lock']],'actions'=>[['label'=>'Client tracking','url'=>route('user.delivery-projects.index'),'icon'=>'fa-users','class'=>'btn-ghost']]])
+<style>
+.vault-security-panel{padding:24px;border:1px solid var(--border-strong);border-radius:18px;background:var(--bg-card)}.vault-fields input:not([type=checkbox]):not([type=color]),.vault-fields textarea,.vault-fields select{padding:12px;border-radius:12px;background:var(--bg-input,var(--bg-card));border:1px solid var(--border-strong);color:var(--text-primary)}.vault-fields button{border-radius:12px}.vault-security-panel input{width:100%}.vault-security-panel input[type=checkbox]{width:auto}.vault-fields input:not([type=checkbox]):not([type=color]):not([type=hidden]),.vault-fields textarea,.vault-fields select{border-color:var(--border-strong)}.vault-value{transition:opacity .2s,filter .2s}.vault-security-panel .form-chip{display:inline-flex;padding:10px 14px;border:1px solid var(--border-strong);border-radius:12px}@media(prefers-reduced-motion:reduce){.vault-value{transition:none}}
+</style>
 
 <div class="flex flex-wrap items-center gap-2 mb-6 border-b" style="border-color: var(--border-glass);">
     <a href="{{ route('user.vault.credentials.index') }}"

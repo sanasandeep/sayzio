@@ -17,6 +17,10 @@ class EnforceWorkspaceFeature
         $route = $request->route();
         $name = $route?->getName() ?? '';
         $method = strtolower($route?->getActionMethod() ?? '');
+        // Access telemetry follows the read permission; it never changes the record.
+        if (in_array($name, ['user.vault.events', 'user.delivery-projects.tracking.event'], true)) {
+            return 'view';
+        }
         if ($request->isMethod('DELETE')) {
             return 'delete';
         }

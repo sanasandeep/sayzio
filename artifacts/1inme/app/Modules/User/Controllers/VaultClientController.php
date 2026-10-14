@@ -88,7 +88,8 @@ class VaultClientController extends Controller
     {
         $this->ensureVisible($request, $client);
         $client->load(['emails', 'phones', 'addresses', 'attachments']);
-        return view('user.vault.clients.show', ['item' => $client]);
+        VaultAudit::record('open','client',$client->id,$client->name);
+        return response()->view('user.vault.clients.show', ['item' => $client])->header('Cache-Control','no-store');
     }
 
     public function edit(Request $request, VaultClient $client)

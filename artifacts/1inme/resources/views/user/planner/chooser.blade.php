@@ -1,6 +1,6 @@
 @php
     $pickerChoices = array_map(fn($c)=>['value'=>$c['kind'].':'.$c['id'],'label'=>$c['label'],'kind'=>$c['kind']],$choices);
-    $pickerTypeLabels=\App\Services\Planner\PlannerResources::typeLabels();
+    $pickerTypeLabels=($typeLabels??[])+\App\Services\Planner\PlannerResources::typeLabels();
     $pickerKinds = collect($choices)->pluck('kind')->unique()->mapWithKeys(fn($kind)=>[$kind=>$pickerTypeLabels[$kind]??ucfirst($kind)])->all();
 @endphp
 <div class="folder-chooser" x-data="{
