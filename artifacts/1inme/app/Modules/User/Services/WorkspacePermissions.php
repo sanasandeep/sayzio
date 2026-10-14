@@ -41,16 +41,8 @@ class WorkspacePermissions
     /** Friendly one-line description of each role for the team UI. */
     public static function roleDescriptions(): array
     {
-        $descriptions = [
-            'admin'   => 'Admin — configurable content access; manages team and roles',
-            'editor'  => 'Editor — defaults to view, create, edit and reply',
-            'replier' => 'Replier — view and reply only (great for support)',
-            'analyst' => 'Analyst — view-only, focused on analytics',
-            'viewer'  => 'Viewer — defaults to view-only access',
-        ];
-        foreach (self::presets() as $role) {
-            if (!isset($descriptions[$role])) $descriptions[$role] = self::roleLabel($role).' — custom permissions';
-        }
+        $descriptions = [];
+        foreach (self::presets() as $role) $descriptions[$role] = self::roleLabel($role).($role==='admin' ? ' · manages team and roles' : ' · configured feature access');
         return $descriptions;
     }
 
@@ -78,7 +70,8 @@ class WorkspacePermissions
 
     public static function roleLabel(string $role): string
     {
-        return ucwords(str_replace('_', ' ', preg_replace('/^custom_/', '', $role)));
+        $ws=app()->bound('current_workspace') ? app('current_workspace') : null;
+        return WorkspaceRoleDirectory::names($ws)[$role] ?? ucwords(str_replace('_', ' ', preg_replace('/^custom_/', '', $role)));
     }
 
     /** Names of roles in priority order — used by the role dropdown. */

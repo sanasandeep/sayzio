@@ -363,6 +363,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // ---- Roles & Permissions (Owner + Admin) ----
         Route::get   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'index']) ->name('team.roles.index');
         Route::put   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'update'])->name('team.roles.update');
+        Route::post('team/roles/create', [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'createRole'])->name('team.roles.create');
+        Route::post('team/roles/rename', [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'renameRole'])->name('team.roles.rename');
+        Route::delete('team/roles/delete', [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'deleteRole'])->name('team.roles.delete');
         Route::post('team/roles/duplicate', [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'duplicate'])->name('team.roles.duplicate');
         Route::post  ('team/roles/reset',                      [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'reset']) ->name('team.roles.reset');
 

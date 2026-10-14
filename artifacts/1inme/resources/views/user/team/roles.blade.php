@@ -2,12 +2,16 @@
 @section('title', 'Roles & Permissions')
 @push('styles')
 <style>
+.permissions-editor .border,.permissions-editor select,.permissions-editor input{border-color:var(--border-strong);background:var(--bg-card)}
+.permissions-editor>div:first-child{background:linear-gradient(120deg,var(--bg-card),var(--bg-glass-light))!important}
 .permissions-editor table tr,.permissions-editor .border-b{border-color:var(--border-strong)}
+.permissions-editor .form-chip{display:inline-flex;align-items:center;border:1px solid var(--border-strong);border-radius:12px;padding:10px 14px;background:var(--bg-card);font-size:13px}
 .permissions-editor .permission-search{min-width:180px}
 .permissions-editor table th:first-child{position:sticky;left:0;z-index:1;background:var(--bg-card);min-width:180px}
 .permissions-editor input[type=checkbox]{accent-color:#3d6bff;cursor:pointer}
 .permissions-editor table tbody tr:hover{background:var(--bg-glass-light)}
-@media(max-width:640px){.permissions-editor .permission-search{flex-basis:100%;order:1}.permissions-editor table{font-size:13px}.permissions-editor table th:first-child{min-width:150px}}
+@media(max-width:640px){.permissions-editor .form-chip{display:inline-flex;align-items:center;border:1px solid var(--border-strong);border-radius:12px;padding:10px 14px;background:var(--bg-card);font-size:13px}
+.permissions-editor .permission-search{flex-basis:100%;order:1}.permissions-editor table{font-size:13px}.permissions-editor table th:first-child{min-width:150px}}
 </style>
 @endpush
 @section('content')
@@ -27,7 +31,7 @@
     @if($errors->any())<div class="p-4 rounded-xl border mb-4">{{ $errors->first() }}</div>@endif
     <form method="POST" action="{{ route('user.team.roles.update') }}" @submit="serialize($event)" class="rounded-2xl border overflow-hidden" style="background:var(--bg-card);border-color:var(--border-strong)">
         @csrf @method('PUT')
-        <input type="hidden" name="matrix_json" x-ref="payload">
+        <input type="hidden" name="matrix_json" x-ref="payload"><input type="hidden" name="selected_role" :value="role">
         <div class="flex flex-wrap gap-3 p-5 border-b items-center">
             <label class="text-sm font-semibold">Role
                 <select x-model="role" class="ml-2 border rounded-xl p-2">
@@ -37,7 +41,7 @@
             <input type="search" x-model="search" placeholder="Find a feature…" class="permission-search border rounded-xl p-2 flex-1 min-w-0" aria-label="Find a feature">
             <button type="button" @click="setAll(true)" class="border rounded-xl px-3 py-2 text-sm">Check all</button>
             <button type="button" @click="setAll(false)" class="border rounded-xl px-3 py-2 text-sm">Uncheck all</button>
-            <button type="button" @click="duplicateOpen = !duplicateOpen" class="border rounded-xl px-3 py-2 text-sm">Duplicate role</button>
+            <button type="button" @click="duplicateOpen = !duplicateOpen" class="border rounded-xl px-3 py-2 text-sm">Duplicate role</button><button type="button" @click="manageOpen=!manageOpen" class="border rounded-xl px-3 py-2 text-sm">Manage roles</button>
         </div>
         <div class="px-5 py-3 text-sm opacity-70">Own records means records created by you. View, edit and delete apply to these records. Enable the matching “Others” permission to include teammates’ records. Shared tools without record ownership use workspace-wide access.</div>
         <div class="overflow-x-auto">
@@ -70,6 +74,20 @@
             <button type="button" onclick="document.getElementById('reset-roles-form').requestSubmit()" class="text-sm opacity-70">Reset built-in roles</button>
         </div>
     </form>
+    <section x-show="manageOpen" x-cloak class="mt-4 p-5 border rounded-2xl" style="background:var(--bg-card)">
+        <h2 class="font-semibold mb-3">Role management</h2><p class="text-sm opacity-70 mb-4">Five roles are provided initially. Admin is protected; owners always retain full access. Role names can change without changing assignments.</p>
+        <div class="grid gap-4 md:grid-cols-3">
+            <form method="POST" action="{{ route('user.team.roles.create') }}">@csrf
+                <label class="block text-sm mb-2">Create a role</label><input name="name" required maxlength="60" placeholder="Role name" class="w-full border rounded-xl p-3"><p class="text-xs opacity-60 my-2">Starts with no feature permissions.</p><button class="form-chip">Create role</button>
+            </form>
+            <form method="POST" action="{{ route('user.team.roles.rename') }}">@csrf
+                <input type="hidden" name="role" :value="role"><label class="block text-sm mb-2">Rename selected role</label><input name="name" required maxlength="60" placeholder="New display name" class="w-full border rounded-xl p-3"><button class="form-chip mt-2">Rename role</button>
+            </form>
+            <form method="POST" action="{{ route('user.team.roles.delete') }}" x-show="role!=='admin'" onsubmit="return window.themedConfirmSubmit(this, {title:'Delete role?',message:'Members and pending invitations will use the replacement role. This role is removed from approval rules. Accounts and content are preserved.',confirmText:'Delete role'})">@csrf
+                @method('DELETE')<input type="hidden" name="role" :value="role"><label class="block text-sm mb-2">Reassign members before deletion</label><select name="reassign_to" required class="w-full border rounded-xl p-3"><option value="">Choose replacement role</option>@foreach($roles as $replacement)<option value="{{ $replacement }}" :disabled="role===@js($replacement)">{{ $roleNames[$replacement] }}</option>@endforeach</select><button class="form-chip mt-2 text-red-600">Delete selected role</button>
+            </form><p x-show="role==='admin'" class="text-sm opacity-70">Admin cannot be deleted. You can rename it and configure its feature permissions; it retains team administration access.</p>
+        </div>
+    </section>
     <form x-show="duplicateOpen" x-cloak method="POST" action="{{ route('user.team.roles.duplicate') }}" class="mt-4 p-5 border rounded-2xl" style="background:var(--bg-card)">
         @csrf <input type="hidden" name="source" :value="role">
         <h2 class="font-semibold mb-2">Duplicate saved role</h2><p class="text-sm opacity-60 mb-3">Copies the selected role’s saved permissions. Save pending edits first.</p>
@@ -117,7 +135,7 @@ function permissionEditor() {
         if (!(feature+'.'+action in row)) row[feature+'.'+action] = !!row[({export:'view',publish:'edit',run:'edit'})[action] || action.replace('_others','')];
     }
     return {
-        matrix, original: JSON.parse(JSON.stringify(matrix)), role: @json($roles[0]), search: '', duplicateOpen: false,
+        matrix, original: JSON.parse(JSON.stringify(matrix)), role: @json($selectedRole), search: '', duplicateOpen: false, manageOpen: false,
         matches(label) { return label.toLowerCase().includes(this.search.toLowerCase()); },
         setFeature(feature, value) { for (const action of supported[feature]) this.matrix[this.role][feature+'.'+action] = value; },
         setAll(value) { for (const feature of features) this.setFeature(feature, value); for(const action of ['view','create','edit','delete','reply']) this.matrix[this.role][action] = value; },

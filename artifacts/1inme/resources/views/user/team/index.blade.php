@@ -1,9 +1,17 @@
 @extends('user.layouts.app')
 
-@section('title', 'Seats')
+@section('title', 'Workspace team')
+
+@push('styles')
+<style>
+.workspace-team-hero{padding:32px;border:1px solid var(--border-strong);border-radius:24px;background:linear-gradient(125deg,var(--bg-card),var(--bg-glass-light));position:relative;overflow:hidden}.workspace-team-hero:before{content:'';position:absolute;inset:0 auto 0 0;width:5px;background:#3d6bff}.workspace-team-hero h1{font-size:28px}.workspace-seat-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.workspace-seat-metrics>div{border:1px solid var(--border-strong);border-radius:18px;padding:22px;background:var(--bg-card)}.workspace-seat-metrics span,.workspace-seat-metrics small{display:block;font-size:12px;color:var(--text-secondary)}.workspace-seat-metrics strong{display:block;font-size:32px;letter-spacing:-1px;margin:8px 0;color:var(--text-primary)}.workspace-team-page table th{font-size:12px;font-weight:600}.workspace-team-page table td{padding-top:18px;padding-bottom:18px}.workspace-team-page input[type=search]{border-radius:12px;min-height:46px}.workspace-team-page button,.workspace-team-page a[class*=border]{border-radius:12px}
+@media(max-width:760px){.workspace-seat-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.workspace-seat-metrics>div{padding:16px}.workspace-team-hero{padding:22px}.workspace-team-hero h1{font-size:24px}}
+</style>
+@endpush
 
 @section('content')
-<div class="max-w-6xl mx-auto px-4 py-8" x-data="seatsPage({{ Js::from([
+<div class="workspace-team-page max-w-6xl mx-auto px-4 py-8" x-data="seatsPage({{ Js::from([
+    'ownerSearch' => mb_strtolower(($workspace->owner->name ?? '').' '.($workspace->owner->email ?? '').' owner'),
     'rows'              => $rows,
     'reassignOptions'   => $reassignOptions,
     'inviteRoute'       => route('user.team.invite'),
@@ -13,11 +21,11 @@
     'maxSeats'          => $maxSeats,
     'pendingCount'      => $pendingCount,
 ]) }})">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+    <div class="workspace-team-hero flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }}, Seats</h1>
+            <p class="text-xs uppercase tracking-widest opacity-60 mb-2">People &amp; workspace access</p><h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }}</h1>
             <p class="text-sm opacity-70 mt-1">
-                Manage who can work in this workspace, what they can do, and how many seats you're using.
+                Your workspace team: manage members, role permissions and account security.
             </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -67,6 +75,10 @@
         <div class="mb-4 p-3 rounded bg-red-100 text-red-800 text-sm">{{ session('error') }}</div>
     @endif
 
+    <div class="workspace-seat-metrics mb-6">
+        <div><span>Seats used</span><strong>{{ $usedSeats }}</strong><small>Owner + active and suspended members</small></div><div><span>Pending invitations</span><strong>{{ $pendingCount }}</strong><small>Reserved until accepted or expired</small></div><div><span>Suspended members</span><strong>{{ collect($rows)->where('is_suspended',true)->count() }}</strong><small>Access paused; seat still retained</small></div><div><span>Available seats</span><strong>{{ $maxSeats===-1?'∞':max(0,$maxSeats-$usedSeats-$pendingCount) }}</strong><small>{{ $planLabel }} plan</small></div>
+    </div>
+    @if($errors->any())<div class="p-4 border rounded-xl mb-4 text-red-600">{{ $errors->first() }}</div>@endif
     {{-- Plan usage banner. --}}
     <div class="mb-6 rounded-lg border p-4"
          :class="atLimit ? 'border-amber-300 bg-amber-50' : (nearLimit ? 'border-blue-200 bg-blue-50' : '')"
@@ -89,12 +101,12 @@
                     <div class="mt-2 h-2 w-full rounded-full overflow-hidden bg-gray-200">
                         <div class="h-full rounded-full transition-all"
                              :class="atLimit ? 'bg-amber-500' : (nearLimit ? 'bg-blue-500' : 'bg-primary-600')"
-                             :style="'width: ' + Math.min(100, Math.round({{ $usedSeats }} / {{ max($maxSeats, 1) }} * 100)) + '%'"></div>
+                             :style="'width: ' + Math.min(100, Math.round({{ $usedSeats + $pendingCount }} / {{ max($maxSeats, 1) }} * 100)) + '%'"></div>
                     </div>
                     <p class="mt-2 text-xs opacity-70">
-                        <span x-show="atLimit">You've reached your seat limit. Remove or suspend a seat, or upgrade your plan to invite more.</span>
+                        <span x-show="atLimit">You've reached your seat limit. Remove a member or revoke a pending invitation, or upgrade your plan to invite more.</span>
                         <span x-show="!atLimit && nearLimit">You're nearing your seat limit. Plan ahead before inviting more.</span>
-                        <span x-show="!atLimit && !nearLimit">{{ max(0, $maxSeats - $usedSeats) }} seat{{ ($maxSeats - $usedSeats) === 1 ? '' : 's' }} left on your plan.</span>
+                        <span x-show="!atLimit && !nearLimit">{{ max(0, $maxSeats - $usedSeats - $pendingCount) }} seat{{ ($maxSeats - $usedSeats - $pendingCount) === 1 ? '' : 's' }} left on your plan.</span>
                     </p>
                 @else
                     <p class="mt-2 text-xs opacity-70">Your plan includes unlimited seats.</p>
@@ -149,9 +161,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr class="border-t" style="border-color: var(--border-strong);">
+                    <tr x-show="ownerMatches" class="border-t" style="border-color: var(--border-strong);">
                         <td class="px-4 py-3">
-                            <div class="font-medium">{{ $workspace->owner->name ?? 'Owner' }} <span class="text-xs opacity-60">(you)</span></div>
+                            <div class="font-medium">{{ $workspace->owner->name ?? 'Owner' }} @if(auth()->id()==$workspace->owner_user_id)<span class="text-xs opacity-60">(you)</span>@endif</div>
                             <div class="text-xs opacity-60">{{ $workspace->owner->email ?? '' }}</div>
                         </td>
                         <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-indigo-100 text-indigo-700">Owner</span></td>
@@ -173,7 +185,7 @@
                                 <div class="text-xs opacity-60" x-text="m.email"></div>
                             </td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 rounded text-xs capitalize" style="background: var(--bg-glass-light); color: var(--text-secondary);" x-text="m.role"></span>
+                                <span class="px-2 py-0.5 rounded text-xs capitalize" style="background: var(--bg-glass-light); color: var(--text-secondary);" x-text="m.role_name || m.role"></span>
                             </td>
                             <td class="px-4 py-3">
                                 <span class="px-2 py-0.5 rounded text-xs"
@@ -518,9 +530,10 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1">Role</label>
-                    <select name="role" x-model="form.role"
+                    <select name="role" required x-model="form.role"
                             class="w-full px-3 py-2 border rounded"
                             style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+                        <option value="">Choose a role</option>
                         @foreach($roleDescriptions as $slug => $desc)
                             <option value="{{ $slug }}">{{ $desc }}</option>
                         @endforeach
@@ -646,6 +659,7 @@ function seatsPage(initial) {
             const used = this.usedSeats + this.pendingCount;
             return used >= Math.max(1, this.maxSeats - 1) && used < this.maxSeats;
         },
+        get ownerMatches() { return this.status!=='suspended' && initial.ownerSearch.includes(this.search.trim().toLowerCase()); },
         get filteredRows() {
             const q = this.search.trim().toLowerCase();
             return this.rows.filter(r => {
@@ -653,7 +667,7 @@ function seatsPage(initial) {
                 if (!q) return true;
                 return (r.name || '').toLowerCase().includes(q)
                     || (r.email || '').toLowerCase().includes(q)
-                    || (r.role  || '').toLowerCase().includes(q);
+                    || (r.role_name || r.role || '').toLowerCase().includes(q);
             });
         },
         reassignOptionsFor(member) {
@@ -662,11 +676,11 @@ function seatsPage(initial) {
         openInvite() {
             if (this.atLimit) return;
             this.modal = { open: true, action: this.inviteRoute, method: 'POST', title: 'Invite teammate' };
-            this.form = { role: 'editor' };
+            this.form = { role: this.validRoles.includes('viewer') ? 'viewer' : '' };
         },
         openEdit(member) {
             this.modal = { open: true, action: this.memberBaseUrl + '/' + member.id, method: 'PUT', title: 'Edit ' + member.name };
-            const role = this.validRoles.includes(member.role) ? member.role : 'viewer';
+            const role = this.validRoles.includes(member.role) ? member.role : '';
             this.form = { role };
         },
         openRemove(member) {
