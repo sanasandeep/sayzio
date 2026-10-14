@@ -2,6 +2,8 @@
 @section('title', $board->name)
 @push('styles')
 <style>
+    .task-workspace .form-chip{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--bg-card);font-size:12px;font-weight:600}
+    .task-workspace .kanban-col{min-width:300px;max-width:300px}
     .kanban-scroll { overflow-x: auto; padding-bottom: 12px; }
     .kanban-col {
         min-width: 300px; max-width: 300px;
@@ -42,7 +44,8 @@
 @endpush
 @section('content')
 @include('user.cloud-files._attach-picker')
-<div x-data="kanbanBoard({{ $board->id }})" x-init="init()" class="px-6 py-6">
+@include('user.planner.styles')
+<div x-data="kanbanBoard({{ $board->id }})"  class="task-workspace px-6 py-6">
     @include('user.partials.page-hero',['title'=>$board->name,'subtitle'=>'Manage your project tasks, checklists and deadlines.','icon'=>'fa-list-check','favicon'=>null,'url'=>null,'back'=>route('user.tasks.index'),'actions'=>[],'chips'=>[['text'=>$board->scope==='personal'?'Private board':'Team board','icon'=>'fa-users'],['text'=>$board->columns->count().' columns','icon'=>'fa-table-columns'],['text'=>$board->columns->sum(fn($c)=>$c->cards->count()).' tasks','icon'=>'fa-check']]])
     <div class="flex justify-end mb-5 gap-3 flex-wrap">
         <div class="flex items-center gap-2">
@@ -91,29 +94,19 @@
         </div>
     </div>
 
+    <div class="task-workspace-toolbar"><div class="folder-view-switch"><button type="button" @click="boardView='kanban'" :aria-pressed="boardView==='kanban'">Board</button><button type="button" @click="boardView='gantt'" :aria-pressed="boardView==='gantt'">Gantt timeline</button></div><span class="notes-hint" x-text="syncStatus" role="status"></span><button type="button" class="form-chip" @click="location.reload()">Refresh updates</button><a class="form-chip" href="{{ route('user.ai.mind.show', $projectAssignment?->project_id ? ['project_id'=>$projectAssignment->project_id] : []) }}">Open AI Planner →</a></div>
+    <p class="text-sm text-red-500 mb-3" x-show="notice" x-text="notice" role="alert"></p>
+    @if(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.edit') && auth()->user()->canInWorkspace(app('current_workspace'),'projects.edit'))<form method="POST" action="{{ route('user.tasks.boards.update',$board) }}" class="notes-card mb-4 flex flex-wrap items-center gap-3">@csrf @method('PUT')<label class="text-sm">Optional project <select name="project_id" class="theme-input"> <option value="">No project</option>@foreach($projects as $projectChoice)<option value="{{ $projectChoice->id }}" @selected($projectAssignment?->project_id===$projectChoice->id)>{{ $projectChoice->name }}</option>@endforeach</select></label><button class="form-chip">Save project</button><span class="notes-hint">A project connection includes visible board tasks in the folder and Planner resource picker. Personal boards stay private.</span></form>@endif
     {{-- Filter bar: assignee / label / due range / search. All client-side. --}}
     <div class="mb-4 flex flex-wrap items-center gap-2 p-3 rounded-xl"
          style="background: var(--bg-card); border: 1px solid var(--border-soft);">
         <input type="text" x-model.debounce.150ms="filters.search" placeholder="Search title / description…"
                class="px-3 py-1.5 rounded-lg border text-sm flex-1 min-w-[200px]"
                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-        <select x-model="filters.assignee"
-                class="px-2 py-1.5 rounded-lg border text-sm"
-                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-            <option value="">All assignees</option>
-            @foreach($members as $m)
-                <option value="{{ $m->id }}">{{ $m->name }}</option>
-            @endforeach
-        </select>
-        <select x-model="filters.label"
-                class="px-2 py-1.5 rounded-lg border text-sm"
-                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-            <option value="">All labels</option>
-            @foreach($board->labels as $lab)
-                <option value="{{ $lab->id }}">{{ $lab->name }}</option>
-            @endforeach
-        </select>
-        <select x-model="filters.due"
+        @php $assigneeOptions=$members->mapWithKeys(fn($member)=>[(string)$member->id=>$member->name])->all();$labelOptions=$board->labels->mapWithKeys(fn($label)=>[(string)$label->id=>$label->name])->all(); @endphp
+        @include('user.planner.multi-filter',['model'=>'filters.assignees','options'=>$assigneeOptions,'filterLabel'=>'Assignees'])
+        @include('user.planner.multi-filter',['model'=>'filters.labels','options'=>$labelOptions,'filterLabel'=>'Labels'])
+        <select aria-label="Due dates" x-model="filters.due"
                 class="px-2 py-1.5 rounded-lg border text-sm"
                 style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
             <option value="">Any due date</option>
@@ -122,51 +115,53 @@
             <option value="week">Due this week</option>
             <option value="none">No due date</option>
         </select>
-        <button @click="filters = { search:'', assignee:'', label:'', due:'' }"
+        <button @click="filters = { search:'', assignees:[], labels:[], due:'' }"
                 class="text-xs font-semibold px-2 py-1.5 rounded-lg border"
                 style="border-color: var(--border-soft); color: var(--text-muted);">
             Clear
         </button>
     </div>
 
-    <div class="kanban-scroll flex gap-4" data-sortable-cols>
+    @include('user.tasks.partials.gantt')
+    <div x-show="boardView==='kanban'" class="kanban-scroll flex gap-4" data-sortable-cols>
         @foreach($board->columns as $col)
-            <div class="kanban-col" data-column-id="{{ $col->id }}"
-                 x-data="{ editing:false, name:'{{ addslashes($col->name) }}', color:'{{ $col->color ?: '#5c83ff' }}', wip:{{ (int) ($col->wip_limit ?? 0) }}, is_done:{{ $col->is_done ? 'true':'false' }} }">
+            <div class="kanban-col relative" data-column-id="{{ $col->id }}"
+                 x-data="{ editing:false, name:@js($col->name), color:'{{ $col->color ?: '#5c83ff' }}', saving:false,columnError:'',wip:{{ (int) ($col->wip_limit ?? 0) }}, is_done:{{ $col->is_done ? 'true':'false' }} }">
                 <div class="kanban-col-header" :style="'border-top: 3px solid '+color+'; border-radius: 14px 14px 0 0;'">
                     <span class="col-drag-handle" data-col-handle title="Drag to reorder column"><i class="fas fa-grip-vertical"></i></span>
                     <span class="flex-1 cursor-pointer" @click="editing=true" x-text="name"></span>
                     <i class="fas fa-check-circle text-emerald-500" x-show="is_done" title="Done column"></i>
-                    <span class="text-xs font-normal" style="color: var(--text-faint);">{{ $col->cards->count() }}<span x-show="wip>0">/<span x-text="wip"></span></span></span>
-                    <button @click="editing=true" class="text-xs" style="color: var(--text-faint);" title="Edit column"><i class="fas fa-pen"></i></button>
-                    <button @click="deleteColumn({{ $col->id }})" class="text-xs" style="color: var(--text-faint);" title="Delete column"><i class="fas fa-times"></i></button>
+                    <span class="text-xs font-normal" title="Tasks in this column / advisory task limit" style="color: var(--text-faint);">{{ $col->cards->count() }}<span x-show="wip>0">/<span x-text="wip"></span></span></span>
+                    <button @click="editing=true" class="text-xs" style="color: var(--text-faint);" title="Edit column" aria-label="Edit column"><i class="fas fa-pen"></i></button>
+                    <button @click="deleteColumn({{ $col->id }})" class="text-xs" style="color: var(--text-faint);" title="Delete column" aria-label="Delete column"><i class="fas fa-times"></i></button>
                 </div>
                 {{-- Inline edit popover wired to PUT /columns/{id} --}}
                 <div x-show="editing" x-transition class="absolute z-30 p-3 mt-1 rounded-xl shadow-xl space-y-2"
                      @click.outside="editing=false"
-                     style="background: var(--bg-glass); border: 1px solid var(--border-soft); width: 240px;">
+                     style="background: var(--bg-card); border: 1px solid var(--border-soft); width: 280px;max-width:100%;">
                     <input type="text" x-model="name" maxlength="60"
                            class="w-full px-2 py-1 text-sm rounded border"
                            style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
                     <div class="flex items-center gap-2">
                         <input type="color" x-model="color" class="h-7 w-10 rounded cursor-pointer">
-                        <input type="number" min="0" max="999" x-model.number="wip" placeholder="WIP"
-                               class="flex-1 px-2 py-1 text-sm rounded border"
-                               style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                        <label class="text-xs flex-1">Task limit (0 = unlimited)<input type="number" min="0" max="999" x-model.number="wip" placeholder="WIP"
+                               class="w-full px-2 py-1 text-sm rounded border"
+                               style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                     </div>
+                    <p class="text-xs opacity-60">The limit is a visual target; it does not block adding tasks.</p><p class="text-xs text-red-500" role="alert" x-text="columnError"></p>
                     <label class="flex items-center gap-2 text-xs" style="color: var(--text-muted);">
-                        <input type="checkbox" x-model="is_done"> Marks card as done
+                        <input type="checkbox" x-model="is_done"> Complete tasks moved into this column
                     </label>
                     <div class="flex justify-end gap-2">
                         <button @click="editing=false" class="text-xs px-2 py-1" style="color: var(--text-muted);">Cancel</button>
                         <button class="text-xs px-3 py-1 rounded" style="background:#5c83ff;color:#fff;"
-                                @click="$root.saveColumn({{ $col->id }}, { name, color, wip_limit: wip || null, is_done }).then(() => editing=false)">Save</button>
+                                @click="saving=true;columnError='';saveColumn({{ $col->id }}, { name, color, wip_limit: wip || null, is_done }).then(() => editing=false).catch(e=>columnError=e.message).finally(()=>saving=false)" :disabled="saving">Save</button>
                     </div>
                 </div>
                 <div class="kanban-col-cards" data-sortable-cards data-column-id="{{ $col->id }}">
                     @foreach($col->cards as $card)
                         <div class="kanban-card {{ $card->completed_at ? 'completed' : '' }}"
-                             data-card-id="{{ $card->id }}"
+                             data-task-filter data-card-id="{{ $card->id }}"
                              data-card-title="{{ strtolower($card->title.' '.$card->description) }}"
                              data-card-assignees="{{ $card->assignees->pluck('id')->implode(',') }}"
                              data-card-labels="{{ $card->labels->pluck('id')->implode(',') }}"
@@ -181,7 +176,7 @@
                                            @change="toggleCardSelect({{ $card->id }}, $event.target.checked)">
                                 </label>
                             @endif
-                            <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ $card->title }}</div>
+                            <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ $card->title }}</div><time class="block text-xs opacity-60 mt-2" datetime="{{ $card->updated_at->toIso8601String() }}">Updated {{ $card->updated_at->timezone(auth()->user()->timezone??config('app.timezone'))->format('d M Y, H:i') }}</time>
                             @if($card->billable)
                                 <div class="mt-1 flex items-center gap-1 flex-wrap">
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
@@ -221,7 +216,7 @@
                                 <div class="flex -space-x-1">
                                     @foreach($card->assignees->take(3) as $a)
                                         <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white text-[9px] font-bold flex items-center justify-center border" style="border-color: var(--bg-card);" title="{{ $a->name }}">
-                                            {{ strtoupper(substr($a->name, 0, 1)) }}
+                                            <img src="{{ $a->resolveAvatarUrl() }}" alt="{{ $a->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.hidden=true">
                                         </div>
                                     @endforeach
                                 </div>
@@ -272,6 +267,10 @@
                     <button @click="drawerOpen = false" class="text-lg" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                 </div>
 
+                <p class="text-xs opacity-60 mb-3">Created <span x-text="new Date(card.created_at).toLocaleString()"></span> · Updated <span x-text="new Date(card.updated_at).toLocaleString()"></span></p>
+                @if(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.edit') || $board->owner_user_id===auth()->id())<button type="button" class="form-chip mb-3" @click="setCompleted(!card.completed_at)" x-text="card.completed_at?'Reopen task':'Mark completed'"></button>@endif
+                <label class="block text-sm mb-3">Optional project<select class="theme-input" x-model="card.project_id" @change="saveCard({project_id:card.project_id||null})"><option value="">Use board project</option>@foreach($projects as $projectChoice)<option value="{{ $projectChoice->id }}">{{ $projectChoice->name }}</option>@endforeach</select></label>
+                <label class="block text-sm mb-3">Start date<input type="date" class="theme-input" x-model="card.start_date" @change="saveCard({start_date:card.start_date||null})"></label>
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <div>
                         <label class="block text-[10px] font-bold uppercase mb-1" style="color: var(--text-faint);">Due Date</label>
@@ -677,6 +676,7 @@ function kanbanBoard(boardId) {
     return {
         boardId,
         drawerOpen: false,
+        boardView:sessionStorage.getItem('task-view-'+boardId)||'kanban', syncRevision:@js($syncRevision),syncStatus:'Checks every 15 seconds',syncTimer:null,notice:'',
         showAddColumn: false,
         showBilledColumnPicker: false,
         selectedCardIds: [],
@@ -688,7 +688,7 @@ function kanbanBoard(boardId) {
             'mention_token' => mb_strtolower(preg_replace('/\s+/', '', (string) $m->name)),
         ]))
         boardMembers: @json($_boardMembers),
-        filters: { search: '', assignee: '', label: '', due: '' },
+        filters: { search: '', assignees: [], labels: [], due: '' },
         card: null,
         cardTab: 'comments',
         mentionOpen: false,
@@ -700,13 +700,16 @@ function kanbanBoard(boardId) {
 
         init() {
             const self = this;
+            try{const stored=JSON.parse(sessionStorage.getItem('task-filters-'+boardId));if(stored)this.filters=stored;}catch{}
             // Re-apply filters whenever any filter value changes.
             this.$watch('filters', () => this.applyFilters(), { deep: true });
             this.applyFilters();
+            this.$watch('boardView',value=>sessionStorage.setItem('task-view-'+boardId,value));
+            this.syncTimer=setInterval(()=>this.checkUpdates(),15000);
 
             // Column drag-and-drop reorder (drag handle on each header).
             const colsEl = document.querySelector('[data-sortable-cols]');
-            if (colsEl) {
+            if (colsEl && typeof Sortable!=='undefined') {
                 Sortable.create(colsEl, {
                     handle: '[data-col-handle]',
                     animation: 150,
@@ -721,7 +724,7 @@ function kanbanBoard(boardId) {
                 });
             }
 
-            document.querySelectorAll('[data-sortable-cards]').forEach(el => {
+            if(typeof Sortable!=='undefined') document.querySelectorAll('[data-sortable-cards]').forEach(el => {
                 Sortable.create(el, {
                     group: 'cards',
                     animation: 150,
@@ -735,6 +738,24 @@ function kanbanBoard(boardId) {
             if (hash) self.openCard(parseInt(hash[1]));
         },
 
+        destroy(){clearInterval(this.syncTimer);},
+        async checkUpdates(){
+            if(document.hidden)return;
+            try{
+                const result=await this.fetchJson(`/user/tasks/boards/${this.boardId}/sync`);
+                if(result.revision!==this.syncRevision){
+                    const busy=this.drawerOpen||this.showAddColumn||this.showBilledColumnPicker||this.selectedCardIds.length||document.querySelector('.sortable-chosen')||document.querySelector('.kanban-col [x-show="editing"]:not([style*="display: none"])')||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName);
+                    if(busy){this.syncStatus='Updates available · finish editing, then refresh';return;}
+                    sessionStorage.setItem('task-filters-'+this.boardId,JSON.stringify(this.filters));location.reload();
+                }else this.syncStatus='Up to date · '+new Date(result.checked_at).toLocaleTimeString();
+            }catch{this.syncStatus='Could not refresh updates. Try Refresh updates.';}
+        },
+        async setCompleted(completed){
+            const columns=@js($board->columns->map(fn($col)=>['id'=>$col->id,'done'=>$col->is_done])->values());
+            const column=columns.find(col=>col.done===completed);
+            if(!column){this.notice='Add a '+(completed?'completion':'work')+' column first.';return;}
+            await this.fetchJson(`/user/tasks/cards/${this.card.id}/move`,{method:'POST',body:{column_id:column.id,position:0}});await this.openCard(this.card.id);
+        },
         async fetchJson(url, opts = {}) {
             const headers = { 'X-CSRF-TOKEN': this.csrf, 'Accept': 'application/json', ...(opts.headers || {}) };
             if (opts.body && !(opts.body instanceof FormData)) {
@@ -742,7 +763,8 @@ function kanbanBoard(boardId) {
                 opts.body = JSON.stringify(opts.body);
             }
             const r = await fetch(url, { ...opts, headers, credentials: 'same-origin' });
-            return r.ok ? r.json() : Promise.reject(await r.text());
+            if(!r.ok){let data;try{data=await r.json()}catch{}const error=new Error(data?.message||'Request failed. Please try again.');this.notice=error.message;throw error;}
+            return r.json();
         },
 
         async onCardDrop(evt) {
@@ -758,6 +780,7 @@ function kanbanBoard(boardId) {
         async openCard(id) {
             const data = await this.fetchJson(`/user/tasks/cards/${id}`);
             this.card = data.card;
+            this.card.start_date=this.card.start_date?this.card.start_date.substring(0,10):null;
             this.card.due_date = this.card.due_date ? this.card.due_date.substring(0, 10) : null;
             this.drawerOpen = true;
             this.$nextTick(() => this.initSubtaskSortable());
@@ -790,9 +813,15 @@ function kanbanBoard(boardId) {
                 { method: 'POST', body: { order } });
         },
 
-        async saveCard(payload) {
-            if (!this.card) return;
-            await this.fetchJson(`/user/tasks/cards/${this.card.id}`, { method: 'PATCH', body: payload });
+        saveQueue:Promise.resolve(),
+        saveCard(payload) {
+            if(!this.card)return;
+            const id=this.card.id;
+            this.saveQueue=this.saveQueue.catch(()=>{}).then(async()=>{
+                if(this.card?.id!==id)return;
+                const result=await this.fetchJson(`/user/tasks/cards/${id}`,{method:'PATCH',body:{...payload,expected_revision:this.card.revision}});
+                this.card.revision=result.revision;this.card.updated_at=result.card.updated_at;this.notice='';
+            });return this.saveQueue;
         },
 
         async assign(userId) {
@@ -971,19 +1000,19 @@ function kanbanBoard(boardId) {
             const f = this.filters;
             const today = new Date(); today.setHours(0,0,0,0);
             const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7);
-            document.querySelectorAll('.kanban-card').forEach(card => {
+            document.querySelectorAll('[data-task-filter]').forEach(card => {
                 let show = true;
                 if (f.search) {
                     const t = (card.dataset.cardTitle || '').toLowerCase();
                     if (!t.includes(f.search.toLowerCase())) show = false;
                 }
-                if (show && f.assignee) {
+                if (show && f.assignees.length) {
                     const ids = (card.dataset.cardAssignees || '').split(',').filter(Boolean);
-                    if (!ids.includes(String(f.assignee))) show = false;
+                    if (!f.assignees.some(id=>ids.includes(String(id)))) show = false;
                 }
-                if (show && f.label) {
+                if (show && f.labels.length) {
                     const ids = (card.dataset.cardLabels || '').split(',').filter(Boolean);
-                    if (!ids.includes(String(f.label))) show = false;
+                    if (!f.labels.some(id=>ids.includes(String(id)))) show = false;
                 }
                 if (show && f.due) {
                     const due = card.dataset.cardDue;
@@ -1016,11 +1045,7 @@ function kanbanBoard(boardId) {
             const h = Math.floor(m / 60), r = m % 60;
             return r ? `${h}h ${r}m` : `${h}h`;
         },
-        async saveBilling(payload) {
-            if (!this.card) return;
-            await this.fetchJson(`/user/tasks/cards/${this.card.id}`, { method: 'PATCH', body: payload });
-            Object.assign(this.card, payload);
-        },
+        async saveBilling(payload) { await this.saveCard(payload); },
         async startTimer() {
             const r = await this.fetchJson(`/user/tasks/cards/${this.card.id}/timer/start`, { method: 'POST' });
             this.card.running_timer = r.entry ? { id: r.entry.id, started_at: r.entry.started_at } : null;

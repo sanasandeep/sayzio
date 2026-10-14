@@ -4,6 +4,9 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\TaskActivity;
+use App\Modules\User\Models\Project;
+use App\Modules\User\Models\ProjectItem;
+use App\Services\Planner\TaskBoardSnapshot;
 use App\Modules\User\Models\TaskAttachment;
 use App\Modules\User\Models\TaskBoard;
 use App\Modules\User\Models\TaskCard;
@@ -71,7 +74,9 @@ class TaskBoardController extends Controller
             ->orderByDesc('archived_at')
             ->get();
 
-        return view('user.tasks.index', compact('personal', 'team', 'archived'));
+        foreach ([$personal,$team,$archived] as $boards) { $boards->load('projectAssignment');$boards->loadCount(['cards as overdue_cards_count'=>fn($query)=>$query->whereNull('completed_at')->whereNull('archived_at')->whereDate('due_date','<',today())]); }
+        $projects=$this->projectChoices();
+        return view('user.tasks.index', compact('personal', 'team', 'archived','projects'));
     }
 
     public function store(Request $request)
@@ -80,6 +85,7 @@ class TaskBoardController extends Controller
             'name'  => 'required|string|max:120',
             'scope' => 'nullable|in:team,personal',
             'color' => 'nullable|string|max:16',
+            'project_id'=>'nullable|integer',
         ]);
         $scope = $data['scope'] ?? 'team';
         $ws    = app('current_workspace');
@@ -93,7 +99,12 @@ class TaskBoardController extends Controller
             abort(403);
         }
 
-        $board = $this->createBoard($data['name'], $scope, $data['color'] ?? null);
+        $project=$this->assignmentProject($request->input('project_id'));
+        $board = DB::transaction(function() use($data,$scope,$project) {
+            $board=$this->createBoard($data['name'],$scope,$data['color']??null);
+            if($project) $this->assignProject('board',$board->id,$project->id);
+            return $board;
+        });
 
         return redirect()
             ->route('user.tasks.show', $board)
@@ -107,7 +118,7 @@ class TaskBoardController extends Controller
         $board->load([
             'columns' => fn ($q) => $q->orderBy('position'),
             'columns.cards' => fn ($q) => $q->whereNull('archived_at')->orderBy('position'),
-            'columns.cards.assignees:id,name,avatar',
+            'columns.cards.assignees:id,name,email,avatar',
             'columns.cards.labels:id,name,color',
             'columns.cards.subtasks',
             'labels',
@@ -119,7 +130,40 @@ class TaskBoardController extends Controller
             'board'      => $board,
             'members'    => $members,
             'priorities' => TaskCard::priorities(),
+            'projects'=>$this->projectChoices(),
+            'projectAssignment'=>ProjectItem::where('kind','board')->where('resource_id',$board->id)->first(),
+            'syncRevision'=>TaskBoardSnapshot::revision($board->fresh()),
         ]);
+    }
+
+    public function sync(TaskBoard $board)
+    {
+        $this->authorizeView($board);
+        return response()->json(['revision'=>TaskBoardSnapshot::revision($board),'checked_at'=>now()->toIso8601String()]);
+    }
+
+    private function projectChoices()
+    {
+        if(!auth()->user()->canInWorkspace(app('current_workspace'),'projects.view')) return collect();
+        return Project::orderBy('name')->get()->filter(fn($project)=>auth()->user()->canInWorkspace(app('current_workspace'),'projects.edit') && ((int)$project->created_by_user_id===(int)auth()->id() || auth()->user()->canInWorkspace(app('current_workspace'),'projects.edit_others')));
+    }
+
+    private function assignmentProject($id): ?Project
+    {
+        if(!$id) return null;
+        abort_unless(auth()->user()->canInWorkspace(app('current_workspace'),'projects.edit'),403);
+        $project=Project::findOrFail($id);
+        abort_unless((int)$project->created_by_user_id===(int)auth()->id() || auth()->user()->canInWorkspace(app('current_workspace'),'projects.edit_others'),403);
+        return $project;
+    }
+
+    private function assignProject(string $kind,int $id,$projectId): void
+    {
+        $old=ProjectItem::where('kind',$kind)->where('resource_id',$id)->first();
+        if($old) $this->assignmentProject($old->project_id);
+        $project=$this->assignmentProject($projectId);
+        if($project) ProjectItem::updateOrCreate(['workspace_id'=>$project->workspace_id,'kind'=>$kind,'resource_id'=>$id],['project_id'=>$project->id,'user_id'=>auth()->id()]);
+        elseif($old) $old->delete();
     }
 
     /** Allow-list HTML sanitizer: strips unknown tags/attrs and non-(http|https|mailto) hrefs. */
@@ -199,11 +243,15 @@ class TaskBoardController extends Controller
     {
         $this->authorizeEdit($board);
         $data = $request->validate([
-            'name'        => 'required|string|max:120',
+            'name'        => 'sometimes|required|string|max:120',
+            'project_id'=>'sometimes|nullable|integer',
             'description' => 'nullable|string|max:2000',
             'color'       => 'nullable|string|max:16',
         ]);
-        $board->update($data);
+        DB::transaction(function() use($board,$data) {
+            if(array_key_exists('project_id',$data)) $this->assignProject('board',$board->id,$data['project_id']);
+            $board->update(array_diff_key($data,['project_id'=>true]));
+        });
         return back()->with('success', 'Board updated.');
     }
 
@@ -295,6 +343,7 @@ class TaskBoardController extends Controller
             'wip_limit' => $data['wip_limit'] ?? null,
             'is_done'   => (bool) ($data['is_done'] ?? false),
         ]);
+        if($request->wantsJson()) return response()->json(['ok'=>true,'column'=>$column->fresh()]);
         return back()->with('success', 'Column updated.');
     }
 
@@ -358,6 +407,8 @@ class TaskBoardController extends Controller
         $this->authorizeView($card->board);
         $card->load(['assignees:id,name,avatar', 'labels', 'subtasks', 'comments.user:id,name,avatar', 'activities.user:id,name,avatar', 'column', 'attachments.uploader:id,name', 'cloudAttachments.cloudFile', 'timeEntries.user:id,name']);
         $cardArr = $card->toArray();
+        $cardArr['revision']=TaskBoardSnapshot::cardRevision($card);
+        $cardArr['project_id']=ProjectItem::where('kind','task')->where('resource_id',$card->id)->value('project_id');
         $cardArr['time_entries'] = $card->timeEntries->map(fn ($t) => [
             'id'         => $t->id,
             'minutes'    => (int) $t->minutes,
@@ -390,36 +441,32 @@ class TaskBoardController extends Controller
             'title'            => 'sometimes|string|max:200',
             'description'      => 'sometimes|nullable|string|max:8000',
             'description_html' => 'sometimes|nullable|string|max:20000',
+            'start_date'       => 'sometimes|nullable|date',
             'due_date'         => 'sometimes|nullable|date',
+            'project_id'       => 'sometimes|nullable|integer',
+            'expected_revision'=> 'sometimes|string|size:64',
             'priority'         => 'sometimes|in:low,normal,high,urgent',
             'progress'         => 'sometimes|integer|min:0|max:100',
             'billable'         => 'sometimes|boolean',
             'rate_type'        => 'sometimes|nullable|in:hourly,flat',
             'rate_amount_minor'=> 'sometimes|nullable|integer|min:0',
         ]);
-        if (array_key_exists('description_html', $data)) {
-            $data['description_html'] = $this->sanitizeHtml($data['description_html']);
-        }
-
-        $changes = [];
-        foreach ($data as $field => $value) {
-            if ((string) $card->{$field} !== (string) $value) {
-                $changes[$field] = ['from' => $card->{$field}, 'to' => $value];
+        return DB::transaction(function() use($card,$data) {
+            $card=TaskCard::whereKey($card->id)->lockForUpdate()->firstOrFail();
+            abort_if(isset($data['expected_revision']) && !hash_equals(TaskBoardSnapshot::cardRevision($card),$data['expected_revision']),409,'This task changed since you opened it. Reopen it before saving.');
+            unset($data['expected_revision']);
+            if(array_key_exists('project_id',$data)) { $this->assignProject('task',$card->id,$data['project_id']);unset($data['project_id']); }
+            $start=array_key_exists('start_date',$data)?$data['start_date']:$card->start_date?->toDateString();$due=array_key_exists('due_date',$data)?$data['due_date']:$card->due_date?->toDateString();
+            if($start && $due && strtotime($start)>strtotime($due)) throw \Illuminate\Validation\ValidationException::withMessages(['due_date'=>'Due date must be on or after the start date.']);
+            if(array_key_exists('description_html',$data)) $data['description_html']=$this->sanitizeHtml($data['description_html']);
+            $changes=[];foreach($data as $field=>$value) {
+                $before=in_array($field,['start_date','due_date']) ? $card->{$field}?->toDateString() : $card->{$field};
+                if((string)$before!==(string)$value) $changes[$field]=['from'=>$before,'to'=>$value];
             }
-        }
-        $card->update($data);
-
-        foreach ($changes as $field => $delta) {
-            $type = match ($field) {
-                'title'    => 'renamed',
-                'priority' => 'priority',
-                'due_date' => 'due_set',
-                default    => 'edited',
-            };
-            TaskActivity::log($card->id, auth()->id(), $type, $delta);
-        }
-
-        return response()->json(['ok' => true, 'card' => $card->fresh()]);
+            $card->update($data);
+            foreach($changes as $field=>$delta) TaskActivity::log($card->id,auth()->id(),match($field){'title'=>'renamed','priority'=>'priority','due_date'=>'due_set',default=>'edited'},$delta);
+            return response()->json(['ok'=>true,'card'=>$card->fresh(),'revision'=>TaskBoardSnapshot::cardRevision($card->fresh())]);
+        });
     }
 
     public function moveCard(Request $request, TaskCard $card)
@@ -890,7 +937,7 @@ class TaskBoardController extends Controller
     private function workspaceMembers()
     {
         $ws = app('current_workspace');
-        $memberIds = WorkspaceMember::where('workspace_id', $ws->id)->pluck('user_id')->all();
+        $memberIds = WorkspaceMember::where('workspace_id', $ws->id)->whereNull('suspended_at')->pluck('user_id')->all();
         $memberIds[] = $ws->owner_user_id;
         return User::whereIn('id', array_unique($memberIds))->select('id','name','avatar','email')->get();
     }
