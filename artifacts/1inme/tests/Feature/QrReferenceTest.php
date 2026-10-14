@@ -10,6 +10,7 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\AI\OpenAiService;
 use App\Services\AI\QrArtGenerationException;
 use App\Services\AI\QrArtService;
+use App\Services\AI\QrReferenceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -79,6 +80,34 @@ class QrReferenceTest extends TestCase
         $other = User::factory()->create();
         $this->actingAs($other);
         $this->postJson('/user/qr-codes/reference-generate', ['quote' => $foreignQuote])->assertStatus(422);
+    }
+
+    public function test_setup_error_identifies_missing_configuration_and_where_to_fix_it(): void
+    {
+        $this->setupReference();
+        AiEngineSettings::setEnabled(false);
+        $response = $this->quote()->assertStatus(422)->assertJsonValidationErrors('reference');
+        $this->assertStringContainsString('AI Engine is switched off', $response->json('errors.reference.0'));
+        $this->assertStringContainsString('Admin → AI Engine', $response->json('errors.reference.0'));
+        $page = $this->get('/user/qr-codes/create')->assertOk()->assertSee('AI QR setup is incomplete')->assertSee('Upload')->assertSee('My Files')->assertSee('Advanced');
+        Http::assertNothingSent();
+        if (getenv('QR_REFERENCE_FIXTURE')) {
+            file_put_contents('/tmp/ai-qr-disabled.html', $page->getContent());
+        }
+    }
+
+    public function test_setup_lists_missing_vision_model_and_qr_provider_separately(): void
+    {
+        $this->setupReference();
+        AiEngineSettings::setModels([['name'=>'text-only','kind'=>'chat','enabled'=>true,'supports_vision'=>false,'in_coins_per_1k'=>1,'out_coins_per_1k'=>1]]);
+        AiEngineSettings::setReplicateKey(null);
+        config(['services.replicate.api_token' => null]);
+        $service = new QrReferenceService(app(OpenAiService::class), new QrArtService(app(AiUsageCharger::class)), app(AiUsageCharger::class));
+        $setup = $service->setup();
+        $this->assertFalse($setup['ready']);
+        $this->assertContains('The Replicate QR generator API key is missing.', $setup['issues']);
+        $this->assertContains('No enabled chat model supports image input (vision).', $setup['issues']);
+        Http::assertNothingSent();
     }
 
     public function test_reference_file_cannot_be_read_from_another_owner_and_svg_is_rejected(): void

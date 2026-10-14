@@ -14,16 +14,36 @@ class QrReferenceService
 {
     public function __construct(private OpenAiService $ai, private QrArtService $art, private AiUsageCharger $charger) {}
 
+    public function setup(): array
+    {
+        $issues = [];
+        if (! AiEngineSettings::isEnabled()) {
+            $issues[] = 'AI Engine is switched off.';
+        }
+        if (! $this->art->enabled()) {
+            $issues[] = 'The Replicate QR generator API key is missing.';
+        }
+        $model = AiEngineSettings::visionChatModel();
+        if (! $model) {
+            $issues[] = 'No enabled chat model supports image input (vision).';
+        } else {
+            $cfg = AiEngineSettings::model($model);
+            if (! AiProviderRegistry::driver(AiProviderRegistry::normalise($cfg['provider'] ?? null))->key()) {
+                $issues[] = 'The selected vision provider API key is missing.';
+            }
+        }
+
+        return ['ready' => ! $issues, 'issues' => $issues];
+    }
+
     public function estimate($request): array
     {
         $payer = workspace_owner();
-        if (! $this->art->enabled() || ! AiEngineSettings::isEnabled() || ! ($model = AiEngineSettings::visionChatModel())) {
-            throw ValidationException::withMessages(['reference' => 'AI QR needs an enabled vision model and configured QR generator.']);
+        $setup = $this->setup();
+        if (! $setup['ready']) {
+            throw ValidationException::withMessages(['reference' => implode(' ', $setup['issues']).' A platform administrator can fix this in Admin → AI Engine: enable AI, configure an image-capable chat model/provider key, and add the Replicate key.']);
         }
-        $cfg = AiEngineSettings::model($model);
-        if (! AiProviderRegistry::driver(AiProviderRegistry::normalise($cfg['provider'] ?? null))->key()) {
-            throw ValidationException::withMessages(['reference' => 'Configure the vision provider API key before using AI QR.']);
-        }
+        $model = AiEngineSettings::visionChatModel();
         abort_unless(AiPlanAccess::featureAllowed($payer, 'qr_art'), 403);
         if ($this->art->monthlyRemaining($payer) === 0) {
             throw ValidationException::withMessages(['reference' => 'Your monthly QR generation allowance is used up.']);

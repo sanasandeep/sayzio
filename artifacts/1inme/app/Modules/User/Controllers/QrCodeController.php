@@ -159,8 +159,10 @@ class QrCodeController extends Controller
         $savedQrCount = QrCodeModel::withoutGlobalScope('workspace')
             ->where('user_id', $owner->id)->count();
 
+        $qrReferenceSetup=app(\App\Services\AI\QrReferenceService::class)->setup();
         return view('user.qr-codes.builder', compact(
             'qrCode', 'types', 'projects', 'links', 'imageFiles', 'defaultDesign', 'presets',
+            'qrReferenceSetup',
             'qrArtEnabled', 'qrArtAllowed', 'qrArtCost', 'qrArtBalance', 'qrArtPresets',
             'qrArtMonthlyAllowance', 'qrArtMonthlyRemaining', 'savedQrCap', 'savedQrCount',
             'prefillLinkId', 'prefillName'
