@@ -30,6 +30,8 @@ trait BelongsToWorkspace
             $builder->where($builder->getModel()->getTable() . '.workspace_id', $ws->id);
         });
 
+        static::addGlobalScope('workspace_record_access', fn (Builder $builder) => \App\Modules\User\Services\WorkspaceRecordAccess::apply($builder));
+
         static::creating(function ($model) {
             if (empty($model->workspace_id) && app()->bound('current_workspace')) {
                 $ws = app('current_workspace');
@@ -45,6 +47,10 @@ trait BelongsToWorkspace
                 if ($parent && !empty($parent->workspace_id)) {
                     $model->workspace_id = $parent->workspace_id;
                 }
+            }
+            $record = \App\Modules\User\Services\WorkspaceRecordAccess::models()[class_basename($model)] ?? null;
+            if ($record && $record[1] === 'created_by_user_id' && auth()->check() && empty($model->created_by_user_id)) {
+                $model->created_by_user_id = auth()->id();
             }
             if (property_exists($model, 'fillable')) {
                 // created_by_user_id: signed-in person who took the action.

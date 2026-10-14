@@ -9,7 +9,7 @@ use App\Modules\User\Models\WorkspaceRolePermissionAudit;
 
 /**
  * Loads, validates, and persists the per-workspace role × action matrix
- * customised by team Admins. Falls back to the hardcoded defaults shipped
+ * customised by owners and active team Admins. Falls back to the hardcoded defaults shipped
  * by `WorkspacePermissions::defaults()` when a workspace has no override.
  *
  * Locked cells (always enforced regardless of what's stored):
@@ -37,7 +37,7 @@ class WorkspaceRoleMatrix
     /** Roles editable in the UI (Owner is implicit, not in the matrix). */
     public static function roles(): array
     {
-        return ['admin', 'editor', 'replier', 'analyst', 'viewer'];
+        return array_keys(self::forWorkspace(app()->bound('current_workspace') ? app('current_workspace') : null));
     }
 
     /** Actions in column order for the UI. */
@@ -64,6 +64,9 @@ class WorkspaceRoleMatrix
         $row = WorkspaceRolePermission::where('workspace_id', $ws->id)->first();
         $stored = $row ? (array) $row->matrix : [];
 
+        foreach ($stored as $role => $values) {
+            if (preg_match('/^custom_[a-z0-9_]{1,60}$/', $role)) $defaults[$role] = array_fill_keys(self::actions(), false);
+        }
         $matrix = self::merge($defaults, $stored);
         $matrix = self::enforceLocks($matrix);
 
@@ -95,7 +98,7 @@ class WorkspaceRoleMatrix
      */
     public static function save(Workspace $ws, array $posted, ?User $actor): array
     {
-        $clean = self::sanitise($posted);
+        $clean = self::sanitise($posted, $ws);
         $clean = self::enforceLocks($clean);
 
         $previous = self::forWorkspace($ws);
@@ -124,7 +127,11 @@ class WorkspaceRoleMatrix
     /** Restore the workspace to the hardcoded defaults (with audit). */
     public static function reset(Workspace $ws, ?User $actor): array
     {
-        return self::save($ws, self::defaults(), $actor);
+        $matrix = self::defaults();
+        foreach (self::forWorkspace($ws) as $role => $row) {
+            if (str_starts_with($role, 'custom_')) $matrix[$role] = $row;
+        }
+        return self::save($ws, $matrix, $actor);
     }
 
     /**
@@ -175,7 +182,10 @@ class WorkspaceRoleMatrix
         foreach ($defaults as $role => $row) {
             $out[$role] = [];
             $storedRow = (array) ($stored[$role] ?? []);
-            foreach ($row as $action => $value) {
+            foreach (WorkspacePermissionCatalog::keys() as $action) {
+                $base = str_contains($action, '.') ? explode('.', $action, 2)[1] : $action;
+                $base = WorkspacePermissionCatalog::baseAction($base);
+                $value = $storedRow[$base] ?? $row[$base] ?? false;
                 if (array_key_exists($action, $storedRow)) {
                     $out[$role][$action] = (bool) $storedRow[$action];
                 } else {
@@ -200,19 +210,21 @@ class WorkspaceRoleMatrix
 
     /**
      * Whitelist roles/actions, coerce to booleans, and reject anything
-     * unknown. Missing cells are treated as false (UI sends checkboxes —
-     * unchecked boxes don't appear in the payload).
+     * unknown. Legacy action-only payloads expand into feature defaults. The editor
+     * submits every feature cell as a boolean in one JSON payload.
      */
-    protected static function sanitise(array $posted): array
+    protected static function sanitise(array $posted, Workspace $ws): array
     {
-        $roles = self::roles();
-        $actions = self::actions();
+        $roles = array_keys(self::forWorkspace($ws));
+        $actions = WorkspacePermissionCatalog::keys();
         $out = [];
         foreach ($roles as $role) {
             $row = (array) ($posted[$role] ?? []);
             $out[$role] = [];
             foreach ($actions as $action) {
-                $out[$role][$action] = !empty($row[$action]);
+                $base = str_contains($action, '.') ? explode('.', $action, 2)[1] : $action;
+                $base = WorkspacePermissionCatalog::baseAction($base);
+                $out[$role][$action] = array_key_exists($action, $row) ? filter_var($row[$action], FILTER_VALIDATE_BOOLEAN) : !empty($row[$base]);
             }
         }
         // Reject extras so a malicious payload can't smuggle in unknown

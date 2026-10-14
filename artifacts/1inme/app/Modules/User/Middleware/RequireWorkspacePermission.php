@@ -46,7 +46,10 @@ class RequireWorkspacePermission
             return $this->deny($request, 'not_a_member', $ws, null);
         }
 
+        $feature = \App\Modules\User\Services\WorkspacePermissionCatalog::routeFeature($request->route()?->uri());
         foreach ($permissions as $perm) {
+            // Historic gates used links.* for forms/folders and inbox.* for subscribers.
+            if ($feature) $perm = $feature.'.'.(str_contains($perm, '.') ? explode('.', $perm, 2)[1] : $perm);
             if ($membership->can($perm)) {
                 return $next($request);
             }
@@ -70,7 +73,10 @@ class RequireWorkspacePermission
         );
 
         $grantorRoles = [];
+        $feature = \App\Modules\User\Services\WorkspacePermissionCatalog::routeFeature($request->route()?->uri());
         foreach ($permissions as $perm) {
+            // Historic gates used links.* for forms/folders and inbox.* for subscribers.
+            if ($feature) $perm = $feature.'.'.(str_contains($perm, '.') ? explode('.', $perm, 2)[1] : $perm);
             $lowest = WorkspacePermissions::lowestRoleFor($perm);
             if ($lowest) {
                 $grantorRoles[] = self::roleLabel($lowest);

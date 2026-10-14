@@ -1035,7 +1035,7 @@ protected $fillable = [
     {
         do {
             $alias = Str::random($length);
-        } while (static::where('alias', $alias)->exists());
+        } while (static::withoutGlobalScopes()->where('alias', $alias)->exists());
 
         return $alias;
     }

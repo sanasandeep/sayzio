@@ -39,14 +39,13 @@ class WorkspaceMember extends Model
     public function effectivePermissions(): array
     {
         $matrix = WorkspacePermissions::effectiveRoleActions($this->workspace);
-        return $matrix[$this->role ?: 'viewer'] ?? $matrix['viewer'];
+        return $this->isSuspended() ? [] : ($matrix[$this->role ?: 'viewer'] ?? []);
     }
 
     /**
      * Gate check for a workspace action. Accepts either the bare action
      * (`'edit'`, `'delete'`, …) or the legacy `'feature.action'` form
-     * (`'links.edit'`) — the feature prefix is ignored because role
-     * permissions apply uniformly across every resource in the workspace.
+     * (`'links.edit'`) — feature permissions are evaluated independently.
      */
     public function can(string $permission): bool
     {
