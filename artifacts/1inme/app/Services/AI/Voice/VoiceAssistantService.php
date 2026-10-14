@@ -116,7 +116,10 @@ class VoiceAssistantService
                         'temperature' => 0.4,
                         'max_tokens'  => 600,
                         'tools'       => $toolDefs,
-                        'tool_choice' => 'auto',
+                        'tool_choice' => $i === 0
+                            && \App\Services\AI\AssistantActionChat::isBiolinkNavigationRequest($userText)
+                            && in_array('open_biolink', array_column(array_column($toolDefs, 'function'), 'name'), true)
+                                ? ['type' => 'function', 'function' => ['name' => 'open_biolink']] : 'auto',
                         'reason'      => 'Voice Assistant: reasoning turn',
                     ]
                 );

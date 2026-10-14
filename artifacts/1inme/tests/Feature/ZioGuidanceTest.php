@@ -10,6 +10,7 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AssistantActionChat;
 use App\Services\AI\ElevenLabsService;
 use App\Services\AI\OpenAiService;
+use App\Services\AI\Providers\AnthropicDriver;
 use App\Services\AI\SiteAssistantSettings;
 use App\Services\AI\Voice\VoiceAssistantService;
 use App\Services\AI\Voice\VoiceToolRegistry;
@@ -148,5 +149,44 @@ class ZioGuidanceTest extends TestCase
         $this->assertSame('question', $result['tool_results'][0]['result']['blocks'][0]['type']);
         $this->assertSame(6, $result['credits']['total']);
         $this->assertSame(base64_encode('test'), $result['audio_base64']);
+    }
+
+    public function test_explicit_open_request_uses_the_navigation_tool_even_without_browser_control_metadata(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $ws = app(WorkspaceContext::class)->resolve($user);
+        app()->instance('current_workspace', $ws);
+        $id = DB::table('links')->insertGetId(['workspace_id' => $ws->id, 'user_id' => $user->id, 'alias' => 'sana-bio', 'title' => 'Sana Sandeep', 'type' => 'biolink', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $llm = Mockery::mock(OpenAiService::class);
+        $llm->shouldReceive('chat')->once()->withArgs(function ($payer, $model, $messages, $opts) {
+            $this->assertSame(['type' => 'function', 'function' => ['name' => 'open_biolink']], $opts['tool_choice']);
+
+            return true;
+        })->andReturn(['content' => '', 'credits_spent' => 2, 'tool_calls' => [[
+            'id' => 'open', 'function' => ['name' => 'open_biolink', 'arguments' => json_encode(['mode' => 'view', 'link_id' => $id])],
+        ]]]);
+        $this->app->instance(OpenAiService::class, $llm);
+        $response = $this->post(route('site-assistant.stream'), [
+            'visitor_token' => 'sa_'.Str::random(28), 'surface' => 'app',
+            'message' => 'can u open Sana Sandeep link in bio page?', 'page' => ['title' => 'My Links'],
+        ]);
+        $response->assertOk();
+        $body = $response->streamedContent();
+        $this->assertStringContainsString('"navigate_to"', $body);
+        $this->assertStringContainsString('sana-bio', $body);
+        $this->assertStringNotContainsString('event: error', $body);
+    }
+
+    public function test_claude_provider_preserves_forced_navigation_tool_selection(): void
+    {
+        $driver = new AnthropicDriver;
+        $method = new \ReflectionMethod($driver, 'payload');
+        $payload = $method->invoke($driver, 'claude-test', [['role' => 'user', 'content' => 'Open my Link in Bio']], [
+            'tools' => [['type' => 'function', 'function' => ['name' => 'open_biolink', 'description' => 'Open a page', 'parameters' => ['type' => 'object', 'properties' => []]]]],
+            'tool_choice' => ['type' => 'function', 'function' => ['name' => 'open_biolink']],
+        ]);
+        $this->assertSame(['type' => 'tool', 'name' => 'open_biolink'], $payload['tool_choice']);
     }
 }
