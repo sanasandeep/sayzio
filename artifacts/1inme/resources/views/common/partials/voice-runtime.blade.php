@@ -134,6 +134,23 @@ window.VoiceRuntime = window.VoiceRuntime || (function () {
     window.addEventListener('resize',clearGuide);
     window.addEventListener('scroll',function(){if(guidePosition)guidePosition();},{passive:true});
 
+    var navigationTimer = null;
+    function navigateWithGuide(url, summary) {
+        var target; try { target = new URL(url, location.origin); } catch(e) {return;}
+        if(target.origin !== location.origin) return;
+        clearTimeout(navigationTimer); clearGuide();
+        var link=Array.from(document.querySelectorAll('a[href]')).find(function(a){return a.href===target.href && a.getClientRects().length && !a.closest('#site-assistant-root');});
+        showGuide({label:link ? (link.getAttribute('aria-label') || link.innerText).trim() : '', instruction:summary||'Opening your page…'});
+        if(!guide){guide=document.createElement('div');guide.className='zio-guide';guide.style.right='24px';guide.style.bottom='100px';guide.setAttribute('role','status');document.body.appendChild(guide);}
+        guide.replaceChildren();
+        var note=document.createElement('span');note.textContent='↗ '+(summary||'Opening your page…');
+        var cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.style.fontSize='14px';
+        cancel.onclick=function(){clearTimeout(navigationTimer);try{sessionStorage.removeItem('zio_navigation_handoff');}catch(e){}clearGuide();};
+        guide.append(note,cancel);
+        try{sessionStorage.setItem('zio_navigation_handoff',JSON.stringify({path:target.pathname+target.search,at:Date.now()}));}catch(e){}
+        navigationTimer=setTimeout(function(){window.location.assign(target.href);},2200);
+    }
+
     // Capabilities catalogue ("What I can do"). Resolves to the parsed JSON, or
     // a friendly fallback shape on any failure so callers can render blindly.
     function loadCaps(url) {
@@ -142,12 +159,12 @@ window.VoiceRuntime = window.VoiceRuntime || (function () {
             .catch(function () { return { tools: {}, limitations: ['Could not load capabilities.'] }; });
     }
 
-    return { controlLabels: controlLabels, sendTurn: sendTurn, applyToolResults: applyToolResults, loadCaps: loadCaps };
+    return { navigateWithGuide: navigateWithGuide, controlLabels: controlLabels, sendTurn: sendTurn, applyToolResults: applyToolResults, loadCaps: loadCaps };
 })();
 </script>
 
 <style>
-.zio-guide{position:fixed;z-index:10050;max-width:min(292px,calc(100vw - 16px));display:flex;align-items:flex-start;gap:10px;padding:14px 16px;background:#fff;color:#17213a;border:1px solid #c7d2fe;border-radius:16px;box-shadow:0 12px 40px #17213a26;font:500 14px/1.5 system-ui}
+.zio-guide{position:fixed;z-index:2147483647;max-width:min(292px,calc(100vw - 16px));display:flex;align-items:flex-start;gap:10px;padding:14px 16px;background:#fff;color:#17213a;border:1px solid #c7d2fe;border-radius:16px;box-shadow:0 12px 40px #17213a26;font:500 14px/1.5 system-ui}
 .zio-guide button{background:transparent;border:0;color:#64748b;font-size:22px;cursor:pointer}
 .zio-guide-found:before{content:'↖';position:absolute;top:-29px;left:10px;color:#4562ff;font-size:30px}
 .zio-guide-found:after{content:'';position:fixed;pointer-events:none;left:var(--zio-x);top:var(--zio-y);width:var(--zio-w);height:var(--zio-h);border:3px solid #4562ff;border-radius:10px;box-shadow:0 0 0 7px #4562ff26;animation:zio-pulse 1.8s ease-in-out infinite}
