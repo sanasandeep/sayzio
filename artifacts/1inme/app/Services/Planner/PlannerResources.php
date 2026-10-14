@@ -27,11 +27,17 @@ class PlannerResources
 {
     public const TYPES = ['link' => Link::class, 'form' => Form::class, 'qr' => QrCode::class, 'file' => UserFile::class, 'calendar' => Calendar::class, 'board' => TaskBoard::class, 'task' => TaskCard::class, 'plan' => NoteActionPlan::class, 'mind' => AiMind::class, 'persona' => AiPersona::class, 'brand' => BrandKit::class, 'staff' => AiStaff::class, 'agent' => AiPersonaAgent::class, 'companion' => AiCompanion::class, 'studio' => BrandStudioKit::class, 'strategy' => MarketingStrategy::class, 'budget' => MarketingPlanCalc::class, 'buzz' => SocialProof::class];
 
+    public static function typeLabels(): array
+    {
+        $labels = ['link'=>'Links','form'=>'Forms','qr'=>'QR codes','file'=>'Files','calendar'=>'Calendars','board'=>'Task boards','task'=>'Tasks','plan'=>'AI plans','mind'=>'AI Minds','persona'=>'Personas','brand'=>'Brand kits','staff'=>'AI Staff','agent'=>'Agents','companion'=>'Companions','studio'=>'Brand Studio','strategy'=>'Strategies','budget'=>'Budgets','buzz'=>'Buzz campaigns'];
+        return collect(array_keys(self::TYPES))->mapWithKeys(fn($kind)=>[$kind=>$labels[$kind]??ucfirst($kind)])->all();
+    }
+
     public function query(string $kind, $user)
     {
         abort_unless(isset(self::TYPES[$kind]), 422, 'Unsupported resource type.');
         $q = self::TYPES[$kind]::query();
-        $permission = match($kind){'task','board'=>'tasks.view','link','qr','calendar','buzz'=>'links.view','form'=>'inbox.view','file'=>'files.view',default=>null};
+        $permission = match($kind){'task','board'=>'tasks.view','link'=>'links.view','qr'=>'qr.view','calendar'=>'calendar.view','buzz'=>'social-proofs.view','form'=>'forms.view','file'=>'files.view','plan'=>'planner.view','mind'=>'minds.view','persona'=>'ai-personas.view','staff','agent','companion'=>'ai-agents.view',default=>'ai.view'};
         if($permission && !$user->canInWorkspace(app('current_workspace'),$permission)) return $q->whereRaw('1=0');
         if (in_array($kind, ['strategy', 'budget'])) {
             return $q->where('user_id', $user->id)->where('workspace_id', app('current_workspace')->id);

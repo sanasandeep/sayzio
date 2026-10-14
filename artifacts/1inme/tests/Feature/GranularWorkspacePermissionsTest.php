@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\Project;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\WorkspaceContext;
@@ -154,5 +155,27 @@ class GranularWorkspacePermissionsTest extends TestCase
         $this->actingAs($member)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
         $this->get('/user/links/export')->assertForbidden();
         $this->get('/user/links')->assertOk();
+    }
+
+    public function test_folder_resource_choices_use_the_actual_feature_permission(): void
+    {
+        [$owner, $ws, $member] = $this->setupTeam();
+        $folder = new Project(['user_id' => $owner->id, 'name' => 'Access choices']);
+        $folder->workspace_id = $ws->id;
+        $folder->created_by_user_id = $owner->id;
+        $folder->saveQuietly();
+        $form = $owner->forms()->make(['title' => 'Allowed form', 'slug' => 'allowed-form', 'fields' => [], 'design' => [], 'settings' => [], 'notifications' => []]);
+        $form->workspace_id = $ws->id;
+        $form->created_by_user_id = $owner->id;
+        $form->saveQuietly();
+        $matrix = WorkspaceRoleMatrix::defaults();
+        $matrix['editor']['forms.view'] = true;
+        $matrix['editor']['inbox.view'] = false;
+        WorkspaceRoleMatrix::save($ws, $matrix, $owner);
+        $this->actingAs($member)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        $this->get('/user/projects/'.$folder->id.'?tab=resources')->assertOk()->assertSee('Allowed form');
+        $matrix['editor']['forms.view'] = false;
+        WorkspaceRoleMatrix::save($ws, $matrix, $owner);
+        $this->get('/user/projects/'.$folder->id.'?tab=resources')->assertOk()->assertDontSee('Allowed form');
     }
 }
