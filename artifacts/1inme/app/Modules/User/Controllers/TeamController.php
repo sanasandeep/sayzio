@@ -182,7 +182,7 @@ class TeamController extends Controller
 
         $data = $request->validate([
             'email' => 'required|email|max:255',
-            'role'  => 'required|in:admin,editor,replier,analyst,viewer',
+            'role'  => ['required', \Illuminate\Validation\Rule::in(WorkspacePermissions::presets())],
         ]);
 
         $maxSeats = \App\Support\PlanLimit::normalize((int) $owner->getPlanFeature('max_seats_per_workspace', 1));
@@ -240,7 +240,7 @@ class TeamController extends Controller
         abort_unless($member->workspace_id === $ws->id, 404);
 
         $data = $request->validate([
-            'role' => 'required|in:admin,editor,replier,analyst,viewer',
+            'role' => ['required', \Illuminate\Validation\Rule::in(WorkspacePermissions::presets())],
         ]);
 
         $previousRole = $member->role;

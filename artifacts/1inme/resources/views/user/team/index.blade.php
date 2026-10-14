@@ -527,40 +527,30 @@
                     </select>
                     <p class="mt-2 text-xs opacity-70">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Roles apply to <strong>everything in this workspace</strong>, links, Link in Bio pages, forms,
+                        Permissions are configured separately for features in this workspace: links, Link in Bio pages, forms,
                         subscribers, posts, QR codes and more. Workspace-level destructive actions
                         (delete workspace, billing, transfer ownership) stay owner-only.
                     </p>
                 </div>
 
-                <div class="mb-4 border rounded p-3 overflow-x-auto" style="border-color: var(--border-strong);">
-                    <table class="app-collection-table w-full text-xs">
-                        <thead>
-                            <tr class="text-left opacity-70">
-                                <th class="py-1">Role</th>
-                                @foreach(\App\Modules\User\Services\WorkspacePermissions::ACTIONS as $a)
-                                    <th class="px-2 capitalize text-center">{{ $a }}</th>
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($effectiveMatrix as $roleSlug => $row)
-                                <tr class="border-t" style="border-color: var(--border-strong);"
-                                    :class="form.role === '{{ $roleSlug }}' ? 'bg-indigo-50/40' : ''">
-                                    <td class="py-1.5 capitalize font-medium">{{ $roleSlug }}</td>
-                                    @foreach(\App\Modules\User\Services\WorkspacePermissions::ACTIONS as $a)
-                                        <td class="px-2 text-center">
-                                            @if($row[$a] ?? false)
-                                                <i class="fas fa-check text-green-500"></i>
-                                            @else
-                                                <span class="opacity-30">-</span>
-                                            @endif
-                                        </td>
-                                    @endforeach
-                                </tr>
+                <div class="mb-4 border rounded p-3 overflow-y-auto" style="border-color: var(--border-strong); max-height:260px;">
+                    <p class="text-xs opacity-70 mb-2">Effective permissions for the selected role</p>
+                    @foreach($effectiveMatrix as $roleSlug => $row)
+                        <dl x-show="form.role === @js($roleSlug)" class="text-xs space-y-2">
+                            @foreach(\App\Modules\User\Services\WorkspacePermissionCatalog::features() as $feature => $label)
+                                @php
+                                    $grants = [];
+                                    foreach(\App\Modules\User\Services\WorkspacePermissionCatalog::featureActions($feature) as $action) {
+                                        if($row[$feature.'.'.$action] ?? $row[\App\Modules\User\Services\WorkspacePermissionCatalog::baseAction($action)] ?? false) $grants[] = ucfirst($action);
+                                    }
+                                    if(in_array($feature, array_column(\App\Modules\User\Services\WorkspaceRecordAccess::models(), 0), true)) {
+                                        foreach(['view','edit','delete'] as $action) if($row[$feature.'.'.$action.'_others'] ?? false) $grants[] = ucfirst($action).' others';
+                                    }
+                                @endphp
+                                <div class="border-t pt-2" style="border-color:var(--border-strong)"><dt class="font-semibold">{{ $label }}</dt><dd class="opacity-70 mt-1">{{ $grants ? implode(' · ', $grants) : 'No access' }}</dd></div>
                             @endforeach
-                        </tbody>
-                    </table>
+                        </dl>
+                    @endforeach
                 </div>
 
                 <div class="flex justify-end gap-2">
@@ -646,7 +636,7 @@ function seatsPage(initial) {
         modal: { open: false, action: '', method: '', title: '' },
         form: { role: 'viewer' },
         removeModal: { open: false, member: { id: 0, name: '', owned_count: 0, user_id: 0 } },
-        validRoles: ['admin','editor','replier','analyst','viewer'],
+        validRoles: @json(\App\Modules\User\Services\WorkspacePermissions::presets()),
 
         get atLimit() {
             return this.maxSeats !== -1 && (this.usedSeats + this.pendingCount) >= this.maxSeats;

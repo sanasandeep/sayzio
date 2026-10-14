@@ -25,7 +25,8 @@ class WorkspaceRolesController extends Controller
         $user = $request->user();
         $isOwner = (int) $ws->owner_user_id === (int) $user->id
             || (method_exists($user, 'hasPermission') && $user->hasPermission('user.workspaces.access_any'));
-        $isAdmin = !$isOwner && optional($user->membershipFor($ws))->role === 'admin';
+        $membership = $user->membershipFor($ws);
+        $isAdmin = !$isOwner && $membership && $membership->role === 'admin' && !$membership->isSuspended();
         abort_unless($isOwner || $isAdmin,
                      403, 'Only the workspace owner or an Admin can edit roles.');
         return $ws;
@@ -37,7 +38,8 @@ class WorkspaceRolesController extends Controller
         return view('user.team.roles', [
             'workspace' => $ws,
             'roles'     => WorkspaceRoleMatrix::roles(),
-            'actions'   => WorkspaceRoleMatrix::actions(),
+            'actions'   => array_merge(WorkspaceRoleMatrix::actions(), ['export','publish','run']),
+            'features' => \App\Modules\User\Services\WorkspacePermissionCatalog::features(),
             'matrix'    => WorkspaceRoleMatrix::forWorkspace($ws),
             'defaults'  => WorkspaceRoleMatrix::defaults(),
             'audits'    => WorkspaceRoleMatrix::recentAudits($ws, 10),
@@ -51,12 +53,14 @@ class WorkspaceRolesController extends Controller
         // Whitelisted shape: matrix[<role>][<action>] = "1"|"0"|on. Anything
         // else is rejected by `WorkspaceRoleMatrix::save()` so a hostile
         // payload can't sneak unknown roles or actions into storage.
-        $request->validate(['matrix' => 'nullable|array']);
+        $request->validate(['matrix' => 'nullable|array', 'matrix_json' => 'nullable|json|max:250000']);
+        $posted = $request->filled('matrix_json') ? json_decode($request->input('matrix_json'), true) : $request->input('matrix', []);
+        abort_unless(is_array($posted), 422);
 
         try {
             WorkspaceRoleMatrix::save(
                 $ws,
-                (array) $request->input('matrix', []),
+                $posted,
                 $request->user(),
             );
         } catch (\InvalidArgumentException $e) {
@@ -67,6 +71,24 @@ class WorkspaceRolesController extends Controller
 
         return redirect()->route('user.team.roles.index')
             ->with('success', 'Role permissions updated.');
+    }
+
+    public function duplicate(Request $request)
+    {
+        $ws = $this->workspace($request);
+        $data = $request->validate(['source' => 'required|string', 'name' => 'required|string|max:60|regex:/^[A-Za-z0-9][A-Za-z0-9 _-]*$/']);
+        $matrix = WorkspaceRoleMatrix::forWorkspace($ws);
+        abort_unless(isset($matrix[$data['source']]), 422);
+        abort_if(count($matrix) >= 30, 422, 'Maximum 30 roles per workspace.');
+        $slug = 'custom_'.str_replace('-', '_', \Illuminate\Support\Str::slug($data['name']));
+        abort_if(isset($matrix[$slug]), 422, 'A role with this name already exists.');
+        // Register the new role in the same atomic matrix record, then audit its permissions.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($ws, $matrix, $slug, $data, $request) {
+            \App\Modules\User\Models\WorkspaceRolePermission::updateOrCreate(['workspace_id'=>$ws->id], ['matrix'=>$matrix + [$slug => array_fill_keys(\App\Modules\User\Services\WorkspacePermissionCatalog::keys(), false)]]);
+            WorkspaceRoleMatrix::forget($ws);
+            WorkspaceRoleMatrix::save($ws, $matrix + [$slug => $matrix[$data['source']]], $request->user());
+        });
+        return redirect()->route('user.team.roles.index')->with('success', 'Role duplicated. You can now edit and assign it to teammates.');
     }
 
     public function reset(Request $request)

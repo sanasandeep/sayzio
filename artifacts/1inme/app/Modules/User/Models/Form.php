@@ -589,6 +589,6 @@ protected $fillable = [
     public static function uniqueSlug(string $base): string
     {
         $base = Str::slug(Str::limit($base, 50, '')) ?: Str::random(8);
-        return \App\Support\UniqueSuffix::resolve(static::query(), $base);
+        return \App\Support\UniqueSuffix::resolve(static::withoutGlobalScopes(), $base);
     }
 }

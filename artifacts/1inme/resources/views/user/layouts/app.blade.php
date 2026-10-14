@@ -681,6 +681,8 @@
                     'vault_view'     => WP::userCan('vault.view'),
                     'files_view'     => WP::userCan('files.view'),
                     'links_view'     => WP::userCan('links.view'),
+                    'forms_view' => WP::userCan('forms.view'),
+                    'qr_view' => WP::userCan('qr.view'),
                     'links_create'   => WP::userCan('links.create'),
                     'inbox_view'     => WP::userCan('inbox.view'),
                     'posts_view'     => WP::userCan('posts.view'),
@@ -822,7 +824,7 @@
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
-                        @if($__can['links_view'])
+                        @if($__can['qr_view'])
                         <a href="{{ route('user.qr-codes.index') }}"
                            class="sidebar-link {{ nav_route_is('user.qr-codes.*') || nav_route_is('user.qrcode*') ? 'active' : '' }}"
                            style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
@@ -831,7 +833,7 @@
                             <span class="sidebar-tooltip">QR Codes</span>
                         </a>
                         @endif
-                        @if($__can['inbox_view'])
+                        @if($__can['forms_view'])
                         <a href="{{ route('user.forms.index') }}"
                            class="sidebar-link {{ nav_route_is('user.forms.*') ? 'active' : '' }}"
                            style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
@@ -1745,10 +1747,10 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                @if($__can['links_view'])
+                                @if($__can['qr_view'])
                                 <a href="{{ route('user.qr-codes.index') }}" class="sidebar-link {{ nav_route_is('user.qr-codes.*') || nav_route_is('user.qrcode*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div> <span>QR Codes</span></a>
                                 @endif
-                                @if($__can['inbox_view'])
+                                @if($__can['forms_view'])
                                 <a href="{{ route('user.forms.index') }}" class="sidebar-link {{ nav_route_is('user.forms.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div> <span>Forms</span></a>
                                 @endif
                                 @if($__can['links_view'])

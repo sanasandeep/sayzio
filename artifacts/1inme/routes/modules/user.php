@@ -269,7 +269,7 @@ Route::prefix('user')->name('user.')->group(function () {
         ->middleware('throttle:10,1')
         ->name('account.two-factor.challenge.verify');
 
-    Route::middleware(['auth', 'workspace.scope', 'workspace.2fa', \App\Modules\User\Middleware\EnsureFeatureAvailable::class])->group(function () {
+    Route::middleware(['auth', 'workspace.scope', 'workspace.2fa', \App\Modules\User\Middleware\EnforceWorkspaceFeature::class, \App\Modules\User\Middleware\EnsureFeatureAvailable::class])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
         // App-wide "Coming soon" feature preview + notify-me. The
@@ -363,6 +363,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // ---- Roles & Permissions (Owner + Admin) ----
         Route::get   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'index']) ->name('team.roles.index');
         Route::put   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'update'])->name('team.roles.update');
+        Route::post('team/roles/duplicate', [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'duplicate'])->name('team.roles.duplicate');
         Route::post  ('team/roles/reset',                      [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'reset']) ->name('team.roles.reset');
 
         // ---- Activity log (Owner + Admin) ----

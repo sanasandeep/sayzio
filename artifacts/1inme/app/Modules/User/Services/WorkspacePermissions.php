@@ -4,22 +4,7 @@ namespace App\Modules\User\Services;
 
 use App\Modules\User\Services\WorkspaceRoleMatrix;
 
-/**
- * Canonical role → action mapping for workspace members.
- *
- * Permissions are NOT stored per feature — a member's role on a workspace
- * grants the same action set across every resource in that workspace
- * (links, biolinks, posts, forms, subscribers, QR codes, projects, …).
- *
- * Owner of the workspace and super-admins bypass these checks entirely
- * (handled in `User::canInWorkspace()`). Workspace-level admin actions
- * (delete workspace, invite/remove members, change plan/billing) remain
- * owner-only and are enforced separately in their respective controllers.
- *
- * The legacy `workspace.can:links.edit` / `@canInWorkspace('links.edit')`
- * syntax keeps working — the trailing `.edit` is what matters; the
- * feature prefix is ignored. A bare key like `'edit'` works the same way.
- */
+/** Feature-specific role permissions; owners bypass through User::canInWorkspace. */
 class WorkspacePermissions
 {
     /** Recognised role slugs (lower priority → higher). */
@@ -56,34 +41,50 @@ class WorkspacePermissions
     /** Friendly one-line description of each role for the team UI. */
     public static function roleDescriptions(): array
     {
-        return [
-            'admin'   => 'Admin — full access to everything in this workspace',
-            'editor'  => 'Editor — view, create and edit (cannot delete)',
+        $descriptions = [
+            'admin'   => 'Admin — configurable content access; manages team and roles',
+            'editor'  => 'Editor — defaults to view, create, edit and reply',
             'replier' => 'Replier — view and reply only (great for support)',
             'analyst' => 'Analyst — view-only, focused on analytics',
-            'viewer'  => 'Viewer — view-only across the workspace',
+            'viewer'  => 'Viewer — defaults to view-only access',
         ];
+        foreach (self::presets() as $role) {
+            if (!isset($descriptions[$role])) $descriptions[$role] = self::roleLabel($role).' — custom permissions';
+        }
+        return $descriptions;
     }
 
     /**
      * Does $role allow $action? Accepts either a bare action like 'edit'
-     * or the legacy 'feature.action' form like 'links.edit' (the prefix
-     * is ignored).
+     * or the legacy 'feature.action' form like 'links.edit' (the feature and action are evaluated separately).
      */
     public static function roleCan(string $role, string $action, ?\App\Modules\User\Models\Workspace $ws = null): bool
     {
-        if (str_contains($action, '.')) {
-            [, $action] = explode('.', $action, 2);
+        if (!str_contains($action, '.') && !$ws) {
+            $feature = WorkspacePermissionCatalog::routeFeature(request()->route()?->uri());
+            if ($feature) $action = $feature.'.'.$action;
         }
+        $action = WorkspacePermissionCatalog::canonical($action);
         $matrix = self::effectiveRoleActions($ws);
-        $row = $matrix[$role] ?? $matrix['viewer'];
+        $row = $matrix[$role] ?? [];
+        if (array_key_exists($action, $row)) return (bool) $row[$action];
+        // Unconfigured built-in workspaces use the historic action defaults.
+        if (str_contains($action, '.') && isset(WorkspacePermissionCatalog::features()[explode('.', $action, 2)[0]])) {
+            $base = WorkspacePermissionCatalog::baseAction(explode('.', $action, 2)[1]);
+            return (bool) ($row[$base] ?? false);
+        }
         return (bool) ($row[$action] ?? false);
+    }
+
+    public static function roleLabel(string $role): string
+    {
+        return ucwords(str_replace('_', ' ', preg_replace('/^custom_/', '', $role)));
     }
 
     /** Names of roles in priority order — used by the role dropdown. */
     public static function presets(): array
     {
-        return self::ROLES;
+        return array_keys(self::effectiveRoleActions());
     }
 
     /**

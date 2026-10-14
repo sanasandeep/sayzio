@@ -156,12 +156,12 @@ class WorkspacePermissionsTest extends TestCase
         );
     }
 
-    public function test_unknown_role_falls_back_to_viewer_semantics(): void
+    public function test_unknown_role_is_denied_instead_of_receiving_viewer_access(): void
     {
-        // Old rows with role='custom' (or any unrecognised role) must
+        // Unregistered legacy/custom roles must fail closed rather than
         // safely degrade to view-only — never silently grant elevated
         // access.
-        $this->assertTrue(WorkspacePermissions::roleCan('custom', 'view'));
+        $this->assertFalse(WorkspacePermissions::roleCan('custom', 'view'));
         $this->assertFalse(WorkspacePermissions::roleCan('custom', 'edit'));
         $this->assertFalse(WorkspacePermissions::roleCan('custom', 'delete'));
         $this->assertFalse(WorkspacePermissions::roleCan('custom', 'reply'));
@@ -209,10 +209,10 @@ class WorkspacePermissionsTest extends TestCase
 
         $html = $this->followingRedirects()->get('/user/dashboard')->getContent();
         // Owner sees the full menu — sample a few that are gated for members.
-        $this->assertStringContainsString('user/integrations', $html);
+        $this->assertStringContainsString(route('user.forms.index'), $html);
         $this->assertStringContainsString('user/calendar', $html);
         $this->assertStringContainsString('user/contacts', $html);
-        $this->assertStringContainsString('user/verification', $html);
+        $this->assertStringContainsString(route('user.qr-codes.index'), $html);
         $this->assertStringContainsString('user/referrals', $html);
         $this->assertStringContainsString('user/pixels', $html);
         $this->assertStringContainsString('user/followers', $html);

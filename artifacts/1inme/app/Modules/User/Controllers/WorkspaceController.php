@@ -149,7 +149,7 @@ class WorkspaceController extends Controller
         $data = $request->validate([
             'enabled'          => 'nullable|boolean',
             'approver_roles'   => 'nullable|array',
-            'approver_roles.*' => 'string|in:admin,editor,replier,analyst,viewer',
+            'approver_roles.*' => ['string', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\WorkspacePermissions::presets())],
         ]);
 
         $enabled       = (bool) ($data['enabled'] ?? false);
