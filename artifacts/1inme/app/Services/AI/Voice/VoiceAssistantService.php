@@ -91,7 +91,7 @@ class VoiceAssistantService
             $surface = ['name' => $surface];
         }
         if (is_array($surface) && !empty($surface['name'])) {
-            $systemPrompt .= "\n\n" . $this->surfaceHint($surface);
+            $systemPrompt .= "\n\n" . $this->surfaceHint($surface)."\n".\App\Services\AI\ZioPageKnowledge::context($user, $surface);
         }
         $messages = array_merge(
             [['role' => 'system', 'content' => $systemPrompt]],
@@ -118,10 +118,11 @@ class VoiceAssistantService
                         'temperature' => 0.4,
                         'max_tokens'  => 600,
                         'tools'       => $toolDefs,
-                        'tool_choice' => $i === 0
+                        'tool_choice' => $i === 0 && \App\Services\AI\AssistantActionChat::isSocialBlockRequest($userText,(array)$surface) && in_array('prepare_social_block',$allowedTools,true)
+                            ? ['type'=>'function','function'=>['name'=>'prepare_social_block']] : ($i === 0
                             && \App\Services\AI\AssistantActionChat::isBiolinkNavigationRequest($userText)
                             && in_array('open_biolink', array_column(array_column($toolDefs, 'function'), 'name'), true)
-                                ? ['type' => 'function', 'function' => ['name' => 'open_biolink']] : 'auto',
+                                ? ['type' => 'function', 'function' => ['name' => 'open_biolink']] : 'auto'),
                         'reason'      => 'Voice Assistant: reasoning turn',
                     ]
                 );

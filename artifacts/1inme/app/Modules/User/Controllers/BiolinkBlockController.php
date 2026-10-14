@@ -463,6 +463,23 @@ class BiolinkBlockController extends Controller
             // a design-locked page lands after the fixed prefix, so echoing
             // the request would have the editor draw the card somewhere the
             // server did not put it.
+            if ($request->filled('assistant_visitor_token') && $request->user()) {
+                try {
+                    $confirmed=[];
+                    if(str_starts_with($block->type,'socials')){
+                        $platforms=$block->settings['platforms']??[];
+                        foreach(($block->settings['groups']??[]) as $group) $platforms=array_merge($platforms,$group['platforms']??[]);
+                        foreach($platforms as $row) $confirmed[]=($row['name']??'Social link').': '.($row['url']??'');
+                    }
+                    \App\Services\AI\ZioTranscriptRecorder::record($request->user(), (string)$request->input('assistant_visitor_token'), [
+                        ['role'=>'user','content'=>'Confirmed adding '.(BiolinkBlock::TYPES[$block->type]['label']??'a block').($confirmed ? "\n".implode("\n",$confirmed) : ''),'meta'=>['source'=>'native_block_confirmation']],
+                        [
+                        'role'=>'assistant','content'=>'Added '.(BiolinkBlock::TYPES[$block->type]['label']??'a block').' to '.$link->title.'. You can change its settings in Blocks.',
+                        'meta'=>['source'=>'native_block_save','link_id'=>$link->id,'block_id'=>$block->id],
+                    ]]);
+                } catch (\Throwable $e) { report($e); }
+            }
+
             $payload = [
                 'success'       => true,
                 'block'         => $block,

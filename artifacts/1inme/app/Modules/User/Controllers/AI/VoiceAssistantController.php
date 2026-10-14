@@ -120,6 +120,17 @@ class VoiceAssistantController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
+        if (!empty($result['transcript']) && !empty($result['reply'])) {
+            try {
+                $blocks=[];
+                foreach (($result['tool_results']??[]) as $tool) $blocks=array_merge($blocks,$tool['result']['blocks']??[]);
+                \App\Services\AI\ZioTranscriptRecorder::record($user,$context['visitor_token']??null,[
+                    ['role'=>'user','content'=>$result['transcript'],'meta'=>['source'=>'voice']],
+                    ['role'=>'assistant','content'=>$result['reply'],'blocks'=>$blocks,'credits_spent'=>$result['credits']['total']??0,'meta'=>['source'=>'voice']],
+                ]);
+            } catch (\Throwable $e) { report($e); }
+        }
+
         return response()->json($result);
     }
 

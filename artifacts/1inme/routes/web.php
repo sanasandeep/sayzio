@@ -209,6 +209,7 @@ Route::get    ('/embed/companion/{publicId}/iframe',   [\App\Modules\Common\Cont
 
 // ---- Site-wide AI Assistant (marketing + logged-in widget) ----
 Route::prefix('assistant')->name('site-assistant.')->group(function () {
+    Route::get('export', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'exportChat'])->middleware('throttle:10,1')->name('export');
     Route::get ('bootstrap', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'bootstrap'])->name('bootstrap');
     Route::post('session',   [\App\Modules\Common\Controllers\SiteAssistantController::class, 'session'])->middleware('throttle:60,1')->name('session');
     Route::post('message',   [\App\Modules\Common\Controllers\SiteAssistantController::class, 'message'])->middleware('throttle:60,1')->name('message');

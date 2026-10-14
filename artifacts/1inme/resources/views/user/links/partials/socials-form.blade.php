@@ -1,7 +1,7 @@
 @php
     $inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none';
     $labelClass = 'block text-xs text-white/40 mb-1';
-    $socialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin','github','discord','telegram','whatsapp','snapchat','pinterest','twitch','dribbble','spotify','soundcloud','apple','reddit','medium','behance','website','email'];
+    $socialOptions = \App\Services\AI\ZioPageKnowledge::SOCIAL_PLATFORMS;
 
     // The user's connected accounts — used as an optional source for each
     // entry's follower count and canonical profile URL.

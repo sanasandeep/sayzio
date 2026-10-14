@@ -190,6 +190,9 @@
 .sa-header .sa-sub{font-size:11px;opacity:.65}
 .sa-close{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:transparent;border:0;color:#94a3b8;font-size:20px;line-height:1;border-radius:8px;cursor:pointer;transition:background .15s ease,color .15s ease}
 .sa-close:hover{background:rgba(255,255,255,.08);color:#e2e8f0}
+.sa-header-tools{display:flex;gap:6px;margin-left:auto}.sa-header-tool{width:36px;height:36px;border:1px solid #dbe2ef;border-radius:10px;background:transparent;color:inherit;font-size:22px;cursor:pointer}
+#sa-panel-wrap.sa-fullscreen{inset:16px!important;width:auto!important;transform:none!important}#sa-panel-wrap.sa-fullscreen #sa-panel{width:100%!important;height:calc(100dvh - 32px)!important;max-height:none!important}#sa-panel-wrap.sa-fullscreen #sa-peek{display:none}#sa-panel-wrap.sa-fullscreen .sa-msg{max-width:800px}#sa-panel-wrap.sa-fullscreen .sa-question{max-width:800px}
+.sa-export-form{padding:16px;background:#f8faff;color:#17213a;border-bottom:1px solid #dbe2ef;display:grid;gap:10px;max-height:50dvh;overflow:auto}.sa-export-form p{margin:0;font-size:12px}.sa-export-form label{display:grid;gap:6px;font-size:13px}.sa-export-form input{padding:10px;border:1px solid #cbd5e1;border-radius:8px;min-width:0;width:100%;box-sizing:border-box;background:#fff;color:#17213a}
 .sa-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .sa-msg{max-width:85%;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
 .sa-msg.user{align-self:flex-end;background:var(--sa-accent,#3d6bff);color:#fff;border-bottom-right-radius:4px}
@@ -202,6 +205,7 @@
 .sa-question{padding:14px;border:1px solid #c7d2fe;border-radius:14px;background:#f8faff;color:#17213a}
 .sa-question-title{font-weight:650;margin-bottom:12px}.sa-question-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
 .sa-question .sa-btn{white-space:normal;text-align:left;border-radius:10px;padding:10px 12px}.sa-question-option{display:flex;gap:8px;align-items:center;padding:10px;background:#fff;border:1px solid #dbe2ef;border-radius:10px;cursor:pointer}
+.sa-social-row{display:grid;gap:8px;margin:12px 0}.sa-social-row select,.sa-social-setup>details select{max-width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;background:white;color:#17213a}.sa-social-review{overflow-wrap:anywhere;font-size:12px}.sa-social-setup p{font-size:12px;line-height:1.5}
 .sa-question input[type=text]{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#17213a;margin-bottom:10px}
 .sa-question-other{display:block;margin-top:10px;border:0;background:transparent;color:#435be8;cursor:pointer;font:inherit}.sa-question button:disabled{opacity:.5;cursor:default}
 .sa-blocks{display:flex;flex-direction:column;gap:8px;margin-top:8px}
@@ -433,6 +437,7 @@ window.__SA_CHROME = {
 window.__SA_LOGIN_URL = @json(url('/login'));
 (function(){
   var root=document.getElementById('site-assistant-root');
+  if(root && root.parentNode!==document.body) document.body.appendChild(root);
   if(!root) return;
   var ds=root.dataset;
   var csrf=(document.querySelector('meta[name="csrf-token"]')||{}).content||'';
@@ -631,7 +636,38 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // level skip: the heading before it is an h2, so an h4 here jumps a
   // level in the document outline. Nothing about the panel changes -- its
   // size comes from .sa-header, not from the tag.
+  var fullscreen=false;
   var header=el('div',{class:'sa-header',html:'<div><h3>'+escapeHtml(window.__SA_BRAND||'Assistant')+'</h3><div class="sa-sub" id="sa-sub">'+escapeHtml(subInit)+'</div></div>'});
+  var headerTools=el('div',{class:'sa-header-tools'});
+  var expandButton=el('button',{type:'button',class:'sa-header-tool','aria-label':'Expand Zio to fullscreen',title:'Expand to fullscreen'},'⛶');
+  expandButton.onclick=function(){fullscreen=!fullscreen;panelWrap.classList.toggle('sa-fullscreen',fullscreen);expandButton.setAttribute('aria-label',fullscreen?'Exit Zio fullscreen':'Expand Zio to fullscreen');expandButton.title=fullscreen?'Exit fullscreen':'Expand to fullscreen';};
+  var exportButton=el('button',{type:'button',class:'sa-header-tool','aria-label':'Export Zio chats',title:'Export chats'},'↓');
+  exportButton.onclick=function(){
+    if(AUTH_REQUIRED){showLoginGate();return;}
+    var old=panel.querySelector('.sa-export-form');if(old){old.remove();return;}
+    var form=el('div',{class:'sa-export-form'});
+    form.appendChild(el('strong',{},'Export my Zio chats'));
+    form.appendChild(el('p',{},'Choose your local start and end time. Exports are free.'));
+    function localValue(date){return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,19);}
+    var end=new Date(),start=new Date(end);start.setHours(0,0,0,0);
+    var from=el('input',{type:'datetime-local',step:'1',value:localValue(start),'aria-label':'Export start date and time'});
+    var to=el('input',{type:'datetime-local',step:'1',value:localValue(end),'aria-label':'Export end date and time'});
+    form.append(el('label',{},['From',from]),el('label',{},['To',to]));
+    var status=el('div',{role:'status'}),download=el('button',{type:'button',class:'sa-btn'},'Download chat');
+    download.onclick=async function(){
+      if(!from.value||!to.value||new Date(from.value)>new Date(to.value)){status.textContent='Choose a valid start and end time.';return;}
+      download.disabled=true;status.textContent='Preparing your export…';
+      try{
+        var params=new URLSearchParams({from:new Date(from.value).toISOString(),to:new Date(to.value).toISOString()});
+        var r=await fetch('/assistant/export?'+params,{credentials:'same-origin',headers:{Accept:'application/json'}});
+        if(!r.ok){var j=await r.json().catch(function(){return {};});throw new Error(j.message||'Could not export chats.');}
+        var blob=await r.blob(),url=URL.createObjectURL(blob),a=el('a',{href:url,download:'zio-chats.txt'});document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);status.textContent='Export downloaded.';
+      }catch(e){status.textContent=e.message;}finally{download.disabled=false;}
+    };
+    var cancel=el('button',{type:'button',class:'sa-btn'},'Close export');cancel.onclick=function(){form.remove();};
+    form.append(download,cancel,status);panel.insertBefore(form,body);
+  };
+  headerTools.append(expandButton,exportButton);header.appendChild(headerTools);
   // "Contact us" entry point: opens the multi-channel quick-contact form
   // (Call back / WhatsApp / Email) right inside the panel. This is the
   // former standalone quick-contact widget, folded into the assistant so
@@ -1101,6 +1137,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       csrf: csrf,
       blob: blob,
       messages: vrMessages,
+      visitorToken: token,
       confirmedTools: confirmedTools || {}
     }).then(function(r){
       if(!r.ok){ setVoiceStatus(r.error || ('Request failed ('+r.status+').')); return; }
@@ -1185,7 +1222,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   function closeCaps(){ if(capsPaneEl) capsPaneEl.classList.remove('sa-show'); }
 
   function friendlyActionName(name){
-    var names={wizard_set_answer:'Fill a setup field',wizard_advance:'Move to the next setup step',wizard_generate:'Build your page',open_biolink:'Open your Link in Bio',guide_control:'Show a page control',ask_question:'Ask a follow-up question',delete_biolink:'Delete a Link in Bio page'};
+    var names={open_sayzio_feature:'Find a Sayzio page',inspect_block_type:'Check block options',prepare_social_block:'Prepare social links',wizard_set_answer:'Fill a setup field',wizard_advance:'Move to the next setup step',wizard_generate:'Build your page',open_biolink:'Open your Link in Bio',guide_control:'Show a page control',ask_question:'Ask a follow-up question',delete_biolink:'Delete a Link in Bio page'};
     var text=names[name]||String(name||'').replace(/_/g,' ');
     return text.charAt(0).toUpperCase()+text.slice(1);
   }
@@ -1219,6 +1256,18 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   }
 
   function renderMessage(m){
+    if(m.role==='user' && m.content){
+      var questions=body.querySelectorAll('.sa-question[data-question]'),lastQuestion=questions[questions.length-1];
+      if(lastQuestion && m.content.startsWith(lastQuestion.dataset.question) && !lastQuestion.dataset.answered){
+        lastQuestion.dataset.answered='true';
+        var answer=m.content.slice(lastQuestion.dataset.question.length).trim().replace(/^Answer:\s*/,'');
+        lastQuestion.querySelectorAll('input,button,select').forEach(function(n){if(n.type==='text')n.value=answer;if(n.type==='checkbox')n.checked=answer.split(', ').includes(n.value);n.disabled=true;});
+        lastQuestion.appendChild(el('small',{},'Answered'));
+      }
+    }
+    if(m.meta && m.meta.source==='native_block_save'){
+      body.querySelectorAll('.sa-social-setup').forEach(function(card){if(Number(card.dataset.linkId)===Number(m.meta.link_id)){card.querySelectorAll('input,select,button').forEach(function(n){n.disabled=true;});card.appendChild(el('p',{},'Saved. Make further changes in the Blocks editor.'));try{sessionStorage.removeItem('zio_social_draft_'+token+'_'+Number(m.meta.link_id));}catch(e){}}});
+    }
     if(typeof vrMessages!=='undefined' && (m.role==='user' || m.role==='assistant') && m.content){
       var last=vrMessages[vrMessages.length-1];
       if(!last || last.role!==m.role || last.content!==m.content) vrMessages.push({role:m.role,content:m.content});
@@ -1226,7 +1275,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     }
     var d=el('div',{class:'sa-msg '+(m.role==='user'?'user':'assistant')});
     if(m.content){ d.innerHTML = mdLite(m.content); }
-    body.appendChild(d);
+    var duplicatePrompt=m.role==='assistant'&&(m.blocks||[]).some(function(b){return b.type==='question'&&b.question===m.content;});
+    if(!duplicatePrompt)body.appendChild(d);
     if(m.blocks && m.blocks.length){
       var wrap=el('div',{class:'sa-blocks'});
       m.blocks.forEach(function(b){ renderBlock(b, wrap); });
@@ -1236,11 +1286,81 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     scrollBottom();
   }
 
+  var socialOptions=@json(\App\Services\AI\ZioPageKnowledge::SOCIAL_PLATFORMS);
+  var socialMeta=@json(\App\Modules\User\Models\SocialAccountConnection::PLATFORM_META);
+  function normalizedSocialUrl(name,value){
+    var raw=String(value||'').trim();if(!raw)return '';
+    if(name==='email'){if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw))throw new Error('Enter a valid email address.');return 'mailto:'+raw;}
+    if(/^[\w.-]+\.[a-z]{2,}(?:\/|$)/i.test(raw))raw='https://'+raw;
+    if(!/^https?:\/\//i.test(raw)){
+      if(raw.includes(':'))throw new Error('Use an HTTPS profile URL.');
+      var template=(socialMeta[name]||{}).url;
+      if(!template)throw new Error('Enter the full URL for '+name+'.');
+      if(raw.startsWith('/'))raw=new URL(template).origin+raw;
+      else raw=template.replace('{h}',raw.replace(/^@/,''));
+    }
+    var url=new URL(raw);if(!['https:','http:'].includes(url.protocol))throw new Error('Use an HTTPS profile URL.');return url.href;
+  }
+  function renderSocialSetup(b,wrap){
+    var card=el('div',{class:'sa-question sa-social-setup','data-link-id':String(Number(b.link_id))});
+    card.appendChild(el('strong',{},'Add social links to '+(b.title||'your page')));
+    card.appendChild(el('p',{},'Choose your platforms and enter the missing handles or URLs together. Icons and your page’s design are used by default. Nothing is saved until you confirm.'));
+    var draftKey='zio_social_draft_'+token+'_'+Number(b.link_id),draft=null;
+    try{draft=JSON.parse(sessionStorage.getItem(draftKey)||'null');if(draft && Date.now()-draft.at<7200000)b.platforms=draft.platforms||b.platforms;}catch(e){}
+    var picks=el('div',{class:'sa-question-options'}),fields=el('div',{class:'sa-social-fields'}),rows={};
+    function addRow(name){
+      var info=socialMeta[name]||{},known=(b.platforms||[]).find(function(p){return p.name===name;}),connections=(b.connections||[]).filter(function(c){return c.platform===name;});
+      var label=info.label||name.charAt(0).toUpperCase()+name.slice(1);
+      var group=el('div',{class:'sa-social-row'}),input=el('input',{type:'text','aria-label':label+' handle or URL',placeholder:label+' handle or full URL',maxlength:'500',value:known&&known.url?known.url:(connections[0]||{}).profile_url||''});
+      var display=el('select',{'aria-label':label+' display'});
+      [['icon','Icon (default)'],['follow','Follow button'],['follow_count','Follow button with count']].forEach(function(opt){var o=el('option',{value:opt[0]},opt[1]);if(opt[0]==='follow_count'&&!connections.length)o.disabled=true;display.appendChild(o);});
+      var source=el('select',{'aria-label':label+' follower source'});source.appendChild(el('option',{value:''},'Choose a connected account'));
+      connections.forEach(function(c){source.appendChild(el('option',{value:String(c.id)},c.handle||label));});if(connections.length===1)source.value=String(connections[0].id);
+      var advanced=el('details',{},[el('summary',{},'Optional display settings'),display,source]);
+      group.append(el('label',{},[label,input]),advanced);fields.appendChild(group);rows[name]={group:group,input:input,display:display,source:source};
+    }
+    socialOptions.forEach(function(name){var info=socialMeta[name]||{},label=el('label',{class:'sa-question-option'}),check=el('input',{type:'checkbox','aria-label':info.label||name});label.append(check,document.createTextNode(info.label||name));
+      check.onchange=function(){if(check.checked)addRow(name);else if(rows[name]){rows[name].group.remove();delete rows[name];}};
+      if((b.platforms||[]).some(function(p){return p.name===name;})){check.checked=true;addRow(name);}picks.appendChild(label);
+    });
+    var type=el('select',{'aria-label':'Social block layout'});[['socials','Social icons (recommended)'],['socials_multi','Grouped social links'],['socials_custom','Custom social links']].forEach(function(o){type.appendChild(el('option',{value:o[0]},o[1]));});
+    var more=el('details',{},[el('summary',{},'Platform selection'),picks]);more.open=!Object.keys(rows).length;
+    var advanced=el('details',{},[el('summary',{},'Optional block layout'),type]);
+    var status=el('div',{role:'status'}),review=el('div',{class:'sa-social-review'}),prepared=null;
+    var button=el('button',{type:'button',class:'sa-btn'},'Review social links');
+    button.onclick=async function(){
+      if(!prepared){
+        try{
+          var platforms=Object.keys(rows).map(function(name){var r=rows[name],url=normalizedSocialUrl(name,r.input.value);if(!url)throw new Error('Enter the URL or handle for '+name+'.');if(r.display.value==='follow_count'&&!r.source.value)throw new Error('Choose a follower source.');return {name:name,url:url,display:r.display.value,connection_id:r.source.value};});
+          if(!platforms.length)throw new Error('Choose at least one platform.');
+          prepared={type:type.value,settings:type.value==='socials_multi'?{groups:[{name:'Social links',platforms:platforms}]}:{platforms:platforms},is_active:true};
+          review.replaceChildren(el('strong',{},'Review before adding'));
+          platforms.forEach(function(p){review.appendChild(el('div',{},(socialMeta[p.name]||{}).label||p.name));review.appendChild(el('div',{},p.url));});
+          button.textContent='Confirm and add block';status.textContent='These links will be added to your page. You can edit them later in Blocks.';
+        }catch(e){status.textContent=e.message;}return;
+      }
+      card.querySelectorAll('input,select,button').forEach(function(n){n.disabled=true;});status.textContent='Adding your block…';
+      try{
+        var r=await fetch('/user/links/'+Number(b.link_id)+'/blocks',{method:'POST',credentials:'same-origin',headers:{'X-CSRF-TOKEN':csrf,'X-Requested-With':'XMLHttpRequest','Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(Object.assign({},prepared,{assistant_visitor_token:token}))});
+        var j=await r.json();if(!r.ok||!j.success){var failure=new Error(j.error||j.message||'Could not add the block.');failure.canRetry=r.status<500;throw failure;}
+        try{sessionStorage.removeItem(draftKey);}catch(e){}
+        status.textContent='Your social links block was added successfully.';button.textContent='Block added';edit.disabled=true;
+        window.VoiceRuntime.navigateWithGuide('/user/links/'+Number(b.link_id)+'/blocks','Your social links were added. Opening the Blocks editor.');
+      }catch(e){status.textContent=e.canRetry?e.message:'Could not confirm the save. Open Blocks to check before adding again.';if(e.canRetry)card.querySelectorAll('input,select,button').forEach(function(n){n.disabled=false;});}
+    };
+    var edit=el('button',{type:'button',class:'sa-btn'},'Change details');edit.onclick=function(){prepared=null;review.replaceChildren();button.textContent='Review social links';button.disabled=false;status.textContent='Review again after editing.';};
+    function rememberDraft(){try{sessionStorage.setItem(draftKey,JSON.stringify({at:Date.now(),platforms:Object.keys(rows).map(function(name){return {name:name,url:rows[name].input.value};})}));}catch(e){}}
+    card.addEventListener('input',function(e){rememberDraft();if(e.target.matches('input,select')){prepared=null;review.replaceChildren();button.textContent='Review social links';}});
+    card.addEventListener('change',function(e){rememberDraft();if(e.target.matches('input,select')){prepared=null;review.replaceChildren();button.textContent='Review social links';}});
+    card.append(more,fields,advanced,review,button,edit,status);wrap.appendChild(card);
+  }
+
   function renderBlock(b, wrap){
     if(!b||!b.type) return;
+    if(b.type==='social_setup'){renderSocialSetup(b,wrap);return;}
     if(b.type==='question'){
       zioQuestion=b.question||'';
-      var card=el('div',{class:'sa-question'});
+      var card=el('div',{class:'sa-question','data-question':b.question||''});
       card.appendChild(el('div',{class:'sa-question-title'},b.question||'Tell me more'));
       var selected=[];
       function answer(value){
@@ -1261,7 +1381,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
         (b.options||[]).slice(0,4).forEach(function(option){
           if(b.mode==='multiple'){
             var label=el('label',{class:'sa-question-option'});
-            var check=el('input',{type:'checkbox'});
+            var check=el('input',{type:'checkbox',value:option});
             check.onchange=function(){selected=check.checked?selected.concat([option]):selected.filter(function(v){return v!==option;});submit.disabled=!selected.length;};
             label.append(check,document.createTextNode(option));row.appendChild(label);
           }else{
@@ -1768,6 +1888,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     renderMessage({role:'assistant',content:'You’re on '+(document.title||'the requested page')+'. What would you like to do next?',blocks:[{type:'question',question:'What would you like to do on this page?',navigation_followup:true,mode:'single',options:['Show me the next step','Help edit a field','Explain this page','I’m done']} ]});
   }
 
+  window.addEventListener('zio-navigation-current',function(){renderMessage({role:'assistant',content:'You’re already on this page. I’ll continue here.'});});
   function applyChatActions(res){
     if(window.VoiceRuntime && res.tool_results){
       var nav=window.VoiceRuntime.applyToolResults(res.tool_results);

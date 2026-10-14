@@ -11,7 +11,8 @@
     $maxExtras  = auth()->user()->getMaxAliasesPerLink($link->type);
     $extras     = $link->aliases()->orderBy('created_at')->get();
     $usedExtras = $extras->count();
-    $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
+    $unlimitedAliases = $maxExtras === -1 || $maxExtras === PHP_INT_MAX;
+    $canAddMore = $unlimitedAliases || $usedExtras < $maxExtras;
 
     // Domains this user is entitled to attach (own verified + entitled
     // global) — same set the create form offers.
@@ -71,7 +72,7 @@
             </div>
         </div>
         <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--bg-glass-input); color: var(--text-faint);">
-            @if($maxExtras === -1)
+            @if($unlimitedAliases)
                 {{ $usedExtras }} {{ $usedExtras === 1 ? 'extra' : 'extras' }} · Unlimited
             @else
                 {{ $usedExtras }} / {{ $maxExtras }} extras
