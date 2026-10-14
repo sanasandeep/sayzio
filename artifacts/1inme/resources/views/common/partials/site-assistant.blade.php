@@ -199,6 +199,11 @@
 .sa-cutoff button{background:rgba(251,191,36,.18);border:1px solid rgba(251,191,36,.35);color:#fde68a;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;font-family:inherit}
 .sa-cutoff button:hover{background:rgba(251,191,36,.32)}
 .sa-cutoff button:disabled{opacity:.5;cursor:not-allowed}
+.sa-question{padding:14px;border:1px solid #c7d2fe;border-radius:14px;background:#f8faff;color:#17213a}
+.sa-question-title{font-weight:650;margin-bottom:12px}.sa-question-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.sa-question .sa-btn{white-space:normal;text-align:left;border-radius:10px;padding:10px 12px}.sa-question-option{display:flex;gap:8px;align-items:center;padding:10px;background:#fff;border:1px solid #dbe2ef;border-radius:10px;cursor:pointer}
+.sa-question input[type=text]{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#17213a;margin-bottom:10px}
+.sa-question-other{display:block;margin-top:10px;border:0;background:transparent;color:#435be8;cursor:pointer;font:inherit}.sa-question button:disabled{opacity:.5;cursor:default}
 .sa-blocks{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .sa-buttons{display:flex;flex-wrap:wrap;gap:6px}
 .sa-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer}
@@ -471,6 +476,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // breaking credits, confirmation chips, the capabilities pane and the deferred
   // audio playback (and rendering MIC_SVG as the literal string "undefined").
   var vrRecording=false, vrRec=null, vrChunks=[], vrLastAudio=null;
+  var zioQuestion='';
   var vrMessages=[], vrPending=[], vrHandsFree=false, vrPendingNav=null;
   var voiceStatusEl=null, voiceConfirmEl=null, voiceCreditsEl=null;
   var voicePlayer=null, capsPaneEl=null, capsBodyEl=null, capsLoaded=false;
@@ -493,7 +499,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       route: ds.route || '',
       path: ds.path || '/',
       title: ds.title || document.title || '',
-      url: location.href
+      url: location.href,
+      controls: window.VoiceRuntime ? window.VoiceRuntime.controlLabels() : []
     };
   }
   // The mounted widget knows its surface (marketing vs app) because
@@ -1096,7 +1103,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     }).then(function(r){
       if(!r.ok){ setVoiceStatus(r.error || ('Request failed ('+r.status+').')); return; }
       if(r.transcript){ vrMessages.push({role:'user',content:r.transcript}); renderMessage({role:'user',content:r.transcript}); }
-      if(r.reply){ vrMessages.push({role:'assistant',content:r.reply}); renderMessage({role:'assistant',content:r.reply}); }
+      if(r.reply){ vrMessages.push({role:'assistant',content:r.reply}); renderMessage({role:'assistant',content:r.reply,blocks:(r.toolResults||[]).flatMap(function(t){return (t.result||{}).blocks||[];})}); }
       vrPending = r.pending;
       setVoiceStatus('');
       updateCredits(r.credits, (r.balance!=null?r.balance:null));
@@ -1204,6 +1211,11 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   }
 
   function renderMessage(m){
+    if(typeof vrMessages!=='undefined' && (m.role==='user' || m.role==='assistant') && m.content){
+      var last=vrMessages[vrMessages.length-1];
+      if(!last || last.role!==m.role || last.content!==m.content) vrMessages.push({role:m.role,content:m.content});
+      vrMessages=vrMessages.slice(-16);
+    }
     var d=el('div',{class:'sa-msg '+(m.role==='user'?'user':'assistant')});
     if(m.content){ d.innerHTML = mdLite(m.content); }
     body.appendChild(d);
@@ -1218,7 +1230,45 @@ window.__SA_LOGIN_URL = @json(url('/login'));
 
   function renderBlock(b, wrap){
     if(!b||!b.type) return;
-    if(b.type==='buttons'){
+    if(b.type==='question'){
+      zioQuestion=b.question||'';
+      var card=el('div',{class:'sa-question'});
+      card.appendChild(el('div',{class:'sa-question-title'},b.question||'Tell me more'));
+      var selected=[];
+      function answer(value){
+        var text=(b.question||'Answer')+' '+value;
+        ta.value=text; sendMessage();
+        card.querySelectorAll('button,input').forEach(function(n){n.disabled=true;});
+      }
+      if(b.mode==='text' || !(b.options||[]).length){
+        var input=el('input',{type:'text',placeholder:'Type your answer…','aria-label':b.question||'Your answer',maxlength:'1000'});
+        card.appendChild(input);
+        var submit=el('button',{class:'sa-btn',type:'button'},'Submit');
+        submit.onclick=function(){if(input.value.trim())answer(input.value.trim());};
+        input.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();submit.click();}};
+        card.appendChild(submit);
+      }else{
+        var row=el('div',{class:'sa-question-options'});
+        (b.options||[]).slice(0,4).forEach(function(option){
+          if(b.mode==='multiple'){
+            var label=el('label',{class:'sa-question-option'});
+            var check=el('input',{type:'checkbox'});
+            check.onchange=function(){selected=check.checked?selected.concat([option]):selected.filter(function(v){return v!==option;});submit.disabled=!selected.length;};
+            label.append(check,document.createTextNode(option));row.appendChild(label);
+          }else{
+            var btn=el('button',{class:'sa-btn',type:'button'},option);btn.onclick=function(){answer(option);};row.appendChild(btn);
+          }
+        });
+        card.appendChild(row);
+        if(b.mode==='multiple'){
+          var submit=el('button',{class:'sa-btn',type:'button',disabled:'disabled'},'Submit selections');
+          submit.onclick=function(){if(selected.length)answer(selected.join(', '));};card.appendChild(submit);
+        }
+        var other=el('button',{class:'sa-question-other',type:'button'},'Type a different answer');
+        other.onclick=function(){ta.value=(b.question||'Answer')+' ';ta.focus();};card.appendChild(other);
+      }
+      wrap.appendChild(card);
+    } else if(b.type==='buttons'){
       var row=el('div',{class:'sa-buttons'});
       (b.options||[]).forEach(function(opt){
         var btn=el('button',{class:'sa-btn',type:'button'}, opt.label||opt.value||'');
@@ -1423,6 +1473,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   function sendMessage(){
     if(busy || AUTH_REQUIRED) return;
     var text=ta.value.trim(); if(!text) return;
+    if(zioQuestion && !text.startsWith(zioQuestion)) text=zioQuestion+' Answer: '+text;
+    zioQuestion='';
     // Detach the pending snapshot up-front: it rides along on this turn
     // only (stream + non-stream fallback share the same captured value).
     var shot=snapPending; clearSnapshot();
@@ -1518,6 +1570,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
               doneReceived=true;
               bubble.remove();
               if(parsed.assistant_message) renderMessage(parsed.assistant_message);
+              applyChatActions(parsed);
               if(parsed.vision) renderVisionNotice(parsed.vision);
               if(parsed.handed_off) disableInput(true, CHROME.handoff_note);
               if('low_balance' in parsed) renderLowBalance(parsed.low_balance);
@@ -1688,6 +1741,13 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     applyChannel(QC_CHANNELS[0]);
   }
 
+  function applyChatActions(res){
+    if(window.VoiceRuntime && res.tool_results){
+      var nav=window.VoiceRuntime.applyToolResults(res.tool_results);
+      if(nav) window.location.assign(nav);
+    }
+  }
+
   function handleTurn(res){
     removeTyping();
     // 401 already re-showed the login gate (jpost) — don't also render an
@@ -1702,6 +1762,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       return;
     }
     if(res.assistant_message) renderMessage(res.assistant_message);
+    applyChatActions(res);
     if(res.vision) renderVisionNotice(res.vision);
     if(res.handed_off) disableInput(true, CHROME.handoff_note);
     if('low_balance' in res) renderLowBalance(res.low_balance);

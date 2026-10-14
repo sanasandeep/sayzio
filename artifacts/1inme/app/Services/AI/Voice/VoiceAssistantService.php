@@ -82,7 +82,7 @@ class VoiceAssistantService
         }
 
         // 2. Build LLM prompt with tools
-        $systemPrompt = $this->systemPrompt();
+        $systemPrompt = $this->systemPrompt()."\n".\App\Services\AI\AssistantActionChat::DIRECTIVE;
         // Clients may pass `surface` either as a bare name string (mobile)
         // or as an object with a `name` + extra context (web). Normalize
         // both to an array so the hint is always applied.
@@ -164,6 +164,10 @@ class VoiceAssistantService
 
             // If anything needs confirmation, stop the loop and let the
             // user respond before we run more tools or speak a final reply.
+            if (!$pendingConfirm && (!empty($result['blocks']) || !empty($result['navigate_to']) || !empty($result['client_action']))) {
+                $finalContent = $result['summary'] ?? 'Here is your next step.';
+                break;
+            }
             if ($pendingConfirm) {
                 $finalContent = $this->synthConfirmPrompt($pendingConfirm);
                 break;
