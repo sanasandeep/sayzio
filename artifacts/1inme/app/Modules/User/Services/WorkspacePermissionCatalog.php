@@ -20,7 +20,7 @@ class WorkspacePermissionCatalog
             'splash-pages' => 'Splash pages', 'social-accounts' => 'Social accounts',
             'social-proofs' => 'Buzz campaigns', 'integrations' => 'Integrations',
             'vault' => 'Vault', 'invoices' => 'Client invoices',
-            'delivery-projects' => 'Delivery projects', 'client-portals' => 'Client portals',
+            'delivery-projects' => 'Clients', 'client-portals' => 'Client portals',
             'events' => 'Events', 'followers' => 'Followers', 'referrals' => 'Referrals',
             'notifications' => 'Notifications', 'digests' => 'Digests',
             'identifiers' => 'Identifiers', 'settings' => 'Workspace settings',

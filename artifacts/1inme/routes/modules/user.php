@@ -2090,6 +2090,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // Reads gated by tasks.view, mutations escalate to tasks.edit. Shares
         // the tasks.* permission namespace (same "delivery/ops" surface).
         Route::prefix('delivery-projects')->name('delivery-projects.')->middleware('workspace.can:tasks.view')->group(function () {
+            Route::post('{deliveryProject}/activity', [\App\Modules\User\Controllers\ClientTrackingController::class,'event'])->name('tracking.event');
+            Route::post('{deliveryProject}/tracking', [\App\Modules\User\Controllers\ClientTrackingController::class,'store'])->middleware('workspace.can:delivery-projects.edit')->name('tracking.store');
+            Route::get('{deliveryProject}/tracking/{kind}/{id}', [\App\Modules\User\Controllers\ClientTrackingController::class,'open'])->whereNumber('id')->name('tracking.open');
             Route::get('/',                       [\App\Modules\User\Controllers\DeliveryProjectController::class, 'index'])->name('index');
             Route::get('create',                  [\App\Modules\User\Controllers\DeliveryProjectController::class, 'create'])->middleware('workspace.can:tasks.edit')->name('create');
             Route::post('/',                      [\App\Modules\User\Controllers\DeliveryProjectController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('store');
@@ -2198,6 +2201,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('credentials/{credential}/edit',            [\App\Modules\User\Controllers\VaultCredentialController::class, 'edit'])->middleware('workspace.can:vault.edit')->name('credentials.edit');
             Route::put('credentials/{credential}',                 [\App\Modules\User\Controllers\VaultCredentialController::class, 'update'])->middleware('workspace.can:vault.edit')->name('credentials.update');
             Route::delete('credentials/{credential}',              [\App\Modules\User\Controllers\VaultCredentialController::class, 'destroy'])->middleware('workspace.can:vault.delete')->name('credentials.destroy');
+            Route::post('events/{kind}/{id}', [\App\Modules\User\Controllers\VaultEventController::class, 'store'])->where('kind','client|credential')->whereNumber('id')->name('events');
             Route::post('credentials/{credential}/reveal',         [\App\Modules\User\Controllers\VaultCredentialController::class, 'reveal'])->name('credentials.reveal');
 
             Route::get('clients',                                  [\App\Modules\User\Controllers\VaultClientController::class, 'index'])->name('clients.index');

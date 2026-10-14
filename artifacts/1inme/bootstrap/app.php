@@ -140,6 +140,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['current_password','password','password_confirmation','authenticator']);
         // AI features throw InsufficientCoinsForAiException when the user
         // tries to spend more coins than they have in their wallet. AI
         // usage is now charged straight from the coin wallet, so surface

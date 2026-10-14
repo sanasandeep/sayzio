@@ -1,6 +1,7 @@
 @extends('user.layouts.app')
 @section('title', $project->title)
 @section('content')
+@include('user.planner.styles')
 @php
     $initialTasks = $project->tasks->map(fn ($t) => [
         'id' => $t->id,
@@ -28,28 +29,9 @@
         csrf: '{{ csrf_token() }}'
      })">
 
-    <div class="page-hero mb-6 flex items-start justify-between gap-4 flex-wrap">
-        <div>
-            <a href="{{ route('user.delivery-projects.index') }}" class="text-xs mb-1 inline-block" style="color: var(--text-tertiary);"><i class="fas fa-arrow-left mr-1"></i> All projects</a>
-            <h1 class="hero-title">{{ $project->title }}</h1>
-            <p class="hero-subtitle">
-                {{ $project->statusLabel() }}
-                @if($project->client_name) · Client: {{ $project->client_name }} @endif
-                @if($project->sourceLabel()) · From {{ $project->sourceLabel() }} @endif
-            </p>
-        </div>
-        <div class="flex items-center gap-2">
-            <form method="POST" action="{{ route('user.delivery-projects.update', $project) }}">
-                @csrf @method('PUT')
-                <input type="hidden" name="status" value="{{ $project->status === 'completed' ? 'active' : 'completed' }}">
-                <button class="px-3 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
-                    <i class="fas fa-{{ $project->status === 'completed' ? 'rotate-left' : 'check' }} mr-1"></i>
-                    {{ $project->status === 'completed' ? 'Reopen' : 'Mark completed' }}
-                </button>
-            </form>
-        </div>
-    </div>
-
+    @include('user.partials.page-hero',['title'=>$project->title,'subtitle'=>'Client tracking and delivery workspace.','emblemIcon'=>'fa-id-card','favicon'=>null,'url'=>null,'back'=>route('user.delivery-projects.index'),'chips'=>[['text'=>$project->statusLabel(),'icon'=>'fa-circle-check']],'actions'=>[]])
+    <form method="POST" action="{{ route('user.delivery-projects.update',$project) }}" class="mb-4">@csrf @method('PUT')<input type="hidden" name="status" value="{{ $project->status==='completed'?'active':'completed' }}"><button class="form-chip">{{ $project->status==='completed'?'Reopen client work':'Mark work completed' }}</button></form>
+    @include('user.delivery-projects.tracking')
     @if(session('success'))
         <div class="mb-4 px-4 py-3 rounded-lg text-sm" style="background: rgba(34,197,94,.12); color:#16a34a;">{{ session('success') }}</div>
     @endif

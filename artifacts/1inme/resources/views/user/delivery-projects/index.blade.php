@@ -1,20 +1,10 @@
 @extends('user.layouts.app')
-@section('title', 'Delivery Projects')
+@section('title', 'Clients')
 @section('content')
-@include('user.partials._plan_lock', ['feature' => 'tasks', 'kind' => 'flag', 'label' => 'Delivery Projects'])
+@include('user.planner.styles')
+@include('user.partials._plan_lock', ['feature' => 'tasks', 'kind' => 'flag', 'label' => 'Clients'])
 <div class="max-w-6xl mx-auto px-4 py-8">
-    <div class="page-hero mb-6 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-            <h1 class="hero-title">Delivery Projects</h1>
-            <p class="hero-subtitle">Turn a finalized sale into a shared project with tasks and a timeline.</p>
-        </div>
-        <a href="{{ route('user.delivery-projects.create') }}"
-           class="px-4 py-2 rounded-lg text-sm font-semibold text-white"
-           style="background: linear-gradient(135deg,#3d6bff,#90acff);">
-            <i class="fas fa-plus mr-1"></i> New Project
-        </a>
-    </div>
-
+    @include('user.partials.page-hero',['title'=>'Clients','subtitle'=>'Client work, billing and conversations in one place.','emblemIcon'=>'fa-users','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'chips'=>[['text'=>$projects->count().' client workspaces','icon'=>'fa-users']],'actions'=>[['label'=>'New client','url'=>route('user.delivery-projects.create'),'icon'=>'fa-plus','class'=>'btn-primary'],['label'=>'Vault profiles','url'=>route('user.vault.clients.index'),'icon'=>'fa-vault','class'=>'btn-ghost']]])
     @if(session('success'))
         <div class="mb-4 px-4 py-3 rounded-lg text-sm" style="background: rgba(34,197,94,.12); color:#16a34a;">{{ session('success') }}</div>
     @endif
@@ -22,7 +12,7 @@
     @if($projects->isEmpty())
         <div class="glass-card rounded-2xl p-12 text-center" style="border:1px dashed var(--border-strong);">
             <i class="fas fa-diagram-project text-4xl mb-3 opacity-50"></i>
-            <p style="color: var(--text-secondary);">No delivery projects yet.</p>
+            <p style="color: var(--text-secondary);">No clients yet.</p>
             <p class="text-sm mt-1" style="color: var(--text-tertiary);">Create one from a paid invoice, order, or form submission, or start a blank project.</p>
         </div>
     @else

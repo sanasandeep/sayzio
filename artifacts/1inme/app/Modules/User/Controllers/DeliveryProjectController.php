@@ -60,6 +60,7 @@ class DeliveryProjectController extends Controller
             'comments.author:id,name,avatar',
             'calendar',
         ]);
+        app(ClientTrackingController::class)->audit($deliveryProject,'client.open','Opened client workspace');
         $members = $this->workspaceMembers();
 
         return view('user.delivery-projects.show', [
@@ -69,6 +70,7 @@ class DeliveryProjectController extends Controller
             'shareUrl'         => route('delivery-project.share', $deliveryProject->share_token),
             'calendarPrivacies' => DeliveryProject::CALENDAR_PRIVACIES,
             'calendarPrivacyCopy' => DeliveryProject::CALENDAR_PRIVACY_COPY,
+            'clientTracking'=>app(\App\Services\Clients\ClientTracker::class)->data($deliveryProject),
         ]);
     }
 
@@ -82,6 +84,7 @@ class DeliveryProjectController extends Controller
 
         return view('user.delivery-projects.create', [
             'prefill' => $prefill,
+            'vaultClients'=>app(\App\Services\Clients\ClientTracker::class)->clients(),
         ]);
     }
 
@@ -93,13 +96,16 @@ class DeliveryProjectController extends Controller
             'source_type'      => 'nullable|string|in:' . implode(',', array_keys(self::SOURCE_MAP)),
             'source_id'        => 'nullable|integer',
             'client_name'      => 'nullable|string|max:200',
+            'vault_client_id'=>'nullable|integer',
             'client_email'     => 'nullable|email|max:200',
             'warranty_expires_at'    => 'nullable|date',
             'warranty_reminder_days' => 'nullable|integer|min:0|max:365',
             'seed_starter_tasks'     => 'nullable|boolean',
         ]);
 
+        if(!empty($data['vault_client_id'])) abort_unless(app(\App\Services\Clients\ClientTracker::class)->profile($data['vault_client_id']),404);
         $attrs = [
+            'vault_client_id'=>$data['vault_client_id']??null,
             'title'                  => $data['title'],
             'description'            => $data['description'] ?? null,
             'client_name'            => $data['client_name'] ?? null,

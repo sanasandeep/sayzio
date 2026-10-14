@@ -49,7 +49,7 @@ class DeliveryProject extends Model
         'workspace_id', 'created_by_user_id',
         'sourceable_type', 'sourceable_id',
         'title', 'description', 'status',
-        'client_user_id', 'client_name', 'client_email', 'share_token',
+        'vault_client_id', 'client_user_id', 'client_name', 'client_email', 'share_token',
         'completed_at',
         'warranty_expires_at', 'warranty_reminder_days',
         'warranty_reminder_sent_at', 'warranty_expired_notified_at',

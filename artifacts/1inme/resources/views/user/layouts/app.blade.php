@@ -1167,7 +1167,7 @@
 
                 {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
                 @if($__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                @php $grpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.vault.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*'); @endphp
+                @php $grpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*'); @endphp
                 <div x-data="{ open: {{ $grpWorkspaceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1187,8 +1187,8 @@
                            class="sidebar-link {{ nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"
                            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div>
-                            <span class="nav-label">Delivery Projects</span>
-                            <span class="sidebar-tooltip">Delivery Projects</span>
+                            <span class="nav-label">Clients</span>
+                            <span class="sidebar-tooltip">Clients</span>
                         </a>
                         @endif
                         @if($__can['vault_view'])
@@ -1892,7 +1892,7 @@
 
                         {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
                         @if($__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                        @php $mGrpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.vault.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*'); @endphp
+                        @php $mGrpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*'); @endphp
                         <div x-data="{ open: {{ $mGrpWorkspaceActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1902,7 +1902,7 @@
                             <div x-show="open" x-cloak class="space-y-0.5">
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.tasks.index') }}" class="sidebar-link {{ nav_route_is('user.tasks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div> <span>Tasks</span></a>
-                                <a href="{{ route('user.delivery-projects.index') }}" class="sidebar-link {{ nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div> <span>Delivery Projects</span></a>
+                                <a href="{{ route('user.delivery-projects.index') }}" class="sidebar-link {{ nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div> <span>Clients</span></a>
                                 @endif
                                 @if($__can['vault_view'])
                                 <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ nav_route_is('user.vault.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>

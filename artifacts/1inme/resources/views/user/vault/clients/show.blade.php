@@ -129,6 +129,8 @@
 function vaultClientView(id) {
     return {
         shown: false, value: '', error: '', clearTimer: null,
+        init(){this.log=async(action)=>{const r=await fetch(`/user/vault/events/client/${id}`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'},body:JSON.stringify({action,field:'profile'})});if(!r.ok)this.error='Could not record this action.';};this.onCopy=()=>this.log('copy');this.onOpen=e=>{if(e.target.closest('a'))this.log('open');};this.$el.addEventListener('copy',this.onCopy);this.$el.addEventListener('click',this.onOpen);},
+        destroy(){clearTimeout(this.clearTimer);this.$el.removeEventListener('copy',this.onCopy);this.$el.removeEventListener('click',this.onOpen);},
         async reveal() {
             if (this.shown) { this.shown = false; this.value = ''; return; }
             this.error = '';
