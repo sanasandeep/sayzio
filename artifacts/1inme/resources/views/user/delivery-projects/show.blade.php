@@ -31,7 +31,10 @@
 
     @include('user.partials.page-hero',['title'=>$project->title,'subtitle'=>'Client tracking and delivery workspace.','emblemIcon'=>'fa-id-card','favicon'=>null,'url'=>null,'back'=>route('user.delivery-projects.index'),'chips'=>[['text'=>$project->statusLabel(),'icon'=>'fa-circle-check']],'actions'=>[]])
     <form method="POST" action="{{ route('user.delivery-projects.update',$project) }}" class="mb-4">@csrf @method('PUT')<input type="hidden" name="status" value="{{ $project->status==='completed'?'active':'completed' }}"><button class="form-chip">{{ $project->status==='completed'?'Reopen client work':'Mark work completed' }}</button></form>
-    @include('user.delivery-projects.tracking')
+    @if(\App\Modules\User\Services\WorkspacePermissions::userCan('delivery-projects.edit') && \App\Modules\User\Services\WorkspacePermissions::userCan('tasks.edit'))
+<details class="client-create-intro"><summary>Client assignment</summary><form method="post" action="{{ route('user.delivery-projects.update',$project) }}">@csrf @method('PUT')<label>Client<select name="vault_client_id"><option value="">Unassigned project</option>@foreach($availableClients as $clientOption)<option value="{{ $clientOption->id }}" @selected($project->vault_client_id===$clientOption->id)>{{ $clientOption->name }}</option>@endforeach</select></label><button class="btn-primary">Save assignment</button></form></details>
+@endif
+@include('user.delivery-projects.tracking')
     @if(session('success'))
         <div class="mb-4 px-4 py-3 rounded-lg text-sm" style="background: rgba(34,197,94,.12); color:#16a34a;">{{ session('success') }}</div>
     @endif

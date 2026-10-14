@@ -70,6 +70,7 @@ class DeliveryProjectController extends Controller
             'shareUrl'         => route('delivery-project.share', $deliveryProject->share_token),
             'calendarPrivacies' => DeliveryProject::CALENDAR_PRIVACIES,
             'calendarPrivacyCopy' => DeliveryProject::CALENDAR_PRIVACY_COPY,
+            'availableClients'=>app(\App\Services\Clients\ClientTracker::class)->clients(),
             'clientTracking'=>app(\App\Services\Clients\ClientTracker::class)->data($deliveryProject),
         ]);
     }
@@ -84,6 +85,8 @@ class DeliveryProjectController extends Controller
 
         return view('user.delivery-projects.create', [
             'prefill' => $prefill,
+            'selectedClient'=>app(\App\Services\Clients\ClientTracker::class)->profile((int)$request->query('client',0)),
+            'folders'=>\App\Modules\User\Services\WorkspacePermissions::userCan('projects.view') ? \App\Modules\User\Models\Project::orderBy('name')->get() : collect(),
             'vaultClients'=>app(\App\Services\Clients\ClientTracker::class)->clients(),
         ]);
     }
@@ -97,6 +100,7 @@ class DeliveryProjectController extends Controller
             'source_id'        => 'nullable|integer',
             'client_name'      => 'nullable|string|max:200',
             'vault_client_id'=>'nullable|integer',
+            'folder_id'=>'nullable|integer',
             'client_email'     => 'nullable|email|max:200',
             'warranty_expires_at'    => 'nullable|date',
             'warranty_reminder_days' => 'nullable|integer|min:0|max:365',
@@ -104,7 +108,11 @@ class DeliveryProjectController extends Controller
         ]);
 
         if(!empty($data['vault_client_id'])) abort_unless(app(\App\Services\Clients\ClientTracker::class)->profile($data['vault_client_id']),404);
+        if (!empty($data['folder_id'])) {
+            abort_unless(\App\Modules\User\Services\WorkspacePermissions::userCan('projects.view') && \App\Modules\User\Models\Project::find($data['folder_id']),404);
+        }
         $attrs = [
+            'folder_id'=>$data['folder_id']??null,
             'vault_client_id'=>$data['vault_client_id']??null,
             'title'                  => $data['title'],
             'description'            => $data['description'] ?? null,
@@ -145,11 +153,14 @@ class DeliveryProjectController extends Controller
             'title'                  => 'sometimes|string|max:200',
             'description'            => 'sometimes|nullable|string|max:4000',
             'status'                 => 'sometimes|in:active,completed,archived',
+            'vault_client_id'=>'sometimes|nullable|integer',
             'client_name'            => 'sometimes|nullable|string|max:200',
             'client_email'           => 'sometimes|nullable|email|max:200',
             'warranty_expires_at'    => 'sometimes|nullable|date',
             'warranty_reminder_days' => 'sometimes|nullable|integer|min:0|max:365',
         ]);
+
+        if (!empty($data['vault_client_id'])) abort_unless(app(\App\Services\Clients\ClientTracker::class)->profile($data['vault_client_id']),404);
 
         // Detect the transition into "completed" so we email the client once.
         $justCompleted = false;

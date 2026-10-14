@@ -12,6 +12,7 @@
 <div class="notes-studio folder-workspace" x-data="{tab:@js($activeTab),resourceKinds:[],query:''}">
 @include('user.planner.folder-shell')
 <div class="notes-stack" x-show="tab==='overview'">
+@include('user.vault.clients.folder-projects')
 @include('user.planner.folder-map')
 @if(count($attention))<section class="notes-card"><h2>Needs attention</h2><div class="notes-actions">@foreach(array_slice($attention,0,6) as $issue)<a class="form-chip" href="{{ $issue['url'] }}"><i class="fas fa-circle-exclamation text-amber-500"></i>{{ $issue['label'] }}</a>@endforeach</div></section>@endif
     <div class="notes-metrics">

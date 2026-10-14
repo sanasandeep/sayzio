@@ -1,7 +1,9 @@
 @extends('user.layouts.app')
-@section('title', 'Vault: Client profiles')
+@section('title', 'Clients')
 @section('content')
-@include('user.vault._tabs')
+@include('user.planner.styles')
+@include('user.partials.page-hero',['title'=>'Clients','subtitle'=>'One client record. Projects, billing, contacts and protected information together.','emblemIcon'=>'fa-users','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'chips'=>[],'actions'=>[]])
+@if(\App\Modules\User\Services\WorkspacePermissions::userCan('delivery-projects.view'))<p class="mb-4"><a href="{{ route('user.delivery-projects.index') }}">Browse existing client projects →</a></p>@endif
 
 @php use App\Modules\User\Services\WorkspacePermissions as WP; $canCreate = WP::userCan('vault.create'); @endphp
 
@@ -15,7 +17,7 @@
     </form>
     @if($canCreate)
         <a href="{{ route('user.vault.clients.create') }}" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">
-            <i class="fas fa-plus mr-1"></i> New profile
+            <i class="fas fa-plus mr-1"></i> New client
         </a>
     @endif
 </div>

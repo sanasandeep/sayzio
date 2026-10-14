@@ -115,7 +115,7 @@
 </div>
 
 <div class="mt-6 flex items-center gap-3">
-    <button class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">{{ $item ? 'Save profile changes' : 'Create profile' }}</button>
+    <button class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">{{ $item ? 'Save profile changes' : 'Create client' }}</button>
     <a href="{{ route('user.vault.clients.index') }}" class="text-sm hover:text-white" style="color: var(--text-faint);">Cancel</a>
 </div>
 

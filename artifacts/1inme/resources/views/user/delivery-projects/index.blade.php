@@ -1,10 +1,10 @@
 @extends('user.layouts.app')
-@section('title', 'Clients')
+@section('title', 'Client projects')
 @section('content')
 @include('user.planner.styles')
-@include('user.partials._plan_lock', ['feature' => 'tasks', 'kind' => 'flag', 'label' => 'Clients'])
+@include('user.partials._plan_lock', ['feature' => 'tasks', 'kind' => 'flag', 'label' => 'Client projects'])
 <div class="max-w-6xl mx-auto px-4 py-8">
-    @include('user.partials.page-hero',['title'=>'Clients','subtitle'=>'Client work, billing and conversations in one place.','emblemIcon'=>'fa-users','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'chips'=>[['text'=>$projects->count().' client workspaces','icon'=>'fa-users']],'actions'=>[['label'=>'New workspace','url'=>route('user.delivery-projects.create'),'icon'=>'fa-plus','class'=>'btn-primary'],['label'=>'Vault profiles','url'=>route('user.vault.clients.index'),'icon'=>'fa-vault','class'=>'btn-ghost']]])
+    @include('user.partials.page-hero',['title'=>'Client projects','subtitle'=>'Client work, billing and conversations in one place.','emblemIcon'=>'fa-users','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'chips'=>[['text'=>$projects->count().' projects','icon'=>'fa-users']],'actions'=>[['label'=>'Add project','url'=>route('user.delivery-projects.create'),'icon'=>'fa-plus','class'=>'btn-primary'],['label'=>'Clients','url'=>route('user.vault.clients.index'),'icon'=>'fa-vault','class'=>'btn-ghost']]])
     @if(session('success'))
         <div class="mb-4 px-4 py-3 rounded-lg text-sm" style="background: rgba(34,197,94,.12); color:#16a34a;">{{ session('success') }}</div>
     @endif
@@ -12,7 +12,7 @@
     @if($projects->isEmpty())
         <div class="glass-card rounded-2xl p-12 text-center" style="border:1px dashed var(--border-strong);">
             <i class="fas fa-diagram-project text-4xl mb-3 opacity-50"></i>
-            <p style="color: var(--text-secondary);">No clients yet.</p>
+            <p style="color: var(--text-secondary);">No client projects yet.</p>
             <p class="text-sm mt-1" style="color: var(--text-tertiary);">Create one from a paid invoice, order, or form submission, or start a blank project.</p>
         </div>
     @else
