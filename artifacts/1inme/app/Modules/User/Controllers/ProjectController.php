@@ -103,8 +103,13 @@ class ProjectController extends Controller
     {
         $this->authorizeOwner($project);
 
-        // Folders open the full My Links experience filtered to the folder so
-        // every link action (stats, edit, view, share…) is available.
+        // Keep native link actions and reports inside the same folder navigation.
+        if (in_array($request->query('tab'), ['links', 'reports'], true)) {
+            $request->query->set('project_id', (string) $project->id);
+            $request->query->set('view', $request->query('tab') === 'reports' ? 'reports' : 'links');
+
+            return app(LinkController::class)->index($request);
+        }
         return app(PlannerController::class)->folder($request, $project);
     }
 

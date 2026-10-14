@@ -1,6 +1,6 @@
 # AI Planner and folder workspaces
 
-AI Planner extends Notes → Action Plan. Saved plans have Overview, Tasks, Activities, Resources, Remember and History tabs. Folders now open a workspace with plans, tasks, resources, reminders, AI activity and reports; existing link reports remain available.
+AI Planner extends Notes → Action Plan. Saved plans have Overview, Tasks, Activities, Resources, Remember and History tabs. Folders now open a workspace with plans, tasks, resources, reminders, AI activity and reports; Links and detailed reports render inside the same folder header and navigation. Both canonical folder tabs and older filtered link URLs retain this shared workspace interface. The overview combines top content performance, task progress, plans and notes.
 
 ## Working from a plan
 
