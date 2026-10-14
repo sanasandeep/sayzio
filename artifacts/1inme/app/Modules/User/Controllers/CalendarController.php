@@ -327,6 +327,7 @@ class CalendarController extends Controller
             ->take(40);
 
         return view('user.calendars.my-calendar', [
+            'contextOptions'=>app(\App\Services\CalendarContextFilters::class)->options(),
             'mirrorPrefs'   => \App\Modules\User\Support\PersonalCalendarSync::preferences($user),
             'events'        => $events,
             'gridEvents'    => $gridEvents,
@@ -509,6 +510,8 @@ class CalendarController extends Controller
         $query = CalendarEvent::query()
             ->with('calendar:id,link_id,title,accent_color,user_id,timezone')
             ->whereIn('calendar_id', $calendarIds);
+
+        app(\App\Services\CalendarContextFilters::class)->apply($query,$request);
 
         $from = $request->query('from');
         $to   = $request->query('to');

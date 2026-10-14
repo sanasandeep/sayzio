@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'My Calendar')
+@section('title', 'Calendar')
 
 @section('content')
 @php
@@ -46,10 +46,11 @@
 @endphp
 
 <div class="max-w-6xl mx-auto space-y-6">
+@include('user.calendars.partials.navigation')
     {{-- ── Page header ─────────────────────────────────────────── --}}
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-white">My Calendar</h1>
+            <h1 class="text-2xl font-bold text-white">Schedule</h1>
             <p class="text-xs text-white/40 mt-0.5">
                 @if(($filters['ws'] ?? '') === 'all')
                     Everything from the calendars you own and follow, across all workspaces.
@@ -151,9 +152,7 @@
                     </a>
                 </div>
             </div>
-            <a href="{{ route('user.calendars.create') }}" class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white transition">
-                <i class="fas fa-plus mr-1"></i> New calendar
-            </a>
+            <details><summary class="form-chip">+ Create</summary><div class="notes-panel">@if(\App\Modules\User\Services\WorkspacePermissions::userCan('links.create'))<a class="form-chip" href="{{ route('user.links.create',['type'=>'ics']) }}">New event</a><a class="form-chip" href="{{ route('user.calendars.create') }}">New calendar</a>@endif @if(\App\Modules\User\Services\WorkspacePermissions::userCan('tasks.view'))<a class="form-chip" href="{{ route('user.tasks.index') }}">Add a task in a board</a>@endif @if(\App\Modules\User\Services\WorkspacePermissions::userCan('settings.view'))<a class="form-chip" href="{{ route('user.calendar.index') }}">Connect calendar</a>@endif</div></details>
         </div>
     </div>
 
@@ -206,6 +205,7 @@
         {{-- Carry view + focus date so applying filters doesn't reset them. --}}
         <input type="hidden" name="view" value="{{ $view }}">
         <input type="hidden" name="date" value="{{ $focusDate->format('Y-m-d') }}">
+        <div class="flex flex-wrap gap-3 mb-4">@foreach(['folder'=>'Folders','client'=>'Clients','project'=>'Projects','assignee'=>'Assignees'] as $key=>$label)<label class="calendar-context-filter"><span class="text-sm">{{ $label }}</span><select data-filter-multiple name="{{ $key }}"><option value="">All {{ strtolower($label) }}</option>@foreach($contextOptions[$key==='folder'?'folders':($key==='client'?'clients':($key==='assignee'?'assignees':'projects'))] as $option)<option value="{{ $option->id }}" @selected(in_array((int)$option->id,\App\Support\FilterValues::ids(request(),$key),true))>{{ $option->name ?? $option->title }}</option>@endforeach</select></label>@endforeach</div>
         <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-center">
             <div class="md:col-span-2">
                 <input type="text" name="q" value="{{ $filters['q'] }}" placeholder="Search events…" class="{{ $inputClass }}">

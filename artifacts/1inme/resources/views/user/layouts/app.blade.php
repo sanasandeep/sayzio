@@ -761,15 +761,7 @@
                     <span class="sidebar-tooltip">Create Link</span>
                 </a>
                 @endif
-                @if($__can['links_view'])
-                <a href="{{ route('user.calendars.mine') }}"
-                   class="sidebar-link {{ nav_route_is('user.calendars.*') ? 'active' : '' }}"
-                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div>
-                    <span class="nav-label">My Calendar</span>
-                    <span class="sidebar-tooltip">My Calendar</span>
-                </a>
-                @endif
+
                 @if($__can['inbox_view'])
                 <a href="{{ route('user.inbox.unified.index') }}"
                    class="sidebar-link {{ nav_route_is('user.inbox.unified.*') ? 'active' : '' }}"
@@ -1166,8 +1158,8 @@
                 </div>
 
                 {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
-                @if($__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                @php $grpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*'); @endphp
+                @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
+                @php $grpWorkspaceActive = nav_route_is('user.calendars.*') || nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*'); @endphp
                 <div x-data="{ open: {{ $grpWorkspaceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1184,6 +1176,7 @@
                             <span class="sidebar-tooltip">Task Boards</span>
                         </a>
                         @endif
+                        @if($__can['links_view'] || $__can['settings_view'])<a href="{{ $__can['links_view'] ? route('user.calendars.mine') : route('user.calendar.index') }}" class="sidebar-link {{ nav_route_is('user.calendars.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div><span class="nav-label">Calendar</span><span class="sidebar-tooltip">Calendar</span></a>@endif
                         @if($__can['vault_view'])
                         <a href="{{ route('user.vault.clients.index') }}"
                            class="sidebar-link {{ nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"
@@ -1203,22 +1196,8 @@
                         </a>
                         @endif
                         @if($__can['settings_view'])
-                        @if(\App\Modules\Common\Support\EventsModule::enabled())
-                        <a href="{{ route('user.events.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.events.*') ? 'active' : '' }}"
-                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div>
-                            <span class="nav-label">Events</span>
-                            <span class="sidebar-tooltip">Events calendar</span>
-                        </a>
-                        @endif
-                        <a href="{{ route('user.calendar.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.calendar.*') ? 'active' : '' }}"
-                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div>
-                            <span class="nav-label">Calendar Sync</span>
-                            <span class="sidebar-tooltip">Calendar Sync</span>
-                        </a>
+
+
                         @endif
                     </div>
                 </div>
@@ -1718,9 +1697,7 @@
                             <div class="nav-icon-wrap"><i class="fas fa-bolt"></i></div> <span>Quick Shorten</span>
                         </button>
                         @endif
-                        @if($__can['links_view'])
-                        <a href="{{ route('user.calendars.mine') }}" class="sidebar-link {{ nav_route_is('user.calendars.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div> <span>My Calendar</span></a>
-                        @endif
+
                         @if($__can['inbox_view'])
                         <a href="{{ route('user.inbox.unified.index') }}" class="sidebar-link {{ nav_route_is('user.inbox.unified.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div> <span>Inbox
                             @php $__mTopInbox = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
@@ -1893,8 +1870,8 @@
                         </div>
 
                         {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
-                        @if($__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                        @php $mGrpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*'); @endphp
+                        @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
+                        @php $mGrpWorkspaceActive = nav_route_is('user.calendars.*') || nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*'); @endphp
                         <div x-data="{ open: {{ $mGrpWorkspaceActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1905,15 +1882,14 @@
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.tasks.index') }}" class="sidebar-link {{ nav_route_is('user.tasks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div> <span>Tasks</span></a>
                                 @endif
+                                @if($__can['links_view'] || $__can['settings_view'])<a href="{{ $__can['links_view'] ? route('user.calendars.mine') : route('user.calendar.index') }}" class="sidebar-link {{ nav_route_is('user.calendars.*') || nav_route_is('user.events.*') || nav_route_is('user.calendar.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div><span class="nav-label">Calendar</span><span class="sidebar-tooltip">Calendar</span></a>@endif
                                 @if($__can['vault_view'])<a href="{{ route('user.vault.clients.index') }}" class="sidebar-link {{ nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div> <span>Clients</span></a>@endif
                                 @if($__can['vault_view'])
                                 <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>
                                 @endif
                                 @if($__can['settings_view'])
-                                @if(\App\Modules\Common\Support\EventsModule::enabled())
-                                <a href="{{ route('user.events.index') }}" class="sidebar-link {{ nav_route_is('user.events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div> <span>Events</span></a>
-                                @endif
-                                <a href="{{ route('user.calendar.index') }}" class="sidebar-link {{ nav_route_is('user.calendar.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div> <span>Calendar Sync</span></a>
+
+
                                 @endif
                             </div>
                         </div>
