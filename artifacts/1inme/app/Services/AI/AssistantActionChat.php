@@ -15,6 +15,10 @@ class AssistantActionChat
 
     public static function isBiolinkNavigationRequest(string $text): bool
     {
+        if (preg_match('/\b(?:how\s+(?:do|can|to)|do\s+not|never|avoid|stop)\b|don[’\']t/iu', $text)) {
+            return false;
+        }
+
         return (bool) preg_match('/\b(?:open|go\s*to|navigate\s*to|take\s+me\s*to|edit)\b.{0,240}\b(?:link\s*(?:in\s*)?bio|biolink)\b/iu', $text);
     }
 

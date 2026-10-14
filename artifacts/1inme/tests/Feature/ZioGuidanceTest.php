@@ -189,4 +189,12 @@ class ZioGuidanceTest extends TestCase
         ]);
         $this->assertSame(['type' => 'tool', 'name' => 'open_biolink'], $payload['tool_choice']);
     }
+
+    public function test_directions_and_negative_requests_do_not_force_navigation(): void
+    {
+        $this->assertTrue(AssistantActionChat::isBiolinkNavigationRequest('can u open Sana Sandeep link in bio page?'));
+        foreach (['Do not open my Link in Bio', "Don't open my Link in Bio", 'How can I open my Link in Bio?'] as $text) {
+            $this->assertFalse(AssistantActionChat::isBiolinkNavigationRequest($text));
+        }
+    }
 }
