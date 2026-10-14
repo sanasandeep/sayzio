@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Vault: Clients')
+@section('title', 'Vault: Client profiles')
 @section('content')
 @include('user.vault._tabs')
 
@@ -15,7 +15,7 @@
     </form>
     @if($canCreate)
         <a href="{{ route('user.vault.clients.create') }}" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">
-            <i class="fas fa-plus mr-1"></i> New client
+            <i class="fas fa-plus mr-1"></i> New profile
         </a>
     @endif
 </div>

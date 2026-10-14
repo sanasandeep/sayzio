@@ -15,7 +15,7 @@
     </a>
     <a href="{{ route('user.vault.clients.index') }}"
        class="px-4 py-2 -mb-px border-b-2 text-sm font-semibold {{ request()->routeIs('user.vault.clients.*') ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-400 hover:text-gray-200' }}">
-        <i class="fas fa-id-card mr-1"></i> Clients
+        <i class="fas fa-id-card mr-1"></i> Client profiles
     </a>
     <a href="{{ route('user.vault.audit.index') }}"
        class="px-4 py-2 -mb-px border-b-2 text-sm font-semibold {{ request()->routeIs('user.vault.audit.*') ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-400 hover:text-gray-200' }}">
