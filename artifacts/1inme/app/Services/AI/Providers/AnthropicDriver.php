@@ -230,6 +230,12 @@ class AnthropicDriver implements AiProviderDriver
         }
         if (!empty($opts['tools'])) {
             $payload['tools'] = $this->translateTools($opts['tools']);
+            $choice = $opts['tool_choice'] ?? 'auto';
+            if (is_array($choice) && ($choice['type'] ?? '') === 'function' && !empty($choice['function']['name'])) {
+                $payload['tool_choice'] = ['type' => 'tool', 'name' => $choice['function']['name']];
+            } elseif ($choice === 'required') {
+                $payload['tool_choice'] = ['type' => 'any'];
+            }
         }
 
         return $payload;

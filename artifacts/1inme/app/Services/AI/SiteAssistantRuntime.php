@@ -739,7 +739,7 @@ class SiteAssistantRuntime
         // admin debugging.
         $partial = '';
         try {
-            if ($user && in_array($surface, ['app', 'admin'], true) && !empty($page['controls'])) {
+            if ($user && in_array($surface, ['app', 'admin'], true) && (!empty($page['controls']) || AssistantActionChat::isBiolinkNavigationRequest($message))) {
                 $result = app(AssistantActionChat::class)->run($user, $billingUser, $model, $messages, [
                     'temperature' => (float) ($cfg['temperature'] ?? 0.4), 'max_tokens' => (int) ($cfg['max_tokens'] ?? 800),
                     'feature' => 'site_assistant', 'related_id' => (int) $conv->id, 'reason' => 'Site assistant guided turn',
