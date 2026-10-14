@@ -195,7 +195,9 @@ class LinkController extends Controller
             }
         }
 
-        return view('user.links.index', compact('links', 'projects', 'summary', 'sort', 'folder', 'view', 'report'));
+        $folderResources = $folder ? app(\App\Services\Planner\PlannerResources::class)->folder($folder, $request->user()) : [];
+
+        return view('user.links.index', compact('links', 'projects', 'summary', 'sort', 'folder', 'view', 'report', 'folderResources'));
     }
 
     /**

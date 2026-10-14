@@ -91,6 +91,30 @@ class AiPlannerWorkflowTest extends TestCase
         }
     }
 
+    public function test_folder_links_and_reports_share_the_workspace_shell(): void
+    {
+        $u = $this->owner();
+        $folder = Project::create(['user_id' => $u->id, 'name' => 'Unified marketing']);
+        Link::create(['user_id' => $u->id, 'project_id' => $folder->id, 'title' => 'Campaign launch', 'type' => 'biolink', 'alias' => 'unified-launch']);
+        $other = Project::create(['user_id' => $u->id, 'name' => 'Other folder']);
+        $outside = Link::create(['user_id' => $u->id, 'project_id' => $other->id, 'title' => 'Outside folder item', 'type' => 'biolink', 'alias' => 'outside-folder']);
+        foreach (['overview', 'links', 'reports', 'tasks', 'resources'] as $tab) {
+            $page = $this->get('/user/projects/'.$folder->id.'?tab='.$tab)->assertOk()->assertSee('Folder workspace')->assertSee('YOUR FOLDER WORKSPACE');
+            $page->assertSee('aria-label="Folder workspace"', false);
+            if ($tab === 'links') {
+                $page->assertSee('Campaign launch')->assertDontSee('data-link-id="'.$outside->id.'"', false);
+            }
+            if ($tab === 'reports') {
+                $page->assertSee('Task progress')->assertSee('Form submissions')->assertSee('rp-from');
+            }
+            if (getenv('FORMS_UI_FIXTURE')) {
+                file_put_contents('/tmp/unified-folder-'.$tab.'.html', $page->getContent());
+            }
+        }
+        $this->get('/user/links?project_id='.$folder->id)->assertOk()->assertSee('YOUR FOLDER WORKSPACE')->assertDontSee('Open links &amp; reports', false);
+        $this->get('/user/links')->assertOk()->assertDontSee('YOUR FOLDER WORKSPACE');
+    }
+
     public function test_notes_are_private_shared_explicitly_and_snooze_hides_context(): void
     {
         $u = $this->owner();

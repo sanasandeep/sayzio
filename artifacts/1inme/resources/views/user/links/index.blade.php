@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'My Links')
+@section('title', isset($folder) && $folder ? $folder->name.' · Folder workspace' : 'My Links')
 
 @push('styles')
     {{-- Reuse the exact bento command-center look from the Dashboard. --}}
@@ -280,7 +280,6 @@
     }
     // Export the currently-filtered list as CSV. Available to anyone who can
     // view links (viewers included) — it's the same data already on screen.
-    if($folder)$__heroActions[]=['label'=>'Folder workspace','url'=>route('user.projects.show',$folder),'icon'=>'fa-folder-open','class'=>'btn-ghost'];
     $__heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.export', request()->only('search', 'type', 'project_id', 'status')), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'];
     // Move-to-workspace: only the workspace owner can move links, and only
     // makes sense if they own more than one workspace.
@@ -305,7 +304,11 @@
     $__summary = $summary ?? ['total' => 0, 'active' => 0, 'clicks' => 0];
 @endphp
 
-<div class="bento-stage">
+<div class="bento-stage {{ $folder ? 'folder-workspace' : '' }}">
+    @if($folder)
+        @include('user.planner.styles')
+        @include('user.planner.folder-shell', ['project'=>$folder, 'resources'=>$folderResources, 'activeTab'=>$view])
+    @else
 
     {{-- ===================== HEADER =====================
          Six boxes used to stand here: two chips, a ring, and three metric
@@ -362,7 +365,22 @@
         <a href="{{ route('user.links.index', array_merge(request()->except('page', 'view'), ['view' => 'links'])) }}" @if($view === 'links') aria-current="page" @endif>Links</a>
         <a href="{{ route('user.links.index', array_merge(request()->except('page', 'view'), ['view' => 'reports'])) }}" @if($view === 'reports') aria-current="page" @endif>Reports</a>
     </nav>
+    @endif
+    @if($folder && $view === 'links')
+        <div class="folder-link-tools">
+            <div><h2>Links & pages</h2><p>Manage the content in {{ $folder->name }}.</p></div>
+            <div class="folder-create">@foreach($__heroActions as $a)@if($a['label']!=='Create Link')<a class="form-chip" href="{{ $a['url'] }}"><i class="fas {{ $a['icon'] }}" aria-hidden="true"></i>{{ $a['label'] }}</a>@endif
+@endforeach</div>
+        </div>
+    @endif
     @if($view === 'reports')
+        @if($folder)
+        <div class="folder-report-context">
+            <div><span>Task progress</span><strong>{{ $folderResources ? collect($folderResources)->where('kind','task')->filter(fn($i)=>$i['row']->completed_at)->count() : 0 }} / {{ collect($folderResources)->where('kind','task')->count() }}</strong><small>Current completed tasks</small></div>
+            <div><span>Plans in this folder</span><strong>{{ collect($folderResources)->where('kind','plan')->count() }}</strong><small>Connect your work to its results</small></div>
+            <div><span>Form submissions</span><strong>{{ number_format(collect($folderResources)->where('kind','form')->sum(fn($i)=>$i['row']->submissions()->count())) }}</strong><small>Lifetime submissions · open a form for answer analytics</small></div>
+        </div>
+        @endif
         @include('user.links.partials.folder-reports')
     @else
 
