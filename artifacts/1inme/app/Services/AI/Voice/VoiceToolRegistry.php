@@ -653,7 +653,7 @@ class VoiceToolRegistry
         if ($field === '') return ['error' => 'I need to know which field to fill.'];
 
         return [
-            'summary'       => "Set {$field} to \"{$value}\".",
+            'summary'       => "Prepared ".\Illuminate\Support\Str::headline($field)." as \"{$value}\" in the setup form. Review and save the form to apply it.",
             'client_action' => ['type' => 'wizard_set_answer', 'field' => $field, 'value' => $value],
             'data'          => ['field' => $field, 'value' => $value],
         ];

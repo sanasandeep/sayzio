@@ -500,6 +500,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       path: ds.path || '/',
       title: ds.title || document.title || '',
       url: location.href,
+      assistant_surface: (window.__voiceSurface||{}).name||'app',
       controls: window.VoiceRuntime ? window.VoiceRuntime.controlLabels() : []
     };
   }
@@ -803,6 +804,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
         }
         if(s.handed_off){ disableInput(true, CHROME.handoff_note); }
         renderLowBalance(s.low_balance);
+        resumeNavigationSupport();
         scrollBottom();
       });
   }
@@ -1122,7 +1124,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   }
 
   function afterReply(){
-    if(vrPendingNav){ var url=vrPendingNav; vrPendingNav=null; window.location.assign(url); return; }
+    if(vrPendingNav){ var url=vrPendingNav; vrPendingNav=null; window.VoiceRuntime.navigateWithGuide(url,'Opening your page. I’ll meet you there.'); return; }
     if(vrHandsFree && !vrRecording && !vrPending.length){ startRecording(); }
   }
 
@@ -1134,7 +1136,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     voiceConfirmEl.appendChild(el('div',{class:'sa-vc-title'},'Confirm before I run:'));
     vrPending.forEach(function(c){
       var row=el('div',{class:'sa-vc-row'});
-      row.appendChild(el('span',{class:'sa-vc-label',title:c.tool}, c.tool));
+      row.appendChild(el('span',{class:'sa-vc-label',title:friendlyActionName(c.tool)}, friendlyActionName(c.tool)));
       var acts=el('div',{class:'sa-vc-acts'});
       var yes=el('button',{type:'button',class:'sa-vc-yes'},'Yes');
       yes.onclick=function(){ confirmTool(c.tool, true); };
@@ -1182,6 +1184,12 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   }
   function closeCaps(){ if(capsPaneEl) capsPaneEl.classList.remove('sa-show'); }
 
+  function friendlyActionName(name){
+    var names={wizard_set_answer:'Fill a setup field',wizard_advance:'Move to the next setup step',wizard_generate:'Build your page',open_biolink:'Open your Link in Bio',guide_control:'Show a page control',ask_question:'Ask a follow-up question',delete_biolink:'Delete a Link in Bio page'};
+    var text=names[name]||String(name||'').replace(/_/g,' ');
+    return text.charAt(0).toUpperCase()+text.slice(1);
+  }
+
   function renderCaps(caps){
     if(!capsBodyEl) return;
     capsBodyEl.innerHTML='';
@@ -1193,7 +1201,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       var list=el('div',{class:'sa-vcaps-list'});
       (tools[group]||[]).forEach(function(t){
         var item=el('div',{class:'sa-vcaps-item'});
-        var nm=el('div',{class:'sa-vcaps-name'}, t.name || '');
+        var nm=el('div',{class:'sa-vcaps-name'}, friendlyActionName(t.name));
         if(t.destructive){ nm.appendChild(el('span',{style:{marginLeft:'6px',color:'#fbbf24',fontSize:'10px',fontWeight:'400'}},'⚠ confirms')); }
         item.appendChild(nm);
         if(t.description){ item.appendChild(el('div',{class:'sa-vcaps-desc'}, t.description)); }
@@ -1236,6 +1244,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       card.appendChild(el('div',{class:'sa-question-title'},b.question||'Tell me more'));
       var selected=[];
       function answer(value){
+        if(b.navigation_followup && value==='I’m done'){zioQuestion='';togglePanel(false);return;}
         var text=(b.question||'Answer')+' '+value;
         ta.value=text; sendMessage();
         card.querySelectorAll('button,input').forEach(function(n){n.disabled=true;});
@@ -1741,10 +1750,28 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     applyChannel(QC_CHANNELS[0]);
   }
 
+  var navigationHandoff=null;
+  try {
+    navigationHandoff=JSON.parse(sessionStorage.getItem('zio_navigation_handoff')||'null');
+    if(navigationHandoff){
+      var current=location.pathname+location.search;
+      var linkPath=/^\/user\/links\/\d+(?:\/|$)/;
+      var a=navigationHandoff.path.match(linkPath),b=current.match(linkPath);
+      if(Date.now()-navigationHandoff.at>120000 || (navigationHandoff.path!==current && !(a&&b&&a[0]===b[0]))) navigationHandoff=null;
+    }
+  }catch(e){}
+  function resumeNavigationSupport(){
+    if(!navigationHandoff || AUTH_REQUIRED) return;
+    navigationHandoff=null;
+    try{sessionStorage.removeItem('zio_navigation_handoff');}catch(e){}
+    renderSuggested([]);
+    renderMessage({role:'assistant',content:'You’re on '+(document.title||'the requested page')+'. What would you like to do next?',blocks:[{type:'question',question:'What would you like to do on this page?',navigation_followup:true,mode:'single',options:['Show me the next step','Help edit a field','Explain this page','I’m done']} ]});
+  }
+
   function applyChatActions(res){
     if(window.VoiceRuntime && res.tool_results){
       var nav=window.VoiceRuntime.applyToolResults(res.tool_results);
-      if(nav) window.location.assign(nav);
+      if(nav) window.VoiceRuntime.navigateWithGuide(nav,(res.assistant_message||{}).content||'Opening your page. I’ll meet you there.');
     }
   }
 
@@ -2021,6 +2048,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   window.addEventListener('resize', saSyncPanelViewport, { passive: true });
   window.addEventListener('orientationchange', saSyncPanelViewport, { passive: true });
 
+  if(navigationHandoff) setTimeout(function(){togglePanel(true);},200);
   scheduleTooltip(true);
 })();
 </script>

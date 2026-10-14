@@ -35,6 +35,7 @@ class ZioGuidanceTest extends TestCase
             $this->assertContains('guide_control', $names);
             $this->assertContains('ask_question', $names);
             $this->assertNotContains('delete_biolink', $names);
+            $this->assertNotContains('wizard_set_answer', $names);
 
             return true;
         })->andReturn(['content' => '', 'credits_spent' => 2, 'tool_calls' => [[
@@ -196,5 +197,25 @@ class ZioGuidanceTest extends TestCase
         foreach (['Do not open my Link in Bio', "Don't open my Link in Bio", 'How can I open my Link in Bio?'] as $text) {
             $this->assertFalse(AssistantActionChat::isBiolinkNavigationRequest($text));
         }
+    }
+
+    public function test_existing_page_cannot_execute_a_setup_wizard_action_or_claim_a_saved_change(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $llm = Mockery::mock(OpenAiService::class);
+        $llm->shouldReceive('chat')->twice()->andReturn(
+            ['content' => '', 'credits_spent' => 1, 'tool_calls' => [[
+                'id' => 'wrong-surface', 'function' => ['name' => 'wizard_set_answer', 'arguments' => json_encode(['field' => 'display_name', 'value' => 'Sana Sandeep'])],
+            ]]],
+            ['content' => 'No changes have been saved. Let me show you the profile settings.', 'credits_spent' => 1, 'tool_calls' => []]
+        );
+        $r = (new AssistantActionChat($llm, app(VoiceToolRegistry::class)))->run($user, $user, 'test', [['role' => 'user', 'content' => 'Update my metadata']], ['surface' => 'app']);
+        $this->assertArrayHasKey('error', $r['tool_results'][0]['result']);
+        $this->assertArrayNotHasKey('client_action', $r['tool_results'][0]['result']);
+        $this->assertSame(2, $r['credits_spent']);
+        $summary = (app(VoiceToolRegistry::class)->tools()['wizard_set_answer']['handler'])($user, ['field' => 'display_name', 'value' => 'Sana Sandeep']);
+        $this->assertStringNotContainsString('display_name', $summary['summary']);
+        $this->assertStringContainsString('Review and save', $summary['summary']);
     }
 }

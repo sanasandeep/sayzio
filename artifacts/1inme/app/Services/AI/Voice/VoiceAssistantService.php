@@ -99,7 +99,9 @@ class VoiceAssistantService
             [['role' => 'user', 'content' => $userText]],
         );
 
-        $toolDefs = $this->tools->functionDefinitionsFor($user, $isAdmin, $isMobile);
+        $toolDefs = array_values(array_filter($this->tools->functionDefinitionsFor($user, $isAdmin, $isMobile),
+            fn($d) => ($surface['name'] ?? 'app') === 'wizard' || !str_starts_with($d['function']['name'], 'wizard_')));
+        $allowedTools = array_column(array_column($toolDefs, 'function'), 'name');
         $llmCredits     = 0;
         $toolResults    = [];
         $pendingConfirm = [];
@@ -150,7 +152,7 @@ class VoiceAssistantService
                 $name = (string) ($call['function']['name'] ?? '');
                 $args = json_decode((string) ($call['function']['arguments'] ?? '{}'), true) ?: [];
                 $confirmed = (bool) ($confirmedTools[$name] ?? false);
-                $result = $this->tools->execute($user, $isAdmin, $name, $args, $confirmed, $isMobile);
+                $result = in_array($name, $allowedTools, true) ? $this->tools->execute($user, $isAdmin, $name, $args, $confirmed, $isMobile) : ['error' => 'That action is not available on this page. Guide the user to the correct control instead.'];
 
                 if (!empty($result['confirm_required'])) {
                     $pendingConfirm[] = $result;

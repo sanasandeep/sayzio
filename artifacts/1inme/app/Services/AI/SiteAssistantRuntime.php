@@ -425,6 +425,7 @@ class SiteAssistantRuntime
                 'feature'     => 'site_assistant',
                 'related_id'  => (int) $conv->id,
                 'reason'      => 'Site assistant turn',
+                'surface' => $page['assistant_surface'] ?? 'app',
             ]) : $this->openai->chat($billingUser, $model, $messages, [
                 'temperature' => (float) ($cfg['temperature'] ?? 0.4), 'max_tokens' => (int) ($cfg['max_tokens'] ?? 800),
                 'feature' => 'site_assistant', 'related_id' => (int) $conv->id, 'reason' => 'Site assistant turn',
@@ -743,6 +744,7 @@ class SiteAssistantRuntime
                 $result = app(AssistantActionChat::class)->run($user, $billingUser, $model, $messages, [
                     'temperature' => (float) ($cfg['temperature'] ?? 0.4), 'max_tokens' => (int) ($cfg['max_tokens'] ?? 800),
                     'feature' => 'site_assistant', 'related_id' => (int) $conv->id, 'reason' => 'Site assistant guided turn',
+                    'surface' => $page['assistant_surface'] ?? 'app',
                 ]);
                 $emit('token', ['delta' => (string) ($result['content'] ?? '')]);
             } else {
