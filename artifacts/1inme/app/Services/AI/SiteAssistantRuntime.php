@@ -426,6 +426,7 @@ class SiteAssistantRuntime
                 'related_id'  => (int) $conv->id,
                 'reason'      => 'Site assistant turn',
                 'surface' => $page['assistant_surface'] ?? 'app',
+                'page' => $page,
             ]) : $this->openai->chat($billingUser, $model, $messages, [
                 'temperature' => (float) ($cfg['temperature'] ?? 0.4), 'max_tokens' => (int) ($cfg['max_tokens'] ?? 800),
                 'feature' => 'site_assistant', 'related_id' => (int) $conv->id, 'reason' => 'Site assistant turn',
@@ -745,6 +746,7 @@ class SiteAssistantRuntime
                     'temperature' => (float) ($cfg['temperature'] ?? 0.4), 'max_tokens' => (int) ($cfg['max_tokens'] ?? 800),
                     'feature' => 'site_assistant', 'related_id' => (int) $conv->id, 'reason' => 'Site assistant guided turn',
                     'surface' => $page['assistant_surface'] ?? 'app',
+                'page' => $page,
                 ]);
                 $emit('token', ['delta' => (string) ($result['content'] ?? '')]);
             } else {
@@ -1117,7 +1119,7 @@ class SiteAssistantRuntime
     protected function sanitizeBlocks(array $blocks): array
     {
         $out = [];
-        $allowedTypes = ['buttons', 'list', 'form', 'image', 'question'];
+        $allowedTypes = ['buttons', 'list', 'form', 'image', 'question', 'social_setup'];
         foreach ($blocks as $b) {
             if (!is_array($b)) continue;
             // Hydrate from a named template (admin-defined → trusted).
@@ -1130,7 +1132,16 @@ class SiteAssistantRuntime
             }
             $type = $b['type'] ?? null;
             if (!in_array($type, $allowedTypes, true)) continue;
-            if ($type === 'question') {
+            if ($type === 'social_setup') {
+                $actor=auth()->user();
+                $link=$actor ? ZioPageKnowledge::link($actor,(int)($b['link_id']??0),true) : null;
+                if(!$link || !$link->isBiolinkFamily()) continue;
+                $rows=[];
+                foreach(array_slice((array)($b['platforms']??[]),0,22) as $row){
+                    if(is_array($row) && in_array($row['name']??'',ZioPageKnowledge::SOCIAL_PLATFORMS,true)) $rows[]=['name'=>$row['name'],'url'=>mb_substr((string)($row['url']??''),0,500)];
+                }
+                $out[]=['type'=>'social_setup','link_id'=>$link->id,'title'=>$link->title,'platforms'=>$rows, 'connections'=>\App\Modules\User\Models\SocialAccountConnection::where('user_id',$actor->id)->limit(50)->get(['id','platform','handle','profile_url'])->toArray()];
+            } elseif ($type === 'question') {
                 $opts = array_slice(array_values(array_filter((array) ($b['options'] ?? []), 'is_string')), 0, 4);
                 $out[] = ['type' => 'question', 'question' => mb_substr((string) ($b['question'] ?? ''), 0, 300),
                     'mode' => in_array($b['mode'] ?? '', ['single', 'multiple', 'text'], true) ? $b['mode'] : 'text',

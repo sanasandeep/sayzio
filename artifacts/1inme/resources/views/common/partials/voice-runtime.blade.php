@@ -47,8 +47,9 @@ window.VoiceRuntime = window.VoiceRuntime || (function () {
         if (blob) fd.append('audio', blob, 'voice.' + ext);
         fd.append('context', JSON.stringify({
             messages: opts.messages || [],
+            visitor_token: opts.visitorToken || null,
             confirmed_tools: opts.confirmedTools || {},
-            surface: Object.assign({name:'app'}, window.__voiceSurface || {}, {controls: controlLabels()})
+            surface: Object.assign({name:'app'}, window.__voiceSurface || {}, {controls: controlLabels(),path:location.pathname})
         }));
         return fetch(opts.url, {
             method: 'POST',
@@ -138,6 +139,7 @@ window.VoiceRuntime = window.VoiceRuntime || (function () {
     function navigateWithGuide(url, summary) {
         var target; try { target = new URL(url, location.origin); } catch(e) {return;}
         if(target.origin !== location.origin) return;
+        if(target.pathname+target.search===location.pathname+location.search){window.dispatchEvent(new CustomEvent('zio-navigation-current'));return;}
         clearTimeout(navigationTimer); clearGuide();
         var link=Array.from(document.querySelectorAll('a[href]')).find(function(a){return a.href===target.href && a.getClientRects().length && !a.closest('#site-assistant-root');});
         showGuide({label:link ? (link.getAttribute('aria-label') || link.innerText).trim() : '', instruction:summary||'Opening your page…'});

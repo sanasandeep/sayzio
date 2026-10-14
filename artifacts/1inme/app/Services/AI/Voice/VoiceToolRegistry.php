@@ -46,18 +46,44 @@ class VoiceToolRegistry
     public function tools(): array
     {
         return [
+            'open_sayzio_feature'=>[
+                'ui_description'=>'Find and open a Sayzio page you can access.',
+                'category'=>'navigation','role'=>'user','destructive'=>false,
+                'description'=>'Find and open a Sayzio feature by its friendly name using the real native read-only page directory and current workspace permissions. Use for features beyond the fixed navigate menu. Never invent a URL.',
+                'parameters'=>['type'=>'object','properties'=>['query'=>['type'=>'string']],'required'=>['query'],'additionalProperties'=>false],
+                'handler'=>fn(User $u,array $a)=>\App\Services\AI\ZioPageKnowledge::openFeature((string)($a['query']??'')),
+            ],
+            'inspect_block_type' => [
+                'ui_description'=>'Check the real fields and defaults for a Link in Bio block.',
+                'category'=>'guidance','role'=>'user','destructive'=>false,
+                'description'=>'Load a Link in Bio block’s real native fields and editable defaults before asking the user for details. No AI/provider lookup cost.',
+                'parameters'=>['type'=>'object','properties'=>['type'=>['type'=>'string']],'required'=>['type'],'additionalProperties'=>false],
+                'handler'=>fn(User $u,array $a)=>\App\Services\AI\ZioPageKnowledge::blockSchema((string)($a['type']??'')),
+            ],
+            'prepare_social_block' => [
+                'ui_description'=>'Prepare your social links together, then review and add the block.',
+                'category'=>'creator','role'=>'user','destructive'=>false,'permission'=>'links.edit',
+                'description'=>'Prepare one native Social Links block review form for the current authorized Link in Bio. Reuse known handles/URLs in platforms; collect missing values together. Nothing is saved until the user presses Review and add. Never use Add alias for social links.',
+                'parameters'=>['type'=>'object','properties'=>[
+                    'link_id'=>['type'=>'integer'],
+                    'platforms'=>['type'=>'array','maxItems'=>22,'items'=>['type'=>'object','properties'=>['name'=>['type'=>'string'],'url'=>['type'=>'string']],'required'=>['name','url'],'additionalProperties'=>false]],
+                ],'required'=>['link_id','platforms'],'additionalProperties'=>false],
+                'handler'=>fn(User $u,array $a)=>$this->prepareSocialBlock($u,$a),
+            ],
             'guide_control' => [
+                'ui_description'=>'Show the next control without clicking or changing it.',
                 'category' => 'guidance', 'role' => 'user', 'destructive' => false,
                 'description' => 'Point to and highlight a visible control on the current page by its exact label. Never clicks or submits it. Use for directions, upload/URL/My Files instructions and next steps.',
                 'parameters' => ['type' => 'object', 'properties' => [
                     'label' => ['type' => 'string'], 'instruction' => ['type' => 'string'],
                 ], 'required' => ['label', 'instruction'], 'additionalProperties' => false],
-                'handler' => fn(User $u, array $a) => ['summary' => 'Showing the next step.', 'client_action' => [
+                'handler' => fn(User $u, array $a) => preg_match('/social/i',(string)($a['instruction']??'')) && preg_match('/alias/i',(string)($a['label']??'')) ? ['error'=>'Add alias only adds an alternate address. Social links belong in a Social Links block in the Blocks editor.'] : ['summary' => 'Showing the next step.', 'client_action' => [
                     'type' => 'zio_guide', 'label' => mb_substr((string) ($a['label'] ?? ''), 0, 120),
                     'instruction' => mb_substr((string) ($a['instruction'] ?? ''), 0, 300),
                 ]],
             ],
             'ask_question' => [
+                'ui_description'=>'Ask for missing details with choices, multi-select, or a typed answer.',
                 'category' => 'guidance', 'role' => 'user', 'destructive' => false,
                 'description' => 'Ask for missing information. Use single for up to four choice buttons, multiple for checkboxes with Submit, or text for a typed answer. Only offer relevant options; do not invent four when fewer apply. For a file source offer Upload, URL, My Files. Never ask for passwords, OTPs or other secrets.',
                 'parameters' => ['type' => 'object', 'properties' => [
@@ -223,6 +249,7 @@ class VoiceToolRegistry
                 'handler' => fn(User $u, array $args) => $this->doChooseLinkType($args),
             ],
             'wizard_set_answer' => [
+                'ui_description'=>'Fill a setup-wizard field. Review and save the draft to apply it.',
                 'category'    => 'creator',
                 'role'        => 'user',
                 'permission'  => 'links.create',
@@ -375,7 +402,7 @@ class VoiceToolRegistry
         foreach ($this->tools() as $name => $spec) {
             if (!$this->userMay($user, $spec, $isAdmin, $isMobile)) continue;
             $out[$name] = [
-                'description' => $spec['description'],
+                'description' => $spec['ui_description'] ?? $spec['description'],
                 'category'    => $spec['category'],
                 'destructive' => (bool) $spec['destructive'],
                 'role'        => $spec['role'],
@@ -446,6 +473,19 @@ class VoiceToolRegistry
     }
 
     // ── Tool implementations ─────────────────────────────────
+
+    protected function prepareSocialBlock(User $user,array $args): array
+    {
+        $link=\App\Services\AI\ZioPageKnowledge::link($user,(int)($args['link_id']??0),true);
+        if(!$link || !$link->isBiolinkFamily()) return ['error'=>'You cannot edit blocks on that page.'];
+        $rows=[];
+        foreach(array_slice((array)($args['platforms']??[]),0,22) as $row){
+            if(!is_array($row) || !in_array($row['name']??'',\App\Services\AI\ZioPageKnowledge::SOCIAL_PLATFORMS,true)) continue;
+            $rows[]=['name'=>$row['name'],'url'=>mb_substr((string)($row['url']??''),0,500)];
+        }
+        return ['summary'=>'Let’s add your social links together. Review the handles and URLs below; nothing is saved yet. You can change the design later in Blocks.',
+            'blocks'=>[['type'=>'social_setup','link_id'=>$link->id,'title'=>$link->title,'platforms'=>$rows,'connections'=>\App\Modules\User\Models\SocialAccountConnection::where('user_id',$user->id)->limit(50)->get(['id','platform','handle','profile_url'])->toArray()]]];
+    }
 
     protected function question(array $args): array
     {

@@ -127,6 +127,27 @@ class SiteAssistantController extends Controller
         ];
     }
 
+    public function exportChat(Request $request)
+    {
+        $user = $this->currentUser($request);
+        abort_unless($user, 401);
+        $data = $request->validate(['from' => 'required|date', 'to' => 'required|date|after_or_equal:from']);
+        $from = \Illuminate\Support\Carbon::parse($data['from'])->utc();
+        $to = \Illuminate\Support\Carbon::parse($data['to'])->utc();
+        $query = \App\Modules\Common\Models\SiteAssistantMessage::query()
+            ->whereIn('conversation_id', \App\Modules\Common\Models\SiteAssistantConversation::query()->where('bound_user_id', $user->id)->select('id'))
+            ->whereBetween('created_at', [$from, $to])->orderBy('created_at')->orderBy('id');
+        return response()->streamDownload(function() use ($query, $from, $to) {
+            echo "My Zio chats\nRange (UTC): ".$from->toIso8601String()." to ".$to->toIso8601String()."\n\n";
+            foreach ($query->cursor() as $message) {
+                echo '['.$message->created_at->toIso8601String().'] '.($message->role === 'assistant' ? 'Zio' : 'You')."\n".$message->content."\n\n";
+                foreach (($message->blocks ?? []) as $block) {
+                    if (($block['type'] ?? '') === 'question') echo (($block['question']??'')!==$message->content ? ($block['question']??'')."\n" : '').implode(' | ', $block['options']??[])."\n\n";
+                }
+            }
+        }, 'zio-chat-'.$from->format('Y-m-d').'-'.$to->format('Y-m-d').'.txt', ['Content-Type' => 'text/plain; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+    }
+
     public function session(Request $request)
     {
         $data = $request->validate([
