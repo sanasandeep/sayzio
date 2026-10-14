@@ -46,6 +46,36 @@ class VoiceToolRegistry
     public function tools(): array
     {
         return [
+            'guide_control' => [
+                'category' => 'guidance', 'role' => 'user', 'destructive' => false,
+                'description' => 'Point to and highlight a visible control on the current page by its exact label. Never clicks or submits it. Use for directions, upload/URL/My Files instructions and next steps.',
+                'parameters' => ['type' => 'object', 'properties' => [
+                    'label' => ['type' => 'string'], 'instruction' => ['type' => 'string'],
+                ], 'required' => ['label', 'instruction'], 'additionalProperties' => false],
+                'handler' => fn(User $u, array $a) => ['summary' => 'Showing the next step.', 'client_action' => [
+                    'type' => 'zio_guide', 'label' => mb_substr((string) ($a['label'] ?? ''), 0, 120),
+                    'instruction' => mb_substr((string) ($a['instruction'] ?? ''), 0, 300),
+                ]],
+            ],
+            'ask_question' => [
+                'category' => 'guidance', 'role' => 'user', 'destructive' => false,
+                'description' => 'Ask for missing information. Use single for up to four choice buttons, multiple for checkboxes with Submit, or text for a typed answer. Only offer relevant options; do not invent four when fewer apply. For a file source offer Upload, URL, My Files. Never ask for passwords, OTPs or other secrets.',
+                'parameters' => ['type' => 'object', 'properties' => [
+                    'question' => ['type' => 'string'],
+                    'mode' => ['type' => 'string', 'enum' => ['single', 'multiple', 'text']],
+                    'options' => ['type' => 'array', 'maxItems' => 4, 'items' => ['type' => 'string']],
+                ], 'required' => ['question', 'mode', 'options'], 'additionalProperties' => false],
+                'handler' => fn(User $u, array $a) => $this->question($a),
+            ],
+            'open_biolink' => [
+                'category' => 'navigation', 'role' => 'user', 'destructive' => false, 'permission' => 'links.view',
+                'description' => 'Find and open the signed-in user’s Link in Bio page by title or link ID. If several match, ask which one. View opens the public page; edit opens its editor with edit permission.',
+                'parameters' => ['type' => 'object', 'properties' => [
+                    'query' => ['type' => 'string'], 'link_id' => ['type' => 'integer'],
+                    'mode' => ['type' => 'string', 'enum' => ['view', 'edit']],
+                ], 'required' => ['mode'], 'additionalProperties' => false],
+                'handler' => fn(User $u, array $a) => $this->openBiolink($u, $a),
+            ],
             // ── Navigation ──────────────────────────────────────
             'navigate' => [
                 'category'    => 'navigation',
@@ -417,6 +447,37 @@ class VoiceToolRegistry
 
     // ── Tool implementations ─────────────────────────────────
 
+    protected function question(array $args): array
+    {
+        $mode = in_array($args['mode'] ?? '', ['single', 'multiple', 'text'], true) ? $args['mode'] : 'text';
+        $options = array_slice(array_values(array_filter((array) ($args['options'] ?? []), 'is_string')), 0, 4);
+        return ['summary' => mb_substr((string) ($args['question'] ?? 'What would you like?'), 0, 300),
+            'blocks' => [['type' => 'question', 'question' => mb_substr((string) ($args['question'] ?? ''), 0, 300),
+                'mode' => $options ? $mode : 'text', 'options' => array_map(fn($o) => mb_substr($o, 0, 120), $options)]]];
+    }
+
+    protected function openBiolink(User $user, array $args): array
+    {
+        // Owner-scoped lookup: never trust a model-supplied ID or URL.
+        $workspace = app()->bound('current_workspace') ? app('current_workspace') : app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user);
+        $query = \App\Modules\User\Models\Link::query()->where('user_id', $workspace?->owner_user_id ?? $user->id)->where('type', 'biolink');
+        if ($workspace) $query->where('workspace_id', $workspace->id);
+        if ($workspace && (int) $workspace->owner_user_id !== (int) $user->id && !$user->canInWorkspace($workspace, 'links.view_others')) {
+            $query->where('created_by_user_id', $user->id);
+        }
+        if (!empty($args['link_id'])) $query->whereKey((int) $args['link_id']);
+        elseif (!empty($args['query'])) $query->where('title', 'like', '%'.mb_substr((string) $args['query'], 0, 120).'%');
+        $links = $query->orderBy('id')->limit(5)->get();
+        if ($links->isEmpty()) return ['summary' => 'No matching Link in Bio page was found. Try its title.'];
+        if ($links->count() > 1) return $this->question(['question' => 'Which Link in Bio page should I open?', 'mode' => 'single',
+            'options' => $links->take(4)->map(fn($l) => ($l->title ?: $l->alias).' (link #'.$l->id.')')->all()]);
+        $link = $links->first();
+        $edit = ($args['mode'] ?? 'view') === 'edit';
+        if ($edit && (!$workspace || !$user->canInWorkspace($workspace, 'links.edit') || ((int) $workspace->owner_user_id !== (int) $user->id && (int) $link->created_by_user_id !== (int) $user->id && !$user->canInWorkspace($workspace, 'links.edit_others')))) return ['error' => 'You do not have permission to edit this page.'];
+        return ['summary' => 'Opening '.($link->title ?: 'your Link in Bio page').'.',
+            'navigate_to' => $edit ? route('user.links.edit', $link) : url('/'.$link->alias)];
+    }
+
     protected function navTargets(): array
     {
         $targets = [];
@@ -428,6 +489,14 @@ class VoiceToolRegistry
         $register('dashboard',     'user.dashboard');
         $register('inbox',         'user.inbox.index');
         $register('links',         'user.links.index');
+        $register('folders',       'user.projects.index');
+        $register('tasks',         'user.tasks.index');
+        $register('clients',       'user.vault.clients.index');
+        $register('files',         'user.files.index');
+        $register('forms',         'user.forms.index');
+        $register('calendar',      'user.calendars.mine');
+        $register('invoices',      'user.client-invoices.dashboard');
+        $register('team',          'user.team.index');
         $register('create_link',   'user.links.create');
         $register('analytics',     'user.dashboard');
         $register('notifications', 'user.notifications.index');
@@ -452,6 +521,8 @@ class VoiceToolRegistry
         if (!isset($targets[$page])) {
             return ['error' => "I don't know where '{$page}' lives."];
         }
+        $permissions = ['folders' => 'links.view', 'tasks' => 'tasks.view', 'clients' => 'vault.view', 'files' => 'links.view', 'forms' => 'inbox.view', 'invoices' => 'tasks.view'];
+        if (isset($permissions[$page]) && !WorkspacePermissions::userCan($permissions[$page])) return ['error' => 'You do not have access to that page.'];
         return [
             'summary'     => "Opening {$page}.",
             'navigate_to' => $targets[$page],
