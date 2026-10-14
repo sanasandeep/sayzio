@@ -1,9 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'New client')
+@section('title', 'New client workspace')
 @section('content')
 @include('user.planner.styles')
-<div class="max-w-2xl mx-auto px-4 py-8">
-    @include('user.partials.page-hero',['title'=>'New client','subtitle'=>'Connect a client profile, billing and delivery work.','emblemIcon'=>'fa-user-plus','favicon'=>null,'url'=>null,'back'=>route('user.delivery-projects.index'),'chips'=>[],'actions'=>[]])
+@include('user.partials.client-create-styles')
+<div class="client-create-page">
+    @include('user.partials.page-hero',['title'=>'New client workspace','subtitle'=>'Connect a client profile, billing and delivery work.','emblemIcon'=>'fa-user-plus','favicon'=>null,'url'=>null,'back'=>route('user.delivery-projects.index'),'chips'=>[],'actions'=>[]])
+    <div class="client-create-intro"><strong>Track the work for a client</strong><p>Use a workspace to connect delivery, tasks, billing and conversations. Link an existing contact profile below.</p>@if(\App\Modules\User\Services\WorkspacePermissions::userCan('vault.create'))<a href="{{ route('user.vault.clients.create') }}">Need to save contact details first? Create a client profile →</a>@endif</div>
     @if($errors->any())
         <div class="mb-4 px-4 py-3 rounded-lg text-sm" style="background: rgba(239,68,68,.12); color:#ef4444;">
             {{ $errors->first() }}
@@ -12,7 +14,7 @@
 
     <form method="POST" action="{{ route('user.delivery-projects.store') }}" class="glass-card rounded-2xl p-6 space-y-5" style="border:1px solid var(--border);">
         @csrf
-        <label class="block text-sm font-semibold">Vault client profile · optional<select name="vault_client_id" class="theme-input mt-2"><option value="">No linked profile</option>@foreach($vaultClients as $vaultClient)<option value="{{ $vaultClient->id }}">{{ $vaultClient->name }}{{ $vaultClient->company?' · '.$vaultClient->company:'' }}</option>@endforeach</select></label><p class="text-xs opacity-60">Name, company, email, phone and website remain linked to Vault. Private notes and secrets stay in Vault and are never added to client share pages.</p>
+        <label class="block text-sm font-semibold">Vault client profile · optional<select name="vault_client_id" class="theme-input mt-2 w-full"><option value="">No linked profile</option>@foreach($vaultClients as $vaultClient)<option value="{{ $vaultClient->id }}" @selected((string)old('vault_client_id') === (string)$vaultClient->id)>{{ $vaultClient->name }}{{ $vaultClient->company?' · '.$vaultClient->company:'' }}</option>@endforeach</select></label><p class="text-xs opacity-60">Name, company, email, phone and website remain linked to Vault. Private notes and secrets stay in Vault and are never added to client share pages.</p>
         @if($prefill['source_type'])
             <input type="hidden" name="source_type" value="{{ $prefill['source_type'] }}">
             <input type="hidden" name="source_id" value="{{ $prefill['source_id'] }}">
@@ -33,14 +35,15 @@
                       class="w-full rounded-lg px-3 py-2 text-sm" style="background: var(--surface-2); border:1px solid var(--border); color: var(--text-primary);">{{ old('description') }}</textarea>
         </div>
 
+        <p class="client-create-hint">Optional delivery contact used for completion notifications. Vault profile details stay in Vault.</p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium mb-1" style="color: var(--text-primary);">Client name</label>
+                <label class="block text-sm font-medium mb-1" style="color: var(--text-primary);">Delivery contact name</label>
                 <input name="client_name" value="{{ old('client_name', $prefill['client_name']) }}" maxlength="200"
                        class="w-full rounded-lg px-3 py-2 text-sm" style="background: var(--surface-2); border:1px solid var(--border); color: var(--text-primary);">
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1" style="color: var(--text-primary);">Client email</label>
+                <label class="block text-sm font-medium mb-1" style="color: var(--text-primary);">Delivery contact email</label>
                 <input type="email" name="client_email" value="{{ old('client_email', $prefill['client_email']) }}" maxlength="200"
                        class="w-full rounded-lg px-3 py-2 text-sm" style="background: var(--surface-2); border:1px solid var(--border); color: var(--text-primary);">
             </div>
@@ -66,7 +69,7 @@
 
         <div class="flex items-center gap-3 pt-2">
             <button type="submit" class="px-5 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#3d6bff,#90acff);">
-                Create client
+                Create workspace
             </button>
             <a href="{{ route('user.delivery-projects.index') }}" class="text-sm" style="color: var(--text-tertiary);">Cancel</a>
         </div>

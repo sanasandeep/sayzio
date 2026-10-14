@@ -28,6 +28,10 @@ class ClientTrackingVaultTest extends TestCase
         app()->instance('current_workspace', $ws);
         app()->instance('workspace_owner', $u);
 
+        if (getenv('CLIENT_CREATE_FIXTURE')) {
+            file_put_contents('/tmp/client-workspace-create.html', $this->get('/user/delivery-projects/create')->assertOk()->getContent());
+            file_put_contents('/tmp/client-profile-create.html', $this->get('/user/vault/clients/create')->assertOk()->getContent());
+        }
         return [$u, $ws];
     }
 

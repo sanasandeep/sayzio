@@ -4,7 +4,7 @@
 @include('user.planner.styles')
 @include('user.partials._plan_lock', ['feature' => 'tasks', 'kind' => 'flag', 'label' => 'Clients'])
 <div class="max-w-6xl mx-auto px-4 py-8">
-    @include('user.partials.page-hero',['title'=>'Clients','subtitle'=>'Client work, billing and conversations in one place.','emblemIcon'=>'fa-users','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'chips'=>[['text'=>$projects->count().' client workspaces','icon'=>'fa-users']],'actions'=>[['label'=>'New client','url'=>route('user.delivery-projects.create'),'icon'=>'fa-plus','class'=>'btn-primary'],['label'=>'Vault profiles','url'=>route('user.vault.clients.index'),'icon'=>'fa-vault','class'=>'btn-ghost']]])
+    @include('user.partials.page-hero',['title'=>'Clients','subtitle'=>'Client work, billing and conversations in one place.','emblemIcon'=>'fa-users','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'chips'=>[['text'=>$projects->count().' client workspaces','icon'=>'fa-users']],'actions'=>[['label'=>'New workspace','url'=>route('user.delivery-projects.create'),'icon'=>'fa-plus','class'=>'btn-primary'],['label'=>'Vault profiles','url'=>route('user.vault.clients.index'),'icon'=>'fa-vault','class'=>'btn-ghost']]])
     @if(session('success'))
         <div class="mb-4 px-4 py-3 rounded-lg text-sm" style="background: rgba(34,197,94,.12); color:#16a34a;">{{ session('success') }}</div>
     @endif
