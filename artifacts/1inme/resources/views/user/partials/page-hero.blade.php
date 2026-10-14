@@ -6,6 +6,7 @@
         'title'    => 'Page Title',
         'subtitle' => 'Optional one-liner under the title',
         'icon'     => 'fa-link',                          // FA icon class (default fa-rocket)
+        'emblemIcon' => null,                             // optional square icon instead of a letter
         'favicon'  => null,                               // image URL — preferred avatar
         'url'      => null,                               // optional short URL row with copy + open
         'chips'    => [                                   // small status pills

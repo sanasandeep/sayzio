@@ -118,6 +118,10 @@ class FolderProjectHubTest extends TestCase
         $this->assertNull($plan->fresh()->next_run_at);
         $this->assertNull($note->fresh()->project_id);
         $this->assertDatabaseMissing('projects', ['id' => $p->id]);
+        $destination = Project::create(['user_id' => $u->id, 'name' => 'Recovered']);
+        $this->get('/user/projects/'.$destination->id.'?tab=remember')->assertOk()->assertSee('Unassigned notes')->assertSee('Keep this note');
+        $this->post('/user/ai/planner/notes/'.$note->id, ['action' => 'assign', 'project_id' => $destination->id])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame($destination->id, $note->fresh()->project_id);
     }
 
     public function test_move_contents_preserves_resources_and_schedules(): void

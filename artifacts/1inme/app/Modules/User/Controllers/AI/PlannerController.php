@@ -208,9 +208,10 @@ class PlannerController extends Controller
     public function updateNote(Request $r, PlannerNote $note)
     {
         abort_unless($note->user_id === $r->user()->id, 404);
-        $v = $r->validate(['action' => 'required|in:done,restore,snooze,pin,unpin', 'until' => 'nullable|date|after:now']);
+        $v = $r->validate(['action' => 'required|in:done,restore,snooze,pin,unpin,assign', 'project_id'=>'nullable|required_if:action,assign|integer', 'until' => 'nullable|date|after:now']);
+        if($v['action']==='assign') Project::where('user_id',workspace_owner_id())->findOrFail($v['project_id']);
         $attrs = match ($v['action']) {
-            'done' => ['completed_at' => now()],'restore' => ['completed_at' => null, 'snoozed_until' => null],'snooze' => ['snoozed_until' => $v['until'] ?? now()->addDay()],'pin' => ['pinned' => true],default => ['pinned' => false]
+            'assign'=>['project_id'=>$v['project_id']], 'done' => ['completed_at' => now()],'restore' => ['completed_at' => null, 'snoozed_until' => null],'snooze' => ['snoozed_until' => $v['until'] ?? now()->addDay()],'pin' => ['pinned' => true],default => ['pinned' => false]
         };
         $note->update($attrs);
 

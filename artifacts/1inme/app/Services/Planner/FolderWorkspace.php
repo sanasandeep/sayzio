@@ -18,6 +18,7 @@ class FolderWorkspace
         $tasks = $items->where('kind', 'task');
         (new Collection($tasks->pluck('row')->all()))->load(['assignees:id,name', 'subtasks', 'board', 'column']);
         $notes = PlannerNote::where('project_id', $project->id)->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('shared', true))->orderByDesc('pinned')->latest()->get();
+        $unassignedNotes = PlannerNote::whereNull('project_id')->whereNull('plan_id')->where(fn ($q) => $q->where('user_id', $user->id)->orWhere('shared', true))->latest()->limit(20)->get();
         $runs = PlannerRun::whereIn('plan_id', $items->where('kind', 'plan')->pluck('row.id'))->latest()->limit(50)->get();
         $visible = $items->mapWithKeys(fn ($i) => [$i['kind'].':'.$i['row']->id => $i]);
         $relations = DB::table('folder_relationships')->where('workspace_id', $project->workspace_id)->where('project_id', $project->id)->get()->filter(fn ($r) => isset($visible[$r->source_kind.':'.$r->source_id],$visible[$r->target_kind.':'.$r->target_id]));
@@ -44,6 +45,6 @@ class FolderWorkspace
             $attention[] = ['label' => 'Inactive content: '.$i['label'], 'url' => $i['url']];
         }
 
-        return compact('resources', 'notes', 'runs', 'relations', 'attention') + ['timeline' => $timeline->sortByDesc('date')->take(30)->values(), 'choices' => app(PlannerResources::class)->choices($user), 'boards' => app(PlannerResources::class)->query('board', $user)->whereNull('archived_at')->get(), 'members' => app('current_workspace')->members()->with('user')->get(), 'destinations' => Project::where('user_id', workspace_owner_id())->where('id', '!=', $project->id)->get()];
+        return compact('resources', 'notes', 'runs', 'relations', 'attention', 'unassignedNotes') + ['timeline' => $timeline->sortByDesc('date')->take(30)->values(), 'choices' => app(PlannerResources::class)->choices($user), 'boards' => app(PlannerResources::class)->query('board', $user)->whereNull('archived_at')->get(), 'members' => app('current_workspace')->members()->with('user')->get(), 'destinations' => Project::where('user_id', workspace_owner_id())->where('id', '!=', $project->id)->get()];
     }
 }

@@ -37,3 +37,5 @@ Tasks support direct creation (including a project board when requested), assign
 Folder settings can move all contents to another folder, retaining schedules. Deleting a folder keeps and unassigns links, forms, QR codes, plans, notes and generic resources, removes folder relationships, and pauses scheduled AI plans before clearing their folder. A queued nonmanual review checks paused state under lock before claiming work. Already-running provider calls cannot be retroactively cancelled by folder deletion.
 
 Deploy with the new `2029_11_03_000001_create_folder_relationships.php` migration. No AI calls are made by migration or these presentation changes.
+
+The notebook offers recent unassigned notes so notes kept after deleting a folder can be moved into another folder by their author. Private notes remain private.

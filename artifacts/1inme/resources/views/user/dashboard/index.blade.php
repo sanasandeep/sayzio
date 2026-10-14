@@ -313,7 +313,7 @@
                     </a>
                     <div class="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         <a href="{{ route('user.projects.edit', $folder) }}" class="p-1.5 rounded-lg" style="color: var(--text-faint); background: var(--bg-glass-input);" title="Rename / recolor"><i class="fas fa-pen text-[9px]"></i></a>
-                        <form action="{{ route('user.projects.destroy', $folder) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this folder?', message: 'Links inside will be kept but become unfiled.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
+                        <form action="{{ route('user.projects.destroy', $folder) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this folder?', message: 'Contents will be kept and unassigned. Scheduled AI plans will be paused; folder connections will be removed.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')
                             <button class="p-1.5 rounded-lg hover:text-red-400" style="color: var(--text-faint); background: var(--bg-glass-input);" title="Delete folder"><i class="fas fa-trash text-[9px]"></i></button>
                         </form>
