@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', 'Events')
+@section('title', 'Calendar · Event Pages')
 
 @push('head')
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
@@ -63,10 +63,11 @@ html.light-mode #bz-cal .fc-list-empty{ color:#64748b }
 @endpush
 
 @section('content')
+@include('user.calendars.partials.navigation')
 @include('user.partials._plan_lock', ['feature' => 'events', 'kind' => 'flag', 'label' => 'Events'])
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
-        'title' => 'Events',
+        'title' => 'Event Pages',
         'subtitle' => 'Every event you\'ve created, switch between Month, Week, Day and List views.',
         'icon' => 'fa-calendar-day',
         'chips' => [

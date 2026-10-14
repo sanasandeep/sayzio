@@ -1,11 +1,12 @@
 @extends('user.layouts.app')
 
-@section('title', 'Calendar Sync')
+@section('title', 'Connections')
 
 @section('content')
+@include('user.calendars.partials.navigation')
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
-        'title' => 'Calendar Sync',
+        'title' => 'Connections',
         'subtitle' => 'Connect Google, Microsoft, or any CalDAV calendar to mirror events as Event links and push back changes.',
         'icon' => 'fa-calendar-alt',
         'chips' => [
