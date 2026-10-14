@@ -310,61 +310,8 @@
         @include('user.planner.folder-shell', ['project'=>$folder, 'resources'=>$folderResources, 'activeTab'=>$view])
     @else
 
-    {{-- ===================== HEADER =====================
-         Six boxes used to stand here: two chips, a ring, and three metric
-         tiles. Between them they printed the same two numbers up to three
-         times each, and pushed the first link about a thousand pixels down a
-         page whose entire job is listing links. Every figure is still on
-         screen -- as one line of text -- and the space the ring occupied now
-         carries something the total beside it cannot say: the last seven
-         days. ============================================================ --}}
-    <div class="links-head" @if($folder) style="border-left:4px solid {{ preg_match('/^#[0-9a-f]{6}$/i', (string) $folder->color) ? $folder->color : '#3b82f6' }}" @endif>
-        {{-- Lattice only. This header has content across its entire width --
-             title and buttons left, clicks and sparkline right -- so neither
-             corner is free: the ribbon crossed the sparkline on the right and
-             ran under the buttons on the left. Both were tried and looked at.
-             The lattice has no such problem; it is a 5%-alpha grid and sits
-             under copy on the marketing card by design. --}}
-        @include('common.partials.card-ribbon', ['ribbon' => false])
-        <div class="min-w-0 cribbon-copy">
-            <h1 class="links-title">{{ $folder?->name ?? (request()->hasAny(['search', 'type', 'project_id', 'status']) ? 'Filtered links' : 'My Links') }}</h1>
-            @if($folder?->description)<p class="ov-muted">{{ $folder->description }}</p>@endif
-            <p class="links-facts">
-                <strong>{{ number_format($__summary['total']) }}</strong> {{ Str::plural('link', $__summary['total']) }}
-                <span class="sep">&middot;</span>
-                <strong>{{ number_format($__summary['active']) }}</strong> active
-                <span class="sep">&middot;</span>
-                {{-- Inside a folder the account-wide folder count reads as if
-                     THIS folder contained them ("Marketing · 4 folders"), so
-                     the third fact becomes the thing being looked at instead. --}}
-                @if($folder)
-                    <strong>{{ number_format($__summary['clicks']) }}</strong> {{ Str::plural('click', $__summary['clicks']) }}
-                @else
-                    <a href="{{ route('user.projects.index') }}">
-                        <strong>{{ number_format($projects->count()) }}</strong> {{ Str::plural('folder', $projects->count()) }}
-                    </a>
-                @endif
-            </p>
-            @if(!empty($__heroActions))
-            <div class="links-actions">
-                @foreach($__heroActions as $a)
-                    <a href="{{ $a['url'] ?? '#' }}" class="{{ $a['class'] ?? 'btn-primary' }} text-xs py-2">
-                        @if(!empty($a['icon']))<i class="fas {{ $a['icon'] }} text-[10px]"></i>@endif
-                        {{ $a['label'] ?? '' }}
-                    </a>
-                @endforeach
-            </div>
-            @endif
-        </div>
-
-        <a href="{{ route('user.stats.index') }}" class="links-stats-link">Account analytics →</a>
-
-    </div>
-
-    <nav class="ov-tabs" aria-label="Link views">
-        <a href="{{ route('user.links.index', array_merge(request()->except('page', 'view'), ['view' => 'links'])) }}" @if($view === 'links') aria-current="page" @endif>Links</a>
-        <a href="{{ route('user.links.index', array_merge(request()->except('page', 'view'), ['view' => 'reports'])) }}" @if($view === 'reports') aria-current="page" @endif>Reports</a>
-    </nav>
+    {{-- Shared management header; account analytics remain available under Stats. --}}
+    @include('user.partials.page-hero',['title'=>request()->hasAny(['search','type','project_id','status'])?'Filtered links':'My Links','subtitle'=>'Create, organize and manage your links and pages.','icon'=>'fa-link','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'actions'=>$__heroActions,'chips'=>[['text'=>$__summary['total'].' links','icon'=>'fa-link'],['text'=>$__summary['active'].' active','icon'=>'fa-circle text-emerald-500'],['text'=>$projects->count().' folders','icon'=>'fa-folder']]])
     @endif
     @if($folder && $view === 'links')
         <div class="folder-link-tools">
@@ -375,11 +322,7 @@
     @endif
     @if($view === 'reports')
         @if($folder)
-        <div class="folder-report-context">
-            <div><span>Task progress</span><strong>{{ $folderResources ? collect($folderResources)->where('kind','task')->filter(fn($i)=>$i['row']->completed_at)->count() : 0 }} / {{ collect($folderResources)->where('kind','task')->count() }}</strong><small>Current completed tasks</small></div>
-            <div><span>Plans in this folder</span><strong>{{ collect($folderResources)->where('kind','plan')->count() }}</strong><small>Connect your work to its results</small></div>
-            <div><span>Form submissions</span><strong>{{ number_format(collect($folderResources)->where('kind','form')->sum(fn($i)=>$i['row']->submissions()->count())) }}</strong><small>Lifetime submissions · open a form for answer analytics</small></div>
-        </div>
+        @include('user.planner.folder-reports')
         @endif
         @include('user.links.partials.folder-reports')
     @else

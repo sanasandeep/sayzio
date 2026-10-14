@@ -43,20 +43,8 @@
 @section('content')
 @include('user.cloud-files._attach-picker')
 <div x-data="kanbanBoard({{ $board->id }})" x-init="init()" class="px-6 py-6">
-    <div class="page-hero mb-5 flex items-center justify-between gap-4 flex-wrap">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('user.tasks.index') }}" class="hero-back"><i class="fas fa-arrow-left"></i></a>
-            <div>
-                <h1 class="hero-title">{{ $board->name }}</h1>
-                @if($board->scope === 'personal')
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full mr-2"
-                          style="background: rgba(92,131,255,0.12); color:#3d6bff;">PRIVATE</span>
-                @endif
-                <span class="text-xs" style="color: var(--text-faint);">
-                    {{ $board->columns->count() }} columns · {{ $board->columns->sum(fn($c)=>$c->cards->count()) }} cards
-                </span>
-            </div>
-        </div>
+    @include('user.partials.page-hero',['title'=>$board->name,'subtitle'=>'Manage your project tasks, checklists and deadlines.','icon'=>'fa-list-check','favicon'=>null,'url'=>null,'back'=>route('user.tasks.index'),'actions'=>[],'chips'=>[['text'=>$board->scope==='personal'?'Private board':'Team board','icon'=>'fa-users'],['text'=>$board->columns->count().' columns','icon'=>'fa-table-columns'],['text'=>$board->columns->sum(fn($c)=>$c->cards->count()).' tasks','icon'=>'fa-check']]])
+    <div class="flex justify-end mb-5 gap-3 flex-wrap">
         <div class="flex items-center gap-2">
             <a href="{{ route('user.client-invoices.dashboard') }}"
                class="px-3 py-2 rounded-lg text-sm font-semibold border"

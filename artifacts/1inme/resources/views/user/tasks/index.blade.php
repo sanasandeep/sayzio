@@ -3,11 +3,8 @@
 @section('content')
 @include('user.partials._plan_lock', ['feature' => 'tasks', 'kind' => 'flag', 'label' => 'Task boards'])
 <div class="max-w-6xl mx-auto px-4 py-8" x-data="{ showNew: false, scope: 'team' }">
-    <div class="page-hero mb-6 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-            <h1 class="hero-title">Tasks</h1>
-            <p class="hero-subtitle">Personal to-do lists and shared kanban boards for your workspace.</p>
-        </div>
+    @include('user.partials.page-hero',['title'=>'Tasks','subtitle'=>'Personal to-do lists and shared boards for your workspace.','icon'=>'fa-check-double','favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),'chips'=>[],'actions'=>[]])
+    <div class="flex justify-end mb-5 gap-3 flex-wrap">
         <div class="flex items-center gap-2">
             <button @click="showNew = true; scope = 'personal'"
                     class="px-4 py-2 rounded-lg text-sm font-semibold border"

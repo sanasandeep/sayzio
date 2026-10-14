@@ -98,8 +98,8 @@ class AiPlannerWorkflowTest extends TestCase
         Link::create(['user_id' => $u->id, 'project_id' => $folder->id, 'title' => 'Campaign launch', 'type' => 'biolink', 'alias' => 'unified-launch']);
         $other = Project::create(['user_id' => $u->id, 'name' => 'Other folder']);
         $outside = Link::create(['user_id' => $u->id, 'project_id' => $other->id, 'title' => 'Outside folder item', 'type' => 'biolink', 'alias' => 'outside-folder']);
-        foreach (['overview', 'links', 'reports', 'tasks', 'resources'] as $tab) {
-            $page = $this->get('/user/projects/'.$folder->id.'?tab='.$tab)->assertOk()->assertSee('Folder workspace')->assertSee('YOUR FOLDER WORKSPACE');
+        foreach (['overview', 'links', 'reports', 'tasks', 'resources', 'team', 'marketing', 'remember', 'activity'] as $tab) {
+            $page = $this->get('/user/projects/'.$folder->id.'?tab='.$tab)->assertOk()->assertSee('Folder workspace')->assertSee('Folder workspace');
             $page->assertSee('aria-label="Folder workspace"', false);
             if ($tab === 'links') {
                 $page->assertSee('Campaign launch')->assertDontSee('data-link-id="'.$outside->id.'"', false);
@@ -111,8 +111,8 @@ class AiPlannerWorkflowTest extends TestCase
                 file_put_contents('/tmp/unified-folder-'.$tab.'.html', $page->getContent());
             }
         }
-        $this->get('/user/links?project_id='.$folder->id)->assertOk()->assertSee('YOUR FOLDER WORKSPACE')->assertDontSee('Open links &amp; reports', false);
-        $this->get('/user/links')->assertOk()->assertDontSee('YOUR FOLDER WORKSPACE');
+        $this->get('/user/links?project_id='.$folder->id)->assertOk()->assertSee('Folder workspace')->assertDontSee('Open links &amp; reports', false);
+        $this->get('/user/links')->assertOk()->assertDontSee('aria-label="Folder workspace"', false);
     }
 
     public function test_notes_are_private_shared_explicitly_and_snooze_hides_context(): void
@@ -137,6 +137,25 @@ class AiPlannerWorkflowTest extends TestCase
         $this->postJson('/user/ai/planner/plans/'.$p->id.'/settings', array_replace($this->settings(), ['resources' => ['link:'.$link->id]]))->assertNotFound();
         $this->owner();
         $this->postJson('/user/ai/planner/plans/'.$p->id.'/estimate')->assertNotFound();
+    }
+
+    public function test_pausing_an_inflight_review_keeps_its_output_without_creating_tasks(): void
+    {
+        $u=$this->owner();$p=$this->plan($u);
+        $p->update(['planner_settings'=>array_replace($this->settings(),['auto_tasks'=>true])]);
+        $result=$this->planResult();
+        $this->mock(OpenAiService::class,function($m)use($p,$result){
+            $m->shouldReceive('estimateChatCoins')->andReturn(20);
+            $m->shouldReceive('chat')->once()->andReturnUsing(function()use($p,$result){
+                $p->update(['automation_enabled'=>false]);
+                return ['content'=>json_encode($result),'credits_spent'=>5,'model'=>'test'];
+            });
+        });
+        $run=PlannerRun::create(['plan_id'=>$p->id,'run_key'=>'paused-inflight','trigger'=>'scheduled']);
+        (new RunAiPlanner($run->id))->handle();
+        $this->assertSame('needs_review',$run->fresh()->status);
+        $this->assertFalse($p->fresh()->automation_enabled);
+        $this->assertDatabaseCount('task_cards',0);
     }
 
     public function test_background_run_is_single_use_and_results_require_review(): void

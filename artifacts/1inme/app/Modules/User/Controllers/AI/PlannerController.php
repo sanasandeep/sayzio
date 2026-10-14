@@ -165,11 +165,7 @@ class PlannerController extends Controller
     public function folder(Request $r, Project $project)
     {
         abort_unless($project->user_id === workspace_owner_id(), 404);
-        $resources = app(PlannerResources::class)->folder($project, $r->user());
-        $notes = PlannerNote::where('project_id', $project->id)->where(fn ($q) => $q->where('user_id', $r->user()->id)->orWhere('shared', true))->whereNull('completed_at')->get();
-        $ids = collect($resources)->where('kind', 'plan')->pluck('row.id');
-
-        return view('user.planner.folder', compact('project', 'resources', 'notes') + ['runs' => PlannerRun::whereIn('plan_id', $ids)->latest()->limit(20)->get(), 'choices' => app(PlannerResources::class)->choices($r->user())]);
+        return view('user.planner.folder', ['project'=>$project]+app(\App\Services\Planner\FolderWorkspace::class)->data($project,$r->user()));
     }
 
     public function attach(Request $r, Project $project)

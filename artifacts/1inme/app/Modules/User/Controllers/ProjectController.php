@@ -117,7 +117,7 @@ class ProjectController extends Controller
     {
         $this->authorizeOwner($project);
 
-        return view('user.projects.edit', ['project' => $project, 'colors' => self::COLORS]);
+        return view('user.projects.edit', ['project' => $project, 'colors' => self::COLORS]+app(\App\Services\Planner\FolderWorkspace::class)->data($project,$request->user()));
     }
 
     public function update(Request $request, Project $project)
@@ -146,14 +146,25 @@ class ProjectController extends Controller
     {
         $this->authorizeOwner($project);
 
-        $project->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($project, $request) {
+            $project = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+            \App\Modules\User\Models\NoteActionPlan::where('project_id', $project->id)->update(['automation_enabled'=>false, 'next_run_at'=>null]);
+            foreach (['link','form','qr','plan'] as $kind) {
+                $class = \App\Services\Planner\PlannerResources::TYPES[$kind];
+                $class::where('project_id',$project->id)->update(['project_id'=>null]);
+            }
+            \App\Modules\User\Models\PlannerNote::where('project_id',$project->id)->update(['project_id'=>null]);
+            \App\Modules\User\Models\ProjectItem::where('project_id',$project->id)->delete();
+            \Illuminate\Support\Facades\DB::table('folder_relationships')->where('workspace_id',$project->workspace_id)->where('project_id',$project->id)->delete();
+            $project->delete();
+        });
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json(['success' => true]);
         }
 
         return redirect()->route('user.projects.index')
-            ->with('success', 'Folder deleted. Its links were kept and are now unfiled.');
+            ->with('success', 'Folder deleted. Contents were kept and unassigned; scheduled AI plans were paused.');
     }
 
     /**

@@ -21,6 +21,7 @@ class PlannerTasks
 
     public function create(NoteActionPlan $plan, User $actor, array $indices, ?int $boardId = null, ?string $due = null, ?int $assignee = null): TaskBoard
     {
+        abort_unless($actor->canInWorkspace(app('current_workspace'), 'tasks.create'), 403, 'You cannot create tasks in this workspace.');
         return DB::transaction(function () use ($plan, $actor, $indices, $boardId, $due, $assignee) {
             $plan = NoteActionPlan::whereKey($plan->id)->lockForUpdate()->firstOrFail();
             $actions = $plan->actions ?? [];

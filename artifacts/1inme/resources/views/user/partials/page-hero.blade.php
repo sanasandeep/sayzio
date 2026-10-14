@@ -48,7 +48,7 @@
                          x-show="!failed" @@error="failed = true">
                     <span x-show="failed" x-cloak class="hero-emblem-letter">{{ $letter }}</span>
                 @else
-                    <span class="hero-emblem-letter">{{ $letter }}</span>
+                    @if(!empty($emblemIcon))<i class="fas {{ $emblemIcon }} text-2xl" aria-hidden="true"></i>@else<span class="hero-emblem-letter">{{ $letter }}</span>@endif
                 @endif
             </div>
             <div class="min-w-0 flex-1">
