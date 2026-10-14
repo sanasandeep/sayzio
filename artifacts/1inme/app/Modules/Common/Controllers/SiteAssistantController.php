@@ -131,7 +131,7 @@ class SiteAssistantController extends Controller
     {
         $user = $this->currentUser($request);
         abort_unless($user, 401);
-        $data = $request->validate(['from' => 'required|date', 'to' => 'required|date|after_or_equal:from']);
+        $data = $request->validate(['from' => 'required|date|before_or_equal:now', 'to' => 'required|date|after:from|before_or_equal:now']);
         $from = \Illuminate\Support\Carbon::parse($data['from'])->utc();
         $to = \Illuminate\Support\Carbon::parse($data['to'])->utc();
         $query = \App\Modules\Common\Models\SiteAssistantMessage::query()

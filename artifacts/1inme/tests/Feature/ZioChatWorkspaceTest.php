@@ -38,6 +38,7 @@ class ZioChatWorkspaceTest extends TestCase
 
     public function test_export_is_owner_scoped_and_respects_offset_date_time_boundaries(): void
     {
+        $this->travelTo(now()->setDate(2026, 10, 16));
         $actor = User::factory()->create();
         $other = User::factory()->create();
         $own = $this->conversation($actor, 'sa_export_owner');
@@ -59,6 +60,15 @@ class ZioChatWorkspaceTest extends TestCase
     public function test_export_rejects_reversed_or_invalid_ranges(): void
     {
         $this->actingAs(User::factory()->create())->getJson('/assistant/export?from=2026-10-15&to=2026-10-14')->assertUnprocessable();
+    }
+
+    public function test_export_rejects_future_equal_and_malformed_dates(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 14)->setTime(12, 0));
+        $this->actingAs(User::factory()->create());
+        foreach ([['2026-10-13', '2026-10-15'], ['2026-10-13', '2026-10-13'], ['invalid', '2026-10-14']] as [$from, $to]) {
+            $this->getJson('/assistant/export?'.http_build_query(compact('from', 'to')))->assertUnprocessable();
+        }
     }
 
     public function test_transcript_recorder_refuses_another_users_token_and_records_voice_cost_without_charging(): void
