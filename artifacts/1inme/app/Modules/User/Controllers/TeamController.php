@@ -67,6 +67,7 @@ class TeamController extends Controller
         $pendingCount = $pendingInvites->count();
         $planLabel = $owner->plan->name ?? ($owner->plan->slug ?? 'Free');
 
+        $roleNames = \App\Modules\User\Services\WorkspaceRoleDirectory::names($ws);
         $rows = [];
         foreach ($members as $m) {
             $u = $m->user;
@@ -77,6 +78,7 @@ class TeamController extends Controller
                 'name'            => $u->name ?? '—',
                 'email'           => $u->email ?? '—',
                 'role'            => $m->role,
+                'role_name'       => $roleNames[$m->role] ?? $m->role,
                 'status'          => $m->isSuspended() ? 'suspended' : 'active',
                 'last_login_at'   => optional($u?->last_login_at)->toIso8601String(),
                 'last_active_at'  => optional($m->last_active_at)->toIso8601String(),

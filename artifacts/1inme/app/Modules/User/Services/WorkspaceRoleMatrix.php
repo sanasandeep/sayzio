@@ -64,8 +64,10 @@ class WorkspaceRoleMatrix
         $row = WorkspaceRolePermission::where('workspace_id', $ws->id)->first();
         $stored = $row ? (array) $row->matrix : [];
 
-        foreach ($stored as $role => $values) {
-            if (preg_match('/^custom_[a-z0-9_]{1,60}$/', $role)) $defaults[$role] = array_fill_keys(self::actions(), false);
+        $names = WorkspaceRoleDirectory::names($ws, $row);
+        $defaults = array_intersect_key($defaults, $names);
+        foreach ($names as $role=>$name) {
+            if (!isset($defaults[$role])) $defaults[$role] = array_fill_keys(self::actions(), false);
         }
         $matrix = self::merge($defaults, $stored);
         $matrix = self::enforceLocks($matrix);
@@ -127,10 +129,8 @@ class WorkspaceRoleMatrix
     /** Restore the workspace to the hardcoded defaults (with audit). */
     public static function reset(Workspace $ws, ?User $actor): array
     {
-        $matrix = self::defaults();
-        foreach (self::forWorkspace($ws) as $role => $row) {
-            if (str_starts_with($role, 'custom_')) $matrix[$role] = $row;
-        }
+        $matrix = [];
+        foreach (self::forWorkspace($ws) as $role => $row) $matrix[$role] = self::defaults()[$role] ?? $row;
         return self::save($ws, $matrix, $actor);
     }
 
@@ -152,7 +152,7 @@ class WorkspaceRoleMatrix
                     foreach ((array) $row as $action => $delta) {
                         $to   = $delta['to']   ?? null;
                         $verb = $to ? 'granted' : 'revoked';
-                        $lines[] = ucfirst($role) . ' · ' . ucfirst($action) . ' — ' . $verb;
+                        $lines[] = $action==='name' ? 'Role renamed: '.($delta['from']??'').' → '.($delta['to']??'') : ($action==='role_deleted' ? ucfirst($role).' deleted; assigned members were reassigned' : ucfirst($role) . ' · ' . ucfirst($action) . ' — ' . $verb);
                     }
                 }
                 return [

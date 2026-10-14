@@ -6,7 +6,7 @@
  $plans=collect($resources)->where('kind','plan');$tasks=collect($resources)->where('kind','task');$links=collect($resources)->where('kind','link');
  $done=$tasks->filter(fn($item)=>$item['row']->completed_at)->count();
  $coins=$runs->sum('coins_spent');
- $canAssignFolder=\App\Modules\User\Services\WorkspacePermissions::userCan('projects.edit') && \App\Modules\User\Services\WorkspacePermissions::userCan('planner.edit');
+ $canAssignFolder=((int)$project->created_by_user_id===(int)auth()->id() || \App\Modules\User\Services\WorkspacePermissions::userCan('projects.edit_others')) && \App\Modules\User\Services\WorkspacePermissions::userCan('projects.edit') && \App\Modules\User\Services\WorkspacePermissions::userCan('planner.edit');
 @endphp
 @php $activeTab=in_array(request('tab'),['overview','plans','tasks','team','marketing','resources','remember','activity'])?request('tab'):'overview'; @endphp
 <div class="notes-studio folder-workspace" x-data="{tab:@js($activeTab),resourceKinds:[],query:''}">
