@@ -30,3 +30,5 @@
 <style>.folder-nav{position:relative}.folder-map{background:radial-gradient(ellipse at center,#647bea06,transparent 65%),var(--bg-card,#fff)}.folder-recorded-pairs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.folder-recorded-pairs a{border:1px solid var(--border-glass);padding:8px 12px;border-radius:10px;font-size:11px;color:var(--text-secondary)}</style>
 <style>.folder-report-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.folder-workspace .text-secondary{color:var(--text-secondary)}.folder-workspace .text-muted{color:var(--text-muted)}@media(max-width:640px){.folder-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>
 <style>.folder-workspace{color:var(--text-primary)}</style>
+
+@include('user.planner.selection-styles')
