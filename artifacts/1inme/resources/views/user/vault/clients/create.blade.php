@@ -6,7 +6,7 @@
 @include('user.partials.client-create-styles')
 <div class="client-create-page">
     <div class="client-create-intro"><strong>New client</strong><p>Save contact details and protected notes. After saving, add projects and connect invoices, tasks and conversations from the client page.</p></div>
-    <form method="post" action="{{ route('user.vault.clients.store') }}">
+    <form class="client-main-form" method="post" action="{{ route('user.vault.clients.store') }}">
         @csrf
         @include('user.vault.clients._form', ['item' => null])
     </form>

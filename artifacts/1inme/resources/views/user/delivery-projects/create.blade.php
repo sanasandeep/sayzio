@@ -12,7 +12,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('user.delivery-projects.store') }}" class="glass-card rounded-2xl p-6 space-y-5" style="border:1px solid var(--border);">
+    <form method="POST" action="{{ route('user.delivery-projects.store') }}" class="client-main-form glass-card rounded-2xl p-6 space-y-5" style="border:1px solid var(--border);">
         @csrf
         <label class="block text-sm font-semibold">Client<select name="vault_client_id" class="theme-input mt-2 w-full"><option value="">No linked profile</option>@foreach($vaultClients as $vaultClient)<option value="{{ $vaultClient->id }}" @selected((string)old('vault_client_id',$selectedClient?->id) === (string)$vaultClient->id)>{{ $vaultClient->name }}{{ $vaultClient->company?' · '.$vaultClient->company:'' }}</option>@endforeach</select></label><p class="text-xs opacity-60">Name, company, email, phone and website remain linked to Vault. Private notes and secrets stay in Vault and are never added to client share pages.</p>
         @if($prefill['source_type'])
