@@ -90,8 +90,8 @@
 #qrTarget{width:100%;max-width:100%;min-width:0}
 #qrTarget>svg,#qrTarget>img{display:block;width:100%;height:auto;max-width:100%}
 .qr-preview-stage{padding:12px;min-height:0!important}
-.qr-design-tabs{display:flex;flex-wrap:wrap;gap:4px}
-.qr-design-tabs .qr-tab{flex:1 1 75px;white-space:normal;min-height:44px;padding:10px 8px}
+.qr-design-tabs{display:flex;flex-wrap:nowrap;gap:4px;overflow-x:auto;max-width:100%}
+.qr-design-tabs .qr-tab{flex:0 0 auto;white-space:nowrap;min-height:44px;padding:10px 8px}
 .qr-gallery-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .qr-gallery-tools input{flex:1 1 160px;min-width:0;padding:10px;border:1px solid var(--border-glass);border-radius:10px;background:var(--bg-glass-input);color:var(--text-primary)}
 .qr-gallery-tools button{padding:8px 12px;border:1px solid var(--border-glass);border-radius:10px;color:var(--text-primary)}
@@ -136,7 +136,7 @@
 </style>
 
 <div class="qr-editor-shell max-w-[1500px] mx-auto" x-data="qrBuilder()" x-init="init()" x-cloak>
-    <form method="POST" action="{{ $action }}" id="qrForm">
+    <form method="POST" action="{{ $action }}" id="qrForm" @submit="if(!referenceScanReady())$event.preventDefault()">
         @csrf
         @if($isEdit) @method('PUT') @endif
 
@@ -267,8 +267,8 @@
             <div class="qr-design-column space-y-4">
                 <div class="card-premium p-2">
                     <div class="qr-design-tabs border-b" style="border-color: var(--border-glass);">
-                        @foreach(['templates'=>'Templates','shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More','ai'=>'AI Artistic','export'=>'Export'] as $k => $lbl)
-                            <button type="button" @click="tab = '{{ $k }}'"
+                        @foreach(['templates'=>'Templates','shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More','ai'=>'AI Artistic','aiqr'=>'AI QR','export'=>'Export'] as $k => $lbl)
+                            <button type="button" @click="tab = '{{ $k }}'; $el.scrollIntoView({block:'nearest',inline:'nearest'})"
                                     class="qr-tab" :class="tab === '{{ $k }}' ? 'active' : ''">{{ $lbl }}</button>
                         @endforeach
                     </div>
@@ -561,6 +561,15 @@
                                 <input type="checkbox" x-model="design.drop_shadow" @change="render()"> Drop shadow
                             </label>
                         </div>
+                    </div>
+
+                    <div x-show="tab==='aiqr'" x-cloak class="p-3 space-y-3">
+                        <div class="qr-section"><h3 class="font-semibold">Image-inspired AI QR</h3><p class="text-xs mt-2">Upload a logo, avatar or image. AI captures its subject, colors and style to inspire a QR design. Resemblance is interpretive; this does not reproduce a logo exactly.</p></div>
+                        <div class="qr-section"><label class="block text-sm font-semibold">Reference image<input type="file" :disabled="qrRef.busy" accept="image/png,image/jpeg,image/webp" @change="setQrReference($event)" class="block mt-2 w-full"></label><p class="text-xs mt-2">PNG, JPEG or WebP · up to 5 MB / 8 megapixels. The image is sent to the configured AI provider only after you request generation.</p><img x-show="qrRef.preview" :src="qrRef.preview || ''" alt="AI QR reference" style="max-height:160px;max-width:100%;object-fit:contain;margin-top:12px"><label class="block mt-3 text-sm">Or choose My Files<select :disabled="qrRef.busy" x-model="qrRef.fileId" @change="qrRef.file=null;qrRef.preview=$event.target.selectedOptions[0]?.dataset.preview || '';qrRef.quote=null" class="w-full mt-2 theme-input"><option value="">Choose an image</option>@foreach($imageFiles as $imageFile)<option value="{{ $imageFile->id }}" data-preview="{{ $imageFile->url }}">{{ $imageFile->original_name }}</option>@endforeach</select></label></div>
+                        <div class="qr-section"><label>Resemblance<select :disabled="qrRef.busy" x-model="qrRef.resemblance" @change="qrRef.quote=null" class="block w-full theme-input"><option value="subtle">Subtle · stronger QR structure</option><option value="balanced">Balanced · recommended</option><option value="strong">Strong · more artistic</option></select></label><label class="block mt-3">Optional direction<textarea :disabled="qrRef.busy" x-model="qrRef.prompt" @input="qrRef.quote=null" maxlength="300" class="w-full mt-2 theme-input" placeholder="Keep the purple palette and character silhouette..."></textarea></label></div>
+                        <p class="text-sm" style="color:#dc2626" x-show="qrRef.error" x-text="qrRef.error"></p>
+                        <div class="qr-section"><button type="button" @click="estimateQrReference()" :disabled="qrRef.busy" class="form-chip">Estimate coins</button><p class="text-sm mt-2" x-show="qrRef.quote"><span x-text="qrRef.cost"></span> estimated coins · image analysis <span x-text="qrRef.analysis"></span> + generation <span x-text="qrRef.generation"></span> · balance <span x-text="qrRef.balance"></span>. Estimate expires in 10 minutes.</p><button type="button" class="form-chip mt-3" @click="generateQrReference()" :disabled="!qrRef.quote || qrRef.busy || qrRef.balance<qrRef.cost" x-text="qrRef.busy ? 'Working…' : 'Generate AI QR'"></button><p class="text-xs mt-2">Generation failures are refunded. Scan verification is free. Each new generation needs a fresh estimate.</p></div>
+                        <div class="qr-section" x-show="design.ai_art?.image_url"><p class="text-sm" x-text="aiVerify.status==='pass' && design.ai_art.data===encoded ? 'Verified: scans to the correct destination.' : aiVerify.status==='checking' ? 'Checking the actual QR image…' : 'Scan not verified. Try Subtle resemblance and estimate again, or clear the artwork to use your regular QR.'"></p><button type="button" @click="clearAiArt()" class="form-chip mt-2">Use regular QR</button></div>
                     </div>
 
                     {{-- AI ARTISTIC tab --}}
@@ -909,6 +918,7 @@ function qrBuilder() {
         bulkProgress: 0,
 
         // AI Artistic QR (Replicate) — availability + form state.
+        qrRef:{file:null,fileId:'',preview:'',resemblance:'balanced',prompt:'',quote:null,cost:0,analysis:0,generation:0,balance:0,busy:false,error:''},
         qrArt: {
             enabled: @js($qrArtEnabled),
             allowed: @js($qrArtAllowed),
@@ -928,6 +938,7 @@ function qrBuilder() {
 
         init() {
             this.$watch('payload', () => this.scheduleResolve(), { deep: true });
+            this.$watch('encoded',()=>{this.qrRef.quote=null;});
             this.$watch('type', () => this.scheduleResolve());
             this.$watch('linkId', () => this.useExistingLink && this.resolveLinkPayload());
             this.$watch('useExistingLink', v => { if (!v) { this.linkId = null; this.scheduleResolve(); } });
@@ -985,6 +996,7 @@ function qrBuilder() {
                         if (typeof window.QrStudio.analyzeScannability === 'function') {
                             const s = window.QrStudio.analyzeScannability(opts) || { score: 0, level: '', issues: [] };
                             s.issues = [...(s.issues || []), { level: 'warn', text: 'Artistic blending can reduce scan reliability, test the final image before sharing.' }];
+                            if(this.design.ai_art.style?.startsWith('AI QR')){const verified=this.aiVerify.status==='pass'&&this.design.ai_art.data===this.encoded;s.score=verified?100:0;s.level=verified?'Verified':'Not verified';s.issues=[{level:verified?'info':'warn',text:verified?'Actual image decoded to the correct destination.':'Actual artwork is not scan-verified. Regenerate or use regular QR.'}];}
                             this.scan = s;
                         }
                     } catch (e) {}
@@ -1015,6 +1027,11 @@ function qrBuilder() {
                 } catch (e) { this.scan = null; }
             }, 60);
         },
+
+        setQrReference(event){if(this.qrRef.preview?.startsWith('blob:'))URL.revokeObjectURL(this.qrRef.preview);this.qrRef.file=event.target.files[0]||null;this.qrRef.fileId='';this.qrRef.quote=null;this.qrRef.preview=this.qrRef.file?URL.createObjectURL(this.qrRef.file):'';},
+        referenceScanReady(){const art=this.design.ai_art;if(art?.enabled&&art.style?.startsWith('AI QR')&&(this.aiVerify.status!=='pass'||art.data!==this.encoded)){this.qrRef.error='Verify this artwork scans to the current destination before saving/exporting. Regenerate or use regular QR.';this.tab='aiqr';return false;}return true;},
+        async estimateQrReference(){this.qrRef.error='';this.qrRef.quote=null;if(!this.encoded||this.encoded==='preview'){this.qrRef.error='Add the QR destination first.';return;}if(!this.qrRef.file&&!this.qrRef.fileId){this.qrRef.error='Choose a reference image first.';return;}this.qrRef.busy=true;try{const destination=this.encoded;const fd=new FormData();fd.append('_token','{{ csrf_token() }}');fd.append('data',this.encoded);fd.append('resemblance',this.qrRef.resemblance);fd.append('prompt',this.qrRef.prompt);if(this.qrRef.file)fd.append('reference',this.qrRef.file);else fd.append('file_id',this.qrRef.fileId);const r=await fetch(@js(route('user.qr-codes.reference-estimate')),{method:'POST',body:fd,headers:{Accept:'application/json'}});const j=await r.json();if(!r.ok)throw Error(j.error||Object.values(j.errors||{}).flat()[0]||j.message||'Could not estimate.');if(destination!==this.encoded)throw Error('Destination changed. Estimate again.');Object.assign(this.qrRef,{quote:j.quote,cost:j.cost,analysis:j.analysis_cost,generation:j.generation_cost,balance:j.balance});}catch(e){this.qrRef.error=e.message;}finally{this.qrRef.busy=false;}},
+        async generateQrReference(){if(!this.qrRef.quote||this.qrRef.busy)return;this.qrRef.busy=true;this.qrRef.error='';try{const r=await fetch(@js(route('user.qr-codes.reference-generate')),{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},body:JSON.stringify({quote:this.qrRef.quote})});const j=await r.json();if(!r.ok)throw Error(j.error||j.message||Object.values(j.errors||{}).flat()[0]||'Generation failed.');this.qrRef.balance=j.balance;this.qrArt.balance=j.balance;this.qrRef.quote=null;if(j.data!==this.encoded)throw Error('Destination changed while generating. Restore the previous destination or estimate a new generation.');this.design.ai_art={enabled:true,image_url:j.image_url,prompt:j.reference_prompt,style:'AI QR · '+j.resemblance,strength:{subtle:25,balanced:50,strong:75}[j.resemblance],data:j.data,provider:'replicate',verify:null};this.render();await this.verifyAiArt();}catch(e){this.qrRef.error=e.message;this.qrRef.quote=null;}finally{this.qrRef.busy=false;}},
 
         async generateArt() {
             if (!this.qrArt.enabled || !this.qrArt.allowed) return;
@@ -1273,6 +1290,7 @@ function qrBuilder() {
             }
         },
         async downloadPng() {
+            if(!this.referenceScanReady())return;
             try {
                 if (this._aiArtActive()) {
                     const target = Math.max(this.design.size || 800, 400);
@@ -1289,6 +1307,8 @@ function qrBuilder() {
             } catch (e) { alert('PNG download failed: ' + e.message); }
         },
         async downloadSvg() {
+            if(!this.referenceScanReady())return;
+            if(!this.referenceScanReady())return;
             try {
                 if (this._aiArtActive()) {
                     alert('AI Artistic QR is a raster image, please use the PNG export instead.');
@@ -1325,6 +1345,7 @@ function qrBuilder() {
 
         // ---- Print-ready export ----
         async downloadPdf() {
+            if(!this.referenceScanReady())return;
             if (this.exporting) return;
             this.exporting = true;
             try {
@@ -1357,6 +1378,7 @@ function qrBuilder() {
             finally { this.exporting = false; }
         },
         async downloadPrintPng() {
+            if(!this.referenceScanReady())return;
             if (this.exporting) return;
             this.exporting = true;
             try {
