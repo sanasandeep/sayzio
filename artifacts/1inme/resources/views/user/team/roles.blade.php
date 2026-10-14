@@ -3,7 +3,6 @@
 @push('styles')
 <style>
 .permissions-editor .border,.permissions-editor select,.permissions-editor input{border-color:var(--border-strong);background:var(--bg-card)}
-.permissions-editor>div:first-child{background:linear-gradient(120deg,var(--bg-card),var(--bg-glass-light))!important}
 .permissions-editor table tr,.permissions-editor .border-b{border-color:var(--border-strong)}
 .permissions-editor .form-chip{display:inline-flex;align-items:center;border:1px solid var(--border-strong);border-radius:12px;padding:10px 14px;background:var(--bg-card);font-size:13px}
 .permissions-editor .permission-search{min-width:180px}
@@ -16,20 +15,13 @@
 @endpush
 @section('content')
 <div class="permissions-editor max-w-7xl mx-auto px-4 py-8" x-data="permissionEditor()">
-    <div class="rounded-2xl border p-6 mb-6" style="background:var(--bg-card);border-color:var(--border-strong)">
-        <div class="flex flex-wrap gap-4 justify-between items-start">
-            <div><p class="text-xs uppercase tracking-widest opacity-60 mb-2">Workspace access</p>
-                <h1 class="text-3xl font-bold">Roles &amp; Permissions</h1>
-                <p class="text-sm opacity-70 mt-2">Choose exactly what teammates can do in {{ $workspace->name }}.</p></div>
-            <a href="{{ route('user.team.index') }}" class="text-sm px-4 py-2 border rounded-xl">Back to team</a>
-        </div>
-        <p class="text-sm opacity-70 mt-4">Owners always have full access. Billing, ownership transfer and deleting the workspace remain owner-only. Saved changes apply on the next request.</p>
-    </div>
+    @include('user.partials.page-hero',['title'=>'Roles & Permissions','subtitle'=>'Configure feature access in '.$workspace->name.'.','emblemIcon'=>'fa-user-shield','back'=>route('user.team.index'),'favicon'=>null,'url'=>null,'chips'=>[['text'=>'Workspace access','icon'=>'fa-shield-halved'],['text'=>count($roles).' roles','icon'=>'fa-users']],'actions'=>[['label'=>'Manage roles','click'=>'manageOpen=!manageOpen','expanded'=>'manageOpen','controls'=>'role-management','icon'=>'fa-sliders','class'=>'btn-primary'],['label'=>'Back to team','url'=>route('user.team.index'),'icon'=>'fa-users','class'=>'btn-ghost']]])
+    <p class="text-sm opacity-70 mb-6">Owners retain full access. Billing, ownership transfer and workspace deletion remain owner-only. Saved permissions apply on the next request.</p>
     @foreach(['success', 'error'] as $message)
         @if(session($message))<div class="p-4 rounded-xl border mb-4">{{ session($message) }}</div>@endif
     @endforeach
     @if($errors->any())<div class="p-4 rounded-xl border mb-4">{{ $errors->first() }}</div>@endif
-    <section id="role-management" class="mb-6 p-5 border rounded-2xl" style="background:var(--bg-card)">
+    <section id="role-management" x-show="manageOpen" x-cloak class="mb-6 p-5 border rounded-2xl" style="background:var(--bg-card)">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4"><h2 class="font-semibold">Create, rename &amp; delete roles</h2><label class="text-sm">Selected role <select x-model="role" class="border rounded-xl p-2">@foreach($roles as $managedRole)<option value="{{ $managedRole }}">{{ $roleNames[$managedRole] }}</option>@endforeach</select></label></div><p class="text-sm opacity-70 mb-4">Five roles are provided initially. Admin is protected; owners always retain full access. Role names can change without changing assignments.</p>
         <div class="grid gap-4 md:grid-cols-3">
             <form method="POST" action="{{ route('user.team.roles.create') }}">@csrf
@@ -60,7 +52,7 @@
             <input type="search" x-model="search" placeholder="Find a feature…" class="permission-search border rounded-xl p-2 flex-1 min-w-0" aria-label="Find a feature">
             <button type="button" @click="setAll(true)" class="border rounded-xl px-3 py-2 text-sm">Check all</button>
             <button type="button" @click="setAll(false)" class="border rounded-xl px-3 py-2 text-sm">Uncheck all</button>
-            <button type="button" @click="duplicateOpen = !duplicateOpen; document.getElementById('role-management').scrollIntoView({behavior:'smooth',block:'start'})" class="border rounded-xl px-3 py-2 text-sm">Duplicate role</button><button type="button" @click="document.getElementById('role-management').scrollIntoView({behavior:'smooth',block:'start'})" class="border rounded-xl px-3 py-2 text-sm">Manage roles</button>
+            <button type="button" @click="duplicateOpen = !duplicateOpen; manageOpen=true" class="border rounded-xl px-3 py-2 text-sm">Duplicate role</button><button type="button" @click="manageOpen=!manageOpen" :aria-expanded="manageOpen" aria-controls="role-management" class="border rounded-xl px-3 py-2 text-sm">Manage roles</button>
         </div>
         <div class="px-5 py-3 text-sm opacity-70">Own records means records created by you. View, edit and delete apply to these records. Enable the matching “Others” permission to include teammates’ records. Shared tools without record ownership use workspace-wide access.</div>
         <div class="overflow-x-auto">
@@ -135,7 +127,7 @@ function permissionEditor() {
         if (!(feature+'.'+action in row)) row[feature+'.'+action] = !!row[({export:'view',publish:'edit',run:'edit'})[action] || action.replace('_others','')];
     }
     return {
-        roleNames: @json($roleNames), matrix, original: JSON.parse(JSON.stringify(matrix)), role: @json($selectedRole), search: '', duplicateOpen: false,
+        roleNames: @json($roleNames), matrix, original: JSON.parse(JSON.stringify(matrix)), role: @json($selectedRole), search: '', manageOpen: false, duplicateOpen: false,
         matches(label) { return label.toLowerCase().includes(this.search.toLowerCase()); },
         setFeature(feature, value) { for (const action of supported[feature]) this.matrix[this.role][feature+'.'+action] = value; },
         setAll(value) { for (const feature of features) this.setFeature(feature, value); for(const action of ['view','create','edit','delete','reply']) this.matrix[this.role][action] = value; },

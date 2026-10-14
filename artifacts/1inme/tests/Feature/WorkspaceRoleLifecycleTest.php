@@ -51,7 +51,7 @@ class WorkspaceRoleLifecycleTest extends TestCase
         $matrix['editor']['links.edit'] = false;
         $response = $this->put('/user/team/roles', ['matrix_json' => json_encode($matrix), 'selected_role' => 'editor']);
         $response->assertRedirect(route('user.team.roles.index', ['role' => 'editor']));
-        $page = $this->get('/user/team/roles?role=editor')->assertOk()->assertViewHas('selectedRole', 'editor')->assertSee('Create, rename &amp; delete roles',false)->assertSee('id="role-management"',false)->assertDontSee('x-show="manageOpen"',false);
+        $page = $this->get('/user/team/roles?role=editor')->assertOk()->assertViewHas('selectedRole', 'editor')->assertSee('Create, rename &amp; delete roles',false)->assertSee('id="role-management"',false)->assertSee('x-show="manageOpen"',false)->assertSee('page-hero',false);
         if (getenv('FORMS_UI_FIXTURE')) {
             file_put_contents('/tmp/workspace-role-editor.html', $page->getContent());
         }

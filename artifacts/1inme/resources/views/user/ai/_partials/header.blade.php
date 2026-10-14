@@ -2,18 +2,14 @@
      current coin balance and a top-up shortcut so each feature fails
      informatively when the wallet hits zero. AI usage is charged from
      the coin wallet. --}}
-<div class="flex items-center justify-between mb-6">
-    <div>
-        <p class="text-xs uppercase tracking-wider text-white/40">{{ $kicker ?? 'AI' }}</p>
-        <h1 class="text-2xl font-bold text-white mt-1">{{ $title }}</h1>
-        @isset($subtitle)<p class="text-sm text-white/50 mt-1">{{ $subtitle }}</p>@endisset
-    </div>
-    <div class="text-right">
-        <p class="text-xs text-white/40">Coin balance</p>
-        <p class="text-2xl font-bold text-blue-300">{{ number_format($balance) }} <span class="text-sm">coins</span></p>
-        <a href="{{ route('user.wallet.buy') }}" class="text-xs text-blue-300 hover:underline">Top up →</a>
-    </div>
-</div>
+@include('user.partials.page-hero',[
+    'title'=>$title,
+    'subtitle'=>$subtitle??null,
+    'emblemIcon'=>'fa-wand-magic-sparkles',
+    'favicon'=>null,'url'=>null,'back'=>route('user.dashboard'),
+    'chips'=>[['text'=>$kicker??'AI','icon'=>'fa-wand-magic-sparkles'],['text'=>number_format($balance).' coins','icon'=>'fa-coins']],
+    'actions'=>[['label'=>'Top up coins','url'=>route('user.wallet.buy'),'icon'=>'fa-plus','class'=>'btn-ghost']],
+])
 
 @php
     // Low-balance nudge: AI runs straight from the coin wallet, so a user

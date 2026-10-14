@@ -115,6 +115,10 @@
                                 @endforeach
                             </div>
                         </details>
+                    @elseif(!empty($a['click']))
+                        <button type="button" x-on:click="{{ $a['click'] }}" class="{{ $a['class'] ?? 'btn-primary' }} text-xs py-2" @if(!empty($a['disabled'])) :disabled="{{ $a['disabled'] }}" @endif @if(!empty($a['expanded'])) :aria-expanded="{{ $a['expanded'] }}" @endif @if(!empty($a['controls'])) aria-controls="{{ $a['controls'] }}" @endif>
+                            @if(!empty($a['icon']))<i class="fas {{ $a['icon'] }} text-[10px]" aria-hidden="true"></i>@endif {{ $a['label'] ?? '' }}
+                        </button>
                     @else
                         <a href="{{ $a['url'] ?? '#' }}"
                            @if(!empty($a['target']))target="{{ $a['target'] }}" rel="noopener noreferrer"@endif

@@ -4,7 +4,7 @@
 
 @push('styles')
 <style>
-.workspace-team-hero{padding:32px;border:1px solid var(--border-strong);border-radius:24px;background:linear-gradient(125deg,var(--bg-card),var(--bg-glass-light));position:relative;overflow:hidden}.workspace-team-hero:before{content:'';position:absolute;inset:0 auto 0 0;width:5px;background:#3d6bff}.workspace-team-hero h1{font-size:28px}.workspace-seat-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.workspace-seat-metrics>div{border:1px solid var(--border-strong);border-radius:18px;padding:22px;background:var(--bg-card)}.workspace-seat-metrics span,.workspace-seat-metrics small{display:block;font-size:12px;color:var(--text-secondary)}.workspace-seat-metrics strong{display:block;font-size:32px;letter-spacing:-1px;margin:8px 0;color:var(--text-primary)}.workspace-team-page table th{font-size:12px;font-weight:600}.workspace-team-page table td{padding-top:18px;padding-bottom:18px}.workspace-team-page input[type=search]{border-radius:12px;min-height:46px}.workspace-team-page button,.workspace-team-page a[class*=border]{border-radius:12px}
+.workspace-team-hero{padding:32px;border:1px solid var(--border-strong);border-radius:24px;background:linear-gradient(125deg,var(--bg-card),var(--bg-glass-light));position:relative;overflow:hidden}.workspace-team-hero:before{content:'';position:absolute;inset:0 auto 0 0;width:5px;background:#3d6bff}.workspace-team-hero h1{font-size:28px}.workspace-seat-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.workspace-seat-metrics>div{border:1px solid var(--border-strong);border-radius:18px;padding:22px;background:var(--bg-card)}.workspace-seat-metrics span,.workspace-seat-metrics small{display:block;font-size:12px;color:var(--text-secondary)}.workspace-seat-metrics strong{display:block;font-size:32px;letter-spacing:-1px;margin:8px 0;color:var(--text-primary)}.workspace-team-page table th{font-size:12px;font-weight:600}.workspace-team-page table td{padding-top:18px;padding-bottom:18px}.workspace-team-page input[type=search]{border-radius:12px;min-height:46px}
 @media(max-width:760px){.workspace-seat-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.workspace-seat-metrics>div{padding:16px}.workspace-team-hero{padding:22px}.workspace-team-hero h1{font-size:24px}}
 </style>
 @endpush
@@ -21,53 +21,16 @@
     'maxSeats'          => $maxSeats,
     'pendingCount'      => $pendingCount,
 ]) }})">
-    <div class="workspace-team-hero flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-        <div>
-            <p class="text-xs uppercase tracking-widest opacity-60 mb-2">People &amp; workspace access</p><h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }}</h1>
-            <p class="text-sm opacity-70 mt-1">
-                Your workspace team: manage members, role permissions and account security.
-            </p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-            @if(!empty($isOwner))
-                <a href="{{ route('user.workspaces.settings', $workspace) }}"
-                   class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
-                   style="border-color: var(--border-strong); color: var(--text-primary);">
-                    <i class="fas fa-gear mr-1"></i> Workspace settings
-                </a>
-            @endif
-            @if(!empty($canEditRoles))
-                <a href="{{ route('user.team.roles.index') }}"
-                   class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
-                   style="border-color: var(--border-strong); color: var(--text-primary);">
-                    <i class="fas fa-sliders-h mr-1"></i> Roles &amp; permissions
-                </a>
-                <a href="{{ route('user.workspaces.activity.index') }}"
-                   class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
-                   style="border-color: var(--border-strong); color: var(--text-primary);">
-                    <i class="fas fa-clipboard-list mr-1"></i> Activity log
-                </a>
-            @endif
-            <button type="button" @click="openInvite()"
-                    :disabled="atLimit"
-                    :class="atLimit ? 'opacity-50 cursor-not-allowed' : ''"
-                    class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">
-                <i class="fas fa-plus mr-1"></i> Invite teammate
-            </button>
-            @if(empty($isOwner) && !$workspace->is_personal)
-                <form method="POST" action="{{ route('user.team.leave') }}"
-                      onsubmit="return confirm('Leave {{ $workspace->name }}? You\'ll lose access to this workspace and be moved back to your personal one. Anything you created here transfers to the owner.');">
-                    @csrf
-                    <button type="submit"
-                            class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover text-red-500"
-                            style="border-color: var(--border-strong);">
-                        <i class="fas fa-arrow-right-from-bracket mr-1"></i> Leave workspace
-                    </button>
-                </form>
-            @endif
-        </div>
-    </div>
-
+    @php
+        $teamHeaderActions=[['label'=>'Invite teammate','click'=>'openInvite()','disabled'=>'atLimit','icon'=>'fa-plus','class'=>'btn-primary']];
+        if($isOwner) $teamHeaderActions[]=['label'=>'Workspace settings','url'=>route('user.workspaces.settings',$workspace),'icon'=>'fa-gear','class'=>'btn-ghost'];
+        if($canEditRoles) {
+            $teamHeaderActions[]=['label'=>'Roles & permissions','url'=>route('user.team.roles.index'),'icon'=>'fa-sliders','class'=>'btn-ghost'];
+            $teamHeaderActions[]=['label'=>'Activity log','url'=>route('user.workspaces.activity.index'),'icon'=>'fa-clipboard-list','class'=>'btn-ghost'];
+        }
+    @endphp
+    @include('user.partials.page-hero',['title'=>$workspace->name,'subtitle'=>'Manage members, role permissions and account security.','emblemIcon'=>'fa-users','back'=>route('user.dashboard'),'favicon'=>null,'url'=>null,'chips'=>[['text'=>'Workspace team','icon'=>'fa-users'],['text'=>$usedSeats.' seats used','icon'=>'fa-user-check']],'actions'=>$teamHeaderActions])
+    @if(empty($isOwner) && !$workspace->is_personal)<form method="POST" action="{{ route('user.team.leave') }}" class="mb-4" onsubmit="return confirm('Leave this workspace? Your content transfers to the owner and you lose workspace access.');">@csrf<button class="text-sm text-red-600">Leave workspace</button></form>@endif
     @if(session('success'))
         <div class="mb-4 p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('success') }}</div>
     @endif
