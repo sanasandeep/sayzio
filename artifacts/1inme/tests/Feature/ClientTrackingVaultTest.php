@@ -54,7 +54,7 @@ class ClientTrackingVaultTest extends TestCase
         $this->assertSame(1, VaultClient::count());
         $this->get('/user/projects/'.$folder->id)->assertOk()->assertSee('Client projects in this Folder')->assertSee('Monthly support');
         $page = $this->get('/user/vault/clients/'.$client->id)->assertOk()->assertSee('Website delivery')->assertSee('Monthly support')->assertSee('Add project');
-        $this->get('/user/delivery-projects/create?client='.$client->id)->assertOk()->assertSee('New client project');
+        $this->get('/user/delivery-projects/create?client='.$client->id)->assertOk()->assertSee('Add project');
         $file = UploadedFile::fake()->image('scan.png', 200, 200);
         $this->post('/user/vault/clients/'.$client->id.'/attachments', ['file' => $file, 'purpose' => 'qr'])->assertRedirect()->assertSessionHasNoErrors();
         $attachment = VaultAttachment::firstOrFail();
@@ -134,7 +134,7 @@ class ClientTrackingVaultTest extends TestCase
         $member = User::factory()->create();
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $member->id, 'role' => 'editor']);
         $this->actingAs($member)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
-        $this->get('/user/delivery-projects/'.$project->id)->assertOk()->assertDontSee('Example client')->assertDontSee('Client task')->assertSee('profile access is restricted');
+        $this->get('/user/delivery-projects/'.$project->id)->assertOk()->assertDontSee('Example client')->assertDontSee('Client task')->assertSee('Client access is restricted');
         $this->get('/user/delivery-projects/'.$project->id.'/tracking/task/'.$task->id)->assertNotFound();
         if (getenv('FORMS_UI_FIXTURE')) {
             file_put_contents('/tmp/client-tracking.html', $page->getContent());

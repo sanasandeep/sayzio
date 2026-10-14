@@ -1,11 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'New client project')
+@section('title', 'Add project')
 @section('content')
 @include('user.planner.styles')
 @include('user.partials.client-create-styles')
 <div class="client-create-page">
-    @include('user.partials.page-hero',['title'=>'New client project','subtitle'=>'Connect a client profile, billing and delivery work.','emblemIcon'=>'fa-user-plus','favicon'=>null,'url'=>null,'back'=>route('user.delivery-projects.index'),'chips'=>[],'actions'=>[]])
-    <div class="client-create-intro"><strong>Add work under a client</strong><p>Choose your client once, then organise delivery, tasks and billing for this project.</p><a href="{{ route('user.vault.clients.index') }}">Back to Clients →</a></div>
+    @include('user.partials.page-hero',['title'=>'Add project','subtitle'=>'Choose a client and name the work you will deliver.','emblemIcon'=>'fa-user-plus','favicon'=>null,'url'=>null,'back'=>$selectedClient ? route('user.vault.clients.show',$selectedClient) : route('user.vault.clients.index'),'chips'=>[],'actions'=>[]])
+
     @if($errors->any())
         <div class="mb-4 px-4 py-3 rounded-lg text-sm" style="background: rgba(239,68,68,.12); color:#ef4444;">
             {{ $errors->first() }}
@@ -14,7 +14,7 @@
 
     <form method="POST" action="{{ route('user.delivery-projects.store') }}" class="client-main-form glass-card rounded-2xl p-6 space-y-5" style="border:1px solid var(--border);">
         @csrf
-        <label class="block text-sm font-semibold">Client<select name="vault_client_id" class="theme-input mt-2 w-full"><option value="">No linked profile</option>@foreach($vaultClients as $vaultClient)<option value="{{ $vaultClient->id }}" @selected((string)old('vault_client_id',$selectedClient?->id) === (string)$vaultClient->id)>{{ $vaultClient->name }}{{ $vaultClient->company?' · '.$vaultClient->company:'' }}</option>@endforeach</select></label><p class="text-xs opacity-60">Name, company, email, phone and website remain linked to Vault. Private notes and secrets stay in Vault and are never added to client share pages.</p>
+        <label class="block text-sm font-semibold">Client<select name="vault_client_id" class="theme-input mt-2 w-full"><option value="">Choose client</option>@foreach($vaultClients as $vaultClient)<option value="{{ $vaultClient->id }}" @selected((string)old('vault_client_id',$selectedClient?->id) === (string)$vaultClient->id)>{{ $vaultClient->name }}{{ $vaultClient->company?' · '.$vaultClient->company:'' }}</option>@endforeach</select></label><p class="text-xs opacity-60">Contact details come from the client record. Protected information remains private.</p>
         @if($prefill['source_type'])
             <input type="hidden" name="source_type" value="{{ $prefill['source_type'] }}">
             <input type="hidden" name="source_id" value="{{ $prefill['source_id'] }}">
@@ -71,7 +71,7 @@
 
         </details>
         <div class="flex items-center gap-3 pt-2">
-            <button type="submit" class="px-5 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#3d6bff,#90acff);">
+            <button type="submit" class="client-primary" >
                 Create project
             </button>
             <a href="{{ route('user.delivery-projects.index') }}" class="text-sm" style="color: var(--text-tertiary);">Cancel</a>

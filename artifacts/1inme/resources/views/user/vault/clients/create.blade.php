@@ -5,7 +5,7 @@
 @include('user.partials.page-hero',['title'=>'New client','subtitle'=>'Save one client record, then add projects and connected work.','emblemIcon'=>'fa-user-plus','favicon'=>null,'url'=>null,'back'=>route('user.vault.clients.index'),'chips'=>[],'actions'=>[]])
 @include('user.partials.client-create-styles')
 <div class="client-create-page">
-    <div class="client-create-intro"><strong>New client</strong><p>Save contact details and protected notes. After saving, add projects and connect invoices, tasks and conversations from the client page.</p></div>
+
     <form class="client-main-form" method="post" action="{{ route('user.vault.clients.store') }}">
         @csrf
         @include('user.vault.clients._form', ['item' => null])
