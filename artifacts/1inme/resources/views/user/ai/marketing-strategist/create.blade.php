@@ -49,9 +49,11 @@
     $subheadCls   = 'text-[11px] uppercase tracking-wider text-white/45 font-semibold mb-3';
 @endphp
 
-<div class="max-w-3xl mx-auto px-4 py-8">
+@include('user.marketing-studio.styles')
+@include('user.marketing-studio.nav',['tab'=>'strategy'])
+<div class="ms-legacy max-w-3xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
-        'kicker'   => 'AI · Marketing Strategist',
+        'kicker'   => 'AI Marketing Studio · Strategy',
         'title'    => 'Build a strategy',
         'subtitle' => 'Pick what to share, set a goal, and the strategist drafts an organic + paid plan around your Sayzio features.',
         'balance'  => $balance,
@@ -59,8 +61,10 @@
 
     <form method="POST" action="{{ route('user.ai.marketing-strategist.store') }}" id="ms-form" class="space-y-5">
         @csrf
+        @if(isset($campaign) && $campaign)<input type="hidden" name="campaign_id" value="{{ $campaign->id }}"><input type="hidden" name="quote" value="">@endif
 
         {{-- Project · pre-fill from a saved project profile --}}
+@if(isset($campaign)&&$campaign)<details class="ms-card"><summary class="font-semibold cursor-pointer">More options · profiles & data sources</summary>@endif
         <section x-data="{ profiles: @js($profilesData), sel: '', pick() {
                     if (this.sel === 'new' || this.sel === '') return;
                     const p = this.profiles[this.sel];
@@ -180,6 +184,7 @@
             </div>
         </section>
 
+@if(isset($campaign)&&$campaign)</details>@endif
         {{-- Step 2 · Goal --}}
         <section class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
             <div class="flex items-start gap-3.5">
@@ -222,6 +227,7 @@
         </section>
 
         {{-- Step 3 · Parameters --}}
+@if(isset($campaign)&&$campaign)<details class="ms-card"><summary class="font-semibold cursor-pointer">Advanced · channels, budget & analysis</summary>@endif
         <section class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 space-y-6">
             <div class="flex items-start gap-3.5">
                 <span class="{{ $stepBadgeCls }}">3</span>
@@ -406,6 +412,7 @@
                 </div>
             </div>
         </section>
+@if(isset($campaign)&&$campaign)</details>@endif
 
         {{-- Footer action bar --}}
         <div class="sticky bottom-4 z-10">
@@ -433,6 +440,7 @@
     const out  = document.getElementById('ms-estimate-out');
     const submit = document.getElementById('ms-submit');
     if (!form) return;
+    const quote=form.querySelector('[name=quote]');if(quote){submit.disabled=true;form.addEventListener('input',()=>{quote.value='';submit.disabled=true;});}
 
     btn?.addEventListener('click', async function () {
         out.textContent = 'Estimating…';
@@ -450,6 +458,7 @@
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error?.message || 'Could not estimate.');
+            if(quote){quote.value=data.quote||'';submit.disabled=!quote.value;}
             out.textContent = 'About ' + Number(data.estimate).toLocaleString() + ' coins · balance ' + Number(data.balance).toLocaleString();
         } catch (e) {
             out.textContent = e.message || 'Estimate failed.';

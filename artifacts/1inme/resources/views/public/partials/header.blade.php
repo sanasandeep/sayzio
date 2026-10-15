@@ -29,7 +29,7 @@
         [route('site.api-docs'),       'fa-code',         'API',                'Build with Sayzio',                     'site.api-docs'],
     ];
     $navProductAi = [
-        [route('site.ai-marketing-strategist'), 'fa-wand-magic-sparkles', 'AI Marketing Strategist', 'A growth plan from your own data',      'site.ai-marketing-strategist'],
+        [route('site.ai-marketing-strategist'), 'fa-wand-magic-sparkles', 'AI Marketing Studio', 'Plan campaigns and create their materials',      'site.ai-marketing-strategist'],
         [route('site.ai-chatbot'),         'fa-comments',        'AI Chatbot',         '24/7 chat on your biolink',             'site.ai-chatbot'],
         [route('site.ai-agent'),           'fa-robot',           'AI Agent',           'Runs multi-step tasks for you',         'site.ai-agent'],
         [route('site.ai-widget'),          'fa-window-restore',  'AI Widget',          'Embed on any website',                  'site.ai-widget'],

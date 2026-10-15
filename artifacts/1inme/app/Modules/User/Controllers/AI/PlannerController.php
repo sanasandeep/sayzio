@@ -220,13 +220,14 @@ class PlannerController extends Controller
 
     public function tools(): array
     {
-        return ['staff' => ['AI Staff', 'user.ai.staff.index'], 'chat' => ['AI Chat', 'user.ai.companion.show'], 'coach' => ['Ask Coach', 'user.ai.ask-coach.show'], 'minds' => ['AI Minds', 'user.minds.index'], 'persona' => ['AI Persona Generator', 'user.ai.persona.show'], 'agents' => ['AI Agents', 'user.ai-personas.index'], 'companions' => ['AI Companions', 'user.ai-companions.index'], 'brand' => ['AI Brand Kit', 'user.brand-kits.index'], 'studio' => ['AI Brand Studio', 'user.brand-studio.index'], 'growth' => ['Growth Insights', 'user.links.index'], 'inbox' => ['AI Inbox Agent', 'user.inbox.unified.index'], 'builders' => ['Specialised page builders', 'user.links.create']];
+        return ['staff' => ['AI Staff', 'user.ai.staff.index'], 'chat' => ['AI Chat', 'user.ai.companion.show'], 'coach' => ['Ask Coach', 'user.ai.ask-coach.show'], 'minds' => ['AI Minds', 'user.minds.index'], 'persona' => ['AI Persona Generator', 'user.ai.persona.show'], 'agents' => ['AI Agents', 'user.ai-personas.index'], 'companions' => ['AI Companions', 'user.ai-companions.index'], 'brand' => ['AI Brand Kit', 'user.brand-kits.index'], 'studio' => ['AI Marketing Studio', 'user.marketing-studio.index'], 'growth' => ['Growth Insights', 'user.links.index'], 'inbox' => ['AI Inbox Agent', 'user.inbox.unified.index'], 'builders' => ['Specialised page builders', 'user.links.create']];
     }
 
     public function handoff(Request $r, NoteActionPlan $plan)
     {
         $this->allow($r, $plan);
         $v = $r->validate(['tool' => ['required', Rule::in(array_keys($this->tools()))], 'task_index' => 'nullable|integer|min:0|max:14']);
+        if($v['tool']==='studio'){ $campaign=app(\App\Services\Marketing\CampaignWorkspace::class)->fromPlan($plan,$r);return redirect()->route('user.marketing-studio.show',$campaign); }
         $brief = $plan->result['summary'];
         if (isset($v['task_index'])) {
             $task = $plan->result['tasks'][$v['task_index']] ?? null;

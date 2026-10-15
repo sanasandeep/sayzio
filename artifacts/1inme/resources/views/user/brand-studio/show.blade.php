@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', $kit->name . ' - AI Brand Studio')
+@section('title', $kit->name . ' - AI Marketing Studio')
 
 @php
     $kindMeta = [
@@ -12,13 +12,16 @@
 @endphp
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+@include('user.marketing-studio.styles')
+@if($errors->any())<p class="bk-feedback" role="alert">{{ $errors->first() }}</p>@endif
+@include('user.marketing-studio.nav',['tab'=>'create'])
+<div class="ms-legacy max-w-4xl mx-auto px-4 py-8 space-y-6">
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
     <div class="flex items-start justify-between gap-3 flex-wrap">
         <div>
-            <a href="{{ route('user.brand-studio.index') }}" class="text-[11px] text-white/40 hover:text-white/70"><i class="fas fa-arrow-left mr-1"></i> AI Brand Studio</a>
+            <a href="{{ route('user.brand-studio.index') }}" class="text-[11px] text-white/40 hover:text-white/70"><i class="fas fa-arrow-left mr-1"></i> AI Marketing Studio</a>
             <h1 class="text-2xl font-bold text-white mt-1">{{ $kit->name }}</h1>
             <p class="text-[11px] text-white/40 mt-1">
                 {{ $kit->mode === 'bulk' ? 'Bulk variations' : 'Full kit' }} · planned {{ $kit->created_at->diffForHumans() }}
@@ -40,6 +43,7 @@
     @endif
 
     @if($kit->isCreated())
+        @if(!empty($campaign) && !empty($kit->results['pending_assets']))<form class="ms-next" method="POST" action="{{ route('user.brand-studio.confirm',$kit) }}">@csrf<input type="hidden" name="retry" value="1"><h3 class="font-semibold">Some materials were skipped</h3><p class="bk-muted my-3">After resolving the reported plan limit, retry only the skipped materials. Existing materials are kept. No new AI generation is needed.</p><button class="btn-ghost">Retry skipped materials</button></form>@endif
         {{-- Results --}}
         <div class="space-y-3">
             <h2 class="text-white font-semibold">Created assets</h2>
@@ -109,8 +113,9 @@
         {{-- Proposal review --}}
         <form method="POST" action="{{ route('user.brand-studio.confirm', $kit) }}" class="space-y-3">
             @csrf
+            <input type="hidden" name="selection_submitted" value="1">
             <h2 class="text-white font-semibold">Review the plan</h2>
-            <p class="text-sm text-white/50">Untick anything you don't want. Nothing is created until you confirm.</p>
+            <p class="text-sm text-white/50">Untick anything you don't want. Nothing is created until you confirm. Campaign pages and forms are created as unpublished drafts.</p>
             @foreach($kit->proposedAssets() as $i => $a)
                 @php $meta = $kindMeta[$a['kind']] ?? ['icon' => 'fa-cube', 'label' => ucfirst($a['kind'])]; @endphp
                 <label class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-start gap-3 cursor-pointer hover:border-white/20">
@@ -123,6 +128,11 @@
                                 <span class="px-2 py-0.5 rounded-full text-[10px] bg-primary-500/10 border border-primary-500/20 text-primary-300"><i class="fas fa-bullseye mr-1"></i>{{ $a['purpose'] }}</span>
                             @endif
                         </div>
+                        <details class="mt-3"><summary class="cursor-pointer text-sm">Edit draft content</summary><input class="bk-input mt-3" aria-label="Material title" name="edits[{{ $i }}][title]" value="{{ $a['title']??$a['name']??$meta['label'] }}" maxlength="160">
+                        @if(in_array($a['kind'],['short_link','qr_code']))<input type="url" class="bk-input mt-3" aria-label="Destination URL" name="edits[{{ $i }}][url]" value="{{ $a['url'] }}" maxlength="2048">@endif
+                        @if($a['kind']==='form')<textarea class="bk-input mt-3" aria-label="Form description" name="edits[{{ $i }}][description]" maxlength="500">{{ $a['description']??'' }}</textarea>@endif
+                        @foreach($a['blocks']??[] as $j=>$block)@if(in_array($block['type'],['heading','paragraph','link','cta_button']))<label class="block mt-3 text-sm">{{ ucfirst($block['type']) }}<textarea class="bk-input mt-2" name="edits[{{ $i }}][blocks][{{ $j }}][text]" maxlength="2000">{{ $block['settings']['text']??'' }}</textarea></label>@endif @endforeach</details>
+                        @if($a['kind']==='biolink')<details class="mt-3"><summary class="cursor-pointer text-sm">Preview generated page content</summary><div class="ms-phone mt-4"><strong>{{ $a['title'] }}</strong>@foreach($a['blocks']??[] as $block)<div class="sample"><p>{{ $block['settings']['text']??ucfirst($block['type']) }}</p></div>@endforeach</div><p class="bk-muted mt-2">Generated content preview. Edits above apply when creating the draft; full styling is editable in the page editor.</p></details>@endif
                         @if($a['kind'] === 'short_link' || $a['kind'] === 'qr_code')
                             <p class="text-[12px] text-white/40 truncate mt-0.5">{{ $a['url'] }}</p>
                         @elseif($a['kind'] === 'form')

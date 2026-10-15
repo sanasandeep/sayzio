@@ -1080,6 +1080,18 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('brand-kits/{brandKit}/assets/{type}/apply',    [\App\Modules\User\Controllers\BrandKitController::class, 'applyAsset'])->whereNumber('brandKit')->middleware('workspace.can:links.edit')->name('brand-kits.assets.apply');
         Route::delete('brand-kits/{brandKit}/assets/{type}',          [\App\Modules\User\Controllers\BrandKitController::class, 'destroyAsset'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.assets.destroy');
 
+        Route::prefix('marketing-studio')->name('marketing-studio.')->middleware('workspace.can:ai.view')->group(function(){
+            Route::get('/',[\App\Modules\User\Controllers\MarketingStudioController::class,'index'])->name('index');
+            Route::get('/create',[\App\Modules\User\Controllers\MarketingStudioController::class,'create'])->middleware('workspace.can:links.create')->name('create');
+            Route::post('/',[\App\Modules\User\Controllers\MarketingStudioController::class,'store'])->middleware('workspace.can:links.create')->name('store');
+            Route::post('/from-planner/{plan}',[\App\Modules\User\Controllers\MarketingStudioController::class,'fromPlan'])->middleware(['workspace.can:planner.view','workspace.can:links.create'])->name('from-plan');
+            Route::get('/{campaign}',[\App\Modules\User\Controllers\MarketingStudioController::class,'show'])->whereNumber('campaign')->name('show');
+            Route::post('/{campaign}/planner',[\App\Modules\User\Controllers\MarketingStudioController::class,'connectPlan'])->whereNumber('campaign')->middleware(['workspace.can:links.edit','workspace.can:planner.view'])->name('connect-plan');
+            Route::post('/{campaign}/restore/{version}',[\App\Modules\User\Controllers\MarketingStudioController::class,'restore'])->whereNumber('campaign')->whereNumber('version')->middleware('workspace.can:links.edit')->name('restore');
+            Route::put('/{campaign}',[\App\Modules\User\Controllers\MarketingStudioController::class,'update'])->whereNumber('campaign')->middleware('workspace.can:links.edit')->name('update');
+            Route::get('/{campaign}/build',[\App\Modules\User\Controllers\MarketingStudioController::class,'build'])->whereNumber('campaign')->middleware('workspace.can:links.create')->name('build');
+            Route::get('/{campaign}/strategy',[\App\Modules\User\Controllers\MarketingStudioController::class,'strategy'])->whereNumber('campaign')->name('strategy');
+        });
         // AI Brand Studio (Task #5551): one plain-language brief → a reviewed,
         // structured multi-asset plan → assets created together as a named
         // kit. Charged against the `brand_studio` AI feature; plan-gated.

@@ -64,12 +64,14 @@ class MarketingStrategistController extends Controller
     {
         if ($gate = $this->gateView($request)) return $gate;
 
+        $campaign=app(\App\Services\Marketing\CampaignWorkspace::class)->requestCampaign($request);
         $profiles = MarketingProfile::listForOwner($request->user()->id, $this->workspaceId());
 
         return view('user.ai.marketing-strategist.create', [
+            'campaign'=>$campaign,
             'sources'         => MarketingStrategistService::SOURCES,
             'items'           => $this->strategist->selectableItems($request->user()),
-            'old'             => session('ai.marketing_strategist.input', []),
+            'old'             => $campaign?['goal'=>$campaign->brief['goal']??$campaign->name,'parameters'=>['depth'=>1,'audience'=>$campaign->brief['audience']??'','main_offer'=>$campaign->brief['offer']??'','budget'=>$campaign->brief['budget']??'','channels'=>$campaign->brief['channels']??'','avoid'=>$campaign->brief['constraints']??'']]:session('ai.marketing_strategist.input', []),
             'balance'         => $this->credits->getBalance($request->user()),
             'profileDefaults' => $this->profileDefaults($request),
             'profiles'        => $profiles,
@@ -135,6 +137,7 @@ class MarketingStrategistController extends Controller
         );
 
         return response()->json([
+            'quote'=>($campaign=app(\App\Services\Marketing\CampaignWorkspace::class)->requestCampaign($request))?app(\App\Services\Marketing\CampaignWorkspace::class)->quote($request,$campaign,'strategy',$data):null,
             'estimate' => $cost,
             'balance'  => $this->credits->getBalance($request->user()),
         ]);
@@ -147,6 +150,7 @@ class MarketingStrategistController extends Controller
         $user = $request->user();
         $data = $this->validateBuilder($request);
 
+        if($campaign=app(\App\Services\Marketing\CampaignWorkspace::class)->requestCampaign($request))app(\App\Services\Marketing\CampaignWorkspace::class)->quote($request,$campaign,'strategy',$data,true);
         $current = $this->scopeOwned($request)->count();
         if (!AiPlanAccess::underQuantityCap($user, 'marketing_strategies', $current)) {
             $msg = AiPlanAccess::quantityLimitMessage($user, 'marketing_strategies', 'marketing strategies', $current);
@@ -174,6 +178,7 @@ class MarketingStrategistController extends Controller
             return back()->withInput()->with('error', 'The strategy could not be generated right now. Please try again.');
         }
 
+        if($campaign=app(\App\Services\Marketing\CampaignWorkspace::class)->requestCampaign($request)){app(\App\Services\Marketing\CampaignWorkspace::class)->connect($campaign,'strategy',$result['strategy']->id);app(\App\Services\Marketing\CampaignWorkspace::class)->returnToPlanner($campaign->fresh(),$request);}
         session()->forget('ai.marketing_strategist.input');
 
         return redirect()
@@ -187,6 +192,7 @@ class MarketingStrategistController extends Controller
         if ($gate = $this->gateView($request)) return $gate;
 
         $model = $this->findOwned($request, $strategy);
+        view()->share('campaign',app(\App\Services\Marketing\CampaignWorkspace::class)->forItem('strategy',$model->id,$request));
 
         return view('user.ai.marketing-strategist.show', [
             'strategy'    => $model,
@@ -798,6 +804,7 @@ class MarketingStrategistController extends Controller
             'parameters.paid_media.*'    => 'string|max:80',
         ]);
 
+        if($campaign=app(\App\Services\Marketing\CampaignWorkspace::class)->requestCampaign($request)) $validated['parameters']['campaign_context']=app(\App\Services\Marketing\CampaignWorkspace::class)->brief($campaign);
         $sources = $this->strategist->normalizeSources((array) ($validated['sources'] ?? []));
 
         return [

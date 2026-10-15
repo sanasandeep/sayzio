@@ -29,7 +29,7 @@ class PlannerResources
 
     public static function typeLabels(): array
     {
-        $labels = ['link'=>'Links','form'=>'Forms','qr'=>'QR codes','file'=>'Files','calendar'=>'Calendars','board'=>'Task boards','task'=>'Tasks','plan'=>'AI plans','mind'=>'AI Minds','persona'=>'Personas','brand'=>'Brand kits','staff'=>'AI Staff','agent'=>'Agents','companion'=>'Companions','studio'=>'Brand Studio','strategy'=>'Strategies','budget'=>'Budgets','buzz'=>'Buzz campaigns'];
+        $labels = ['link'=>'Links','form'=>'Forms','qr'=>'QR codes','file'=>'Files','calendar'=>'Calendars','board'=>'Task boards','task'=>'Tasks','plan'=>'AI plans','mind'=>'AI Minds','persona'=>'Personas','brand'=>'Brand kits','staff'=>'AI Staff','agent'=>'Agents','companion'=>'Companions','studio'=>'Studio materials','strategy'=>'Strategies','budget'=>'Budgets','buzz'=>'Buzz campaigns'];
         return collect(array_keys(self::TYPES))->mapWithKeys(fn($kind)=>[$kind=>$labels[$kind]??ucfirst($kind)])->all();
     }
 

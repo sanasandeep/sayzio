@@ -225,7 +225,7 @@ class AiBrandStudioService
         $userParts = ["WHAT THE USER WANTS:\n" . ($request !== '' ? $request : 'Exactly the requested composition described in the system instructions.')];
         $brandDirectives = trim($brandDirectives);
         if ($brandDirectives !== '') {
-            $userParts[] = mb_substr($brandDirectives, 0, self::MAX_REQUEST_LEN);
+            $userParts[] = mb_substr($brandDirectives,0,12000);
         }
 
         return [
@@ -372,16 +372,17 @@ class AiBrandStudioService
      * @param list<int>|null $keep
      * @return array{kit:BrandStudioKit,created:int,skipped:list<string>}
      */
-    public function materialize(User $owner, BrandStudioKit $kit, ?array $keep = null): array
+    public function materialize(User $owner, BrandStudioKit $kit, ?array $keep = null, bool $retry = false): array
     {
-        if ($kit->isCreated()) {
+        if ($kit->isCreated() && !$retry) {
             throw new RuntimeException('This kit has already been created.');
         }
 
-        $assets = $kit->proposedAssets();
+        $assets = $retry ? ($kit->results['pending_assets']??[]) : $kit->proposedAssets();
+        $existing = $retry ? $kit->createdAssets() : [];
         if ($keep !== null) {
             $keepIdx = array_flip(array_map('intval', $keep));
-            $assets  = array_values(array_filter($assets, fn ($a, $i) => isset($keepIdx[$i]), ARRAY_FILTER_USE_BOTH));
+            $assets = array_filter($assets, fn ($a,$i) => isset($keepIdx[$i]), ARRAY_FILTER_USE_BOTH);
         }
         if (!$assets) {
             throw new RuntimeException('Nothing selected to create.');
@@ -397,9 +398,10 @@ class AiBrandStudioService
 
         $created = [];
         $skipped = [];
+        $pending=[];
 
-        DB::transaction(function () use ($owner, $kit, $assets, &$counts, &$created, &$skipped) {
-            foreach ($assets as $asset) {
+        DB::transaction(function () use ($owner,$kit,$assets,$existing,&$counts,&$created,&$skipped,&$pending) {
+            foreach ($assets as $index=>$asset) {
                 $kind = (string) ($asset['kind'] ?? '');
                 try {
                     $row = match ($kind) {
@@ -413,9 +415,11 @@ class AiBrandStudioService
                     if (!empty($asset['purpose'])) {
                         $row['purpose'] = (string) $asset['purpose'];
                     }
+                    $row['proposal_index']=(int)$index;
                     $created[] = $row;
                 } catch (PlanCapReachedException $e) {
                     $skipped[] = $e->getMessage();
+                    $pending[$index]=$asset;
                 }
             }
 
@@ -426,7 +430,7 @@ class AiBrandStudioService
 
             $kit->update([
                 'status'  => BrandStudioKit::STATUS_CREATED,
-                'results' => ['assets' => $created, 'skipped' => array_values(array_unique($skipped))],
+                'results' => ['assets' => array_merge($existing,$created), 'skipped' => array_values(array_unique($skipped)), 'pending_assets'=>$pending],
             ]);
         });
 
