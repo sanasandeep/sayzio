@@ -116,7 +116,7 @@ class HomepageInitialHtmlIsReadableToCrawlersTest extends TestCase
         foreach ([
             'id="create"' => 'the "what you can create" showcase -- the eighteen link '
                 . 'types, which is the page\'s whole keyword surface',
-            'id="audience"' => 'the audience section',
+            'class="ch-trust pb-band"' => 'the compact trust strip',
         ] as $marker => $what) {
             $this->assertStringContainsString(
                 $marker,

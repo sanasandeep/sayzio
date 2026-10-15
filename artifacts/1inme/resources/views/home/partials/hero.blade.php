@@ -2,7 +2,6 @@
     use App\Modules\Common\Support\SitePagesContent;
     use App\Modules\Admin\Models\AppSetting;
     $heroCopy=SitePagesContent::normalizeHeroCopy((array)AppSetting::get('marketing_hero_copy',[]));
-    $heroBadges=SitePagesContent::normalizeHeroBadges((array)AppSetting::get('marketing_hero_badges',[])) ?: SitePagesContent::heroBadgesDefault();
     $journey=[
       ['Your business','Identity & knowledge','fa-store','Northstar Studio','Brand Kit · Services · AI Minds','Start with your services, brand identity and business knowledge.','#5865ef'],
       ['Pages & marketing','Get discovered','fa-window-maximize','Your services, online','Business page · Campaign · QR','Create your pages and marketing materials, then share them with your audience.','#8b5cf6'],
@@ -28,7 +27,7 @@
 @endguest
 <a href="#sayzio-journey" class="sj-secondary" data-journey-replay><i class="fas fa-play" aria-hidden="true"></i>See how Sayzio works</a>
 </div>
-<div class="sj-proof">@foreach($heroBadges as $badge)<span><i class="{{ !empty($badge['pulse'])?'pulse-dot':'' }}" aria-hidden="true"></i><b>{{ $badge['value'] }}</b> {{ $badge['label'] }}</span>@endforeach</div>
+
 </div>
 <div id="sayzio-journey" class="sj-board" aria-label="Illustrative customer journey">
 <div class="sj-board-head"><span><i class="fas fa-route" aria-hidden="true"></i>One connected customer journey</span><span class="sj-demo-label">Illustrative journey</span></div>

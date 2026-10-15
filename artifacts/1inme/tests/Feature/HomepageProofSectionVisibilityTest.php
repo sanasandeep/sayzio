@@ -74,7 +74,7 @@ class HomepageProofSectionVisibilityTest extends TestCase
             ->assertDontSee('Pending P.');
     }
 
-    public function test_proof_band_renders_once_a_testimonial_is_approved(): void
+    public function test_compact_home_does_not_add_a_testimonial_tour_when_one_is_approved(): void
     {
         Testimonial::create([
             'quote'        => 'Set my page up in an afternoon.',
@@ -89,9 +89,9 @@ class HomepageProofSectionVisibilityTest extends TestCase
 
         $this->get('/home/sections')
             ->assertOk()
-            ->assertSee('id="proof"', false)
-            ->assertSee('loved by creators')
-            ->assertSee('Approved A.');
+            ->assertDontSee('id="proof"', false)
+            ->assertDontSee('loved by creators')
+            ->assertDontSee('Approved A.');
     }
 
     /**
@@ -100,7 +100,7 @@ class HomepageProofSectionVisibilityTest extends TestCase
      * bottom row still has something to show, so the guard has to consider
      * both rows rather than the top one alone.
      */
-    public function test_proof_band_renders_for_a_bottom_row_only_testimonial(): void
+    public function test_compact_home_does_not_add_a_bottom_row_testimonial_tour(): void
     {
         Testimonial::create([
             'quote'        => 'The second row counts too.',
@@ -115,7 +115,7 @@ class HomepageProofSectionVisibilityTest extends TestCase
 
         $this->get('/home/sections')
             ->assertOk()
-            ->assertSee('id="proof"', false)
-            ->assertSee('Bottom B.');
+            ->assertDontSee('id="proof"', false)
+            ->assertDontSee('Bottom B.');
     }
 }
