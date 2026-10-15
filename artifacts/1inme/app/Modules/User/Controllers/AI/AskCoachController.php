@@ -146,7 +146,16 @@ class AskCoachController extends Controller
             ])->all()
             : [];
 
+        $guidanceQuery = \App\Modules\Common\Models\SiteAssistantConversation::where('bound_user_id', $user->id)->where('turns_count','>',0);
+        if ($search !== '') {
+            $guidanceQuery->where(function ($q) use ($like) {
+                $q->where('last_page_title','like',$like)->orWhereHas('messages',fn($m)=>$m->whereIn('role',['user','assistant'])->where('content','like',$like));
+            });
+        }
+        $guidanceSessions=$guidanceQuery->with(['messages'=>fn($q)=>$q->where('role','user')->oldest('id')->limit(1)])->latest('last_message_at')->limit(20)->get();
+
         return view('user.ai.ask-coach', [
+            'guidanceSessions' => $guidanceSessions,
             'balance'  => $this->credits->getBalance($user),
             'threads'  => $threads,
             'active'   => $active,

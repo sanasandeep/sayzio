@@ -178,7 +178,7 @@ class VoiceAssistantController extends Controller
     {
         $user = $request->user();
         $isAdmin = $this->isAdmin($user);
-        $tools = $this->tools->visibleTo($user, $isAdmin);
+        $tools = $this->tools->visibleTo($user, false); // User help never lists administration tools.
 
         // Group by category for the help panel.
         $grouped = [];
@@ -214,14 +214,15 @@ class VoiceAssistantController extends Controller
                 'tts_coins_per_1k_chars'  => AiEngineSettings::voiceTtsCoinsPer1kChars(),
             ],
             'tools'        => $grouped,
-            'limitations'  => [
-                'No phone calls or outbound dialing — voice only runs inside the web app.',
-                'Wake word listening only works on the mobile app while it\'s open in the foreground — the web app still requires you to press the mic.',
-                'Cannot edit invoices, tax info, or other legal/billing documents.',
-                'No raw SQL or database access — only the allow-listed tools above.',
-                'Cannot deploy code, change infrastructure, or reset other users\' passwords.',
-                'Does not run scheduled actions — it acts only when you speak.',
-                'Languages limited to those supported by the configured Whisper and ElevenLabs models.',
+            'limitations' => [
+                'I only use pages and data your account is allowed to access.',
+                'I can guide supported controls and prepare drafts. A prepared draft is not a saved change.',
+                'I ask for confirmation before supported destructive actions. Review native forms before saving or sending.',
+                'I cannot complete actions that have no supported tool or page control, or promise a change without a successful result.',
+                'I do not make phone calls or work in the background after this conversation.',
+                'Voice needs microphone permission and a supported browser; text chat is also available.',
+                'I cannot access passwords, authentication codes or private data belonging to other accounts.',
+                'Answers can be incomplete. Check important details against your records; AI usage may spend coins.',
             ],
         ]);
     }

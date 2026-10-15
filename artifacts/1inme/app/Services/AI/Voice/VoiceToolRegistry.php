@@ -405,11 +405,31 @@ class VoiceToolRegistry
     /** Tools the given user is permitted to call, with handlers stripped. */
     public function visibleTo(User $user, bool $isAdmin, bool $isMobile = false): array
     {
+        $help = [
+            'open_biolink'=>'Open one of your Link in Bio pages for viewing or editing.',
+            'navigate'=>'Open an available Sayzio page.',
+            'get_credit_balance'=>'Check your available AI coins.',
+            'get_clicks_today'=>"Check today's link clicks.",
+            'count_unread_inbox'=>'Check how many unread messages you have.',
+            'summarize_recent_activity'=>'Summarize recent activity on your account.',
+            'create_biolink'=>'Start a Link in Bio draft in the creation wizard.',
+            'delete_biolink'=>'Delete a Link in Bio page you own, after confirmation.',
+            'send_digest'=>'Request an account activity digest.',
+            'search_app'=>'Search available Sayzio pages and features.',
+            'explain_link_type'=>'Explain a supported link or page type.',
+            'choose_link_type'=>'Choose a link type in the setup wizard.',
+            'wizard_advance'=>'Move to the next setup step after required details are filled.',
+            'wizard_generate'=>'Generate a page from your reviewed setup details.',
+            'open_ai_studio'=>'Open an AI creation tool with a prepared prompt.',
+            'get_billing_summary'=>'View an account billing summary.',
+            'switch_plan'=>'Open plan options for you to review.',
+            'switch_workspace'=>'Switch to a workspace you can access.',
+        ];
         $out = [];
         foreach ($this->tools() as $name => $spec) {
             if (!$this->userMay($user, $spec, $isAdmin, $isMobile)) continue;
             $out[$name] = [
-                'description' => $spec['ui_description'] ?? $spec['description'],
+                'description' => $help[$name] ?? $spec['ui_description'] ?? $spec['description'],
                 'category'    => $spec['category'],
                 'destructive' => (bool) $spec['destructive'],
                 'role'        => $spec['role'],

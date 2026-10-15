@@ -1254,12 +1254,15 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     if(!capsBodyEl) return;
     capsBodyEl.innerHTML='';
     caps=caps||{};
+    capsBodyEl.appendChild(el('p',{class:'sa-vcaps-desc'},'Ask Zio helps you find Sayzio pages, understand available options and prepare supported changes. Available actions depend on your access and the current page.'));
     var tools=caps.tools||{};
     Object.keys(tools).forEach(function(group){
+      if(group==='admin') return;
       var sec=el('div');
       sec.appendChild(el('div',{class:'sa-vcaps-h'}, String(group).replace(/_/g,' ')));
       var list=el('div',{class:'sa-vcaps-list'});
       (tools[group]||[]).forEach(function(t){
+        if(t.role==='admin') return;
         var item=el('div',{class:'sa-vcaps-item'});
         var nm=el('div',{class:'sa-vcaps-name'}, friendlyActionName(t.name));
         if(t.destructive){ nm.appendChild(el('span',{style:{marginLeft:'6px',color:'#fbbf24',fontSize:'10px',fontWeight:'400'}},'⚠ confirms')); }

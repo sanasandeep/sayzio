@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Common\Models\SiteAssistantConversation;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiEngineSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -37,5 +38,24 @@ class AskZioPageTest extends TestCase
         $this->withoutExceptionHandling();
         $this->actingAs($user)->get('/user/ai/ask-coach')->assertOk()->assertDontSee('Page guidance history');
         $this->get('/user/ai/staff')->assertOk()->assertDontSee('Reports &amp; activity');
+    }
+
+    public function test_guidance_chats_appear_in_business_insights_list_and_search_is_owned(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        AiEngineSettings::setAskCoachEnabledPlans([]);
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        foreach ([[$user, 'My launch question'], [$other, 'Private launch question']] as [$owner,$text]) {
+            $session = SiteAssistantConversation::create(['bound_user_id' => $owner->id, 'visitor_token' => bin2hex(random_bytes(32)), 'turns_count' => 1, 'last_message_at' => now()]);
+            $session->messages()->create(['role' => 'user', 'content' => $text]);
+        }
+        $this->actingAs($user)->get('/user/ai/ask-coach?q=launch')->assertOk()->assertSee('My launch question')->assertDontSee('Private launch question');
+    }
+
+    public function test_user_capabilities_exclude_administration_and_show_current_limits(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->getJson('/user/ai/voice/capabilities')->assertOk()->assertJsonMissingPath('tools.admin')->assertJsonFragment(['I can guide supported controls and prepare drafts. A prepared draft is not a saved change.']);
     }
 }
