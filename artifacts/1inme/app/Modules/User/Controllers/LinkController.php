@@ -796,7 +796,7 @@ class LinkController extends Controller
         $projects = workspace_owner()->projects()->orderBy('name')->get();
         $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
-        $kits = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())
+        $kits = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())->whereNull('config->archived_at')
             ->orderByDesc('is_default')
             ->orderByDesc('id')
             ->get(['id', 'name', 'is_default']);
@@ -989,6 +989,11 @@ class LinkController extends Controller
     public function store(Request $request)
     {
         $userId = workspace_owner_id();
+        $selectedBrandKit = null;
+        if ($request->filled('brand_kit_id')) {
+            $selectedBrandKit = \App\Modules\User\Models\BrandKit::where('user_id', $userId)->findOrFail($request->integer('brand_kit_id'));
+            abort_if(!empty($selectedBrandKit->config['archived_at']), 422, 'Restore the archived kit before assigning it.');
+        }
 
         $validated = $request->validate([
             'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,salon_spa,contact_directory,real_estate,education,community_club,nonprofit_campaign,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
@@ -1187,11 +1192,11 @@ class LinkController extends Controller
             $kit = null;
             $requestedKitId = $request->integer('brand_kit_id');
             if ($requestedKitId) {
-                $kit = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())
+                $kit = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())->whereNull('config->archived_at')
                     ->find($requestedKitId);
             }
             if (!$kit) {
-                $kit = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())
+                $kit = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())->whereNull('config->archived_at')
                     ->orderByDesc('is_default')
                     ->orderByDesc('id')
                     ->first();
@@ -1232,6 +1237,10 @@ class LinkController extends Controller
             $link->calendar_id = \App\Modules\User\Models\Calendar::where('link_id', $link->id)->value('id');
             $link->visibility = 'public';
             $link->save();
+        }
+
+        if ($selectedBrandKit && $link->isBiolinkFamily()) {
+            app(\App\Services\Brand\BrandKitAssignments::class)->assign($selectedBrandKit, $link);
         }
 
         if (!empty($pixelIds)) {

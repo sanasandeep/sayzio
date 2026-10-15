@@ -174,7 +174,7 @@ class BrandKitController extends Controller
         if (!$kit) {
             return $this->notFound('Brand kit not found.');
         }
-        $kit->delete();
+        app(\App\Services\Brand\BrandKitAssignments::class)->deleteKit($kit);
         return $this->ok(['ok' => true]);
     }
 

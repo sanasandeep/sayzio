@@ -5,10 +5,26 @@ namespace App\Services\Brand;
 use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\QrCode;
+use Illuminate\Support\Facades\DB;
 
 class BrandKitAssignments
 {
     public const LINK_FIELDS = ['font_family', 'font_color', 'button_color', 'block_theme'];
+
+    public function deleteKit(BrandKit $kit): void
+    {
+        DB::transaction(function () use ($kit) {
+            foreach ($this->links($kit) as $link) {
+                $this->detach($link);
+            }
+            foreach ($this->qrCodes($kit) as $qr) {
+                $design = $qr->design ?? [];
+                unset($design['brand_identity']);
+                $qr->update(['design' => $design]);
+            }
+            $kit->delete();
+        });
+    }
 
     public function revision(BrandKit $kit): string
     {

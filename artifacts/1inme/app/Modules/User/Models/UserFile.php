@@ -66,6 +66,7 @@ class UserFile extends Model
         'video' => ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'],
         'audio' => ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'audio/aac', 'audio/mp4'],
         'document' => [
+            'font/ttf', 'font/otf', 'font/woff', 'font/woff2', 'application/x-font-ttf', 'application/x-font-opentype', 'application/font-woff',
             'application/pdf',
             'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
             'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -77,7 +78,7 @@ class UserFile extends Model
         'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
         'video' => ['mp4', 'webm', 'ogg', 'mov'],
         'audio' => ['mp3', 'wav', 'ogg', 'webm', 'aac', 'm4a'],
-        'document' => ['pdf', 'ppt', 'pptx', 'xls', 'xlsx', 'doc', 'docx'],
+        'document' => ['ttf', 'otf', 'woff', 'woff2', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx', 'doc', 'docx'],
     ];
 
     public function user()

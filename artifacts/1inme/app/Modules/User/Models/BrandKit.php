@@ -151,6 +151,11 @@ class BrandKit extends Model
             $value=trim((string)($this->config[$key]??''));if($value!=='')$lines[]=$label.': '.mb_substr($value,0,2000);
         }
 
+        foreach (['mission','values','positioning','personality','key_messages','dos','donts','terminology','campaign_messages','campaign_claims','campaign_disclaimers','campaign_restrictions'] as $key) {
+            $value=trim((string)($this->config[$key]??''));
+            if ($value !== '') $lines[]=str_replace('_',' ',ucfirst($key)).': '.mb_substr($value,0,500);
+        }
+
         if ($includeColors) {
             $palette = $this->palette();
             $colors  = array_values(array_filter([

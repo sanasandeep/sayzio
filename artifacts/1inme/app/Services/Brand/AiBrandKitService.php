@@ -47,10 +47,12 @@ class AiBrandKitService
      * The selectable output components. `palette` is always generated (a
      * kit can't exist without colors) — the UI shows it locked-on.
      */
-    public const COMPONENTS = ['palette', 'fonts', 'voice', 'taglines', 'bio', 'block_theme'];
+    public const COMPONENTS = ['palette', 'fonts', 'voice', 'taglines', 'bio', 'block_theme', 'identity', 'guidelines', 'campaigns', 'templates'];
 
-    private const MAX_PROMPT_LEN    = 20000;
-    private const MAX_URL_LEN       = 2048;
+    private const MAX_PROMPT_LEN = 20000;
+
+    private const MAX_URL_LEN = 2048;
+
     private const MAX_OUTPUT_TOKENS = 1200;
 
     public function __construct(
@@ -75,27 +77,28 @@ class AiBrandKitService
      * Normalize a requested component list: keep only known keys, always
      * include `palette`, and treat an empty selection as "everything".
      *
-     * @param  list<string> $components
+     * @param  list<string>  $components
      * @return list<string>
      */
     public function normalizeComponents(array $components): array
     {
         $components = array_values(array_intersect(self::COMPONENTS, array_map('strval', $components)));
-        if (!$components) {
+        if (! $components) {
             return self::COMPONENTS;
         }
-        if (!in_array('palette', $components, true)) {
+        if (! in_array('palette', $components, true)) {
             array_unshift($components, 'palette');
         }
+
         return $components;
     }
 
     public function buildMessages(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = '', array $components = []): array
     {
         $components = $this->normalizeComponents($components);
-        $prompt     = trim($prompt);
+        $prompt = trim($prompt);
         $websiteUrl = trim((string) $websiteUrl);
-        $logoUrl    = trim((string) $logoUrl);
+        $logoUrl = trim((string) $logoUrl);
 
         if ($prompt === '' && $websiteUrl === '' && $logoUrl === '') {
             throw new RuntimeException('Describe your brand, or add a website or logo to start.');
@@ -104,20 +107,21 @@ class AiBrandKitService
             $prompt = mb_substr($prompt, 0, self::MAX_PROMPT_LEN);
         }
         $websiteUrl = mb_substr($websiteUrl, 0, self::MAX_URL_LEN);
-        $logoUrl    = mb_substr($logoUrl, 0, self::MAX_URL_LEN);
+        $logoUrl = mb_substr($logoUrl, 0, self::MAX_URL_LEN);
 
         $themes = implode(', ', $this->allowedBlockThemes());
 
-        $want = fn(string $c) => in_array($c, $components, true);
+        $want = fn (string $c) => in_array($c, $components, true);
 
         $fields = [];
-        $fields[] = "  \"name\": string,                       // short, memorable brand kit name";
+        $fields[] = '  "review_notes": string, // Only when the brief explicitly requests a brand review: concise findings, reasons for improvements and unknown facts needing verification. Otherwise empty. Do not claim to inspect remote websites or images.';
+        $fields[] = '  "name": string,                       // short, memorable brand kit name';
         $fields[] = "  \"palette\": {\n"
-            . "    \"primary\": string(hex),\n"
-            . "    \"secondary\": string(hex),\n"
-            . "    \"accent\": string(hex),\n"
-            . "    \"neutrals\": [string(hex), ...]       // 2-4 neutral hex colors, light to dark\n"
-            . "  },";
+            ."    \"primary\": string(hex),\n"
+            ."    \"secondary\": string(hex),\n"
+            ."    \"accent\": string(hex),\n"
+            ."    \"neutrals\": [string(hex), ...]       // 2-4 neutral hex colors, light to dark\n"
+            .'  },';
         if ($want('bio')) {
             $fields[] = '  "description": string, // short factual description from the brief';
             $fields[] = '  "audience": string, // stated audience only; empty if unknown';
@@ -127,34 +131,43 @@ class AiBrandKitService
             $fields[] = '  "exclusions": string, // restrictions explicitly supplied, otherwise empty';
         }
         if ($want('fonts')) {
-            $fields[] = "  \"fonts\": { \"heading\": string, \"body\": string },  // real Google Font family names";
+            $fields[] = '  "fonts": { "heading": string, "body": string },  // real Google Font family names';
         }
         if ($want('voice')) {
-            $fields[] = "  \"voice\": { \"tone\": string, \"descriptors\": [string, ...] },";
+            $fields[] = '  "voice": { "tone": string, "descriptors": [string, ...] },';
         }
         if ($want('taglines')) {
-            $fields[] = "  \"taglines\": [string, ...],             // 3-5 short, distinct taglines";
+            $fields[] = '  "taglines": [string, ...],             // 3-5 short, distinct taglines';
         }
         if ($want('bio')) {
-            $fields[] = "  \"bio\": string,                         // 1-2 sentence about/bio copy";
+            $fields[] = '  "bio": string,                         // 1-2 sentence about/bio copy';
         }
         if ($want('block_theme')) {
             $fields[] = "  \"block_theme\": string                  // one of: {$themes}";
         }
 
-        $rules = ["- Every color MUST be a 6-digit hex like #1A2B3C."];
+        foreach (['identity', 'guidelines', 'campaigns', 'templates'] as $group) {
+            if (! $want($group)) {
+                continue;
+            }
+            foreach (BrandKitFields::GROUPS[$group] as $key => $label) {
+                $fields[] = '  "'.$key.'": string, // '.$label;
+            }
+        }
+
+        $rules = ['- Every color MUST be a 6-digit hex like #1A2B3C.'];
         if ($want('fonts')) {
-            $rules[] = "- fonts.heading and fonts.body MUST be real Google Font family names that pair well.";
+            $rules[] = '- fonts.heading and fonts.body MUST be real Google Font family names that pair well.';
         }
         if ($want('block_theme')) {
-            $rules[] = "- block_theme MUST be EXACTLY one of the listed keys.";
+            $rules[] = '- block_theme MUST be EXACTLY one of the listed keys.';
         }
-        $rules[] = "- Put real, specific copy in every text field — no Lorem Ipsum, no \"placeholder\".";
-        $rules[] = "- Use empty strings/arrays rather than null. Never invent business facts, credentials, statistics, policies or guarantees. Keep unknown facts empty.";
+        $rules[] = '- Put real, specific copy in every text field — no Lorem Ipsum, no "placeholder".';
+        $rules[] = '- Use empty strings/arrays rather than null. Never invent business facts, credentials, statistics, policies or guarantees. Keep unknown facts empty.';
 
         $schema = "Return STRICT JSON (no markdown, no commentary, no extra keys) with this exact shape:\n"
-            . "{\n" . implode("\n", $fields) . "\n}\n"
-            . "Rules:\n" . implode("\n", $rules);
+            ."{\n".implode("\n", $fields)."\n}\n"
+            ."Rules:\n".implode("\n", $rules);
 
         $deliverables = ['a color palette'];
         if ($want('fonts')) {
@@ -174,26 +187,26 @@ class AiBrandKitService
         }
 
         $system = "You are a senior brand designer for the Sayzio platform. From the user's brief "
-            . "you craft a cohesive, modern brand identity: " . implode(', ', $deliverables)
-            . ". Be tasteful and concrete.\n\n" . $schema;
+            .'you craft a cohesive, modern brand identity: '.implode(', ', $deliverables)
+            .". Be tasteful and concrete.\n\n".$schema;
 
         $kbContext = trim($kbContext);
         if ($kbContext !== '') {
             $system .= "\n\nGround the brand identity in the Knowledge Base context below — reuse its "
-                . "terminology, products, audience and any stated brand preferences. Do not invent "
-                . "facts that contradict the context.\n\n"
-                . "Knowledge Base context:\n" . $kbContext;
+                .'terminology, products, audience and any stated brand preferences. Do not invent '
+                ."facts that contradict the context.\n\n"
+                ."Knowledge Base context:\n".$kbContext;
         }
 
         $parts = [];
         if ($prompt !== '') {
-            $parts[] = "BRAND BRIEF:\n" . $prompt;
+            $parts[] = "BRAND BRIEF:\n".$prompt;
         }
         if ($websiteUrl !== '') {
-            $parts[] = "BRAND WEBSITE (infer the palette, naming, and voice from the brand and domain):\n" . $websiteUrl;
+            $parts[] = "BRAND WEBSITE (infer the palette, naming, and voice from the brand and domain):\n".$websiteUrl;
         }
         if ($logoUrl !== '') {
-            $parts[] = "BRAND LOGO URL (infer the palette from the logo's likely colors):\n" . $logoUrl;
+            $parts[] = "BRAND LOGO URL (infer the palette from the logo's likely colors):\n".$logoUrl;
         }
 
         return [
@@ -202,12 +215,18 @@ class AiBrandKitService
         ];
     }
 
+    private function outputTokens(array $components): int
+    {
+        return self::MAX_OUTPUT_TOKENS + 900 * count(array_intersect(['identity', 'guidelines', 'campaigns', 'templates'], $this->normalizeComponents($components)));
+    }
+
     /** Worst-case credit cost shown before the user clicks Generate. */
     public function estimateCredits(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = '', array $components = []): int
     {
-        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
+        $model = AiEngineSettings::featureModel(self::FEATURE, $user);
         $messages = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl, $kbContext, $components);
-        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
+
+        return $this->openai->estimateChatCoins($model, $messages, $this->outputTokens($components), $user);
     }
 
     /**
@@ -221,19 +240,19 @@ class AiBrandKitService
     public function generate(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = '', array $components = [], bool $persist = true): array
     {
         $components = $this->normalizeComponents($components);
-        $messages   = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl, $kbContext, $components);
-        $model    = AiEngineSettings::featureModel(self::FEATURE, $user);
+        $messages = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl, $kbContext, $components);
+        $model = AiEngineSettings::featureModel(self::FEATURE, $user);
 
         $result = $this->openai->chat($user, $model, $messages, [
-            'temperature'     => 0.5,
-            'max_tokens'      => self::MAX_OUTPUT_TOKENS,
+            'temperature' => 0.5,
+            'max_tokens' => $this->outputTokens($components),
             'response_format' => ['type' => 'json_object'],
-            'feature'         => self::FEATURE,
-            'reason'          => 'AI Brand Kit generation',
-            'meta'            => [
+            'feature' => self::FEATURE,
+            'reason' => 'AI Brand Kit generation',
+            'meta' => [
                 'prompt_excerpt' => mb_substr(trim($prompt), 0, 160),
-                'has_website'    => trim((string) $websiteUrl) !== '' ? 1 : 0,
-                'has_logo'       => trim((string) $logoUrl) !== '' ? 1 : 0,
+                'has_website' => trim((string) $websiteUrl) !== '' ? 1 : 0,
+                'has_logo' => trim((string) $logoUrl) !== '' ? 1 : 0,
             ],
         ]);
 
@@ -244,7 +263,7 @@ class AiBrandKitService
 
         try {
             $parsed = json_decode((string) $result['content'], true);
-            if (!is_array($parsed)) {
+            if (! is_array($parsed)) {
                 throw new RuntimeException('The assistant returned an unexpected response. Please try again.');
             }
             $config = $this->normalizeConfig($parsed, $prompt, $websiteUrl, $logoUrl, $components);
@@ -255,27 +274,29 @@ class AiBrandKitService
             }
             $name = mb_substr($name, 0, 120);
 
-            $kit = new BrandKit();
-            $kit->user_id    = $user->id;
-            $kit->name       = $name;
-            $kit->slug       = Str::slug($name) ?: 'brand-kit';
-            $kit->config     = $config;
-            $kit->is_default = !BrandKit::where('user_id', $user->id)->exists();
-            if ($persist) $kit->save();
+            $kit = new BrandKit;
+            $kit->user_id = $user->id;
+            $kit->name = $name;
+            $kit->slug = Str::slug($name) ?: 'brand-kit';
+            $kit->config = $config;
+            $kit->is_default = ! BrandKit::where('user_id', $user->id)->exists();
+            if ($persist) {
+                $kit->save();
+            }
         } catch (\Throwable $e) {
             if ($creditsSpent > 0) {
                 $this->credits->refund($user, $creditsSpent, [
                     'feature' => self::FEATURE,
-                    'reason'  => 'AI Brand Kit generation failed — auto refund',
+                    'reason' => 'AI Brand Kit generation failed — auto refund',
                 ]);
             }
             throw $e;
         }
 
         return [
-            'kit'           => $kit,
+            'kit' => $kit,
             'credits_spent' => $creditsSpent,
-            'model'         => (string) ($result['model'] ?? $model),
+            'model' => (string) ($result['model'] ?? $model),
         ];
     }
 
@@ -286,22 +307,22 @@ class AiBrandKitService
      */
     public function applyToBiolink(BrandKit $kit, Link $link): void
     {
-        abort_unless((int)$kit->workspace_id === (int)($link->workspace_id ?: $link->user?->ensureDefaultWorkspace()->id),403);
-        abort_if(!empty($kit->config['archived_at']),422,'Restore this kit first.');
+        abort_unless((int) $kit->workspace_id === (int) ($link->workspace_id ?: $link->user?->ensureDefaultWorkspace()->id), 403);
+        abort_if(! empty($kit->config['archived_at']), 422, 'Restore this kit first.');
         $palette = $kit->palette();
-        $fonts   = $kit->fonts();
-        $theme   = $kit->blockTheme();
+        $fonts = $kit->fonts();
+        $theme = $kit->blockTheme();
 
         $settings = is_array($link->settings) ? $link->settings : [];
-        $bio      = is_array($settings['biolink'] ?? null) ? $settings['biolink'] : [];
+        $bio = is_array($settings['biolink'] ?? null) ? $settings['biolink'] : [];
 
-        $bodyFont    = $this->fontName($fonts['body'] ?? null);
+        $bodyFont = $this->fontName($fonts['body'] ?? null);
         $headingFont = $this->fontName($fonts['heading'] ?? null);
         if ($bodyFont) {
             $bio['font_family'] = $bodyFont;
         }
 
-        $neutrals    = $this->paletteNeutrals($palette);
+        $neutrals = $this->paletteNeutrals($palette);
         $darkNeutral = $neutrals ? end($neutrals) : null;
         if ($darkNeutral) {
             $bio['font_color'] = $darkNeutral;
@@ -313,7 +334,7 @@ class AiBrandKitService
         }
 
         if (in_array($theme, $this->allowedBlockThemes(), true)) {
-            $tpl        = BiolinkBlock::BLOCK_TEMPLATES[$theme] ?? [];
+            $tpl = BiolinkBlock::BLOCK_TEMPLATES[$theme] ?? [];
             $blockTheme = is_array($tpl['style'] ?? null) ? $tpl['style'] : [];
             $blockTheme['_template'] = $theme;
             if ($headingFont) {
@@ -328,7 +349,7 @@ class AiBrandKitService
             $bio['block_theme'] = $blockTheme;
         }
 
-        $settings['brand_identity']=['kit_id'=>$kit->id,'mode'=>'follow','overrides'=>[],'revision'=>app(BrandKitAssignments::class)->revision($kit),'applied_at'=>now()->toIso8601String()];
+        $settings['brand_identity'] = ['kit_id' => $kit->id, 'mode' => 'follow', 'overrides' => [], 'revision' => app(BrandKitAssignments::class)->revision($kit), 'applied_at' => now()->toIso8601String()];
         $settings['biolink'] = $bio;
         $link->settings = $settings;
         $link->save();
@@ -342,17 +363,17 @@ class AiBrandKitService
      */
     public function applyToQr(BrandKit $kit, QrCode $qrCode): void
     {
-        abort_unless((int)$kit->workspace_id === (int)($qrCode->workspace_id ?: $qrCode->user?->ensureDefaultWorkspace()->id),403);
-        abort_if(!empty($kit->config['archived_at']),422,'Restore this kit first.');
+        abort_unless((int) $kit->workspace_id === (int) ($qrCode->workspace_id ?: $qrCode->user?->ensureDefaultWorkspace()->id), 403);
+        abort_if(! empty($kit->config['archived_at']), 422, 'Restore this kit first.');
         $palette = $kit->palette();
 
-        $primary   = $this->hex($palette['primary'] ?? null);
+        $primary = $this->hex($palette['primary'] ?? null);
         $secondary = $this->hex($palette['secondary'] ?? null);
-        $accent    = $this->hex($palette['accent'] ?? null);
-        $neutrals  = $this->paletteNeutrals($palette);
+        $accent = $this->hex($palette['accent'] ?? null);
+        $neutrals = $this->paletteNeutrals($palette);
 
         $light = $neutrals[0] ?? '#ffffff';
-        $dark  = $neutrals ? end($neutrals) : ($primary ?? '#000000');
+        $dark = $neutrals ? end($neutrals) : ($primary ?? '#000000');
 
         $design = is_array($qrCode->design) ? $qrCode->design : [];
         $design['fg_color'] = $dark;
@@ -365,8 +386,8 @@ class AiBrandKitService
             $design['corner_dot_color'] = $cornerDot;
         }
 
-        $design=QrCodeDesignSanitizer::sanitize($design);
-        $design['brand_identity']=['kit_id'=>$kit->id,'revision'=>app(BrandKitAssignments::class)->revision($kit)];
+        $design = QrCodeDesignSanitizer::sanitize($design);
+        $design['brand_identity'] = ['kit_id' => $kit->id, 'revision' => app(BrandKitAssignments::class)->revision($kit)];
         $qrCode->design = $design;
         $qrCode->save();
     }
@@ -382,11 +403,11 @@ class AiBrandKitService
     private function normalizeConfig(array $parsed, string $prompt, ?string $websiteUrl, ?string $logoUrl, array $components = []): array
     {
         $components = $this->normalizeComponents($components);
-        $want       = fn(string $c) => in_array($c, $components, true);
-        $palette   = is_array($parsed['palette'] ?? null) ? $parsed['palette'] : [];
-        $primary   = $this->hex($palette['primary'] ?? null);
+        $want = fn (string $c) => in_array($c, $components, true);
+        $palette = is_array($parsed['palette'] ?? null) ? $parsed['palette'] : [];
+        $primary = $this->hex($palette['primary'] ?? null);
         $secondary = $this->hex($palette['secondary'] ?? null);
-        $accent    = $this->hex($palette['accent'] ?? null);
+        $accent = $this->hex($palette['accent'] ?? null);
 
         if ($primary === null) {
             throw new RuntimeException('The assistant could not produce a valid color palette. Add more detail and try again.');
@@ -402,23 +423,23 @@ class AiBrandKitService
                 break;
             }
         }
-        if (!$neutrals) {
+        if (! $neutrals) {
             $neutrals = ['#ffffff', '#111111'];
         }
 
         $heading = null;
-        $body    = null;
+        $body = null;
         if ($want('fonts')) {
-            $fonts   = is_array($parsed['fonts'] ?? null) ? $parsed['fonts'] : [];
+            $fonts = is_array($parsed['fonts'] ?? null) ? $parsed['fonts'] : [];
             $heading = $this->fontName($fonts['heading'] ?? null) ?: 'Inter';
-            $body    = $this->fontName($fonts['body'] ?? null) ?: 'Inter';
+            $body = $this->fontName($fonts['body'] ?? null) ?: 'Inter';
         }
 
-        $tone        = '';
+        $tone = '';
         $descriptors = [];
         if ($want('voice')) {
             $voiceRaw = is_array($parsed['voice'] ?? null) ? $parsed['voice'] : [];
-            $tone     = mb_substr(trim((string) ($voiceRaw['tone'] ?? '')), 0, 200);
+            $tone = mb_substr(trim((string) ($voiceRaw['tone'] ?? '')), 0, 200);
             foreach ((array) ($voiceRaw['descriptors'] ?? []) as $d) {
                 $d = trim((string) $d);
                 if ($d !== '') {
@@ -448,14 +469,14 @@ class AiBrandKitService
         $theme = '';
         if ($want('block_theme')) {
             $theme = (string) ($parsed['block_theme'] ?? '');
-            if (!in_array($theme, $this->allowedBlockThemes(), true)) {
+            if (! in_array($theme, $this->allowedBlockThemes(), true)) {
                 $theme = 'minimal';
             }
         }
 
-        $prompt     = trim($prompt);
+        $prompt = trim($prompt);
         $websiteUrl = trim((string) $websiteUrl);
-        $logoUrl    = trim((string) $logoUrl);
+        $logoUrl = trim((string) $logoUrl);
         if ($websiteUrl !== '') {
             $source = ['type' => 'website', 'value' => mb_substr($websiteUrl, 0, self::MAX_URL_LEN)];
         } elseif ($logoUrl !== '') {
@@ -464,24 +485,35 @@ class AiBrandKitService
             $source = ['type' => 'prompt', 'value' => mb_substr($prompt, 0, self::MAX_PROMPT_LEN)];
         }
 
-        return [
-            'description' => $want('bio') ? mb_substr(trim((string)($parsed['description']??'')),0,2000) : '',
-            'audience' => $want('bio') ? mb_substr(trim((string)($parsed['audience']??'')),0,1000) : '',
-            'instructions' => $want('voice') ? mb_substr(trim((string)($parsed['instructions']??'')),0,4000) : '',
-            'exclusions' => $want('voice') ? mb_substr(trim((string)($parsed['exclusions']??'')),0,2000) : '',
+        $extended = [];
+        foreach (['identity', 'guidelines', 'campaigns', 'templates'] as $group) {
+            if (! $want($group)) {
+                continue;
+            }
+            foreach (BrandKitFields::GROUPS[$group] as $key => $label) {
+                $extended[$key] = mb_substr(is_string($parsed[$key] ?? null) ? trim($parsed[$key]) : '', 0, 4000);
+            }
+        }
+
+        return array_merge($extended, [
+            'review_notes' => mb_substr(is_string($parsed['review_notes'] ?? null) ? trim($parsed['review_notes']) : '', 0, 4000),
+            'description' => $want('bio') ? mb_substr(trim((string) ($parsed['description'] ?? '')), 0, 2000) : '',
+            'audience' => $want('bio') ? mb_substr(trim((string) ($parsed['audience'] ?? '')), 0, 1000) : '',
+            'instructions' => $want('voice') ? mb_substr(trim((string) ($parsed['instructions'] ?? '')), 0, 4000) : '',
+            'exclusions' => $want('voice') ? mb_substr(trim((string) ($parsed['exclusions'] ?? '')), 0, 2000) : '',
             'palette' => [
-                'primary'   => $primary,
+                'primary' => $primary,
                 'secondary' => $secondary ?? $primary,
-                'accent'    => $accent ?? ($secondary ?? $primary),
-                'neutrals'  => $neutrals,
+                'accent' => $accent ?? ($secondary ?? $primary),
+                'neutrals' => $neutrals,
             ],
-            'fonts'       => ['heading' => $heading, 'body' => $body],
-            'voice'       => ['tone' => $tone, 'descriptors' => $descriptors],
-            'taglines'    => $taglines,
-            'bio'         => $bio,
+            'fonts' => ['heading' => $heading, 'body' => $body],
+            'voice' => ['tone' => $tone, 'descriptors' => $descriptors],
+            'taglines' => $taglines,
+            'bio' => $bio,
             'block_theme' => $theme,
-            'source'      => $source,
-        ];
+            'source' => $source,
+        ]);
     }
 
     /** @return list<string> validated neutral hex colors from a palette array */
@@ -494,29 +526,32 @@ class AiBrandKitService
                 $out[] = $h;
             }
         }
+
         return $out;
     }
 
     /** Normalize a 6-digit hex (with or without leading #) to lowercase #rrggbb, or null. */
     private function hex($v): ?string
     {
-        if (!is_string($v)) {
+        if (! is_string($v)) {
             return null;
         }
         $v = trim($v);
         if (preg_match('/^#?[0-9a-fA-F]{6}$/', $v)) {
-            return '#' . strtolower(ltrim($v, '#'));
+            return '#'.strtolower(ltrim($v, '#'));
         }
+
         return null;
     }
 
     /** Sanitize a Google Font family name (letters, digits, space, _ and -). */
     private function fontName($v): ?string
     {
-        if (!is_string($v)) {
+        if (! is_string($v)) {
             return null;
         }
         $safe = trim((string) preg_replace('/[^a-zA-Z0-9 _\-]/', '', trim($v)));
+
         return $safe !== '' ? mb_substr($safe, 0, 80) : null;
     }
 }

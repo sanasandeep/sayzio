@@ -2,6 +2,7 @@
 
 namespace App\Services\Brand;
 
+use App\Modules\User\Models\BillingCompany;
 use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\BrandKitAsset;
 use App\Modules\User\Models\Link;
@@ -50,23 +51,30 @@ class BrandKitAssetService
      * @var array<string,array{label:string,size:string,weight:float,hint:string}>
      */
     public const TYPES = [
-        'logo'          => ['label' => 'Logo',            'size' => '1024x1024', 'weight' => 1.5, 'hint' => 'A clean primary logo mark on a plain background.'],
-        'favicon'       => ['label' => 'Favicon',         'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A simple, bold icon that stays readable at 32px.'],
-        'letterhead'    => ['label' => 'Letterhead',      'size' => '1024x1536', 'weight' => 1.5, 'hint' => 'An elegant A4 portrait letterhead background with header/footer accents and lots of clear space.'],
+        'logo_secondary' => ['label' => 'Secondary logo', 'size' => '1536x1024', 'weight' => 1.5, 'hint' => 'A compact secondary brand lockup, consistent with the primary identity.'],
+        'logo_light' => ['label' => 'Light logo', 'size' => '1024x1024', 'weight' => 1.5, 'hint' => 'A light-colored brand mark for use on dark backgrounds.'],
+        'logo_dark' => ['label' => 'Dark logo', 'size' => '1024x1024', 'weight' => 1.5, 'hint' => 'A dark-colored brand mark for use on light backgrounds.'],
+        'logo_monochrome' => ['label' => 'Monochrome logo', 'size' => '1024x1024', 'weight' => 1.5, 'hint' => 'A single-ink monochrome brand mark with no gradient.'],
+        'brand_icon' => ['label' => 'Brand icon', 'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A simple recognizable icon mark that works at small sizes.'],
+        'pattern' => ['label' => 'Brand pattern', 'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A subtle repeating visual pattern consistent with the brand identity.'],
+        'social_post' => ['label' => 'Social post', 'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A clean branded social post layout using the approved messaging; do not invent statistics or claims.'],
+        'logo' => ['label' => 'Logo',            'size' => '1024x1024', 'weight' => 1.5, 'hint' => 'A clean primary logo mark on a plain background.'],
+        'favicon' => ['label' => 'Favicon',         'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A simple, bold icon that stays readable at 32px.'],
+        'letterhead' => ['label' => 'Letterhead',      'size' => '1024x1536', 'weight' => 1.5, 'hint' => 'An elegant A4 portrait letterhead background with header/footer accents and lots of clear space.'],
         'social_banner' => ['label' => 'Social banner',   'size' => '1536x1024', 'weight' => 1.5, 'hint' => 'A wide social profile cover banner.'],
-        'avatar'        => ['label' => 'Profile avatar',  'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A circular-crop-friendly brand avatar.'],
-        'og_image'      => ['label' => 'OG share image',  'size' => '1536x1024', 'weight' => 1.5, 'hint' => 'A link-preview share card with strong branding.'],
+        'avatar' => ['label' => 'Profile avatar',  'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A circular-crop-friendly brand avatar.'],
+        'og_image' => ['label' => 'OG share image',  'size' => '1536x1024', 'weight' => 1.5, 'hint' => 'A link-preview share card with strong branding.'],
         'business_card' => ['label' => 'Business card',   'size' => '1536x1024', 'weight' => 1.5, 'hint' => 'A modern business-card front design.'],
-        'email_banner'  => ['label' => 'Email banner',    'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A slim, wide email header banner.'],
-        'background'    => ['label' => 'Background',      'size' => '1024x1536', 'weight' => 1.0, 'hint' => 'A subtle on-brand page/phone background texture.'],
-        'watermark'     => ['label' => 'Watermark',       'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A minimal monochrome watermark mark on a plain background.'],
-        'tagline_card'  => ['label' => 'Tagline card',    'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A bold typographic card built around the brand tagline — large, legible headline treatment.'],
-        'mission_card'  => ['label' => 'Mission card',    'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'An inspiring "Our mission" statement card with clear headline space for the mission text.'],
-        'vision_card'   => ['label' => 'Vision card',     'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A forward-looking "Our vision" statement card with clear headline space for the vision text.'],
-        'stats_card'    => ['label' => 'Stats card',      'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A clean infographic-style card with placeholder stat blocks (big numbers + short labels) for key metrics.'],
-        'ppt_cover'     => ['label' => 'Deck cover slide','size' => '1536x1024', 'weight' => 1.5, 'hint' => 'A 16:9 presentation title-slide design with a strong hero area and space for a deck title.'],
-        'ppt_slide'     => ['label' => 'Deck slide background', 'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A quiet 16:9 presentation content-slide background with generous clear space for text.'],
-        'ppt_closing'   => ['label' => 'Deck closing slide', 'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A 16:9 "thank you / contact" closing-slide design with space for contact details.'],
+        'email_banner' => ['label' => 'Email banner',    'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A slim, wide email header banner.'],
+        'background' => ['label' => 'Background',      'size' => '1024x1536', 'weight' => 1.0, 'hint' => 'A subtle on-brand page/phone background texture.'],
+        'watermark' => ['label' => 'Watermark',       'size' => '1024x1024', 'weight' => 1.0, 'hint' => 'A minimal monochrome watermark mark on a plain background.'],
+        'tagline_card' => ['label' => 'Tagline card',    'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A bold typographic card built around the brand tagline — large, legible headline treatment.'],
+        'mission_card' => ['label' => 'Mission card',    'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'An inspiring "Our mission" statement card with clear headline space for the mission text.'],
+        'vision_card' => ['label' => 'Vision card',     'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A forward-looking "Our vision" statement card with clear headline space for the vision text.'],
+        'stats_card' => ['label' => 'Stats card',      'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A clean infographic-style card with placeholder stat blocks (big numbers + short labels) for key metrics.'],
+        'ppt_cover' => ['label' => 'Deck cover slide', 'size' => '1536x1024', 'weight' => 1.5, 'hint' => 'A 16:9 presentation title-slide design with a strong hero area and space for a deck title.'],
+        'ppt_slide' => ['label' => 'Deck slide background', 'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A quiet 16:9 presentation content-slide background with generous clear space for text.'],
+        'ppt_closing' => ['label' => 'Deck closing slide', 'size' => '1536x1024', 'weight' => 1.0, 'hint' => 'A 16:9 "thank you / contact" closing-slide design with space for contact details.'],
     ];
 
     /** Regeneration modes for an asset that already exists. */
@@ -86,9 +94,10 @@ class BrandKitAssetService
     /** Effective coin cost for one generation of $type for $user. */
     public function coinCost(User $user, string $type): int
     {
-        $base   = AiEngineSettings::brandAssetCoinsPerGeneration();
+        $base = AiEngineSettings::brandAssetCoinsPerGeneration();
         $weight = (float) (self::TYPES[$type]['weight'] ?? 1.0);
-        $mult   = AiPlanAccess::coinMultiplier($user, 'openai');
+        $mult = AiPlanAccess::coinMultiplier($user, 'openai');
+
         return max(1, (int) ceil($base * $weight * $mult));
     }
 
@@ -108,15 +117,16 @@ class BrandKitAssetService
         foreach (self::TYPES as $type => $meta) {
             $asset = $assets->get($type);
             $out[] = [
-                'type'          => $type,
-                'label'         => $meta['label'],
-                'hint'          => $meta['hint'],
-                'size'          => $meta['size'],
-                'cost'          => $this->coinCost($user, $type),
+                'type' => $type,
+                'label' => $meta['label'],
+                'hint' => $meta['hint'],
+                'size' => $meta['size'],
+                'cost' => $this->coinCost($user, $type),
                 'apply_targets' => self::applyTargetsFor($type),
-                'asset'         => $asset ? $this->present($asset) : null,
+                'asset' => $asset ? $this->present($asset) : null,
             ];
         }
+
         return $out;
     }
 
@@ -129,10 +139,10 @@ class BrandKitAssetService
     {
         return match ($type) {
             'logo', 'avatar', 'watermark' => ['kit_logo'],
-            'favicon'                     => ['kit_logo', 'biolink_favicon'],
-            'og_image', 'social_banner'   => ['biolink_og'],
-            'letterhead'                  => ['company_letterhead'],
-            default                       => [],
+            'favicon' => ['kit_logo', 'biolink_favicon'],
+            'og_image', 'social_banner' => ['biolink_og'],
+            'letterhead' => ['company_letterhead'],
+            default => [],
         };
     }
 
@@ -140,16 +150,16 @@ class BrandKitAssetService
     public function present(BrandKitAsset $asset): array
     {
         return [
-            'id'            => (int) $asset->id,
-            'type'          => (string) $asset->type,
-            'status'        => (string) $asset->status,
-            'version'       => (int) $asset->version,
+            'id' => (int) $asset->id,
+            'type' => (string) $asset->type,
+            'status' => (string) $asset->status,
+            'version' => (int) $asset->version,
             'credits_spent' => (int) $asset->credits_spent,
-            'prompt'        => $asset->prompt,
-            'image_url'     => $asset->file?->url,
-            'download_url'  => $asset->file?->url,
-            'created_at'    => $asset->created_at?->toIso8601String(),
-            'updated_at'    => $asset->updated_at?->toIso8601String(),
+            'prompt' => $asset->prompt,
+            'image_url' => $asset->file?->url,
+            'download_url' => $asset->file?->url,
+            'created_at' => $asset->created_at?->toIso8601String(),
+            'updated_at' => $asset->updated_at?->toIso8601String(),
         ];
     }
 
@@ -161,16 +171,16 @@ class BrandKitAssetService
      */
     public function generate(User $user, BrandKit $kit, string $type, ?string $instructions = null, string $mode = 'new'): BrandKitAsset
     {
-        if (!isset(self::TYPES[$type])) {
+        if (! isset(self::TYPES[$type])) {
             throw new RuntimeException('Unknown asset type.');
         }
-        if (!in_array($mode, self::MODES, true)) {
+        if (! in_array($mode, self::MODES, true)) {
             throw new RuntimeException('Unknown generation mode.');
         }
-        if (!$this->enabled()) {
+        if (! $this->enabled()) {
             throw new RuntimeException('AI image generation is not available right now.');
         }
-        if (!AiPlanAccess::featureAllowed($user, 'brand_kit_assets')) {
+        if (! AiPlanAccess::featureAllowed($user, 'brand_kit_assets')) {
             throw new RuntimeException('Brand asset generation is not included in your plan.');
         }
 
@@ -178,7 +188,7 @@ class BrandKitAssetService
 
         // Per-plan regeneration cap: version N means N generations so far.
         $used = (int) ($existing->version ?? 0);
-        if (!AiPlanAccess::underQuantityCap($user, 'brand_asset_versions', $used)) {
+        if (! AiPlanAccess::underQuantityCap($user, 'brand_asset_versions', $used)) {
             throw new RuntimeException(AiPlanAccess::quantityLimitMessage(
                 $user, 'brand_asset_versions', 'generation for this asset', $used
             ));
@@ -187,10 +197,10 @@ class BrandKitAssetService
         $meta = self::TYPES[$type];
         $cost = $this->coinCost($user, $type);
         $tx = $this->charger->charge($user, $cost, [
-            'feature'  => self::FEATURE,
+            'feature' => self::FEATURE,
             'provider' => 'openai',
-            'reason'   => 'Brand asset — ' . $meta['label'],
-            'meta'     => ['brand_kit_id' => $kit->id, 'type' => $type, 'mode' => $mode],
+            'reason' => 'Brand asset — '.$meta['label'],
+            'meta' => ['brand_kit_id' => $kit->id, 'type' => $type, 'mode' => $mode],
         ]);
 
         try {
@@ -200,9 +210,9 @@ class BrandKitAssetService
             );
             // Stored outside the vault's max_files count (context tag) but
             // still counted toward the storage-byte quota.
-            $file  = UserFile::createFromBytes(
+            $file = UserFile::createFromBytes(
                 $bytes,
-                'brand-' . $type . '-' . substr(md5($kit->id . microtime()), 0, 8) . '.png',
+                'brand-'.$type.'-'.substr(md5($kit->id.microtime()), 0, 8).'.png',
                 'image/png',
                 $user,
                 ['skip_scan' => true, 'context' => 'brand_asset']
@@ -210,14 +220,14 @@ class BrandKitAssetService
         } catch (\Throwable $e) {
             try {
                 $this->charger->refund($user, $cost, [
-                    'feature'         => self::FEATURE,
-                    'provider'        => 'openai',
-                    'reason'          => 'Brand asset refund',
-                    'idempotency_key' => 'brand_asset_refund:' . $tx->id,
-                    'meta'            => ['related_id' => $tx->id],
+                    'feature' => self::FEATURE,
+                    'provider' => 'openai',
+                    'reason' => 'Brand asset refund',
+                    'idempotency_key' => 'brand_asset_refund:'.$tx->id,
+                    'meta' => ['related_id' => $tx->id],
                 ]);
             } catch (\Throwable $refundError) {
-                Log::error('Brand asset refund failed: ' . $refundError->getMessage());
+                Log::error('Brand asset refund failed: '.$refundError->getMessage());
             }
             throw new RuntimeException(
                 $e instanceof RuntimeException ? $e->getMessage() : 'Brand asset generation failed. You have not been charged.'
@@ -230,12 +240,12 @@ class BrandKitAssetService
         $asset = BrandKitAsset::updateOrCreate(
             ['brand_kit_id' => $kit->id, 'type' => $type],
             [
-                'user_id'       => $user->id,
-                'status'        => BrandKitAsset::STATUS_READY,
-                'user_file_id'  => $file->id,
-                'prompt'        => $instructions !== null && trim($instructions) !== '' ? trim($instructions) : null,
-                'params'        => ['size' => $meta['size'], 'model' => BrandAssetImageClient::MODEL, 'mode' => $mode],
-                'version'       => $used + 1,
+                'user_id' => $user->id,
+                'status' => BrandKitAsset::STATUS_READY,
+                'user_file_id' => $file->id,
+                'prompt' => $instructions !== null && trim($instructions) !== '' ? trim($instructions) : null,
+                'params' => ['size' => $meta['size'], 'model' => BrandAssetImageClient::MODEL, 'mode' => $mode],
+                'version' => $used + 1,
                 'credits_spent' => $cost,
             ],
         );
@@ -244,7 +254,7 @@ class BrandKitAssetService
             try {
                 $oldFile->deleteFile();
             } catch (\Throwable $e) {
-                Log::warning('Brand asset old file cleanup failed: ' . $e->getMessage());
+                Log::warning('Brand asset old file cleanup failed: '.$e->getMessage());
             }
         }
 
@@ -260,7 +270,7 @@ class BrandKitAssetService
             try {
                 $file->deleteFile();
             } catch (\Throwable $e) {
-                Log::warning('Brand asset file cleanup failed: ' . $e->getMessage());
+                Log::warning('Brand asset file cleanup failed: '.$e->getMessage());
             }
         }
     }
@@ -271,7 +281,7 @@ class BrandKitAssetService
     public function applyLogoToKit(BrandKitAsset $asset, BrandKit $kit): void
     {
         $url = $asset->file?->url;
-        if (!$url) {
+        if (! $url) {
             throw new RuntimeException('This asset has no stored image to apply.');
         }
         $config = is_array($kit->config) ? $kit->config : [];
@@ -284,7 +294,7 @@ class BrandKitAssetService
     public function applyFaviconToLink(BrandKitAsset $asset, Link $link): void
     {
         $url = $asset->file?->url;
-        if (!$url) {
+        if (! $url) {
             throw new RuntimeException('This asset has no stored image to apply.');
         }
         $link->update(['favicon' => $url]);
@@ -294,7 +304,7 @@ class BrandKitAssetService
     public function applyOgToLink(BrandKitAsset $asset, Link $link): void
     {
         $url = $asset->file?->url;
-        if (!$url) {
+        if (! $url) {
             throw new RuntimeException('This asset has no stored image to apply.');
         }
         $link->update(['seo_image' => $url]);
@@ -305,18 +315,18 @@ class BrandKitAssetService
      * bytes onto the public disk (where invoice rendering reads them) and
      * records the pixel dimensions, matching the manual-upload flow.
      *
-     * @param \App\Modules\User\Models\BillingCompany $company
+     * @param  BillingCompany  $company
      */
     public function applyLetterheadToCompany(BrandKitAsset $asset, $company): void
     {
         $file = $asset->file;
-        if (!$file) {
+        if (! $file) {
             throw new RuntimeException('This asset has no stored image to apply.');
         }
 
         $sourceDisk = $file->disk === 'public' ? 'public' : ($file->disk === 's3' ? 's3' : 'user_files');
         $bytes = Storage::disk($sourceDisk)->get($file->path);
-        if (!is_string($bytes) || $bytes === '') {
+        if (! is_string($bytes) || $bytes === '') {
             throw new RuntimeException('Could not read the stored asset image.');
         }
 
@@ -330,13 +340,13 @@ class BrandKitAssetService
             throw new RuntimeException('The generated letterhead does not meet the letterhead size requirements.');
         }
 
-        $path = 'billing/letterheads/brand-asset-' . $asset->id . '-' . Str::random(8) . '.png';
+        $path = 'billing/letterheads/brand-asset-'.$asset->id.'-'.Str::random(8).'.png';
         Storage::disk('public')->put($path, $bytes);
 
         $old = $company->letterhead_path;
         $company->update([
-            'letterhead_path'   => $path,
-            'letterhead_width'  => $width,
+            'letterhead_path' => $path,
+            'letterhead_width' => $width,
             'letterhead_height' => $height,
         ]);
         if ($old && $old !== $path) {
@@ -362,10 +372,10 @@ class BrandKitAssetService
      */
     public function buildPrompt(BrandKit $kit, string $type, ?string $instructions = null, string $mode = 'new', ?BrandKitAsset $previous = null): string
     {
-        $config  = is_array($kit->config) ? $kit->config : [];
+        $config = is_array($kit->config) ? $kit->config : [];
         $palette = is_array($config['palette'] ?? null) ? $config['palette'] : [];
-        $fonts   = is_array($config['fonts'] ?? null) ? $config['fonts'] : [];
-        $voice   = is_array($config['voice'] ?? null) ? $config['voice'] : [];
+        $fonts = is_array($config['fonts'] ?? null) ? $config['fonts'] : [];
+        $voice = is_array($config['voice'] ?? null) ? $config['voice'] : [];
 
         $colors = array_values(array_filter(array_merge(
             [$palette['primary'] ?? null, $palette['secondary'] ?? null, $palette['accent'] ?? null],
@@ -373,7 +383,7 @@ class BrandKitAssetService
         )));
 
         $lines = [
-            'Design a ' . strtolower(self::TYPES[$type]['label']) . ' for the brand "' . $kit->name . '".',
+            'Design a '.strtolower(self::TYPES[$type]['label']).' for the brand "'.$kit->name.'".',
             self::TYPES[$type]['hint'],
         ];
 
@@ -381,22 +391,28 @@ class BrandKitAssetService
         // feature them (tagline) or leave properly-shaped space for them.
         $taglines = array_values(array_filter((array) ($config['taglines'] ?? []), 'is_string'));
         if ($type === 'tagline_card' && $taglines) {
-            $lines[] = 'The card must feature this exact tagline as the headline: "' . mb_substr($taglines[0], 0, 140) . '".';
+            $lines[] = 'The card must feature this exact tagline as the headline: "'.mb_substr($taglines[0], 0, 140).'".';
         } elseif (in_array($type, ['mission_card', 'vision_card', 'stats_card', 'ppt_cover', 'ppt_closing'], true) && $taglines) {
-            $lines[] = 'The brand tagline (may appear small as a supporting line): "' . mb_substr($taglines[0], 0, 140) . '".';
+            $lines[] = 'The brand tagline (may appear small as a supporting line): "'.mb_substr($taglines[0], 0, 140).'".';
         }
         if ($colors) {
-            $lines[] = 'Use ONLY this brand color palette: ' . implode(', ', $colors) . '.';
+            $lines[] = 'Use ONLY this brand color palette: '.implode(', ', $colors).'.';
         }
-        if (!empty($fonts['heading'])) {
-            $lines[] = 'Typography should feel like the "' . $fonts['heading'] . '" typeface.';
+        if (! empty($fonts['heading'])) {
+            $lines[] = 'Typography should feel like the "'.$fonts['heading'].'" typeface.';
         }
-        if (!empty($voice['tone'])) {
-            $lines[] = 'Overall mood: ' . $voice['tone'] . '.';
+        if (! empty($voice['tone'])) {
+            $lines[] = 'Overall mood: '.$voice['tone'].'.';
         }
-        if (!empty($config['bio'])) {
-            $lines[] = 'Brand context: ' . mb_substr((string) $config['bio'], 0, 300);
+        if (! empty($config['bio'])) {
+            $lines[] = 'Brand context: '.mb_substr((string) $config['bio'], 0, 300);
         }
+        foreach (BrandKitFields::text() as $key => $label) {
+            if (! empty($config[$key])) {
+                $lines[] = $label.': '.mb_substr((string) $config[$key], 0, 400);
+            }
+        }
+        $lines[] = 'Use only supplied factual claims. Never invent metrics, testimonials, credentials, policies or legal compliance.';
         $lines[] = 'Flat, professional, production-ready design. No watermarks, no lorem ipsum, no mockup photos.';
 
         // Regeneration mode context (only when a previous version exists).
@@ -405,19 +421,19 @@ class BrandKitAssetService
             if ($mode === 'variation') {
                 $lines[] = 'This is a VARIATION request: produce a distinctly different creative take (new layout/composition) while staying strictly on the same brand palette and mood.';
                 if ($prevPrompt !== '') {
-                    $lines[] = 'The previous version used these owner instructions (explore a different direction from them): ' . mb_substr($prevPrompt, 0, 300);
+                    $lines[] = 'The previous version used these owner instructions (explore a different direction from them): '.mb_substr($prevPrompt, 0, 300);
                 }
             } elseif ($mode === 'alteration') {
                 $lines[] = 'This is an ALTERATION request: keep the previous version\'s overall direction and composition, changing only what the owner asks for below.';
                 if ($prevPrompt !== '') {
-                    $lines[] = 'The previous version was generated with these owner instructions (carry them forward unless contradicted): ' . mb_substr($prevPrompt, 0, 300);
+                    $lines[] = 'The previous version was generated with these owner instructions (carry them forward unless contradicted): '.mb_substr($prevPrompt, 0, 300);
                 }
             }
         }
 
         $instructions = trim((string) $instructions);
         if ($instructions !== '') {
-            $lines[] = 'Additional instructions from the brand owner: ' . mb_substr($instructions, 0, 500);
+            $lines[] = 'Additional instructions from the brand owner: '.mb_substr($instructions, 0, 500);
         }
 
         return implode("\n", $lines);

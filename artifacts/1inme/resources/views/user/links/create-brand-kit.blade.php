@@ -26,7 +26,7 @@
                 <label class="block text-sm font-medium text-white/60 mb-1">Use which saved AI Brand Kit?</label>
                 <select name="brand_kit_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
                     @foreach($kits as $kit)
-                        <option value="{{ $kit->id }}" @selected($kit->is_default)>{{ $kit->name }}@if($kit->is_default) (default)@endif</option>
+                        <option value="{{ $kit->id }}" @selected((int)old('brand_kit_id',request('brand_kit_id',$kits->firstWhere('is_default',true)?->id))===$kit->id)>{{ $kit->name }}@if($kit->is_default) (default)@endif</option>
                     @endforeach
                 </select>
                 @error('brand_kit_id') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror

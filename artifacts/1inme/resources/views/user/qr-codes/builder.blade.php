@@ -140,6 +140,7 @@
     @if($isEdit) @include('user.brand-kits.qr-assignment',['qrCode'=>$qrCode]) @endif
     <form method="POST" action="{{ $action }}" id="qrForm" @submit="if(!referenceScanReady())$event.preventDefault()">
         @csrf
+        @if(!($qrCode && $qrCode->exists)) @include('user.brand-kits.create-selection') @endif
         @if($isEdit) @method('PUT') @endif
 
         {{-- Top bar --}}
