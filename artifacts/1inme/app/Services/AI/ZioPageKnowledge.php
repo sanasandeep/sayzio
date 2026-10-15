@@ -56,7 +56,11 @@ class ZioPageKnowledge
         if ($needle === '') {
             return ['error' => 'Which Sayzio feature would you like to open?'];
         }
-        $friendly = ['user.vault.clients.index' => 'Clients', 'user.projects.index' => 'Folders', 'user.calendars.mine' => 'Calendar', 'user.qr-codes.index' => 'QR Codes'];
+        $friendly = ['user.ai-personas.index' => 'Agents',
+            'user.ai-companions.index' => 'Channels',
+            'user.ai.staff.index' => 'Team assistants',
+            'user.ai.ask-coach.show' => 'Ask Zio',
+            'user.vault.clients.index' => 'Clients', 'user.projects.index' => 'Folders', 'user.calendars.mine' => 'Calendar', 'user.qr-codes.index' => 'QR Codes'];
         if (in_array($needle, ['block', 'blocks', 'biolink blocks', 'social blocks'], true)) {
             return ['error' => 'Link in Bio blocks are inside the current link editor, not Bot Blocks. Use a sample preview or the native Blocks editor.'];
         }

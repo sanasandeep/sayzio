@@ -1,11 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'AI Chat')
+@section('title', 'Ask Zio · General chat')
 
 @section('content')
-<div class="max-w-6xl mx-auto px-4 py-8">
+@include('user.partials.ai-workspace-nav')
+<div class="w-full">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
-        'title'    => 'AI Chat',
+        'title'    => 'Ask Zio · General chat',
         'subtitle' => 'Ask anything, past conversations are saved so you can pick up where you left off.',
         'balance'  => $balance,
     ])

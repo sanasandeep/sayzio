@@ -1,7 +1,8 @@
 @extends('user.layouts.app')
-@section('title', 'Edit Chat Widget · ' . $companion->name)
+@section('title', 'Edit Channel · ' . $companion->name)
 
 @section('content')
+@include('user.partials.ai-workspace-nav')
 @php
     $embedSnippet = '<script src="' . $embedScriptUrl . '" data-companion="' . $companion->public_id .
         '" data-accent="' . ($config['accent'] ?? '#3d6bff') .
@@ -168,7 +169,7 @@
         </div>
 
         <div class="flex justify-end gap-2 pt-2">
-            <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save Chat Widget</button>
+            <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save Channel</button>
         </div>
     </form>
     @include('user.ai-companions.preview')

@@ -2,6 +2,7 @@
 @section('title', 'Conversation · ' . $companion->name)
 
 @section('content')
+@include('user.partials.ai-workspace-nav')
 <div class="max-w-3xl mx-auto px-4 py-8 space-y-4">
     <div>
         <a href="{{ route('user.ai-companions.conversations', $companion) }}" class="text-xs text-white/40 hover:text-white/70"><i class="fas fa-arrow-left"></i> Back</a>

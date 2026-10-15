@@ -2,7 +2,8 @@
 @section('title', $staff->name)
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 py-8" x-data="aiStaffShow({
+@include('user.partials.ai-workspace-nav')
+<div class="w-full" x-data="aiStaffShow({
         staffId: {{ $staff->id }},
         domain: @js($staff->domain),
         chatUrl: '{{ route('user.ai.staff.chat', $staff) }}',
@@ -29,7 +30,7 @@
 
     @if(!$planAllowed)
         <div class="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-amber-200/90 text-sm mb-6">
-            AI Staff for this domain isn't available on your current plan.
+            Team assistants for this domain isn't available on your current plan.
         </div>
     @endif
 

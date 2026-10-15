@@ -1,11 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'New AI Agent')
+@section('title', 'New Agent')
 
 @section('content')
+@include('user.partials.ai-workspace-nav')
 <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
     <div>
         <a href="{{ route('user.ai-personas.index') }}" class="text-xs text-white/50 hover:text-white"><i class="fas fa-arrow-left"></i> Back</a>
-        <h1 class="text-2xl font-bold text-white mt-2">New AI Agent</h1>
+        <h1 class="text-2xl font-bold text-white mt-2">New Agent</h1>
         <p class="text-sm text-white/50 mt-1">Pick a template to seed the system prompt and tone, you can customize everything after.</p>
     </div>
 

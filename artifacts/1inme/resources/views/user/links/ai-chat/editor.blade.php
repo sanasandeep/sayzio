@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'AI Chat - ' . ($link->title ?: $link->alias))
+@section('title', 'Chat page - ' . ($link->title ?: $link->alias))
 @section('breadcrumb_parent', 'Links')
 @section('breadcrumb_parent_url', route('user.links.index'))
 @section('content')

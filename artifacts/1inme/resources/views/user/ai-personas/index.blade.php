@@ -1,16 +1,17 @@
 @extends('user.layouts.app')
-@section('title', 'AI Agents')
+@section('title', 'Agents')
 
 @section('content')
+@include('user.partials.ai-workspace-nav')
 <div class="w-full space-y-6">
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
     @php
         $unlimited = in_array($caps['max_personas_per_user'], [-1, PHP_INT_MAX], true);
-        $agentActions = ($unlimited || $used < $caps['max_personas_per_user']) ? [['label'=>'New AI Agent','url'=>route('user.ai-personas.create'),'icon'=>'fa-plus','class'=>'btn-primary']] : [];
+        $agentActions = ($unlimited || $used < $caps['max_personas_per_user']) ? [['label'=>'New Agent','url'=>route('user.ai-personas.create'),'icon'=>'fa-plus','class'=>'btn-primary']] : [];
     @endphp
-    @include('user.partials.page-hero', ['title'=>'AI Agents','subtitle'=>'Create assistants for sales, support and your business. Connect their knowledge, then test before publishing.','icon'=>'fa-user-astronaut','back'=>route('user.dashboard'),'actions'=>$agentActions,'chips'=>[['text'=>$used.' agents','icon'=>'fa-users'],['text'=>$unlimited?'Unlimited plan':$caps['max_personas_per_user'].' agent limit','icon'=>'fa-layer-group']]])
+    @include('user.partials.page-hero', ['title'=>'Agents','subtitle'=>'Create assistants for sales, support and your business. Connect their knowledge, then test before publishing.','icon'=>'fa-user-astronaut','back'=>route('user.dashboard'),'actions'=>$agentActions,'chips'=>[['text'=>$used.' agents','icon'=>'fa-users'],['text'=>$unlimited?'Unlimited plan':$caps['max_personas_per_user'].' agent limit','icon'=>'fa-layer-group']]])
     @if($personas->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
             <i class="fas fa-user-astronaut text-4xl text-blue-400/70"></i>

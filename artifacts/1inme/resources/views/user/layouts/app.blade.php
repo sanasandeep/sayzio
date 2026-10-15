@@ -1077,25 +1077,19 @@
                             <span class="sidebar-tooltip">AI Persona Generator</span>
                         </a>
                         <a href="{{ route('user.ai-personas.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.ai-personas.*') ? 'active' : '' }}"
+                           class="sidebar-link {{ nav_route_is('user.ai-personas.*', 'user.ai.staff.*') ? 'active' : '' }}"
                            style="--nav-tint:#f472b6; --nav-tint-soft:rgba(244,114,182,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div>
-                            <span class="nav-label">AI Agents</span>
-                            <span class="sidebar-tooltip">AI Agents</span>
+                            <span class="nav-label">Agents</span>
+                            <span class="sidebar-tooltip">Agents</span>
                         </a>
-                        <a href="{{ route('user.ai.companion.show') }}"
-                           class="sidebar-link {{ nav_route_is('user.ai.companion.*') ? 'active' : '' }}"
-                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-comments"></i></div>
-                            <span class="nav-label">AI Chat</span>
-                            <span class="sidebar-tooltip">AI Chat</span>
-                        </a>
+
                         <a href="{{ route('user.ai-companions.index') }}"
                            class="sidebar-link {{ nav_route_is('user.ai-companions.*') ? 'active' : '' }}"
                            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-robot"></i></div>
-                            <span class="nav-label">Chat Widgets</span>
-                            <span class="sidebar-tooltip">Chat Widgets</span>
+                            <span class="nav-label">Channels</span>
+                            <span class="sidebar-tooltip">Channels</span>
                         </a>
                         <a href="{{ route('user.brand-kits.index') }}"
                            class="sidebar-link {{ nav_route_is('user.brand-kits.*') ? 'active' : '' }}"
@@ -1118,13 +1112,13 @@
                             <span class="nav-label">AI Link Optimizer</span>
                             <span class="sidebar-tooltip">AI Link Optimizer</span>
                         </a>
-                        @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
-                        <a href="{{ route('user.ai.ask-coach.show') }}"
-                           class="sidebar-link {{ nav_route_is('user.ai.ask-coach.*') ? 'active' : '' }}"
+                        @if(auth()->check())
+                        <a href="{{ \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()) ? route('user.ai.ask-coach.show') : route('user.ai.companion.show') }}"
+                           class="sidebar-link {{ nav_route_is('user.ai.ask-coach.*', 'user.ai.companion.*') ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div>
-                            <span class="nav-label">AI Coach</span>
-                            <span class="sidebar-tooltip">AI Coach</span>
+                            <span class="nav-label">Ask Zio</span>
+                            <span class="sidebar-tooltip">Ask Zio</span>
                         </a>
                         @endif
                         @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
@@ -1146,13 +1140,7 @@
                         </a>
                         @endif
                         @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && (\App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_billing') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_contacts') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_general')))
-                        <a href="{{ route('user.ai.staff.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.ai.staff.*') ? 'active' : '' }}"
-                           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-people-group"></i></div>
-                            <span class="nav-label">AI Staff</span>
-                            <span class="sidebar-tooltip">AI Staff</span>
-                        </a>
+
                         @endif
                     </div>
                 </div>
@@ -1848,14 +1836,14 @@
                                 <a href="{{ route('user.minds.index') }}" class="sidebar-link {{ nav_route_is('user.minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div> <span>AI Minds</span></a>
                                 @endif
                                 <a href="{{ route('user.ai.persona.show') }}" class="sidebar-link {{ nav_route_is('user.ai.persona.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-pen"></i></div> <span>AI Persona Generator</span></a>
-                                <a href="{{ route('user.ai-personas.index') }}" class="sidebar-link {{ nav_route_is('user.ai-personas.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div> <span>AI Agents</span></a>
-                                <a href="{{ route('user.ai.companion.show') }}" class="sidebar-link {{ nav_route_is('user.ai.companion.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comments"></i></div> <span>AI Chat</span></a>
-                                <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ nav_route_is('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Chat Widgets</span></a>
+                                <a href="{{ route('user.ai-personas.index') }}" class="sidebar-link {{ nav_route_is('user.ai-personas.*', 'user.ai.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div> <span>Agents</span></a>
+
+                                <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ nav_route_is('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Channels</span></a>
                                 <a href="{{ route('user.brand-kits.index') }}" class="sidebar-link {{ nav_route_is('user.brand-kits.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div> <span>AI Brand Kit</span></a>
                                 <a href="{{ route('user.brand-studio.index') }}" class="sidebar-link {{ nav_route_is('user.brand-studio.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div> <span>AI Brand Studio</span></a>
                                 <a href="{{ route('user.ai.coach.show') }}" class="sidebar-link {{ nav_route_is('user.ai.coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div> <span>AI Link Optimizer</span></a>
-                                @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
-                                <a href="{{ route('user.ai.ask-coach.show') }}" class="sidebar-link {{ nav_route_is('user.ai.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>AI Coach</span></a>
+                                @if(auth()->check())
+                                <a href="{{ \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()) ? route('user.ai.ask-coach.show') : route('user.ai.companion.show') }}" class="sidebar-link {{ nav_route_is('user.ai.ask-coach.*', 'user.ai.companion.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Ask Zio</span></a>
                                 @endif
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
                                 <a href="{{ route('user.ai.marketing-strategist.index') }}" class="sidebar-link {{ nav_route_is('user.ai.marketing-strategist.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>AI Marketing Strategist</span></a>
@@ -1864,7 +1852,7 @@
                                 <a href="{{ route('user.marketing-plan.index') }}" class="sidebar-link {{ nav_route_is('user.marketing-plan.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calculator"></i></div> <span>Marketing Plan Calculator</span></a>
                                 @endif
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && (\App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_billing') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_contacts') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_general')))
-                                <a href="{{ route('user.ai.staff.index') }}" class="sidebar-link {{ nav_route_is('user.ai.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-people-group"></i></div> <span>AI Staff</span></a>
+
                                 @endif
                             </div>
                         </div>
