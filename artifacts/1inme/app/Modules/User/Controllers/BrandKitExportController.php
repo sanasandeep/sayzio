@@ -51,6 +51,7 @@ class BrandKitExportController extends Controller
         try {
             $zip->addFromString('brand-guide.pdf', $pdf->output());
             $zip->addFromString('brand-kit.json', json_encode(['name' => $brandKit->name, 'config' => $brandKit->config], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            foreach(app(\App\Services\Brand\BrandIconPackage::class)->files($brandKit) as $iconName=>$iconBytes) $zip->addFromString('icons/'.$iconName,$iconBytes);
             $manifest = [];
             $total = 0;
             $seen = [];

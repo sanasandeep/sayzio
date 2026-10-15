@@ -1050,6 +1050,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // max_brand_kits quantity cap; can be applied to a biolink or QR code.
         Route::get('brand-kits/create', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'editor'])->middleware('workspace.can:links.create')->name('brand-kits.create');
         Route::post('brand-kits/manual', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'save'])->middleware('workspace.can:links.create')->name('brand-kits.store');
+        Route::post('brand-kits/{brandKit}/icons', [\App\Modules\User\Controllers\BrandIconController::class,'generate'])->whereNumber('brandKit')->middleware(['workspace.can:links.edit','throttle:10,1'])->name('brand-kits.icons.generate');
+        Route::get('brand-kits/{brandKit}/icons', [\App\Modules\User\Controllers\BrandIconController::class,'download'])->whereNumber('brandKit')->middleware('workspace.can:links.view')->name('brand-kits.icons.download');
+        Route::post('links/{link}/brand-page-theme', [\App\Modules\User\Controllers\BrandPageThemeController::class,'update'])->middleware('workspace.can:links.edit')->name('links.brand-page-theme');
         Route::post('brand-kits/showcase-preview', [\App\Modules\User\Controllers\BrandKitShowcaseController::class,'preview'])->middleware(['workspace.can:links.view','throttle:60,1'])->name('brand-kits.showcase-preview');
         Route::post('brand-kits/draft', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'draft'])->middleware(['workspace.can:links.create','throttle:10,1'])->name('brand-kits.draft');
         Route::get('brand-kits/{brandKit}/edit', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'editor'])->whereNumber('brandKit')->middleware('workspace.can:links.view')->name('brand-kits.edit');

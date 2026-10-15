@@ -879,4 +879,5 @@ Route::get('/{alias}/tickets/{code}', [\App\Modules\Common\Controllers\EventTick
 
 Route::post("f/{slug}/event", [\App\Modules\User\Controllers\FormExperienceController::class, "event"])->middleware("throttle:60,1")->name("forms.public.event");
 
+Route::get('brand-showcases/{id}/{token}/icons/{filename}', [\App\Modules\User\Controllers\BrandKitShowcaseController::class, 'icon'])->whereNumber('id')->where('token','[a-f0-9]{40}')->where('filename','favicon\.ico|favicon\.svg|favicon-[0-9]+\.png|favicon-dark\.png|apple-touch-icon\.png|android-[0-9]+\.png|maskable-512\.png|site\.webmanifest')->middleware('throttle:60,1')->name('brand-showcases.icon');
 Route::get('brand-showcases/{id}/{token}/{format}', [\App\Modules\User\Controllers\BrandKitShowcaseController::class, 'download'])->whereNumber('id')->where('token','[a-f0-9]{40}')->whereIn('format',['pdf','zip'])->middleware('throttle:10,1')->name('brand-showcases.download');

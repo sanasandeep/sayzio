@@ -83,6 +83,13 @@
     @endif
 
     @include('common.partials.default-icons')
+    @if(!empty($link->settings['biolink']['brand_icon_base']))
+    @php $brandIconBase=$link->settings['biolink']['brand_icon_base']; @endphp
+    <link rel="icon" sizes="32x32" href="{{ $brandIconBase }}favicon-32.png">
+    <link rel="icon" media="(prefers-color-scheme: dark)" href="{{ $brandIconBase }}favicon-dark.png">
+    <link rel="apple-touch-icon" href="{{ $brandIconBase }}apple-touch-icon.png">
+    @if(empty($manifestSettings['enabled']))<link rel="manifest" href="{{ $brandIconBase }}site.webmanifest">@endif
+    @endif
     @if($link->favicon)
         <link rel="icon" type="image/png" href="{{ \App\Support\PublicStorageUrl::resolve($link->favicon) }}">
     @endif
@@ -886,7 +893,8 @@
     @if(!empty($bs['custom_css']))
     <style>{!! $bs['custom_css'] !!}</style>
     @endif
-@if(!empty($brandShowcasePreview))<meta name="robots" content="noindex,nofollow"><style>a,button,input,select,textarea{pointer-events:none!important}</style><script>document.addEventListener('click',function(e){if(e.target.closest('a,button'))e.preventDefault();},true);document.addEventListener('submit',function(e){e.preventDefault();},true);</script>@endif
+@if(!empty($brandShowcasePreview))<meta name="robots" content="noindex,nofollow"><style>a,input,select,textarea,.sz-share{pointer-events:none!important}</style><script>document.addEventListener('click',function(e){if(e.target.closest('a,button'))e.preventDefault();},true);document.addEventListener('submit',function(e){e.preventDefault();},true);</script>@endif
+@include('common.partials.brand-showcase-theme')
 </head>
 <body class="flex flex-col items-center {{ $mbEnabled && $mbPos === 'bottom' ? 'min-h-screen' : '' }}">
     @if($mbEnabled && !$mbIsFloating && $mbPos === 'top')
