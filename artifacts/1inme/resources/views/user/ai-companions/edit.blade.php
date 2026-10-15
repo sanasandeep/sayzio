@@ -24,35 +24,22 @@
     @endif
 
     @include('user.partials.page-hero', ['title'=>$companion->name,'subtitle'=>'Design your chat experience. Preview changes instantly, then save to publish.','icon'=>'fa-comments','back'=>route('user.ai-companions.index'),'actions'=>[['label'=>'Conversations','url'=>route('user.ai-companions.conversations',$companion),'icon'=>'fa-comment','class'=>'btn-secondary']],'chips'=>[['text'=>'Chat Widget','icon'=>'fa-comments']]])
-    <div class="widget-stats grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
-            <p class="text-[10px] uppercase tracking-wider text-white/40">Turns this month</p>
-            <p class="text-2xl font-bold text-white mt-1">{{ number_format($usage['turns']) }}</p>
-            <p class="text-[10px] text-white/40">Hard cap: {{ $companion->hard_cap_per_month ?: '∞' }}</p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
-            <p class="text-[10px] uppercase tracking-wider text-white/40">Coins used</p>
-            <p class="text-2xl font-bold text-white mt-1">{{ number_format($usage['credits']) }}</p>
-            <p class="text-[10px] text-white/40">Balance: {{ number_format($balance) }}</p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
-            <p class="text-[10px] uppercase tracking-wider text-white/40">Est. coins / day</p>
-            <p class="text-2xl font-bold text-white mt-1">&approx; {{ number_format($estimate['per_day']) }}</p>
-            <p class="text-[10px] text-white/40">
-                @if($estimate['based_on_usage'])
-                    ~{{ $estimate['avg_per_turn'] }} / paid turn so far
-                @else
-                    ~{{ $estimate['avg_per_turn'] }} / turn (estimate)
-                @endif
-                @if($estimate['ceiling_per_day']) &middot; up to ~{{ number_format($estimate['ceiling_per_day']) }}/day at cap @endif
-            </p>
-        </div>
-        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
-            <p class="text-[10px] uppercase tracking-wider text-white/40">Free turns / mo</p>
-            <p class="text-2xl font-bold text-white mt-1">{{ $companion->free_turns_per_month < 0 ? 'Unlimited' : number_format($companion->free_turns_per_month) }}</p>
-            <p class="text-[10px] text-white/40">Beyond this, turns charge coins</p>
-        </div>
+    @include('user.partials.overview-styles')
+    <div class="widget-dashboard-stats grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        @foreach([
+            ['label'=>'Turns this month','value'=>number_format($usage['turns']),'note'=>'Hard cap: '.($companion->hard_cap_per_month ?: 'Platform default'),'color'=>'#3b82f6','tone'=>'#123c85','kind'=>'sessions'],
+            ['label'=>'Coins used','value'=>number_format($usage['credits']),'note'=>'Balance: '.number_format($balance),'color'=>'#8b5cf6','tone'=>'#512b89','kind'=>'pages'],
+            ['label'=>'Est. coins / day','value'=>'≈ '.number_format($estimate['per_day']),'note'=>'~'.$estimate['avg_per_turn'].' coins / turn (estimate)','color'=>'#0d9488','tone'=>'#075953','kind'=>'clicks'],
+            ['label'=>'Free turns / month','value'=>$companion->free_turns_per_month < 0 ? 'Unlimited' : number_format($companion->free_turns_per_month),'note'=>$companion->free_turns_per_month < 0 ? 'No monthly free-turn limit' : 'Additional turns use coins','color'=>'#f59e0b','tone'=>'#804210','kind'=>'bot'],
+        ] as $stat)
+            <article class="ov-panel ov-count" style="--ov-color:{{ $stat['color'] }};--ov-tone:{{ $stat['tone'] }};--ov-number-size:{{ strlen($stat['value']) > 7 ? '30px' : '54px' }}">
+                <div class="ov-count-top"><h2 class="ov-count-label">{{ $stat['label'] }}</h2></div>
+                @include('user.partials.count-card-art',['kind'=>$stat['kind'],'artId'=>'widget-stat-'.$loop->index])
+                <div class="ov-count-bottom"><strong>{{ $stat['value'] }}</strong><p>{{ $stat['note'] }}</p></div>
+            </article>
+        @endforeach
     </div>
+    <style>html .widget-dashboard-stats .ov-count-label,html .widget-dashboard-stats .ov-count strong{color:#fff!important}html .widget-dashboard-stats .ov-count-bottom p{color:rgba(255,255,255,.85)!important}</style>
 
     <div class="widget-editor-grid">
     <form method="POST" action="{{ route('user.ai-companions.update', $companion) }}" id="widget-editor" x-data="{ tab: 'basic', placement: @js(old('placement',$companion->placement)) }" @invalid.capture="tab=$event.target.closest('[data-widget-tab]')?.dataset.widgetTab || 'basic'" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-5">
