@@ -11,4 +11,8 @@ html .minds-page .mind-stat-label,html .minds-page .mind-stat-value{color:#fff!i
 html .minds-page .mind-stat-note{color:rgba(255,255,255,.85)!important;opacity:1!important}
 html .minds-page .mind-stat-icon{color:#fff!important;z-index:1}
 html .minds-page .mind-stat-icon svg{display:block;stroke:#fff!important;fill:none!important}
+
+/* Same opaque palette, radial light and dark base as dashboard overview cards. */
+html .minds-page .mind-stat{box-shadow:0 12px 24px color-mix(in srgb,var(--mind-stat-tone) 16%,transparent),inset 0 1px 0 rgba(255,255,255,.22);border-radius:22px;border:1px solid rgba(255,255,255,.16)!important}
+html .minds-page .mind-stat::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(130deg,rgba(255,255,255,.10),transparent 42%,rgba(255,255,255,.04));pointer-events:none}
 </style>
