@@ -28,6 +28,7 @@
         @else
             <script src="{{ url('/embed/companion.js') }}"
                     data-companion="{{ $cmp->public_id }}"
+                    data-appearance="{{ json_encode(\App\Services\AI\CompanionAppearance::variables($cfg)) }}"
                     data-accent="{{ $cfg['accent'] ?? '#3d6bff' }}"
                     data-position="{{ $cfg['position'] ?? 'bottom-right' }}"
                     data-label="{{ $cfg['launcher_label'] ?? 'Chat' }}"

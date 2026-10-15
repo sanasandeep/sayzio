@@ -15,7 +15,7 @@ $accept = $acceptMap[$acceptTypes] ?? $acceptMap['all'];
 $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
 @endphp
 
-<div x-data="fileUploadField_{{ $fieldId }}()" class="file-upload-field" data-fieldname="{{ $fieldName }}">
+<div x-data="fileUploadField_{{ $fieldId }}()" x-init="$watch('value', () => $nextTick(() => $refs.hiddenInput.dispatchEvent(new Event('input', { bubbles: true }))))" class="file-upload-field" data-fieldname="{{ $fieldName }}">
     <label class="{{ $labelClass ?? 'block text-xs mb-1' }}">{{ $labelText }}</label>
 
     <div class="flex items-center gap-1.5 mb-2">

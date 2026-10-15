@@ -168,7 +168,7 @@ class CompanionsController extends Controller
         $this->authorize_($companion, $request->user());
         $caps = CompanionSettings::caps();
 
-        $data = $request->validate([
+        $data = $request->validate(array_merge(\App\Services\AI\CompanionAppearanceRules::rules(), [
             'name'                 => 'required|string|max:120',
             'persona_id'           => 'required|integer',
             'placement'            => 'required|in:' . implode(',', array_keys(AiCompanion::PLACEMENTS)),
@@ -179,6 +179,7 @@ class CompanionsController extends Controller
             'link_ids'             => 'nullable|array|max:100',
             'link_ids.*'           => 'integer',
 
+            'config.bubble_radius' => 'nullable|integer|min:4|max:28',
             'config.theme'             => 'nullable|in:auto,light,dark',
             'config.accent'            => 'nullable|string|max:32',
             'config.launcher_icon'     => 'nullable|string|max:64',
@@ -190,7 +191,7 @@ class CompanionsController extends Controller
             'config.auto_open_after_ms'=> 'nullable|integer|min:0|max:60000',
             'config.inline'            => 'nullable|boolean',
             'config.auto_send_inbox'   => 'nullable|boolean',
-        ]);
+        ]));
 
         $persona = AiPersonaAgent::where('id', $data['persona_id'])
             ->where('user_id', $request->user()->id)->first();

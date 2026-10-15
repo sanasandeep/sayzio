@@ -137,6 +137,9 @@
     var root = document.createElement('div');
     root.className = 'imc-root imc-' + (position === 'bottom-left' ? 'bottom-left' : 'bottom-right') + (dark ? ' imc-dark' : '');
     document.body.appendChild(root);
+    try { var appearance=JSON.parse(script.getAttribute('data-appearance')||'{}');Object.keys(appearance).forEach(function(key){if(/^--cmp-(?:(?:accent|chat|user|assistant)-(?:bg|text)|radius)$/.test(key)) root.style.setProperty(key,appearance[key]);}); } catch(_) {}
+    var appearanceStyle=document.createElement('style');appearanceStyle.textContent='.imc-root .imc-header,.imc-root .imc-launcher,.imc-root form button{background:var(--cmp-accent-bg,' + accent + ')!important;color:var(--cmp-accent-text,#fff)}.imc-root .imc-body{background:var(--cmp-chat-bg,transparent);color:var(--cmp-chat-text,inherit)}.imc-root .imc-msg.imc-u{background:var(--cmp-user-bg,#eef2ff);color:var(--cmp-user-text,#111);border-radius:var(--cmp-radius,14px)}.imc-root .imc-msg.imc-a{background:var(--cmp-assistant-bg,#f5f5f7);color:var(--cmp-assistant-text,#111);border-radius:var(--cmp-radius,14px)}.imc-root.imc-dark .imc-msg.imc-u{background:var(--cmp-user-bg,rgba(61,107,255,.18));color:var(--cmp-user-text,#f5f5f7)}.imc-root.imc-dark .imc-msg.imc-a{background:var(--cmp-assistant-bg,rgba(255,255,255,.06));color:var(--cmp-assistant-text,#f5f5f7)}';document.head.appendChild(appearanceStyle);
+
 
     var launcher = document.createElement('button');
     launcher.className = 'imc-launcher';

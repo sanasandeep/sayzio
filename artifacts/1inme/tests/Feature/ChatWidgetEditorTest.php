@@ -21,5 +21,9 @@ class ChatWidgetEditorTest extends TestCase
   $this->assertStringContainsString('Live preview',$html);$this->assertStringContainsString('Basic info',$html);$this->assertStringContainsString('Unlimited',$html);
   file_put_contents('/tmp/widget-editor-fixture.html',$html);
   $this->assertSame(-1,$widget->fresh()->free_turns_per_month);
+  $this->put('/user/ai-companions/'.$widget->id,['name'=>'Support','persona_id'=>$agent->id,'placement'=>'embed','config'=>['chat_mode'=>'gradient','chat_color'=>'#112233','chat_color_end'=>'#445566','user_text'=>'#ffffff','bubble_radius'=>20]])->assertSessionHasNoErrors();
+  $this->assertSame('gradient',$widget->fresh()->config['chat_mode']);
+  $this->assertSame(-1,$widget->fresh()->free_turns_per_month);
+  $this->putJson('/user/ai-companions/'.$widget->id,['name'=>'Support','persona_id'=>$agent->id,'placement'=>'embed','config'=>['chat_image'=>'javascript:alert(1)']])->assertUnprocessable();
  }
 }

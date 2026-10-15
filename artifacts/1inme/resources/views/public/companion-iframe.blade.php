@@ -94,3 +94,8 @@
 </script>
 </body>
 </html>
+
+<script>Object.entries(@json(\App\Services\AI\CompanionAppearance::variables($config))).forEach(function(entry){document.documentElement.style.setProperty(entry[0],entry[1]);});</script>
+<style>.header,button{background:var(--cmp-accent-bg,var(--accent));color:var(--cmp-accent-text,#fff)}.body{background:var(--cmp-chat-bg,transparent);color:var(--cmp-chat-text,inherit)}.msg.u{background:var(--cmp-user-bg,#eef2ff)!important;color:var(--cmp-user-text,#111)!important;border-radius:var(--cmp-radius,14px)}.msg.a{background:var(--cmp-assistant-bg,#f5f5f7)!important;color:var(--cmp-assistant-text,#111)!important;border-radius:var(--cmp-radius,14px)}</style>
+
+<style>@media(prefers-color-scheme:dark){.msg.u{background:var(--cmp-user-bg,rgba(61,107,255,.18))!important;color:var(--cmp-user-text,#f5f5f7)!important}.msg.a{background:var(--cmp-assistant-bg,rgba(255,255,255,.06))!important;color:var(--cmp-assistant-text,#f5f5f7)!important}}</style>
