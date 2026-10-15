@@ -37,3 +37,10 @@
 .sj-board:not([data-playing]) .sj-zio .zio-face,.sj-board:not([data-playing]) .sj-zio .zio-face *{animation-play-state:paused!important}
 @media(prefers-reduced-motion:reduce){#hero .sj-zio .zio-face,#hero .sj-zio .zio-face *,#hero .sj-stage-icon,#hero .sj-mini-card{animation:none!important;transform:none!important}#hero .sj-zio .zio-mouth-gate{opacity:0!important}#hero .sj-zio .zio-lid{clip-path:inset(0 0 100% 0)!important}}
 </style>
+<style>
+/* Match the page rails and keep rounded cards clear of the section divider. */
+.sj-layout{max-width:1280px;padding:0 40px 88px;gap:42px}.sj-copy h1{font-size:clamp(38px,3.6vw,54px)}
+@media(max-width:1150px){.sj-layout{padding-inline:36px;gap:28px}.sj-copy h1{font-size:42px}}
+@media(max-width:850px){.sj-layout{max-width:700px;padding:0 30px 64px;gap:30px}}
+@media(max-width:480px){.sj-layout{padding:0 24px 52px}.sj-copy h1{font-size:36px}}
+</style>
