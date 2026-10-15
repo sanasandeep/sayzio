@@ -114,7 +114,7 @@ class BrandKitShowcase
             $c['logo'] = $url;
         }
 
-        foreach (['logo_light', 'logo_dark', 'favicon', 'social_banner', 'background', 'icon_dark', 'icon_apple', 'icon_android'] as $key) {
+        foreach (['logo_light', 'logo_dark', 'favicon', 'social_banner', 'background', 'icon_dark', 'icon_apple', 'icon_android', 'light_background_image', 'dark_background_image'] as $key) {
             if (! empty($c[$key])) {
                 $c[$key] = $this->assetUrl((string) $c[$key], (int) $kit->user_id) ?? '';
             }

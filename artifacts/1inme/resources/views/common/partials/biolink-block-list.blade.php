@@ -191,7 +191,7 @@
         $_lim = $block->hasLimits() ? $block->limitsState() : null;
         $_limCfg = is_array($s['_limits'] ?? null) ? $s['_limits'] : [];
     @endphp
-    <div data-brand-ink="{{ empty($s['_style']['text_color']) ? 'inherit' : 'custom' }}" data-brand-fill="{{ empty($s['_style']['bg_color']) && empty($s['bg_color']) ? 'inherit' : 'custom' }}" data-block-id="{{ $block->id }}" data-block-type="{{ $block->type }}" data-tab="{{ $s['_tab_id'] ?? '' }}"
+    <div @if($block->type==='heading' && ($s['size']??'')==='h3' && preg_match('/^(Primary|Secondary|Accent) · #[0-9a-fA-F]{6}$/',$s['text']??'')) data-brand-swatch="1" data-brand-swatch-color="{{ $s['_style']['bg_color']??'' }}" @endif data-brand-ink="{{ empty($s['_style']['text_color']) ? 'inherit' : 'custom' }}" data-brand-fill="{{ empty($s['_style']['bg_color']) && empty($s['bg_color']) ? 'inherit' : 'custom' }}" data-block-id="{{ $block->id }}" data-block-type="{{ $block->type }}" data-tab="{{ $s['_tab_id'] ?? '' }}"
          @if($_animAttr) data-anim="{{ $_animAttr }}" @endif
          @if($_galAttr) data-gallery-layout="{{ $_galAttr }}" @endif
          @if($_socAttr) data-social-set="{{ $_socAttr }}" @endif
