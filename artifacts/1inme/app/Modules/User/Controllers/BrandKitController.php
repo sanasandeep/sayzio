@@ -47,67 +47,7 @@ class BrandKitController extends Controller
 
     public function index(Request $request)
     {
-        $user  = $request->user();
-        $list  = BrandKit::where('user_id', $user->id)->latest()->get();
-        $count = $list->count();
-
-        $cap        = AiPlanAccess::quantityCap($user, 'brand_kits');
-        $canCreate  = AiPlanAccess::underQuantityCap($user, 'brand_kits', $count);
-        $upgrade    = $canCreate ? null : AiPlanAccess::quantityUpgradePlan($user, 'brand_kits', $count);
-        $aiEnabled  = AiEngineSettings::isEnabled();
-
-        // Ensure the user's own Minds exist, then pre-populate the KB
-        // picker from their saved Brand Kit default so they don't have
-        // to re-pick every visit (mirrors Coach / Persona).
-        AiMindProvisioner::ensureForUser($user);
-        $input   = [];
-        $default = AiMindDefault::forUserFeature($user->id, AiBrandKitService::FEATURE);
-        if ($default) {
-            $input['mind_ids']         = $default->mind_ids ?? [];
-            $input['include_platform'] = $default->include_platform;
-        }
-
-        // Targets the user can apply a kit to. `settings`/`type` are needed by
-        // the Brand Consistency audit below (it reads settings['biolink']).
-        $biolinks = Link::where('user_id', workspace_owner_id())
-            ->where('type', 'biolink')
-            ->orderByDesc('id')
-            ->get(['id', 'title', 'alias', 'type', 'settings']);
-        $qrCodes = QrCode::where('user_id', workspace_owner_id())
-            ->orderByDesc('id')
-            ->get(['id', 'name']);
-
-        // Brand Consistency Score (Task #2664): audit the creator's biolinks
-        // against their default Brand Kit. Plan-gated behind the legacy-safe
-        // `brand_consistency` feature; null when ungated or no kit exists.
-        $consistency  = null;
-        $onBrandKit   = AiPlanAccess::featureAllowed($user, 'brand_consistency')
-            ? BrandKit::defaultFor($user->id)
-            : null;
-        if ($onBrandKit) {
-            $consistency = app(BrandConsistencyService::class)->audit($onBrandKit, $biolinks);
-        }
-
-        return view('user.brand-kits.index', [
-            'kits'         => $list,
-            'count'        => $count,
-            'cap'          => $cap,
-            'canCreate'    => $canCreate,
-            'upgradePlan'  => $upgrade,
-            'aiEnabled'    => $aiEnabled,
-            'balance'      => $aiEnabled ? $this->credits->getBalance($user) : 0,
-            'biolinks'     => $biolinks,
-            'qrCodes'      => $qrCodes,
-            'blockThemes'  => $this->kits->allowedBlockThemes(),
-            'consistency'  => $consistency,
-            'consistencyKit' => $onBrandKit,
-            'input'        => $input,
-            'mineMinds'    => $this->userMinds($user),
-            'platformMind' => $this->platformMind(),
-            'hasDefault'   => (bool) $default,
-            'defaultFeature' => AiBrandKitService::FEATURE,
-            'assetTypes'    => $this->assetTypeOptions($user),
-        ]);
+        return app(BrandKitLibraryController::class)->index($request);
     }
 
     /**
@@ -413,7 +353,7 @@ class BrandKitController extends Controller
 
     private function authorizeKit(Request $request, BrandKit $brandKit): void
     {
-        abort_if($brandKit->user_id !== $request->user()->id, 403);
+        abort_if($brandKit->user_id !== workspace_owner_id(), 403);
     }
 
     // ── AI-generated visual assets (Task #5612) ───────────────────────

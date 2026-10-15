@@ -49,7 +49,7 @@ class AiBrandKitService
      */
     public const COMPONENTS = ['palette', 'fonts', 'voice', 'taglines', 'bio', 'block_theme'];
 
-    private const MAX_PROMPT_LEN    = 2000;
+    private const MAX_PROMPT_LEN    = 20000;
     private const MAX_URL_LEN       = 2048;
     private const MAX_OUTPUT_TOKENS = 1200;
 
@@ -118,6 +118,14 @@ class AiBrandKitService
             . "    \"accent\": string(hex),\n"
             . "    \"neutrals\": [string(hex), ...]       // 2-4 neutral hex colors, light to dark\n"
             . "  },";
+        if ($want('bio')) {
+            $fields[] = '  "description": string, // short factual description from the brief';
+            $fields[] = '  "audience": string, // stated audience only; empty if unknown';
+        }
+        if ($want('voice')) {
+            $fields[] = '  "instructions": string, // concise reusable brand writing guidelines';
+            $fields[] = '  "exclusions": string, // restrictions explicitly supplied, otherwise empty';
+        }
         if ($want('fonts')) {
             $fields[] = "  \"fonts\": { \"heading\": string, \"body\": string },  // real Google Font family names";
         }
@@ -142,7 +150,7 @@ class AiBrandKitService
             $rules[] = "- block_theme MUST be EXACTLY one of the listed keys.";
         }
         $rules[] = "- Put real, specific copy in every text field — no Lorem Ipsum, no \"placeholder\".";
-        $rules[] = "- Use empty strings/arrays rather than null.";
+        $rules[] = "- Use empty strings/arrays rather than null. Never invent business facts, credentials, statistics, policies or guarantees. Keep unknown facts empty.";
 
         $schema = "Return STRICT JSON (no markdown, no commentary, no extra keys) with this exact shape:\n"
             . "{\n" . implode("\n", $fields) . "\n}\n"
@@ -210,7 +218,7 @@ class AiBrandKitService
      *
      * @return array{kit:BrandKit,credits_spent:int,model:string}
      */
-    public function generate(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = '', array $components = []): array
+    public function generate(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = '', array $components = [], bool $persist = true): array
     {
         $components = $this->normalizeComponents($components);
         $messages   = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl, $kbContext, $components);
@@ -253,7 +261,7 @@ class AiBrandKitService
             $kit->slug       = Str::slug($name) ?: 'brand-kit';
             $kit->config     = $config;
             $kit->is_default = !BrandKit::where('user_id', $user->id)->exists();
-            $kit->save();
+            if ($persist) $kit->save();
         } catch (\Throwable $e) {
             if ($creditsSpent > 0) {
                 $this->credits->refund($user, $creditsSpent, [
@@ -278,6 +286,8 @@ class AiBrandKitService
      */
     public function applyToBiolink(BrandKit $kit, Link $link): void
     {
+        abort_unless((int)$kit->workspace_id === (int)($link->workspace_id ?: $link->user?->ensureDefaultWorkspace()->id),403);
+        abort_if(!empty($kit->config['archived_at']),422,'Restore this kit first.');
         $palette = $kit->palette();
         $fonts   = $kit->fonts();
         $theme   = $kit->blockTheme();
@@ -318,6 +328,7 @@ class AiBrandKitService
             $bio['block_theme'] = $blockTheme;
         }
 
+        $settings['brand_identity']=['kit_id'=>$kit->id,'mode'=>'follow','overrides'=>[],'revision'=>app(BrandKitAssignments::class)->revision($kit),'applied_at'=>now()->toIso8601String()];
         $settings['biolink'] = $bio;
         $link->settings = $settings;
         $link->save();
@@ -331,6 +342,8 @@ class AiBrandKitService
      */
     public function applyToQr(BrandKit $kit, QrCode $qrCode): void
     {
+        abort_unless((int)$kit->workspace_id === (int)($qrCode->workspace_id ?: $qrCode->user?->ensureDefaultWorkspace()->id),403);
+        abort_if(!empty($kit->config['archived_at']),422,'Restore this kit first.');
         $palette = $kit->palette();
 
         $primary   = $this->hex($palette['primary'] ?? null);
@@ -352,7 +365,9 @@ class AiBrandKitService
             $design['corner_dot_color'] = $cornerDot;
         }
 
-        $qrCode->design = QrCodeDesignSanitizer::sanitize($design);
+        $design=QrCodeDesignSanitizer::sanitize($design);
+        $design['brand_identity']=['kit_id'=>$kit->id,'revision'=>app(BrandKitAssignments::class)->revision($kit)];
+        $qrCode->design = $design;
         $qrCode->save();
     }
 
@@ -450,6 +465,10 @@ class AiBrandKitService
         }
 
         return [
+            'description' => $want('bio') ? mb_substr(trim((string)($parsed['description']??'')),0,2000) : '',
+            'audience' => $want('bio') ? mb_substr(trim((string)($parsed['audience']??'')),0,1000) : '',
+            'instructions' => $want('voice') ? mb_substr(trim((string)($parsed['instructions']??'')),0,4000) : '',
+            'exclusions' => $want('voice') ? mb_substr(trim((string)($parsed['exclusions']??'')),0,2000) : '',
             'palette' => [
                 'primary'   => $primary,
                 'secondary' => $secondary ?? $primary,

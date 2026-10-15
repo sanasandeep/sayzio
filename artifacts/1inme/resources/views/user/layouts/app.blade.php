@@ -1095,8 +1095,8 @@
                            class="sidebar-link {{ nav_route_is('user.brand-kits.*') ? 'active' : '' }}"
                            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
-                            <span class="nav-label">AI Brand Kit</span>
-                            <span class="sidebar-tooltip">AI Brand Kit</span>
+                            <span class="nav-label">Brand Kits</span>
+                            <span class="sidebar-tooltip">Brand Kits</span>
                         </a>
                         <a href="{{ route('user.brand-studio.index') }}"
                            class="sidebar-link {{ nav_route_is('user.brand-studio.*') ? 'active' : '' }}"
@@ -1832,7 +1832,7 @@
                                 <a href="{{ route('user.ai-personas.index') }}" class="sidebar-link {{ nav_route_is('user.ai-personas.*', 'user.ai.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div> <span>Agents</span></a>
 
                                 <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ nav_route_is('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Channels</span></a>
-                                <a href="{{ route('user.brand-kits.index') }}" class="sidebar-link {{ nav_route_is('user.brand-kits.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div> <span>AI Brand Kit</span></a>
+                                <a href="{{ route('user.brand-kits.index') }}" class="sidebar-link {{ nav_route_is('user.brand-kits.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div> <span>Brand Kits</span></a>
                                 <a href="{{ route('user.brand-studio.index') }}" class="sidebar-link {{ nav_route_is('user.brand-studio.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div> <span>AI Brand Studio</span></a>
                                 @if(auth()->check())
                                 <a href="{{ \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()) ? route('user.ai.ask-coach.show') : route('user.ai.companion.show') }}" class="sidebar-link {{ nav_route_is('user.ai.ask-coach.*', 'user.ai.companion.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Ask Zio</span></a>

@@ -24,6 +24,8 @@
         ],
     ])
 
+    @include('user.brand-kits.link-assignment',['link'=>$link])
+
     <div class="mb-6">
         @include('user.links.partials.aliases-card', ['link' => $link, 'domains' => $domains ?? collect()])
     </div>

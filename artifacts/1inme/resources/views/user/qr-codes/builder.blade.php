@@ -137,6 +137,7 @@
 </style>
 
 <div class="qr-editor-shell max-w-[1500px] mx-auto" x-data="qrBuilder()" x-init="init()" x-cloak>
+    @if($isEdit) @include('user.brand-kits.qr-assignment',['qrCode'=>$qrCode]) @endif
     <form method="POST" action="{{ $action }}" id="qrForm" @submit="if(!referenceScanReady())$event.preventDefault()">
         @csrf
         @if($isEdit) @method('PUT') @endif

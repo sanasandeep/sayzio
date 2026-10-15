@@ -16,8 +16,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class BrandKit extends Model
 {
+    use \App\Modules\User\Concerns\BelongsToWorkspace;
+
     protected $fillable = [
         'user_id',
+        'workspace_id',
         'name',
         'slug',
         'config',
@@ -28,6 +31,15 @@ class BrandKit extends Model
         'config'     => 'array',
         'is_default' => 'bool',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function ($kit) {
+            if (!$kit->workspace_id && $kit->user_id) {
+                $kit->workspace_id = User::find($kit->user_id)?->ensureDefaultWorkspace()->id;
+            }
+        });
+    }
 
     public function user(): BelongsTo
     {
@@ -59,7 +71,10 @@ class BrandKit extends Model
     public function logo(): string
     {
         foreach (['logo', 'logo_url', 'source', 'source_url'] as $key) {
-            $val = trim((string) ($this->config[$key] ?? ''));
+            $raw = $this->config[$key] ?? '';
+            if (is_array($raw)) $raw = ($raw['type'] ?? '') === 'logo' ? ($raw['value'] ?? '') : '';
+            $val = is_string($raw) ? trim($raw) : '';
+            if ($val !== '' && !preg_match('~^(https?://|/(?!/))~i', $val)) continue;
             if ($val !== '') {
                 return $val;
             }
@@ -84,13 +99,12 @@ class BrandKit extends Model
     }
 
     /**
-     * The creator's "active" brand kit: the one flagged default, else the
-     * most recently created. Used by On-Brand AI (Task #2664) to ground the
+     * The creator's explicitly selected default identity for new AI drafts. Used by On-Brand AI (Task #2664) to ground the
      * biolink builder and AI Companion in the saved identity.
      */
     public static function defaultFor(int $userId): ?self
     {
-        return static::where('user_id', $userId)
+        return static::where('user_id', $userId)->where('is_default',true)->whereNull('config->archived_at')
             ->orderByDesc('is_default')
             ->orderByDesc('id')
             ->first();
@@ -131,6 +145,10 @@ class BrandKit extends Model
         $taglines = $this->taglines();
         if ($taglines) {
             $lines[] = 'Echo the spirit of taglines like: "' . implode('", "', array_slice($taglines, 0, 3)) . '".';
+        }
+
+        foreach (['audience'=>'Audience','instructions'=>'Brand instructions','exclusions'=>'Avoid'] as $key=>$label) {
+            $value=trim((string)($this->config[$key]??''));if($value!=='')$lines[]=$label.': '.mb_substr($value,0,2000);
         }
 
         if ($includeColors) {
