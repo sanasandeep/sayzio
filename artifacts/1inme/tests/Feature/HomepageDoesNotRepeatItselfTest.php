@@ -72,9 +72,9 @@ class HomepageDoesNotRepeatItselfTest extends TestCase
         $html = $this->sections();
 
         foreach ([
-            'id="audience"' => 'the audience section',
-            'id="domains"' => 'the custom domain section',
-            'id="workspace-team"' => 'the teams section',
+            'id="create"' => 'the creation showcase',
+            'id="customer-workflow"' => 'the customer workflow',
+            'id="connected-ai"' => 'the AI explanation',
             'id="faq"' => 'the FAQ',
             'id="cta-final"' => 'the closing CTA',
         ] as $marker => $what) {

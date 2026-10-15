@@ -42,7 +42,8 @@ class HomepageZioIsAliveInBothPlacesTest extends TestCase
     /** The below-the-fold sections, which is where the hub lives. */
     private function sections(): string
     {
-        return $this->get('/home/sections')->assertOk()->getContent();
+        // The retained hub partial is used by other designs; the compact home no longer includes it.
+        return view('home.partials.zio-hub')->render();
     }
 
     public function test_the_hub_draws_the_live_zio_not_a_still(): void

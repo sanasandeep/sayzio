@@ -105,12 +105,10 @@ class HomepageNumbersAndBrandReadRightTest extends TestCase
             $html,
             'the stat count-up is grouping digits Indian-style for every visitor in the world'
         );
-        $this->assertStringContainsString(
-            "toLocaleString('en-US')",
-            $html,
-            'the stat count-up no longer pins a locale, so it will group by the viewer\'s '
-            . 'and disagree with the server-rendered figure'
-        );
+        // The compact strip renders the final value directly, without a second count-up.
+        $this->assertStringContainsString('class="ch-trust pb-band"', $html);
+        $this->assertSame(1, substr_count($html, 'class="ch-trust pb-band"'));
+
     }
 
     /**

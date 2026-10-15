@@ -115,7 +115,7 @@ class HomepageSectionDividerTest extends TestCase
     private function homepageBandViews(): array
     {
         return $this->viewsReachableFrom(array_merge(
-            [resource_path('views/home.blade.php')],
+            [resource_path('views/home.blade.php'), resource_path('views/home/above-fold-sections.blade.php')],
             glob(resource_path('views/home/deferred-sections*.blade.php')) ?: []
         ));
     }
@@ -134,22 +134,15 @@ class HomepageSectionDividerTest extends TestCase
         );
 
         foreach ([
-            'home/partials/ai-suite.blade.php',
-            'home/partials/zio-hub.blade.php',
-            'home/partials/pricing.blade.php',
-            // Was home/partials/notifications.blade.php, which the classic
-            // homepage stopped including on 2026-09-11 (the 25-to-15 section
-            // cut). Any still-included partial serves this canary equally --
-            // the point is that the crawl finds nested includes at all, not
-            // which one it finds.
+            'home/partials/customer-workflow.blade.php',
+            'home/partials/connected-ai.blade.php',
+            'home/partials/compact-conversion.blade.php',
             'home/partials/create-showcase.blade.php',
-            'public/partials/marketing-trust-band.blade.php',
-            'public/partials/_compare.blade.php',
         ] as $expected) {
             $this->assertContains($expected, $found, "the @include crawl never reached {$expected}");
         }
 
-        $this->assertGreaterThan(30, count($found), 'the crawl collapsed; it is not reading the page any more');
+        $this->assertGreaterThan(10, count($found), 'the crawl collapsed; it is not reading the page any more');
     }
 
     /**
@@ -345,7 +338,7 @@ class HomepageSectionDividerTest extends TestCase
      */
     public function test_every_band_the_default_fragment_declares_actually_renders(): void
     {
-        $source = (string) file_get_contents(resource_path('views/home/deferred-sections.blade.php'));
+        $source = (string) file_get_contents(resource_path('views/home/partials/compact-conversion.blade.php'));
 
         preg_match_all('/<section\b[^>]*\bid="([a-z][\w-]*)"/i', $source, $m, PREG_OFFSET_CAPTURE);
 
@@ -366,7 +359,7 @@ class HomepageSectionDividerTest extends TestCase
         $declared = array_keys($declared);
 
         $this->assertNotEmpty($declared, 'no unconditional ids found in the default fragment; the scan is broken');
-        $this->assertContains('buzz', $declared, 'the scan is not finding bands it should');
+        $this->assertContains('pricing', $declared, 'the scan is not finding bands it should');
 
         $html = $this->get('/home/sections')->assertOk()->getContent();
 
@@ -394,21 +387,11 @@ class HomepageSectionDividerTest extends TestCase
      */
     public function test_the_bands_inside_the_ai_zone_carry_rules(): void
     {
-        foreach (['ai-hero', 'ai-suite', 'ai-marketing-strategist', 'whatsapp-agent', 'ai-dashboard'] as $id) {
-            $file = collect($this->homepageBandViews())
-                ->first(fn ($p) => str_contains((string) file_get_contents($p), 'id="' . $id . '"'));
-
-            $this->assertNotNull($file, "no view renders #{$id}");
-
-            $source = (string) file_get_contents($file);
-            preg_match('/<section\b[^>]*id="' . preg_quote($id, '/') . '"[^>]*>/i', $source, $m);
-
-            $this->assertNotEmpty($m, "#{$id} is not a <section>");
-            $this->assertPatternFound(
-                '/(?<![\w-])sec-rule(?![\w-])/',
-                $m[0],
-                "#{$id} sits inside the AI zone's ground with five siblings and needs a rule between them"
-            );
+        $html = $this->get('/')->assertOk()->getContent();
+        $this->assertSame(1, substr_count($html, 'id="connected-ai"'));
+        $source = (string) file_get_contents(resource_path('views/home/above-fold-sections.blade.php'));
+        foreach (['ai-hero', 'ai-suite', 'ai-marketing-strategist', 'whatsapp-agent', 'ai-dashboard'] as $old) {
+            $this->assertStringNotContainsString("home.partials.{$old}", $source);
         }
     }
 }
