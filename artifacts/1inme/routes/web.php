@@ -881,3 +881,5 @@ Route::post("f/{slug}/event", [\App\Modules\User\Controllers\FormExperienceContr
 
 Route::get('brand-showcases/{id}/{token}/icons/{filename}', [\App\Modules\User\Controllers\BrandKitShowcaseController::class, 'icon'])->whereNumber('id')->where('token','[a-f0-9]{40}')->where('filename','favicon\.ico|favicon\.svg|favicon-[0-9]+\.png|favicon-dark\.png|apple-touch-icon\.png|android-[0-9]+\.png|maskable-512\.png|site\.webmanifest')->middleware('throttle:60,1')->name('brand-showcases.icon');
 Route::get('brand-showcases/{id}/{token}/{format}', [\App\Modules\User\Controllers\BrandKitShowcaseController::class, 'download'])->whereNumber('id')->where('token','[a-f0-9]{40}')->whereIn('format',['pdf','zip'])->middleware('throttle:10,1')->name('brand-showcases.download');
+
+\Illuminate\Support\Facades\Route::get('/shared/forecasts/{plan}/{version}', [\App\Modules\User\Controllers\BudgetForecastController::class, 'publicReport'])->whereNumber('plan')->whereNumber('version')->middleware('throttle:60,1')->name('forecast.share');

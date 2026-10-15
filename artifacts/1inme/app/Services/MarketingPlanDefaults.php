@@ -140,14 +140,16 @@ class MarketingPlanDefaults
         return [
             'company'          => '',
             'industry_preset'  => MarketingPlanIndustryPresets::GENERIC, // Task #6767
+            'period_months' => 12,
+            'costs' => [], 'sales_delay'=>0, 'repeat_rate'=>0, 'churn_rate'=>0, 'refund_rate'=>0,
             'annual_budget'    => 180000,      // INR, paid channels only
             'display_currency' => 'INR',
             'usd_inr_rate'     => 83.0,        // editable USD→INR display rate
             'weights'          => array_fill(0, 12, 1.0),
             'plan_slug'        => $planSlug,
-            'ai_credits'       => 2000,        // ₹/month (~$20 under the USD toggle) — a realistic starting point, fully editable
-            'organic_visitors' => 8000,        // est. monthly organic (bio page, QR & short links)
-            'uplifts'          => ['apply' => true, 'chat' => 8.0, 'crm' => 15.0],
+            'ai_credits'       => 0,        // INR per month; enter an estimate or seed from recorded spend.
+            'organic_visitors' => 0,        // No invented owned traffic; enter an assumption or use recorded activity.
+            'uplifts'          => ['apply' => false, 'chat' => 8.0, 'crm' => 15.0],
             // Task #6768 — finance assumptions behind CAC / ROAS / LTV:CAC,
             // break-even & payback metrics.
             'gross_margin'     => 60.0,        // % of revenue kept as gross profit

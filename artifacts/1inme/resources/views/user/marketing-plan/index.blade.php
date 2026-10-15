@@ -1,8 +1,10 @@
 @extends('user.layouts.app')
-@section('title', 'Marketing Plan Calculator')
+@section('title', 'Budget & Forecast')
 
 @section('content')
-<div class="max-w-5xl mx-auto px-4 py-8">
+@include('user.marketing-studio.styles')
+@include('user.partials.page-hero',['title'=>'Budget & Forecast','subtitle'=>'Budgets, targets and editable forecasts for your business.','emblemIcon'=>'fa-chart-line','back'=>route('user.marketing-studio.index'),'chips'=>[['text'=>'Marketing Plan Calculator']]])
+<div class="bf-page">
     <style>
         .mpc-card { border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03); }
         html.light-mode .mpc-card { border-color: rgba(15,23,42,0.12); background: #ffffff; }
@@ -17,11 +19,12 @@
         html.light-mode .mpc-menu-item:hover { background: #f1f5f9; }
     </style>
 
+    @include('user.marketing-plan.premium-styles')
     <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
         <div>
             <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-blue-400">Tools</p>
-            <h1 class="text-2xl font-bold mpc-title mt-1">Marketing Plan Calculator</h1>
-            <p class="text-sm mpc-sub mt-1">Build a 12-month channel plan, projections dashboard and Sayzio ROI summary, no spreadsheet needed.</p>
+            <h2 class="text-xl font-bold mpc-title mt-1">Saved forecasts</h2>
+            <p class="text-sm mpc-sub mt-1">Start from a budget, a target or an existing strategy. Save scenarios and compare results.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             @if(($canCreate ?? true))
@@ -70,6 +73,7 @@
         </div>
     </div>
 
+    <div class="bk-stat-grid">@foreach([['Saved forecasts',$plans->count(),'#123c85','#3b82f6','pages'],['Connected campaigns',$plans->filter(fn($p)=>!empty($p->payload['campaign_id']))->count(),'#512b89','#8b5cf6','links'],['Months manually tracked',$plans->sum(fn($p)=>\App\Modules\User\Models\MarketingPlanCalc::trackedActualMonths($p->payload)),'#075953','#0d9488','folders']] as [$label,$value,$base,$glow,$kind])<div class="ov-panel ov-count" style="--ov-tone:{{ $base }};--ov-color:{{ $glow }}"><div class="ov-count-top"><span class="ov-count-label">{{ $label }}</span></div>@include('user.partials.count-card-art',['kind'=>$kind,'artId'=>'forecast-index-'.$loop->index])<div class="ov-count-bottom"><strong>{{ $value }}</strong><p>Saved in this workspace</p></div></div>@endforeach</div>
     @if(isset($planCap) && $planCap >= 0)
         <p class="text-xs mpc-faint -mt-3 mb-4">
             {{ $plans->count() }} of {{ $planCap }} saved plan{{ $planCap === 1 ? '' : 's' }} used on your plan.

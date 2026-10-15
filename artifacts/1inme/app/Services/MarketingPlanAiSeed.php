@@ -155,7 +155,7 @@ class MarketingPlanAiSeed
      * cannot be understood. USD amounts convert at the calculator's
      * default display rate.
      */
-    protected static function parseAnnualBudgetInr(string $raw, string $currency = ''): ?float
+    public static function parseAnnualBudgetInr(string $raw, string $currency = ''): ?float
     {
         $raw = trim($raw);
         if ($raw === '' || !preg_match('/([\d][\d,\.]*)/', $raw, $m)) {

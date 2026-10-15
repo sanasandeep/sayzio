@@ -215,6 +215,7 @@ class MarketingPlanActuals
             'ai_spend_last_month_inr' => $personalScope ? self::aiSpendLastMonthInr($user) : 0.0,
             'features'                => self::features($user, $workspaceId),
             'has_data'                => $hasData,
+            'data_notes' => ['visitors'=>'Recorded clicks, not unique visitors','leads'=>'Form submissions plus contact records; overlap possible','customers'=>'Qualifying transactions, not unique customers','currency'=>'INR and USD only; other currencies excluded. USD uses fixed 83 INR; not a live rate.','attribution'=>'Workspace activity, not campaign-attributed conversions'],
         ];
     }
 
@@ -361,7 +362,7 @@ class MarketingPlanActuals
     /** Convert an order/invoice amount to INR (base currency of the model). */
     protected static function toInr(float $amount, string $currency): float
     {
-        return strtoupper($currency) === 'USD' ? $amount * self::USD_INR : $amount;
+        return match(strtoupper($currency)) {'INR'=>$amount,'USD'=>$amount*self::USD_INR,default=>0.0};
     }
 
     /**

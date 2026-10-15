@@ -100,7 +100,7 @@ class MarketingPlanActualsTest extends TestCase
         $this->assertFalse($prefill['sufficient']);
         $this->assertSame([], $prefill['filled']);
         // The payload stays exactly the untouched defaults for the engine keys.
-        $this->assertSame(8000, $prefill['payload']['organic_visitors']);
+        $this->assertSame(0, $prefill['payload']['organic_visitors']);
 
         // The create page with ?use_actuals=1 still renders — with the
         // "not enough data" explanation instead of an error.

@@ -89,6 +89,7 @@ class CampaignWorkspace
         foreach ($b['resources'] ?? [] as $ref) {
             try {
                 $row = app(PlannerResources::class)->get($ref['kind'], $ref['id'], auth()->user());
+                if($ref['kind']==='budget')$lines[]='Budget assumptions (not guarantees): '.json_encode(collect($row->payload)->only(['company','annual_budget','period_months','costs','channels','gross_margin'])->all());
                 $lines[] = 'Connected resource: '.json_encode(['kind' => $ref['kind'], 'name' => app(PlannerResources::class)->label($row), 'url' => app(PlannerResources::class)->url($ref['kind'], $row)]);
             } catch (HttpException|ModelNotFoundException $e) {
                 $lines[] = 'A previously selected resource is no longer available.';

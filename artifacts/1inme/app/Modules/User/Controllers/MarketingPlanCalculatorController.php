@@ -107,12 +107,21 @@ class MarketingPlanCalculatorController extends Controller
             $actualsSeed = ['filled' => $prefill['filled'], 'sufficient' => $prefill['sufficient']];
         }
 
+        if ($request->filled('from_campaign')) {
+            $campaign = app(\App\Services\Marketing\CampaignWorkspace::class)->owned((int)$request->query('from_campaign'),$request);
+            $payload['campaign_id']=$campaign->id;$payload['project_id']=$campaign->project_id;
+            $payload['company']=$campaign->name;$seedName=$campaign->name.' · budget';
+            $budget=MarketingPlanAiSeed::parseAnnualBudgetInr((string)($campaign->brief['budget']??''));
+            if($budget!==null&&$budget>0)$payload['annual_budget']=$budget;
+        }
+
         // The fixed Sayzio row's AI-credit spend defaults to last month's
         // real coin spend (still editable) whenever the user hasn't typed one.
         if ($actuals && (float) ($payload['ai_credits'] ?? 0) <= 0 && (float) $actuals['ai_spend_last_month_inr'] > 0) {
             $payload['ai_credits'] = $actuals['ai_spend_last_month_inr'];
         }
 
+        $payload['start_month']=(int)now()->setTimezone(\App\Support\PlatformTimezone::forUser($user))->format('n')-1;
         return view('user.marketing-plan.editor', [
             'plan'           => null,
             'payload'        => $payload,
@@ -263,6 +272,8 @@ class MarketingPlanCalculatorController extends Controller
             $data['payload']['actuals_log'] = ((array) $model->payload)['actuals_log'];
         }
 
+        app(\App\Services\BudgetForecast::class)->version($model);
+        $data['payload']['share_epoch'] = $model->payload['share_epoch'] ?? 0;
         $model->update(['name' => $data['name'], 'payload' => $data['payload']]);
 
         return response()->json(['ok' => true, 'id' => $model->id]);
@@ -297,6 +308,28 @@ class MarketingPlanCalculatorController extends Controller
 
             // Task #6767 — the originating industry preset key (badge only,
             // free-form so a removed preset can't block re-saving old plans).
+            'payload.start_month' => 'nullable|integer|min:0|max:11',
+            'payload.scenario_labels' => 'nullable|array|max:5',
+            'payload.scenario_labels.*' => 'string|max:60',
+            'payload.scenarios.*.budget' => 'nullable|numeric|min:0|max:1000',
+            'payload.scenarios.*.cpv' => 'nullable|numeric|min:1|max:1000',
+            'payload.scenarios.*.vl' => 'nullable|numeric|min:0|max:1000',
+            'payload.scenarios.*.lc' => 'nullable|numeric|min:0|max:1000',
+            'payload.period_months' => 'nullable|integer|min:1|max:12',
+            'payload.sales_delay' => 'nullable|integer|min:0|max:11',
+            'payload.repeat_rate' => 'nullable|numeric|min:0|max:100',
+            'payload.churn_rate' => 'nullable|numeric|min:0|max:100',
+            'payload.refund_rate' => 'nullable|numeric|min:0|max:100',
+            'payload.costs' => 'nullable|array|max:30',
+            'payload.costs.*.name' => 'required_with:payload.costs|string|max:100',
+            'payload.costs.*.amount' => 'required_with:payload.costs|numeric|min:0|max:1000000000000',
+            'payload.costs.*.frequency' => 'required_with:payload.costs|in:monthly,once',
+            'payload.costs.*.month' => 'nullable|integer|min:0|max:11',
+            'payload.channels' => 'nullable|array|max:50',
+            'payload.channels.*.key' => 'required_with:payload.channels|string|max:80',
+            'payload.channels.*.name' => 'required_with:payload.channels|string|max:160',
+            'payload.channels.*.min_budget' => 'nullable|numeric|min:0|max:1000000000000',
+            'payload.channels.*.max_budget' => 'nullable|numeric|min:0|max:1000000000000',
             'payload.industry_preset'  => 'nullable|string|max:64',
 
             // Engine-critical numbers — bounded, but nullable so older /
@@ -349,7 +382,7 @@ class MarketingPlanCalculatorController extends Controller
         // NOTE: once nested `payload.*` rules exist, validated()['payload']
         // would contain ONLY the ruled keys — return the full raw payload
         // (it passed the bounds checks above) so unruled keys survive.
-        return ['name' => trim($validated['name']), 'payload' => (array) $request->input('payload')];
+        return ['name' => trim($validated['name']), 'payload' => collect((array) $request->input('payload'))->except(['share_epoch','report_brand','_subscription_inr'])->all()];
     }
 
     /**
@@ -439,7 +472,7 @@ class MarketingPlanCalculatorController extends Controller
      * and to members whose role is analytics-capable (admin / analyst).
      * Personal scope (no workspace bound) is always the user's own data.
      */
-    protected function canViewActuals(Request $request): bool
+    public function canViewActuals(Request $request): bool
     {
         if (!app()->bound('current_workspace')) {
             return true; // personal scope: the user's own data
