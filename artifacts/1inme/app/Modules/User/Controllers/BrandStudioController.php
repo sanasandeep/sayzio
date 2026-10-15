@@ -53,6 +53,8 @@ class BrandStudioController extends Controller
 
         return view($campaign ? 'user.marketing-studio.build' : 'user.brand-studio.index', [
             'campaign' => $campaign,
+            'projects' => app(\App\Services\Brand\StudioConnections::class)->projects()->get(),
+            'minds' => $request->user()->canInWorkspace(app('current_workspace'), 'minds.view') ? \App\Modules\User\Models\AiMind::where('user_id', $owner->id)->where('is_disabled', false)->get() : collect(),
             'campaignBrief' => $campaign ? mb_substr(implode("\n\n", array_filter([$campaign->brief['goal'] ?? '', $campaign->brief['offer'] ?? '', $campaign->brief['content'] ?? ''])), 0, 4000) : '',
             'allowed' => $allowed,
             'aiEnabled' => AiEngineSettings::isEnabled(),
@@ -156,7 +158,7 @@ class BrandStudioController extends Controller
 
         try {
             $brand = $this->studio->resolveBrand($owner, $data['brand_kit_id'], $data['inline']);
-            $cost = $this->studio->estimateCredits($owner, $data['request'], $brand['directives'].($data['campaign'] ? '\n'.app(CampaignWorkspace::class)->brief($data['campaign'], $data['strategy_id']) : ''), $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
+            $cost = $this->studio->estimateCredits($owner, $data['request'], $brand['directives']."\n".$data['mind_context'].($data['campaign'] ? '\n'.$this->creationContext($data) : ''), $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -185,7 +187,7 @@ class BrandStudioController extends Controller
         }
         try {
             $brand = $this->studio->resolveBrand($owner, $data['brand_kit_id'], $data['inline']);
-            $result = $this->studio->plan($owner, $data['request'], $brand['directives'].($data['campaign'] ? '\n'.app(CampaignWorkspace::class)->brief($data['campaign'], $data['strategy_id']) : ''), $brand['brand'], $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
+            $result = $this->studio->plan($owner, $data['request'], $brand['directives']."\n".$data['mind_context'].($data['campaign'] ? '\n'.$this->creationContext($data) : ''), $brand['brand'] + ['brand_kit_id' => $data['brand_kit_id'], 'project_id' => $data['project_id'], 'mind_ids' => $data['mind_ids']], $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message' => 'Not enough coins for this Brand Studio run.',
@@ -282,6 +284,7 @@ class BrandStudioController extends Controller
                 }
                 $existing = $campaign ? collect(app(CampaignWorkspace::class)->materials($campaign))->map(fn ($item) => $item['kind'].':'.$item['id'])->all() : [];
                 $result = $this->studio->materialize(workspace_owner(), $locked, $data['keep'] ?? null, $campaign && $request->boolean('retry'));
+                app(\App\Services\Brand\StudioConnections::class)->attach($locked->refresh(), $request);
                 if ($campaign) {
                     $workspace = app(CampaignWorkspace::class);
                     $workspace->finalizeDrafts($campaign, $kit->id, $request, $existing);
@@ -339,6 +342,9 @@ class BrandStudioController extends Controller
             'composition.*.kind' => ['required_with:composition', 'string', 'in:'.implode(',', AiBrandStudioService::ASSET_KINDS)],
             'composition.*.count' => ['nullable', 'integer', 'min:1', 'max:10'],
             'composition.*.purpose' => ['nullable', 'string', 'max:'.AiBrandStudioService::MAX_PURPOSE_LEN],
+            'project_id' => ['nullable', 'integer'],
+            'mind_ids' => ['nullable', 'array', 'max:8'],
+            'mind_ids.*' => ['integer'],
             'strategy_id' => ['nullable', 'integer'],
             'brand_kit_id' => ['nullable', 'integer'],
             'brand_name' => ['nullable', 'string', 'max:160'],
@@ -357,6 +363,7 @@ class BrandStudioController extends Controller
         }
 
         return [
+            ...app(\App\Services\Brand\StudioConnections::class)->validate($request, $data),
             'campaign' => app(CampaignWorkspace::class)->requestCampaign($request),
             'strategy_id' => $request->filled('strategy_id') ? (int) $request->input('strategy_id') : null,
             'request' => (string) ($data['request'] ?? ''),
@@ -372,6 +379,16 @@ class BrandStudioController extends Controller
                 'description' => (string) ($data['brand_description'] ?? ''),
             ],
         ];
+    }
+
+    private function creationContext(array $data): string
+    {
+        // The selector supplies the run's brand. Do not also inject a conflicting campaign default.
+        $campaign = clone $data['campaign'];
+        $brief = $campaign->brief;
+        unset($brief['brand_kit_id']);
+        $campaign->brief = $brief;
+        return app(CampaignWorkspace::class)->brief($campaign, $data['strategy_id']);
     }
 
     private function authorizeKit(BrandStudioKit $kit): void

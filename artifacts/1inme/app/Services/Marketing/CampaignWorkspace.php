@@ -177,7 +177,7 @@ class CampaignWorkspace
         foreach (BrandStudioKit::where('user_id', workspace_owner_id())->whereIn('id', $campaign->studio_ids ?? [])->get() as $kit) {
             foreach ($kit->createdAssets() as $asset) {
                 $kind = match ($asset['kind'] ?? '') {
-                    'biolink','short_link','vcard' => 'link','form' => 'form','qr_code' => 'qr',default => null
+                    'biolink','short_link','vcard','calendar','restaurant_menu','store_menu' => 'link','form' => 'form','qr_code' => 'qr',default => null
                 };
                 if (! $kind) {
                     continue;
@@ -190,7 +190,7 @@ class CampaignWorkspace
                     continue;
                 }
                 $rows[$kind.':'.$item->id] = ['studio_id' => $kit->id, 'kind' => $kind, 'id' => $item->id, 'title' => $item->title ?? $item->name, 'active' => (bool) ($item->is_active ?? false), 'clicks' => $kind === 'link' ? (int) $item->total_clicks : null, 'url' => match ($kind) {
-                    'link' => $item->type === 'biolink' ? route('user.links.blocks.editor', $item) : route('user.links.edit', $item),'form' => route('user.forms.builder', $item),'qr' => route('user.qr-codes.edit', $item)
+                    'link' => match ($item->type) { 'biolink' => route('user.links.blocks.editor', $item), 'calendar' => route('user.calendars.editor', $item), 'restaurant_menu' => route('user.links.restaurant.editor', $item), 'store_menu' => route('user.links.store.editor', $item), default => route('user.links.edit', $item) },'form' => route('user.forms.builder', $item),'qr' => route('user.qr-codes.edit', $item)
                 }];
             }
         }
@@ -200,7 +200,9 @@ class CampaignWorkspace
 
     public function finalizeDrafts(MarketingCampaign $campaign, int $kitId, Request $request, array $existing = []): void
     {
-        $brand = ! empty($campaign->brief['brand_kit_id']) ? $this->contextModel('brand', (int) $campaign->brief['brand_kit_id']) : null;
+        $runBrand = BrandStudioKit::where('user_id', workspace_owner_id())->findOrFail($kitId)->brand ?? [];
+        $brandId = array_key_exists('brand_kit_id', $runBrand) ? $runBrand['brand_kit_id'] : ($campaign->brief['brand_kit_id'] ?? null);
+        $brand = $brandId ? $this->contextModel('brand', (int) $brandId) : null;
         foreach ($this->materials($campaign) as $item) {
             if ($item['studio_id'] !== $kitId || in_array($item['kind'].':'.$item['id'], $existing, true)) {
                 continue;

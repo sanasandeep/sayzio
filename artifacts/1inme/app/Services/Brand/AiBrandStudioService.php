@@ -46,11 +46,14 @@ class AiBrandStudioService
     public const FEATURE = 'brand_studio';
 
     /** Asset kinds the studio can propose and create. */
-    public const ASSET_KINDS = ['biolink', 'short_link', 'qr_code', 'form', 'vcard'];
+    public const ASSET_KINDS = ['biolink', 'short_link', 'qr_code', 'form', 'vcard', 'calendar', 'restaurant_menu', 'store_menu'];
 
     /** Hard per-run ceilings so a runaway plan can't flood an account. */
     public const KIT_CAPS = [
         'biolink'    => 3,
+        'calendar' => 3,
+        'restaurant_menu' => 3,
+        'store_menu' => 3,
         'short_link' => 10,
         'qr_code'    => 10,
         'form'       => 3,
@@ -63,6 +66,9 @@ class AiBrandStudioService
     /** Human labels for composition validation messages. */
     public const KIND_LABELS = [
         'biolink'    => 'Link in Bio pages',
+        'calendar' => 'calendar pages',
+        'restaurant_menu' => 'menu pages',
+        'store_menu' => 'store pages',
         'short_link' => 'short links',
         'qr_code'    => 'QR codes',
         'form'       => 'forms',
@@ -183,6 +189,9 @@ class AiBrandStudioService
         }
 
         $kindLines = [
+            '- calendar: A native followable calendar page. Fields: title, description, theme_color(hex). Never invent events or dates; events are added in its calendar editor.',
+            '- restaurant_menu: A native restaurant menu page. Fields: title, description, theme_color(hex), currency(3-letter ISO), categories:[{name,items:[{name,description,price(number)}]}]. Use ONLY supplied dishes and prices; omit categories when no menu data is supplied.',
+            '- store_menu: A native store catalog page. Same fields as restaurant_menu, with product categories and items. Use ONLY supplied products and prices. No checkout or payments are enabled.',
             '- biolink: A Link in Bio page. Fields: title, theme_color(hex), blocks:[{type,settings}] where type is one of: ' . implode(', ', self::BIOLINK_BLOCK_TYPES) . '. Block settings: heading{text,size(h1|h2|h3)}, paragraph{text}, link{text,url}, cta_button{text,url}, socials{platforms:[{platform,url}]}, email_subscribe{title,description,button_text}, divider{}. 4-10 blocks.',
             '- short_link: A branded short redirect link. Fields: title, url(destination, required http/https).',
             '- qr_code: A styled QR code. Fields: name, url(what it opens, required http/https).',
@@ -296,6 +305,10 @@ class AiBrandStudioService
                 throw new RuntimeException('The assistant could not plan any assets from that brief. Add more detail and try again.');
             }
 
+            if ($composition && $mode !== BrandStudioKit::MODE_BULK && count($assets) !== array_sum(array_column($composition, 'count'))) {
+                throw new RuntimeException('The generated proposal missed requested materials. No partial proposal was saved; please try again.');
+            }
+
             $name = trim((string) ($parsed['name'] ?? ''));
             if ($name === '' || mb_strlen($name) > 120) {
                 $name = mb_substr($name !== '' ? $name : ('Brand kit — ' . now()->format('M j, Y')), 0, 120);
@@ -391,7 +404,7 @@ class AiBrandStudioService
         // Snapshot current usage once; increment locally per creation.
         $counts = [
             'links'    => Link::withoutGlobalScope('workspace')->where('user_id', $owner->id)->count(),
-            'biolinks' => Link::withoutGlobalScope('workspace')->where('user_id', $owner->id)->where('type', 'biolink')->count(),
+            'biolinks' => Link::withoutGlobalScope('workspace')->where('user_id', $owner->id)->whereIn('type', Link::BIOLINK_FAMILY)->count(),
             'qr'       => QrCode::withoutGlobalScope('workspace')->where('user_id', $owner->id)->count(),
             'forms'    => Form::withoutGlobalScope('workspace')->where('user_id', $owner->id)->count(),
         ];
@@ -405,6 +418,7 @@ class AiBrandStudioService
                 $kind = (string) ($asset['kind'] ?? '');
                 try {
                     $row = match ($kind) {
+                        'calendar', 'restaurant_menu', 'store_menu' => app(StudioPageFactory::class)->create($owner, $kit, $asset, $counts),
                         'biolink'    => $this->createBiolink($owner, $kit, $asset, $counts),
                         'short_link' => $this->createShortLink($owner, $kit, $asset, $counts),
                         'qr_code'    => $this->createQrCode($owner, $kit, $asset, $counts),
@@ -504,6 +518,10 @@ class AiBrandStudioService
         };
 
         switch ($kind) {
+            case 'calendar':
+            case 'restaurant_menu':
+            case 'store_menu':
+                return app(StudioPageFactory::class)->sanitize($kind, $a);
             case 'short_link':
                 $dest = $url('url');
                 if ($dest === '') return null;

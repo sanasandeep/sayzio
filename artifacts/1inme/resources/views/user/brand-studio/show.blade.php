@@ -3,6 +3,9 @@
 
 @php
     $kindMeta = [
+        'calendar' => ['icon'=>'fa-calendar','label'=>'Calendar page'],
+        'restaurant_menu' => ['icon'=>'fa-utensils','label'=>'Menu page'],
+        'store_menu' => ['icon'=>'fa-store','label'=>'Store page'],
         'biolink'    => ['icon' => 'fa-id-badge',      'label' => 'Link in Bio'],
         'short_link' => ['icon' => 'fa-link',          'label' => 'Short link'],
         'qr_code'    => ['icon' => 'fa-qrcode',        'label' => 'QR code'],
@@ -60,6 +63,8 @@
                     <div class="flex items-center gap-2">
                         @if($a['kind'] === 'biolink')
                             <a href="{{ route('user.links.blocks.editor', $a['id']) }}" class="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white/80 text-sm">Open editor</a>
+                        @elseif(in_array($a['kind'], ['calendar','restaurant_menu','store_menu']))
+                            <a class="btn-ghost" href="{{ route(['calendar'=>'user.calendars.editor','restaurant_menu'=>'user.links.restaurant.editor','store_menu'=>'user.links.store.editor'][$a['kind']], $a['id']) }}">Open editor</a>
                         @elseif($a['kind'] === 'qr_code')
                             <a href="{{ route('user.qr-codes.edit', $a['id']) }}" class="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white/80 text-sm">Open QR</a>
                         @elseif($a['kind'] === 'form')
@@ -132,6 +137,7 @@
                         @if(in_array($a['kind'],['short_link','qr_code']))<input type="url" class="bk-input mt-3" aria-label="Destination URL" name="edits[{{ $i }}][url]" value="{{ $a['url'] }}" maxlength="2048">@endif
                         @if($a['kind']==='form')<textarea class="bk-input mt-3" aria-label="Form description" name="edits[{{ $i }}][description]" maxlength="500">{{ $a['description']??'' }}</textarea>@endif
                         @foreach($a['blocks']??[] as $j=>$block)@if(in_array($block['type'],['heading','paragraph','link','cta_button']))<label class="block mt-3 text-sm">{{ ucfirst($block['type']) }}<textarea class="bk-input mt-2" name="edits[{{ $i }}][blocks][{{ $j }}][text]" maxlength="2000">{{ $block['settings']['text']??'' }}</textarea></label>@endif @endforeach</details>
+                        @if(in_array($a['kind'], ['calendar','restaurant_menu','store_menu']))<details class="mt-3"><summary>Review page content</summary><p>{{ $a['description']??'' }}</p>@if($a['kind']==='calendar')<p class="bk-muted">Events can be added in the calendar editor. No dates are invented.</p>@endif @foreach($a['categories']??[] as $category)<h4 class="font-semibold mt-3">{{ $category['name'] }}</h4>@foreach($category['items'] as $item)<p class="text-sm mt-2">{{ $item['name'] }} · {{ $a['currency'] }} {{ number_format($item['price'],2) }}</p><p class="text-sm">{{ $item['description'] }}</p>@endforeach @endforeach<p class="bk-muted">Review prices before publishing. Edit catalog details in the native editor after creating the draft.</p></details>@endif
                         @if($a['kind']==='biolink')<details class="mt-3"><summary class="cursor-pointer text-sm">Preview generated page content</summary><div class="ms-phone mt-4"><strong>{{ $a['title'] }}</strong>@foreach($a['blocks']??[] as $block)<div class="sample"><p>{{ $block['settings']['text']??ucfirst($block['type']) }}</p></div>@endforeach</div><p class="bk-muted mt-2">Generated content preview. Edits above apply when creating the draft; full styling is editable in the page editor.</p></details>@endif
                         @if($a['kind'] === 'short_link' || $a['kind'] === 'qr_code')
                             <p class="text-[12px] text-white/40 truncate mt-0.5">{{ $a['url'] }}</p>

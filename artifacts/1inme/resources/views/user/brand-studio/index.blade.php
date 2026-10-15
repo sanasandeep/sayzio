@@ -10,7 +10,7 @@
     <div class="flex items-end justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-white"><i class="fas fa-wand-magic-sparkles text-primary-300 mr-2"></i>AI Marketing Studio</h1>
-            <p class="text-sm text-white/50 mt-1">Describe what you need in plain language and get a whole on-brand asset kit - a Link in Bio page, short links, QR codes, a form and a digital card - planned by AI and reviewed by you before anything is created.</p>
+            <p class="text-sm text-white/50 mt-1">Build a mixed set of pages and assets. Choose types, quantities, knowledge and a destination, then review estimated coins before generating.</p>
             @if($aiEnabled)<p class="text-[11px] text-white/40 mt-1">{{ number_format($balance) }} coins</p>@endif
         </div>
     </div>
@@ -50,8 +50,8 @@
 
                     <div class="flex flex-wrap items-center gap-3">
                         <div class="inline-flex rounded-xl border border-white/10 overflow-hidden text-sm">
-                            <button type="button" @click="mode='kit'" :class="mode==='kit' ? 'bg-primary-500 text-white' : 'bg-white/[0.04] text-white/60'" class="px-3 py-2">Full kit</button>
-                            <button type="button" @click="mode='bulk'" :class="mode==='bulk' ? 'bg-primary-500 text-white' : 'bg-white/[0.04] text-white/60'" class="px-3 py-2">Bulk variations</button>
+                            <button type="button" @click="mode='kit'" :class="mode==='kit' ? 'bg-primary-500 text-white' : 'bg-white/[0.04] text-white/60'" class="px-3 py-2">Mixed combination</button>
+                            <button type="button" @click="mode='bulk'" :class="mode==='bulk' ? 'bg-primary-500 text-white' : 'bg-white/[0.04] text-white/60'" class="px-3 py-2">Same-type variations</button>
                         </div>
                         <template x-if="mode==='bulk'">
                             <div class="flex items-center gap-2">
@@ -60,7 +60,7 @@
                                     <option value="qr_code">QR codes</option>
                                     <option value="biolink">Link in Bio pages</option>
                                     <option value="form">Forms</option>
-                                    <option value="vcard">Digital cards</option>
+                                    <option value="vcard">Digital cards</option><option value="calendar">Calendar pages</option><option value="restaurant_menu">Menu pages</option><option value="store_menu">Store pages</option>
                                 </select>
                                 <input type="number" x-model.number="bulkCount" min="1" max="{{ $bulkCap }}" class="w-20 rounded-xl bg-white/[0.05] border border-white/10 text-white text-sm px-3 py-2">
                                 <span class="text-[11px] text-white/40">max {{ $bulkCap == -1 ? '∞' : $bulkCap }} / run</span>
@@ -70,12 +70,13 @@
                 </div>
             </div>
 
+            @include('user.marketing-studio.connections')
             <template x-if="mode==='kit'">
                 <div class="space-y-3 border-t border-white/10 pt-4">
                     <div class="flex items-center justify-between gap-3 flex-wrap">
                         <div>
-                            <label class="block text-sm text-white/70 font-medium">Pick exactly what to create <span class="text-white/35 font-normal">(optional)</span></label>
-                            <p class="text-[11px] text-white/40 mt-0.5">Leave empty to let the AI decide from your brief, or lock in an exact composition below.</p>
+                            <label class="block text-sm text-white/70 font-medium">Mix page types & assets <span class="text-white/35 font-normal">(optional)</span></label>
+                            <p class="text-[11px] text-white/40 mt-0.5">Add different types and quantities: for example, 1 calendar + 1 menu + 1 store + 1 Link in Bio page.</p>
                         </div>
                         <button type="button" x-show="composition.length" @click="composition = []" class="text-[11px] text-white/40 hover:text-white/70 underline decoration-white/20">Clear composition</button>
                     </div>
@@ -159,7 +160,7 @@
             </template>
 
             <div class="flex items-center gap-3 flex-wrap">
-                <button type="button" @click="plan()" :disabled="busy || !canGenerate()"
+                <button type="button" @click="plan()" :disabled="busy || estBusy || estCredits===null || lowBalance() || !canGenerate()"
                         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 hover:bg-primary-400 disabled:opacity-50 text-white text-sm font-medium">
                     <i class="fas" :class="busy ? 'fa-circle-notch fa-spin' : 'fa-wand-magic-sparkles'"></i>
                     <span x-text="busy ? 'Planning your kit…' : 'Generate plan'"></span>

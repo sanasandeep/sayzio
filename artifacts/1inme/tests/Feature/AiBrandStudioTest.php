@@ -228,10 +228,32 @@ class AiBrandStudioTest extends TestCase
 
     // ── 6. composition: prompt injection is a hard requirement ─────────
 
-    public function test_plan_prompt_contains_exact_composition_lines(): void
+    public function test_incomplete_exact_combination_is_refunded_instead_of_saved(): void
     {
         $user = $this->makeUser($this->plan());
         $this->bindChat($this->validPlanJson(), 8);
+        $charger = $this->spyCharger();
+        try {
+            $this->service()->plan($user, '', '', [], 'kit', null, 1, [
+                ['kind' => 'calendar', 'count' => 1, 'purpose' => 'Events'],
+                ['kind' => 'biolink', 'count' => 1, 'purpose' => 'Home'],
+            ]);
+            $this->fail('Incomplete combinations must not be saved.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('missed requested materials', $e->getMessage());
+        }
+        $charger->shouldHaveReceived('refund')->once()->withArgs(fn ($owner, $credits) => $owner->id === $user->id && $credits === 8);
+        $this->assertDatabaseCount('brand_studio_kits', 0);
+    }
+
+    public function test_plan_prompt_contains_exact_composition_lines(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $parsed = json_decode($this->validPlanJson(), true);
+        $bio = $parsed['assets'][0];
+        $card = collect($parsed['assets'])->firstWhere('kind', 'vcard');
+        $parsed['assets'] = [$bio, $bio, $card];
+        $this->bindChat(json_encode($parsed), 8);
         $this->spyCharger();
 
         $composition = [

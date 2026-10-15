@@ -2,6 +2,7 @@
 function brandStudio() {
     return {
         brandKitId: @js((string)($campaign?->brief['brand_kit_id']??'')), brandName: '', brandColors: '', brandVoice: '', brandDescription: '',
+        projectId: '', mindIds: [],
         brief: @js($campaignBrief??''), mode: 'kit', bulkKind: 'short_link', bulkCount: 5,
         busy: false, error: '', estimateText: '',
         estQuote:null,estCredits: null, estBalance: {{ (int) $balance }}, estBusy: false,
@@ -11,8 +12,9 @@ function brandStudio() {
         savingPreset: false, presetName: '', presetBusy: false, presetError: '',
         renamingId: null, renameName: '', renameBusy: false, renameError: '',
         kitCaps: @js($kitCaps),
-        kindLabels: { biolink: 'Link in Bio page', short_link: 'Short link', qr_code: 'QR code', form: 'Form', vcard: 'Digital card' },
+        kindLabels: { calendar: 'Calendar page', restaurant_menu: 'Menu page', store_menu: 'Store page', biolink: 'Link in Bio page', short_link: 'Short link', qr_code: 'QR code', form: 'Form', vcard: 'Digital card' },
         presets: [
+            { label: 'Calendar + menu + store + bio', rows: ['calendar','restaurant_menu','store_menu','biolink'].map(kind=>({kind,count:1,purpose:''})) },
             { label: 'Product + sales + card', rows: [
                 { kind: 'biolink', count: 1, purpose: 'Product page' },
                 { kind: 'biolink', count: 1, purpose: 'Sales offer page' },
@@ -35,11 +37,11 @@ function brandStudio() {
         ],
         init() {
             if(this.brief)this.scheduleEstimate();
-            ['brief', 'mode', 'bulkKind', 'bulkCount', 'brandKitId', 'brandName', 'brandColors', 'brandVoice', 'brandDescription', 'composition']
+            ['projectId', 'mindIds', 'brief', 'mode', 'bulkKind', 'bulkCount', 'brandKitId', 'brandName', 'brandColors', 'brandVoice', 'brandDescription', 'composition']
                 .forEach((k) => this.$watch(k, () => this.scheduleEstimate()));
         },
         applyPreset(p) {
-            this.composition = p.rows.map((r) => ({ ...r }));
+            this.mode = 'kit'; this.composition = p.rows.map((r) => ({ ...r }));
         },
         async savePreset() {
             const name = this.presetName.trim();
@@ -156,6 +158,7 @@ function brandStudio() {
         },
         scheduleEstimate() {
             clearTimeout(this._estTimer);
+            ++this._estSeq;
             this.estQuote=null;this.estCredits = null; this.estimateText = '';
             if (!this.canGenerate()) { this.estBusy = false; return; }
             this.estBusy = true;
@@ -163,6 +166,7 @@ function brandStudio() {
         },
         payload() {
             return {
+                project_id:this.projectId||null,mind_ids:this.mindIds,
                 strategy_id:@js(request('strategy_id')),quote:this.estQuote,campaign_id:@js($campaign?->id), request: this.brief,
                 mode: this.mode,
                 composition: this.mode === 'kit' && this.composition.length
