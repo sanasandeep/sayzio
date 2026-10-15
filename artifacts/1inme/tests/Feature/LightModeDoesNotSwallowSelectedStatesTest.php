@@ -37,6 +37,7 @@ use Tests\TestCase;
  */
 class LightModeDoesNotSwallowSelectedStatesTest extends TestCase
 {
+    use \Tests\Support\ReadsMarketingStyles;
     /** Real breaks, awaiting a designed light-mode colour. @var array<string, string[]> */
     private const KNOWN_UNFIXED = [
         'user/links/conversational/editor.blade.php'      => ['cv-sim-chip.is-picked'],
@@ -71,9 +72,9 @@ class LightModeDoesNotSwallowSelectedStatesTest extends TestCase
     /** The already-fixed cases stay fixed. */
     public function test_the_chat_gate_and_mic_keep_their_light_mode_fills(): void
     {
-        $css = file_get_contents(
+        $css = $this->withLinkedMarketingStyles(file_get_contents(
             base_path('resources/views/common/partials/site-assistant.blade.php')
-        );
+        ));
 
         foreach ([
             'html.light-mode .sa-gate-tab.sa-gate-on' => 'the selected Email/Phone tab',

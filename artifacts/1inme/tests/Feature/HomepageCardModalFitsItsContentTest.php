@@ -33,11 +33,12 @@ use Tests\TestCase;
  */
 class HomepageCardModalFitsItsContentTest extends TestCase
 {
+    use \Tests\Support\ReadsMarketingStyles;
     private function source(): string
     {
-        return (string) file_get_contents(
+        return $this->withLinkedMarketingStyles((string) file_get_contents(
             resource_path('views/home/partials/expandable-cards.blade.php')
-        );
+        ));
     }
 
     public function test_the_cloned_card_modal_is_marked_as_one(): void

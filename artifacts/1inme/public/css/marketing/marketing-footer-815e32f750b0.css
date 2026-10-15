@@ -1,0 +1,78 @@
+
+    /* ft- = footer */
+    .ft {
+        border-top: 1px solid var(--fs-rule, rgba(255,255,255,.14));
+        background: var(--fs-page, #000);
+    }
+
+    .ft-h {
+        font-size: 11px; font-weight: 700; letter-spacing: .14em;
+        text-transform: uppercase;
+        color: #8B93AD;
+        margin: 0 0 14px;
+    }
+    html.light-mode .ft-h { color: #6B7280; }
+
+    /* The fix for the blue wall: state the link colour, and beat the
+       page-level anchor rule with a class of the same weight declared
+       later. Muted at rest, full ink on hover -- the same relationship the
+       nav uses, so the footer feels like part of the same site. */
+    .ft-link {
+        display: inline-block;
+        font-size: 14px; line-height: 1.5;
+        color: #A0A8C0 !important;
+        transition: color .15s ease;
+    }
+    .ft-link:hover { color: #FFFFFF !important; }
+    html.light-mode .ft-link { color: #55607F !important; }
+    html.light-mode .ft-link:hover { color: #0F172A !important; }
+
+    .ft-col ul { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+
+    /* The column grid is plain CSS rather than a Tailwind arbitrary value
+       (`lg:grid-cols-[1.6fr_1fr_1fr_1fr_1fr]`). Tailwind is compiled at
+       build time here, so a class nobody has built yet simply does not
+       exist at runtime -- the first version of this footer silently fell
+       back to two columns because of exactly that. */
+    .ft-grid { display: grid; gap: 40px; grid-template-columns: 1fr; }
+    @media (min-width: 640px)  { .ft-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .ft-grid { grid-template-columns: 1.7fr repeat(4, 1fr); gap: 32px; } }
+
+    .ft-blurb {
+        margin: 14px 0 0; max-width: 34ch;
+        font-size: 14px; line-height: 1.65;
+        color: #98A0B8;
+    }
+    html.light-mode .ft-blurb { color: #55607F; }
+
+    /* Bottom bar: everything that is about the site rather than in it. */
+    .ft-bar {
+        border-top: 1px solid var(--fs-rule, rgba(255,255,255,.14));
+        display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+        padding-top: 22px;
+    }
+    .ft-bar-sep { opacity: .28; user-select: none; }
+    .ft-meta { font-size: 12.5px; color: #7E869E; }
+    html.light-mode .ft-meta { color: #6B7280; }
+
+    /* Pushes the right-hand group away from the left one at width, and lets
+       it wrap underneath instead of squeezing on a phone. */
+    .ft-bar-spacer { flex: 1 1 24px; }
+
+    .ft-cur {
+        display: inline-flex; align-items: center;
+        border-radius: 999px; overflow: hidden;
+        border: 1px solid var(--fs-rule, rgba(255,255,255,.14));
+    }
+    .ft-cur button {
+        padding: 5px 12px; font-size: 11.5px; font-weight: 700;
+        color: #8B93AD; transition: background .15s ease, color .15s ease;
+    }
+    .ft-cur button[aria-selected="true"] { background: rgba(255,255,255,.12); color: #F2F5FF; }
+    html.light-mode .ft-cur button { color: #6B7280; }
+    html.light-mode .ft-cur button[aria-selected="true"] { background: #EDEFF7; color: #0F172A; }
+
+    @media (max-width: 640px) {
+        .ft-bar { flex-direction: column; align-items: flex-start; }
+        .ft-bar-spacer { display: none; }
+    }

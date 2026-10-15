@@ -76,6 +76,8 @@ class MarketingPageCache
         'marketing_meta_pixel_id',
         'marketing_play_store_url',
         'marketing_seo',
+        'site_custom_code',
+        'marketing_home_code_updated_at',
         'marketing_trust_strip',
         'marketing_whatsapp_channel_url',
         'marketing_whatsapp_message',

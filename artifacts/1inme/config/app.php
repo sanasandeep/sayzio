@@ -1,6 +1,9 @@
 <?php
 
 return [
+    // Legacy autoscale environments may opt into a temporary root readiness probe.
+    // EC2 and normal crawlers use /up; public / always renders the homepage.
+    'root_startup_probe' => env('ROOT_STARTUP_PROBE', false),
 
     /*
     |--------------------------------------------------------------------------

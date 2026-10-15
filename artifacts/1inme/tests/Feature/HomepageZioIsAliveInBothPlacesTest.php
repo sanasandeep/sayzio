@@ -33,6 +33,7 @@ use Tests\TestCase;
 class HomepageZioIsAliveInBothPlacesTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Support\ReadsMarketingStyles;
 
     private function page(): string
     {
@@ -96,7 +97,7 @@ class HomepageZioIsAliveInBothPlacesTest extends TestCase
 
     public function test_the_hero_zio_still_talks(): void
     {
-        $page = $this->page();
+        $page = $this->withLinkedMarketingStyles($this->page());
 
         $this->assertStringContainsString('class="zio-face"', $page);
         $this->assertStringContainsString(
@@ -111,7 +112,7 @@ class HomepageZioIsAliveInBothPlacesTest extends TestCase
      */
     public function test_the_page_carries_the_css_that_animates_him(): void
     {
-        $page = $this->page();
+        $page = $this->withLinkedMarketingStyles($this->page());
 
         foreach (['zioBlink', 'zioAntL', 'zioAntR', 'zioFloat'] as $keyframes) {
             $this->assertStringContainsString(
@@ -139,9 +140,9 @@ class HomepageZioIsAliveInBothPlacesTest extends TestCase
      */
     public function test_the_float_scales_with_the_artwork(): void
     {
-        $hero = (string) file_get_contents(
+        $hero = $this->withLinkedMarketingStyles((string) file_get_contents(
             resource_path('views/home/partials/zio-legacy-styles.blade.php')
-        );
+        ));
 
         // Not [^}]* -- the keyframe's own percentage blocks carry braces, so
         // that stops at the first one and never reaches the 50% step.

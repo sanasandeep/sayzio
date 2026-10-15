@@ -546,6 +546,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/', [\App\Modules\Admin\Controllers\LinkTypePairingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('restore-defaults', [\App\Modules\Admin\Controllers\LinkTypePairingsController::class, 'restoreDefaults'])->middleware(CheckPermission::class . ':settings.manage')->name('restore-defaults');
         });
+        Route::get('site-custom-code', [\App\Modules\Admin\Controllers\SiteCustomCodeController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('site-custom-code.edit');
+        Route::put('site-custom-code', [\App\Modules\Admin\Controllers\SiteCustomCodeController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('site-custom-code.update');
         Route::prefix('marketing-seo')->name('marketing-seo.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MarketingSeoController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MarketingSeoController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');

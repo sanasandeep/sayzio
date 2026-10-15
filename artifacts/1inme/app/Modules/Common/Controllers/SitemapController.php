@@ -156,7 +156,7 @@ class SitemapController extends Controller
             AppSetting::where('key', MarketingSeo::SETTING_KEY)->first()
         )->updated_at;
 
-        foreach ([$newestRow, $codeFallback] as $candidate) {
+        foreach ([$newestRow, $codeFallback, MarketingSitemap::homeLastmod()] as $candidate) {
             if (empty($candidate)) {
                 continue;
             }
