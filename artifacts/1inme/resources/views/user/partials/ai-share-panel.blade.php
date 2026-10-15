@@ -14,18 +14,18 @@
     use App\Modules\User\Models\AiResourceShare;
     $hasTargets = $shareWorkspaces->isNotEmpty() || $shareBadges->isNotEmpty();
 @endphp
-<div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+<div class="ai-share-panel rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
     <div>
         <h3 class="text-white font-semibold flex items-center gap-2"><i class="fas fa-user-group text-sky-300"></i> Share this {{ $resourceLabel }}</h3>
-        <p class="text-xs text-white/40 mt-1">Give a team or a badge group access. Anyone who can use it is charged coins from their own balance, never yours. You stay the owner and can revoke access any time.</p>
+        <p class="text-xs text-white/40 mt-1">Choose a team or badge group and set their access. You stay the owner and can remove access at any time.</p>
     </div>
 
     @if($hasTargets)
-    <form method="POST" action="{{ $shareAction }}" class="flex flex-wrap items-end gap-3">
+    <form method="POST" action="{{ $shareAction }}" class="ai-share-form">
         @csrf
-        <div class="flex-1 min-w-[14rem]">
+        <div class="ai-share-audience">
             <label class="text-xs uppercase tracking-wider text-white/40 block mb-1">Share with</label>
-            <select name="audience" required class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+            <select aria-label="Share with" name="audience" required class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                 @if($shareWorkspaces->isNotEmpty())
                 <optgroup label="Teams">
                     @foreach($shareWorkspaces as $ws)
@@ -44,13 +44,14 @@
         </div>
         <div>
             <label class="text-xs uppercase tracking-wider text-white/40 block mb-1">Access</label>
-            <select name="access" class="bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+            <select aria-label="Sharing access" name="access" class="bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                 <option value="use">Use only</option>
                 <option value="edit">Use &amp; edit</option>
             </select>
         </div>
-        <button class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium">Share</button>
+        <button class="ai-share-submit btn-primary">Share access</button>
     </form>
+    <p class="ai-share-note">Members use coins from their own balance. “Use &amp; edit” also lets them change sources.</p>
     @else
     <p class="text-xs text-white/40">You're not in any team or badge group yet, so there's nothing to share into. Join a team or get a badge first.</p>
     @endif
@@ -71,7 +72,7 @@
                     <form method="POST" action="{{ route($destroyRoute, array_merge($destroyParams, [$share->id])) }}"
                           onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this share?', message: 'Members will immediately lose access.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
-                        <button class="text-xs text-red-300/80 hover:text-red-200 px-2 py-1"><i class="fas fa-trash"></i></button>
+                        <button aria-label="Remove access for {{ $share->audience_label }}" class="text-xs text-red-300/80 hover:text-red-200 px-2 py-1"><i class="fas fa-trash"></i></button>
                     </form>
                 </li>
             @endforeach
@@ -79,3 +80,9 @@
     </div>
     @endif
 </div>
+
+@once
+<style>
+.ai-share-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,220px) auto;gap:14px;align-items:end;padding:16px;background:var(--surface-subtle,rgba(128,128,128,.04));border:1px solid var(--border-color,rgba(128,128,128,.14));border-radius:14px}.ai-share-form>div{min-width:0}.ai-share-form select{width:100%;min-height:44px}.ai-share-submit{min-height:44px;padding:10px 20px;border-radius:12px;white-space:nowrap;background:#3454ef!important;color:#fff!important;font-size:14px;font-weight:600}.ai-share-note{font-size:12px;color:var(--text-secondary,#9299aa);margin-top:12px}.ai-share-panel li{flex-wrap:wrap}.ai-share-panel h3 i{color:#5671ed!important}@media(max-width:640px){.ai-share-form{grid-template-columns:1fr}.ai-share-submit{width:100%}}
+</style>
+@endonce
