@@ -48,9 +48,9 @@ class HeroCopyIsEditableFromAdminTest extends TestCase
 
         $html = $this->renderHero();
 
-        $this->assertStringContainsString('Never miss another', $html);
+        $this->assertStringContainsString('From your first visitor', $html);
         $this->assertStringContainsString(
-            '<span class="grad-text">customer</span>',
+            '<span class="grad-text">repeat customer</span>',
             $html,
             'the shipped headline should still colour its last word'
         );
