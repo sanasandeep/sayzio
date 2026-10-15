@@ -1,8 +1,10 @@
 @extends('user.layouts.app')
-@section('title', ($plan?->name ?? 'New Marketing Plan') . ': Marketing Plan Calculator')
+@section('title', ($plan?->name ?? 'New forecast') . ' · Budget & Forecast')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 py-8" x-data="mpcApp()" x-init="init()">
+@include('user.marketing-studio.styles')
+@include('user.partials.page-hero',['title'=>'Budget & Forecast','subtitle'=>'Model your budget, compare outcomes and connect the next steps.','emblemIcon'=>'fa-chart-line','back'=>route('user.marketing-studio.index'),'chips'=>[['text'=>'Marketing Studio'],['text'=>'Assumptions · editable']]])
+<div class="bf-page" x-data="mpcApp()" x-init="init()">
     <style>
         /* Theme-aware helpers — dark by default, paired light-mode rules. */
         .mpc-card  { border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03); }
@@ -81,6 +83,8 @@
         html.light-mode .mpc-menu-item:hover { background: #f1f5f9; }
     </style>
 
+    @include('user.marketing-plan.premium-styles')
+    @include('user.marketing-plan.premium-summary')
     {{-- ───── Header: name, currency toggle, save ───── --}}
     <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div class="min-w-0">
@@ -197,7 +201,7 @@
                         :class="tab === s.key ? 'active' : (stepIndex > i ? 'done' : '')"
                         :aria-label="(i + 1) + ' · ' + s.label"
                         :aria-current="tab === s.key ? 'step' : false"
-                        @click="s.key === 'dashboard' ? openDashboard() : (s.key === 'actual' ? openActual() : tab = s.key)">
+                        @click="tab=s.key; $nextTick(()=>{if(tab==='overview')renderCharts();if(tab==='actuals')renderActualChart()})">
                     <span class="mpc-step-num">
                         <template x-if="stepIndex > i && tab !== s.key"><i class="fas fa-check text-[9px]"></i></template>
                         <template x-if="!(stepIndex > i && tab !== s.key)"><span x-text="i + 1"></span></template>
@@ -208,8 +212,10 @@
         </template>
     </nav>
 
+    <div class="bf-workspace"><section class="min-w-0">
+    @include('user.marketing-plan.premium-panels')
     {{-- ───── Scenario switcher (Task #6769) ───── --}}
-    <div class="rounded-2xl mpc-card p-3 mb-5" data-mpc-scenarios>
+    <div class="rounded-2xl mpc-card p-3 mb-5" data-mpc-scenarios x-show="tab==='scenarios'" x-cloak>
         <div class="flex flex-wrap items-center gap-2">
             <span class="text-[11px] font-bold uppercase tracking-[0.12em] mpc-faint">Scenario</span>
             <div class="flex rounded-xl overflow-hidden border border-white/10" role="group" aria-label="Scenario">
@@ -250,12 +256,12 @@
     </div>
 
     {{-- ───── Goal seek: target → required budget (Task #6770) ───── --}}
-    <div class="rounded-2xl mpc-card p-4 mb-5" data-mpc-goalseek>
+    <div class="rounded-2xl mpc-card p-4 mb-5" data-mpc-goalseek x-show="tab==='overview'" >
         <button type="button" class="w-full flex items-center justify-between gap-3 text-left" @click="goalOpen = !goalOpen"
                 :aria-expanded="goalOpen ? 'true' : 'false'" data-mpc-goal-toggle>
             <span>
                 <span class="text-sm font-bold mpc-title"><i class="fas fa-bullseye mr-1.5 text-blue-400"></i>Goal seek</span>
-                <span class="text-xs mpc-faint ml-2 hidden sm:inline">Start from a 12-month target: get the ad budget that hits it.</span>
+                <span class="text-xs mpc-faint ml-2 hidden sm:inline">Start from a planning-period target: get the ad budget that hits it.</span>
             </span>
             <i class="fas text-xs mpc-faint" :class="goalOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
         </button>
@@ -284,7 +290,7 @@
             </template>
             <template x-if="goal.state === 'organic'">
                 <div class="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3" data-mpc-goal-organic>
-                    <p class="text-sm text-emerald-400 font-semibold">Your fixed &amp; organic channels alone already reach this target; the required paid ad budget is <span x-text="money(0)"></span>.</p>
+                    <p class="text-sm text-emerald-400 font-semibold">The minimum-allocation baseline reaches this target. Required discretionary ad budget is <span x-text="money(0)"></span>.</p>
                     <button type="button" class="mt-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
                             @click="applyGoalBudget()" data-mpc-goal-apply>Apply this budget</button>
                 </div>
@@ -336,14 +342,14 @@
     </div>
 
     {{-- ───── 1 · ASSUMPTIONS ───── --}}
-    <div x-show="tab === 'assumptions'" class="space-y-5">
+    <div x-show="tab === 'channels'" class="space-y-5">
         <div class="grid md:grid-cols-3 gap-4">
             <div class="rounded-2xl mpc-card p-4">
                 <label class="text-xs font-semibold mpc-sub">Company / Product name</label>
                 <input type="text" x-model="p.company" class="mpc-input mt-1.5" placeholder="Acme Fitness App">
             </div>
             <div class="rounded-2xl mpc-card p-4">
-                <label class="text-xs font-semibold mpc-sub">Total annual ad-spend budget (₹, paid channels only)</label>
+                <label class="text-xs font-semibold mpc-sub">Ad budget for selected period (₹, channels only)</label>
                 <input type="number" min="0" x-model.number="p.annual_budget" class="mpc-input mt-1.5">
                 <p class="text-[11px] mpc-faint mt-1">Excludes Sayzio's fixed subscription cost.</p>
                 <p class="text-[11px] text-amber-400 mt-1" x-show="clampHints.annual_budget" x-cloak x-text="clampHints.annual_budget"></p>
@@ -356,7 +362,7 @@
             </div>
         </div>
 
-        <div class="rounded-2xl mpc-card p-4">
+        <div x-show="level!=='basic'" class="rounded-2xl mpc-card p-4">
             <h3 class="text-sm font-bold mpc-title">Monthly seasonality weights <span class="mpc-faint font-normal">(1.0 = average month)</span></h3>
             <div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2 mt-3">
                 <template x-for="(m, i) in months" :key="i">
@@ -369,7 +375,7 @@
             <p class="text-[11px] text-amber-400 mt-2" x-show="clampHints.weights" x-cloak x-text="clampHints.weights"></p>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-4">
+        <div x-show="level!=='basic'" class="grid md:grid-cols-2 gap-4">
             <div class="rounded-2xl mpc-card p-4">
                 <h3 class="text-sm font-bold mpc-title">Sayzio plan</h3>
                 <select x-model="p.plan_slug" class="mpc-input mt-2">
@@ -446,7 +452,7 @@
         </div>
 
         {{-- Task #6768 — finance assumptions behind CAC / ROAS / LTV metrics. --}}
-        <div class="rounded-2xl mpc-card p-4">
+        <div x-show="level!=='basic'" class="rounded-2xl mpc-card p-4">
             <h3 class="text-sm font-bold mpc-title">Finance assumptions <span class="mpc-faint font-normal">(for CAC, ROAS &amp; LTV:CAC metrics)</span></h3>
             <div class="grid sm:grid-cols-2 gap-3 mt-3">
                 <div>
@@ -512,7 +518,7 @@
     </div>
 
     {{-- ───── 2 · MONTHLY PLAN ───── --}}
-    <div x-show="tab === 'monthly'" x-cloak class="space-y-4">
+    <div x-show="tab === 'reports'" x-cloak class="space-y-4">
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <h3 class="text-sm font-bold mpc-title">12-month plan by channel</h3>
@@ -554,7 +560,7 @@
     </div>
 
     {{-- ───── 3 · DASHBOARD ───── --}}
-    <div x-show="tab === 'dashboard'" x-cloak class="space-y-4">
+    <details x-show="tab === 'overview'" x-cloak class="space-y-4"><summary class="ms-card" @click="performanceOpen=!performanceOpen;$nextTick(()=>renderCharts())">Detailed performance, charts & channel results</summary>
         {{-- On-tab export controls (Task #6765) — no need to scroll back to the header --}}
         <div class="flex flex-wrap items-center justify-end gap-2">
             <span class="text-[11px] font-bold uppercase tracking-[0.12em] mpc-faint mr-auto">Export this plan</span>
@@ -571,12 +577,12 @@
         </div>
 
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total annual budget</p><p class="mpc-kpi mt-1" x-text="money(p.annual_budget)"></p></div>
+            <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total period budget</p><p class="mpc-kpi mt-1" x-text="money(p.annual_budget)"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total projected revenue (year)</p><p class="mpc-kpi mt-1" x-text="money(model.totals.revenue)"></p></div>
-            <div class="rounded-2xl mpc-card p-4" title="Return on ad spend: projected revenue divided by total spend. Every ₹1 spent brings in this much revenue."><p class="text-xs mpc-sub">Blended ROAS <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roas, 2) + '×'"></p></div>
+            <div class="rounded-2xl mpc-card p-4" title="Forecast revenue divided by all modelled marketing costs. Every ₹1 spent brings in this much revenue."><p class="text-xs mpc-sub">Revenue / modelled cost <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roas, 2) + '×'"></p></div>
             <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Total customers acquired (year)</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.customers, 0)"></p></div>
             <div class="rounded-2xl mpc-card p-4" title="Customer acquisition cost: total spend divided by customers acquired. What you pay, on average, to win one customer."><p class="text-xs mpc-sub">Blended CAC <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p><p class="mpc-kpi mt-1" x-text="money(model.totals.cac)"></p></div>
-            <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Blended ROI</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roi * 100, 0) + '%'"></p></div>
+            <div class="rounded-2xl mpc-card p-4"><p class="text-xs mpc-sub">Contribution return</p><p class="mpc-kpi mt-1" x-text="nf(model.totals.roi * 100, 0) + '%'"></p></div>
         </div>
 
         {{-- Task #6768 — finance metrics strip. --}}
@@ -590,7 +596,7 @@
                 <p class="mpc-kpi mt-1" x-text="breakEvenLabel"></p>
             </div>
             <div class="rounded-2xl mpc-card p-4" title="How many months of average gross profit it takes to earn back the year's total spend.">
-                <p class="text-xs mpc-sub">Payback period <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p>
+                <p class="text-xs mpc-sub">Cost coverage estimate <i class="fas fa-circle-info mpc-faint text-[10px]"></i></p>
                 <p class="mpc-kpi mt-1" x-text="paybackLabel"></p>
             </div>
         </div>
@@ -608,7 +614,7 @@
             </div>
             <div class="rounded-2xl mpc-card p-4">
                 <div class="flex items-center justify-between gap-2 mb-2">
-                    <h3 class="text-sm font-bold mpc-title">Annual revenue by channel</h3>
+                    <h3 class="text-sm font-bold mpc-title">Period revenue by channel</h3>
                     <button type="button" @click="downloadChart('channel')" title="Download chart as image"
                             class="mpc-export-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
                         <i class="fas fa-image"></i> PNG
@@ -632,15 +638,15 @@
                     </template>
                 </tr></thead>
                 <tbody>
-                    <tr class="mpc-row"><td class="mpc-td font-semibold">Annual spend</td>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Period spend</td>
                         <template x-for="s in comparison" :key="'sp' + s.key"><td class="mpc-td text-right" x-text="money(s.totals.spend)"></td></template></tr>
-                    <tr class="mpc-row"><td class="mpc-td font-semibold">Annual revenue</td>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Period revenue</td>
                         <template x-for="s in comparison" :key="'rv' + s.key"><td class="mpc-td text-right" x-text="money(s.totals.revenue)"></td></template></tr>
                     <tr class="mpc-row"><td class="mpc-td font-semibold">Customers acquired</td>
                         <template x-for="s in comparison" :key="'cu' + s.key"><td class="mpc-td text-right" x-text="nf(s.totals.customers, 0)"></td></template></tr>
-                    <tr class="mpc-row"><td class="mpc-td font-semibold">Blended ROAS</td>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Revenue / modelled cost</td>
                         <template x-for="s in comparison" :key="'ro' + s.key"><td class="mpc-td text-right" x-text="nf(s.totals.roas, 2) + '×'"></td></template></tr>
-                    <tr class="mpc-row"><td class="mpc-td font-semibold">Blended ROI</td>
+                    <tr class="mpc-row"><td class="mpc-td font-semibold">Contribution return</td>
                         <template x-for="s in comparison" :key="'ri' + s.key"><td class="mpc-td text-right" x-text="nf(s.totals.roi * 100, 0) + '%'"></td></template></tr>
                     <tr class="mpc-row"><td class="mpc-td font-semibold">LTV : CAC</td>
                         <template x-for="s in comparison" :key="'lc' + s.key"><td class="mpc-td text-right" :class="ltvCacClass(s.totals.ltvCac)" x-text="ratio(s.totals.ltvCac)"></td></template></tr>
@@ -649,14 +655,14 @@
         </div>
 
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
-            <h3 class="text-sm font-bold mpc-title mb-2">Channel summary (annual)</h3>
+            <h3 class="text-sm font-bold mpc-title mb-2">Channel summary (selected period)</h3>
             <table class="w-full min-w-[720px]">
                 <thead><tr>
-                    <th class="mpc-th">Channel</th><th class="mpc-th text-right">Annual spend</th><th class="mpc-th text-right">Annual revenue</th>
+                    <th class="mpc-th">Channel</th><th class="mpc-th text-right">Period spend</th><th class="mpc-th text-right">Period revenue</th>
                     <th class="mpc-th text-right">Customers</th><th class="mpc-th text-right">CAC</th>
-                    <th class="mpc-th text-right" title="Return on ad spend: revenue ÷ spend">ROAS</th>
+                    <th class="mpc-th text-right" title="Revenue divided by direct channel costs">Revenue/cost</th>
                     <th class="mpc-th text-right" title="Lifetime gross profit per customer vs cost to acquire one (≥3× healthy, <1× losing money)">LTV:CAC</th>
-                    <th class="mpc-th text-right">ROI %</th>
+                    <th class="mpc-th text-right">Contribution return %</th>
                 </tr></thead>
                 <tbody>
                     <template x-for="row in model.channels" :key="row.key">
@@ -668,16 +674,16 @@
                             <td class="mpc-td text-right" x-text="row.metrics.cac !== null ? money(row.metrics.cac) : '—'"></td>
                             <td class="mpc-td text-right" x-text="ratio(row.metrics.roas, 2)"></td>
                             <td class="mpc-td text-right font-semibold" :class="ltvCacClass(row.metrics.ltvCac)" x-text="ratio(row.metrics.ltvCac)"></td>
-                            <td class="mpc-td text-right" x-text="sum(row.spend) > 0 ? nf((sum(row.revenue) - sum(row.spend)) / sum(row.spend) * 100, 0) + '%' : '—'"></td>
+                            <td class="mpc-td text-right" x-text="sum(row.spend) > 0 ? nf((sum(row.revenue)*n(p.gross_margin)/100 - sum(row.spend)) / sum(row.spend) * 100, 0) + '%' : '—'"></td>
                         </tr>
                     </template>
                 </tbody>
             </table>
         </div>
-    </div>
+    </details>
 
     {{-- ───── 4 · SAYZIO ROI & VALUE ───── --}}
-    <div x-show="tab === 'roi'" x-cloak class="space-y-4">
+    <div x-show="tab === 'reports' && savingsOpen" x-cloak class="space-y-4">
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <h3 class="text-sm font-bold mpc-title">If you didn't use Sayzio, what you'd need instead</h3>
             @if(!empty($toolsLocked))
@@ -749,8 +755,8 @@
                 <h3 class="text-sm font-bold mpc-title">Sayzio effectiveness: revenue impact</h3>
                 <dl class="mt-3 space-y-1.5 text-sm">
                     <div class="flex justify-between gap-4"><dt class="mpc-sub">Baseline annual revenue (no CRM/dialer/chat uplift)</dt><dd class="mpc-text font-semibold" x-text="money(roi.baselineRevenue)"></dd></div>
-                    <div class="flex justify-between gap-4"><dt class="mpc-sub">Annual revenue with current uplift setting</dt><dd class="mpc-text font-semibold" x-text="money(model.totals.revenue)"></dd></div>
-                    <div class="flex justify-between gap-4"><dt class="mpc-sub">Additional revenue from Sayzio effectiveness</dt><dd class="text-emerald-400 font-semibold" x-text="money(roi.upliftRevenue)"></dd></div>
+                    <div class="flex justify-between gap-4"><dt class="mpc-sub">Period revenue with current uplift setting</dt><dd class="mpc-text font-semibold" x-text="money(model.totals.revenue)"></dd></div>
+                    <div class="flex justify-between gap-4"><dt class="mpc-sub">Assumed revenue difference from uplift settings</dt><dd class="text-emerald-400 font-semibold" x-text="money(roi.upliftRevenue)"></dd></div>
                     <div class="flex justify-between gap-4"><dt class="mpc-sub">Effectiveness uplift on revenue</dt><dd class="mpc-text font-semibold" x-text="nf(roi.upliftPct * 100, 1) + '%'"></dd></div>
                 </dl>
                 <p class="text-[11px] mpc-faint mt-3">Reflects the "Apply Sayzio toolset uplifts" setting on the Assumptions tab; turn it on to see the full effectiveness value.</p>
@@ -769,7 +775,7 @@
         </div>
     </div>
     {{-- ───── 5 · ACTUALS TRACKING (Task #6771) ───── --}}
-    <div x-show="tab === 'track'" x-cloak class="space-y-4" data-mpc-actuals-log>
+    <div x-show="tab === 'actuals'" x-cloak class="space-y-4" data-mpc-actuals-log>
         <div class="rounded-2xl mpc-card p-4 overflow-x-auto">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
                 <h3 class="text-sm font-bold mpc-title">Log actual monthly results</h3>
@@ -786,8 +792,8 @@
             <table class="w-full min-w-[760px]" data-mpc-actuals-grid>
                 <thead><tr>
                     <th class="mpc-th">Month</th>
-                    <th class="mpc-th">Actual spend (₹)</th><th class="mpc-th">Actual visitors</th>
-                    <th class="mpc-th">Actual leads</th><th class="mpc-th">Actual customers</th>
+                    <th class="mpc-th">Actual spend (₹)</th><th class="mpc-th">Recorded clicks</th>
+                    <th class="mpc-th">Lead records</th><th class="mpc-th">Actual customers</th>
                     <th class="mpc-th">Actual revenue (₹)</th>
                     <th class="mpc-th">Status</th><th class="mpc-th"></th>
                 </tr></thead>
@@ -881,7 +887,7 @@
     </div>
 
     {{-- ───── 6 · PLAN VS ACTUAL (Task #6772) ───── --}}
-    <div x-show="tab === 'actual'" x-cloak class="space-y-4">
+    <div x-show="tab === 'actuals'" x-cloak class="space-y-4">
         <template x-if="actuals && actuals.has_data">
             <div class="space-y-4">
                 <div class="rounded-2xl mpc-card p-4">
@@ -898,8 +904,8 @@
                     <table class="w-full min-w-[760px]" data-testid="actuals-table">
                         <thead><tr>
                             <th class="mpc-th">Month</th>
-                            <th class="mpc-th text-right">Actual visitors</th><th class="mpc-th text-right">Baseline visitors</th>
-                            <th class="mpc-th text-right">Actual leads</th><th class="mpc-th text-right">Baseline leads</th>
+                            <th class="mpc-th text-right">Recorded clicks</th><th class="mpc-th text-right">Baseline visitors</th>
+                            <th class="mpc-th text-right">Lead records</th><th class="mpc-th text-right">Baseline leads</th>
                             <th class="mpc-th text-right">Actual revenue</th><th class="mpc-th text-right">Baseline revenue</th>
                         </tr></thead>
                         <tbody>
@@ -907,11 +913,11 @@
                                 <tr class="mpc-row">
                                     <td class="mpc-td font-semibold" x-text="row.label"></td>
                                     <td class="mpc-td text-right" x-text="nf(row.visitors, 0)"></td>
-                                    <td class="mpc-td text-right mpc-sub" x-text="nf(row.planVisitors, 0)"></td>
+                                    <td class="mpc-td text-right mpc-sub" x-text="row.planVisitors===null?'—':nf(row.planVisitors,0)"></td>
                                     <td class="mpc-td text-right" x-text="nf(row.leads, 0)"></td>
-                                    <td class="mpc-td text-right mpc-sub" x-text="nf(row.planLeads, 0)"></td>
+                                    <td class="mpc-td text-right mpc-sub" x-text="row.planLeads===null?'—':nf(row.planLeads,0)"></td>
                                     <td class="mpc-td text-right" x-text="money(row.revenue)"></td>
-                                    <td class="mpc-td text-right mpc-sub" x-text="money(row.planRevenue)"></td>
+                                    <td class="mpc-td text-right mpc-sub" x-text="row.planRevenue===null?'—':money(row.planRevenue)"></td>
                                 </tr>
                             </template>
                         </tbody>
@@ -934,6 +940,7 @@
             </div>
         </template>
     </div>
+</section>@include('user.marketing-plan.premium-preview')</div>
 </div>
 
 <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
@@ -953,17 +960,11 @@ function mpcApp() {
         prefill: @js($actualsPrefill ?? null),
         autoFilled: @js(!empty($actualsSeed['sufficient']) ? ($actualsSeed['filled'] ?? []) : []),
         actualsFlash: '',
-        months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-        steps: [
-            { key: 'assumptions', label: 'Assumptions' },
-            { key: 'monthly',     label: 'Monthly Plan' },
-            { key: 'dashboard',   label: 'Dashboard' },
-            { key: 'roi',         label: 'Sayzio ROI & Value' },
-            // Task #6771 — manually logged monthly actuals + variance.
-            { key: 'track',       label: 'Actuals' },
-            ...(@js($actuals ?? null) ? [{ key: 'actual', label: 'Plan vs Actual' }] : []),
-        ],
-        tab: 'assumptions',
+        baseMonths: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+        get months(){const start=Math.max(0,Math.min(11,this.n(this.p.start_month)||0));return [...this.baseMonths.slice(start),...this.baseMonths.slice(0,start)];},
+        steps: [{key:'overview',label:'Overview'},{key:'channels',label:'Channels'},{key:'scenarios',label:'Scenarios'},{key:'actuals',label:'Actuals'},{key:'reports',label:'Reports'}],
+        tab: 'overview',
+        @include('user.marketing-plan.premium-script')
         monthlyMetric: 'spend',
         // Task #6771 — logged-actuals metrics + the variance table's metric picker.
         actualMetrics: ['spend', 'visitors', 'leads', 'customers', 'revenue'],
@@ -984,6 +985,8 @@ function mpcApp() {
         _hintTimers: {},
 
         init() {
+            if(this._initDone)return;this._initDone=true;
+            this.premiumInit();
             // Ensure array shapes survive older/partial payloads.
             if (!Array.isArray(this.p.weights) || this.p.weights.length !== 12) this.p.weights = Array(12).fill(1);
             if (!this.p.uplifts) this.p.uplifts = { apply: true, chat: 8, crm: 15 };
@@ -1002,6 +1005,7 @@ function mpcApp() {
             // (plans saved before scenarios existed open with the defaults).
             const scenDef = @js(\App\Services\MarketingPlanDefaults::SCENARIO_DEFAULTS);
             if (!this.p.scenarios || typeof this.p.scenarios !== 'object' || Array.isArray(this.p.scenarios)) this.p.scenarios = {};
+            for(const [k,label] of Object.entries(this.p.scenario_labels||{})){if(this.p.scenarios[k]&&this.scenKeys.length<8){this.scenKeys.push(k);this.scenLabels[k]=String(label).slice(0,60);}}
             for (const k of Object.keys(scenDef)) {
                 const cur = (this.p.scenarios[k] && typeof this.p.scenarios[k] === 'object') ? this.p.scenarios[k] : {};
                 const merged = { ...scenDef[k] };
@@ -1032,10 +1036,11 @@ function mpcApp() {
             // pre-preset payloads read as "Custom".
             this.presetPick = this.presets[this.p.industry_preset] ? this.p.industry_preset : 'custom';
 
+            // Detailed charts render when the disclosure is opened.
             // ----- unsaved-changes guard -----
             this._baseline = this.snapshot();
-            this.$watch('p', () => { this.applyClamps(true); this.recomputeDirty(); });
-            this.$watch('name', () => this.recomputeDirty());
+            this.$watch('p', () => { this.applyClamps(true); this.recomputeDirty(); this.resetAssist();this.scheduleDraft();this.queueForecastCharts(); });
+            this.$watch('name', () => {this.recomputeDirty();this.scheduleDraft();});
             window.addEventListener('beforeunload', (e) => {
                 if (!this.dirty) return;
                 e.preventDefault();
@@ -1095,8 +1100,10 @@ function mpcApp() {
                 sc = this.clampNum(s, 'budget', 0, 1000) || sc;
             }
             if (sc) flag('scenarios', 'Adjusted: scenario multipliers stay between 0 and 1000% (cost per visitor at least 1%).');
+            this.clampNum(this.p,'period_months',1,12);this.clampNum(this.p,'start_month',0,11);this.clampNum(this.p,'sales_delay',0,11);for(const k of ['repeat_rate','churn_rate','refund_rate'])this.clampNum(this.p,k,0,100);for(const c of this.p.costs||[])this.clampNum(c,'amount',0,BIG);
             let ch = false;
             for (const c of this.p.channels || []) {
+                ch = this.clampNum(c, 'min_budget',0,BIG) || ch;ch = this.clampNum(c, 'max_budget',0,BIG) || ch;
                 ch = this.clampNum(c, 'alloc', 0, 100) || ch;
                 ch = this.clampNum(c, 'cpv', 0, BIG) || ch;
                 ch = this.clampNum(c, 'vl', 0, 100) || ch;
@@ -1194,7 +1201,7 @@ function mpcApp() {
         setScenario(key) {
             if (!this.scenKeys.includes(key)) return;
             this.scenario = key;
-            if (this.tab === 'dashboard') this.$nextTick(() => this.renderCharts());
+            if (this.tab === 'overview') this.$nextTick(() => this.renderCharts());
         },
         /** Annual totals for all three scenarios side-by-side. */
         get comparison() {
@@ -1207,7 +1214,7 @@ function mpcApp() {
 
         // ---------- goal seek (Task #6770) ----------
         /**
-         * Back-solves the annual ad budget needed to hit a 12-month target.
+         * Back-solves the annual ad budget needed to hit a planning-period target.
          *
          * Every projection metric is LINEAR in the budget input: paid-channel
          * visitors = spend / CPV and the funnel multipliers are per-channel
@@ -1249,12 +1256,13 @@ function mpcApp() {
                 return { state: 'infeasible', reason };
             }
 
-            const required = Math.ceil((targetInr - fixed) / slope);
+            let required = Math.ceil((targetInr - fixed) / slope);
+            if(this.p.channels.some(c=>this.n(c.min_budget)>0||this.n(c.max_budget)>0)){let lo=0,hi=1e12;if(pick(this.buildModel(sf,hi))<targetInr)return{state:'infeasible',reason:'Your channel ceilings cannot reach this target. Raise a ceiling or revise the assumptions.'};for(let i=0;i<60;i++){const mid=(lo+hi)/2;if(pick(this.buildModel(sf,mid))>=targetInr)hi=mid;else lo=mid;}required=Math.ceil(hi);}
             const channels = this.p.channels
                 .filter(c => !c.fixed && this.n(c.alloc) > 0)
                 .map(c => {
-                    const annual = required * sf.budget * this.n(c.alloc) / 100;
-                    return { key: c.key, name: c.name, alloc: this.n(c.alloc), annual, monthly: annual / 12 };
+                    const annual = this.channelBudget(c,required*sf.budget);
+                    return { key: c.key, name: c.name, alloc: this.n(c.alloc), annual, monthly: annual / this.period };
                 });
             return {
                 state: 'ok', required, fixed,
@@ -1277,26 +1285,29 @@ function mpcApp() {
         // `budgetOverride` (Task #6770 — goal seek) replaces the plan's
         // annual-budget INPUT; the scenario's budget multiplier still applies
         // on top, exactly as it would after typing that number into the field.
-        buildModel(sf, budgetOverride = null) {
-            const W = Math.max(1e-9, this.sum(this.p.weights));
-            const vlMult = (this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.chat) / 100 : 1) * sf.vl;
-            const lcMult = (this.p.uplifts.apply ? 1 + this.n(this.p.uplifts.crm) / 100 : 1) * sf.lc;
-            const subInr = this.n(this.selectedPlan.inr);
-            const budget = (budgetOverride !== null ? this.n(budgetOverride) : this.n(this.p.annual_budget)) * sf.budget;
+        buildModel(sf, budgetOverride = null, source = null) {
+            const pp=source||this.p;
+            const period=Math.max(1,Math.min(12,this.n(pp.period_months)||12));
+            const W = Math.max(1e-9, this.sum((pp.weights||Array(12).fill(1)).slice(0,period)));
+            const vlMult = (pp.uplifts?.apply ? 1 + this.n(pp.uplifts.chat) / 100 : 1) * sf.vl;
+            const lcMult = (pp.uplifts?.apply ? 1 + this.n(pp.uplifts.crm) / 100 : 1) * sf.lc;
+            const subInr = this.n(this.planOptions.find(x=>x.slug===pp.plan_slug)?.inr||0);
+            const budget = (budgetOverride !== null ? this.n(budgetOverride) : this.n(pp.annual_budget)) * sf.budget;
             // Task #6768 — finance assumptions for CAC/ROAS/LTV metrics.
-            const margin  = Math.min(100, Math.max(0, this.n(this.p.gross_margin))) / 100;
-            const ltvMult = Math.max(0, this.n(this.p.ltv_multiplier));
+            const margin  = Math.min(100, Math.max(0, this.n(pp.gross_margin))) / 100;
+            const ltvMult = Math.max(0, this.n(pp.ltv_multiplier));
 
-            const channels = this.p.channels.map(c => {
+            const channels = (pp.channels||[]).map(c => {
                 const spend = [], visitors = [], leads = [], customers = [], revenue = [];
                 for (let m = 0; m < 12; m++) {
-                    const w = this.n(this.p.weights[m]);
+                    if(m>=period){spend.push(0);visitors.push(0);leads.push(0);customers.push(0);revenue.push(0);continue;}
+                    const w = this.n((pp.weights||[])[m]??1);
                     let sp, vis;
                     if (c.fixed) {
-                        sp  = subInr + this.n(this.p.ai_credits);              // flat every month
-                        vis = this.n(this.p.organic_visitors) * w / (W / 12);  // organic, seasonal
+                        sp  = subInr + this.n(pp.ai_credits);              // flat every month
+                        vis = this.n(pp.organic_visitors) * w / (W / period);  // organic, seasonal
                     } else {
-                        sp  = budget * this.n(c.alloc) / 100 * w / W;
+                        sp  = this.channelBudget(c,budget) * w / W;
                         vis = this.n(c.cpv) > 0 ? sp / (this.n(c.cpv) * sf.cpv) : 0;
                     }
                     // Effective conversion never exceeds 100% even under
@@ -1306,6 +1317,9 @@ function mpcApp() {
                     spend.push(sp); visitors.push(vis); leads.push(ld);
                     customers.push(cu); revenue.push(cu * this.n(c.acv));
                 }
+                const lag=Math.trunc(Math.max(0,Math.min(11,this.n(pp.sales_delay)||0)));
+                const rawCustomers=[...customers];
+                for(let i=0;i<12;i++){customers[i]=i<period&&i>=lag?rawCustomers[i-lag]:0;revenue[i]=customers[i]*this.n(c.acv)*(1+this.n(pp.repeat_rate)/100*(1-Math.min(100,this.n(pp.churn_rate))/100))*(1-Math.min(100,this.n(pp.refund_rate))/100);}
                 // Task #6768 — per-channel annual finance metrics.
                 const aSp = this.sum(spend), aRev = this.sum(revenue), aCu = this.sum(customers);
                 const cac  = aCu > 0 ? aSp / aCu : null;
@@ -1325,6 +1339,7 @@ function mpcApp() {
                 }
             }
 
+            for(const cost of pp.costs||[]){for(let i=0;i<period;i++)if(cost.frequency==='monthly'||i===this.n(cost.month))monthTotals.spend[i]+=this.n(cost.amount);}
             const spend = this.sum(monthTotals.spend), revenue = this.sum(monthTotals.revenue),
                   customers = this.sum(monthTotals.customers);
 
@@ -1335,11 +1350,11 @@ function mpcApp() {
             let cum = 0, breakEvenMonth = null;
             for (let m = 0; m < 12; m++) {
                 cum += monthTotals.revenue[m] * margin - monthTotals.spend[m];
-                if (breakEvenMonth === null && cum >= 0) breakEvenMonth = m; // 0-based month index
+                if (breakEvenMonth === null && cum >= 0 && monthTotals.revenue[m]>0) breakEvenMonth = m; // 0-based month index
             }
             const grossProfit = revenue * margin;
             // Months of blended spend recovered by average monthly gross profit.
-            const paybackMonths = (spend > 0 && grossProfit > 0) ? spend / (grossProfit / 12) : null;
+            const paybackMonths = (spend > 0 && grossProfit > 0) ? spend / (grossProfit / period) : null;
 
             return {
                 channels, monthTotals, vlMult, lcMult,
@@ -1347,7 +1362,8 @@ function mpcApp() {
                     spend, revenue, customers,
                     roas: spend > 0 ? revenue / spend : 0,
                     cac,
-                    roi:  spend > 0 ? (revenue - spend) / spend : 0,
+                    roi: spend > 0 ? (grossProfit - spend) / spend : 0,
+                    grossProfit, contribution:grossProfit-spend,
                     ltv,
                     ltvCac: cac > 0 ? ltv / cac : null,
                     breakEvenMonth,
@@ -1359,18 +1375,18 @@ function mpcApp() {
         get roi() {
             const m = this.model;
             const toolsMonthly = this.sum(this.p.tools.map(t => t.cost));
-            const subMonthly = this.n(this.selectedPlan.inr);
+            const subMonthly = this.n(this.selectedPlan.inr)+this.n(this.p.ai_credits);
             const extraMonthly = toolsMonthly - subMonthly;
             const hoursMonthly = this.p.tools.length * this.n(this.p.hours_per_tool);
             const timeMonthly = hoursMonthly * this.n(this.p.time_value);
-            const baselineRevenue = m.totals.revenue / (m.vlMult * m.lcMult);
+            const baselineRevenue=this.buildModel(this.scenFactors(this.scenario),null,{...this.p,uplifts:{...this.p.uplifts,apply:false}}).totals.revenue;
             const upliftRevenue = m.totals.revenue - baselineRevenue;
             return {
-                toolsMonthly, subMonthly, extraMonthly, extraAnnual: extraMonthly * 12,
-                hoursMonthly, timeMonthly, timeAnnual: timeMonthly * 12,
+                toolsMonthly, subMonthly, extraMonthly, extraAnnual: extraMonthly * this.period,
+                hoursMonthly, timeMonthly, timeAnnual: timeMonthly * this.period,
                 baselineRevenue, upliftRevenue,
                 upliftPct: baselineRevenue > 0 ? upliftRevenue / baselineRevenue : 0,
-                totalValue: extraMonthly * 12 + timeMonthly * 12 + upliftRevenue,
+                totalValue: extraMonthly * this.period + timeMonthly * this.period + upliftRevenue,
             };
         },
 
@@ -1391,6 +1407,7 @@ function mpcApp() {
                 ['Marketing Plan: Assumptions'],
                 ['Plan name', this.name || 'My Marketing Plan'],
                 ['Company / Product', this.p.company || ''],
+                ['Report identity',this.reportBrands.find(b=>String(b.id)===String(this.reportBrandId))?.name||'Sayzio'],
                 ['Display currency', cur],
                 ['USD → INR rate', this.xn(this.p.usd_inr_rate)],
                 ['Total annual ad-spend budget (' + sym + ')', this.xm(this.p.annual_budget)],
@@ -1433,28 +1450,28 @@ function mpcApp() {
             }
 
             const dashboard = [
-                ['Dashboard: annual totals (' + cur + ')'],
-                ['Total annual budget (' + sym + ')', this.xm(this.p.annual_budget)],
+                ['Dashboard: period totals (' + cur + ')'],
+                ['Total period budget (' + sym + ')', this.xm(this.p.annual_budget)],
                 ['Total projected spend (' + sym + ')', this.xm(m.totals.spend)],
                 ['Total projected revenue (' + sym + ')', this.xm(m.totals.revenue)],
-                ['Blended ROAS (×)', this.xn(m.totals.roas)],
+                ['Revenue / modelled cost (×)', this.xn(m.totals.roas)],
                 ['Total customers acquired', this.xn(m.totals.customers, 0)],
                 ['Blended CAC (' + sym + ')', this.xm(m.totals.cac)],
-                ['Blended ROI (%)', this.xn(m.totals.roi * 100, 1)],
+                ['Contribution return (%)', this.xn(m.totals.roi * 100, 1)],
                 ['Blended LTV (' + sym + ', gross profit per customer)', this.xm(m.totals.ltv)],
                 ['LTV : CAC (×)', m.totals.ltvCac !== null ? this.xn(m.totals.ltvCac) : '—'],
                 ['Break-even month (cumulative cashflow)', m.totals.breakEvenMonth !== null ? this.months[m.totals.breakEvenMonth] : 'Beyond 12 months'],
-                ['Payback period (months)', m.totals.paybackMonths !== null ? this.xn(m.totals.paybackMonths, 1) : '—'],
+                ['Cost coverage estimate (months)', m.totals.paybackMonths !== null ? this.xn(m.totals.paybackMonths, 1) : '—'],
                 [],
-                ['Channel summary (annual)'],
-                ['Channel', 'Annual spend (' + sym + ')', 'Annual revenue (' + sym + ')', 'Customers', 'CAC (' + sym + ')', 'ROAS (×)', 'LTV:CAC (×)', 'ROI %'],
+                ['Channel summary (selected period)'],
+                ['Channel', 'Period spend (' + sym + ')', 'Period revenue (' + sym + ')', 'Customers', 'CAC (' + sym + ')', 'Revenue/cost (×)', 'LTV:CAC (×)', 'Contribution return %'],
                 ...m.channels.map(row => {
                     const sp = this.sum(row.spend), rev = this.sum(row.revenue), cu = this.sum(row.customers);
                     return [row.name, this.xm(sp), this.xm(rev), this.xn(cu, 0),
                             row.metrics.cac !== null ? this.xm(row.metrics.cac) : '—',
                             row.metrics.roas !== null ? this.xn(row.metrics.roas) : '—',
                             row.metrics.ltvCac !== null ? this.xn(row.metrics.ltvCac) : '—',
-                            sp > 0 ? this.xn((rev - sp) / sp * 100, 1) : '—'];
+                            sp > 0 ? this.xn((rev*pdfMargin - sp) / sp * 100, 1) : '—'];
                 }),
             ];
 
@@ -1479,8 +1496,8 @@ function mpcApp() {
                 [],
                 ['Sayzio effectiveness: revenue impact'],
                 ['Baseline annual revenue, no uplift (' + sym + ')', this.xm(r.baselineRevenue)],
-                ['Annual revenue with current uplift setting (' + sym + ')', this.xm(m.totals.revenue)],
-                ['Additional revenue from Sayzio effectiveness (' + sym + ')', this.xm(r.upliftRevenue)],
+                ['Period revenue with current uplift setting (' + sym + ')', this.xm(m.totals.revenue)],
+                ['Assumed revenue difference from uplift settings (' + sym + ')', this.xm(r.upliftRevenue)],
                 ['Effectiveness uplift on revenue (%)', this.xn(r.upliftPct * 100, 1)],
                 [],
                 ['Total value of using Sayzio (year)'],
@@ -1505,11 +1522,11 @@ function mpcApp() {
                 scenMult('budget'), scenMult('cpv'), scenMult('vl'), scenMult('lc'),
                 [],
                 ['Annual outcome (' + cur + ')', ...comp.map(s => s.label)],
-                compRow('Annual spend (' + sym + ')', s => this.xm(s.totals.spend)),
-                compRow('Annual revenue (' + sym + ')', s => this.xm(s.totals.revenue)),
+                compRow('Period spend (' + sym + ')', s => this.xm(s.totals.spend)),
+                compRow('Period revenue (' + sym + ')', s => this.xm(s.totals.revenue)),
                 compRow('Customers acquired', s => this.xn(s.totals.customers, 0)),
-                compRow('Blended ROAS (×)', s => this.xn(s.totals.roas)),
-                compRow('Blended ROI (%)', s => this.xn(s.totals.roi * 100, 1)),
+                compRow('Revenue / modelled cost (×)', s => this.xn(s.totals.roas)),
+                compRow('Contribution return (%)', s => this.xn(s.totals.roi * 100, 1)),
                 compRow('LTV : CAC (×)', s => s.totals.ltvCac !== null ? this.xn(s.totals.ltvCac) : '—'),
             ];
 
@@ -1559,8 +1576,10 @@ function mpcApp() {
                 ['Monthly Plan', monthly],
                 ['Dashboard', dashboard],
                 ['Scenarios', scenarios],
+                ['Business costs & assumptions', [['Period months',this.period],['Starts',this.months[0]],['Sales delay (months)',this.n(this.p.sales_delay)],['Repeat uplift (%)',this.n(this.p.repeat_rate)],['Churn reduction (%)',this.n(this.p.churn_rate)],['Refunds (%)',this.n(this.p.refund_rate)],['Name','Amount INR','Frequency','Month'],...(this.p.costs||[]).map(c=>[c.name,this.n(c.amount),c.frequency,this.months[this.n(c.month)]])]],
+                ['Data definitions', [['Forecasts are assumptions, not guarantees.'],['Recorded visitors are clicks; leads combine forms and contact records; customers are qualifying transactions.'],['Workspace totals are not campaign-attributed and may overlap across sources.'],['Actual revenue supports INR and USD only. Other currencies are excluded; USD uses a fixed 83 INR rate.'],['Contribution deducts modelled marketing costs from revenue after gross margin. Unentered business costs are excluded.']]],
                 ['Actuals vs Plan', actualsRows],
-                ['Sayzio ROI', roiRows],
+                ...(this.savingsOpen?[['Tool savings comparison',roiRows]]:[]),
             ];
         },
 
@@ -1701,15 +1720,15 @@ function mpcApp() {
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${cu > 0 ? this.money(sp / cu) : '—'}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${sp > 0 ? this.nf(rev / sp, 2) + '×' : '—'}</td>
                     <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;font-weight:600;color:${ltvColor};">${this.ratio(ltvCac)}</td>
-                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${sp > 0 ? this.nf((rev - sp) / sp * 100, 0) + '%' : '—'}</td>
+                    <td style="padding:5px 8px;border-top:1px solid #e2e8f0;text-align:right;color:#334155;">${sp > 0 ? this.nf((rev*pdfMargin - sp) / sp * 100, 0) + '%' : '—'}</td>
                 </tr>`;
             }).join('');
             const th = t => `<th style="padding:5px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:right;">${t}</th>`;
             return `
             <div style="width:1120px;background:#ffffff;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;padding:36px 40px;box-sizing:border-box;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #2563eb;padding-bottom:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid ${esc(this.reportBrands.find(b=>String(b.id)===String(this.reportBrandId))?.color||'#3454ef')};padding-bottom:14px;">
                     <div>
-                        <p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#2563eb;">Sayzio · Marketing Plan</p>
+                        <p style="margin:0;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#2563eb;">${esc(this.reportBrands.find(b=>String(b.id)===String(this.reportBrandId))?.name||'Sayzio')} · Budget & Forecast</p>
                         <h1 style="margin:4px 0 0;font-size:26px;font-weight:800;color:#0f172a;">${esc(this.name || 'My Marketing Plan')}</h1>
                         ${this.p.company ? `<p style="margin:2px 0 0;font-size:13px;color:#475569;">${esc(this.p.company)}</p>` : ''}
                     </div>
@@ -1720,23 +1739,23 @@ function mpcApp() {
                 </div>
 
                 <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;">
-                    ${kpi('Total annual budget', this.money(this.p.annual_budget))}
+                    ${kpi('Total period budget', this.money(this.p.annual_budget))}
                     ${kpi('Projected revenue (year)', this.money(m.totals.revenue))}
-                    ${kpi('Blended ROAS', this.nf(m.totals.roas, 2) + '×')}
+                    ${kpi('Revenue / modelled cost', this.nf(m.totals.roas, 2) + '×')}
                     ${kpi('Customers acquired', this.nf(m.totals.customers, 0))}
                     ${kpi('Blended CAC', this.money(m.totals.cac))}
-                    ${kpi('Blended ROI', this.nf(m.totals.roi * 100, 0) + '%')}
+                    ${kpi('Contribution return', this.nf(m.totals.roi * 100, 0) + '%')}
                     ${kpi('LTV : CAC', this.ratio(m.totals.ltvCac))}
                     ${kpi('Break-even month', this.breakEvenLabel)}
-                    ${kpi('Payback period', this.paybackLabel)}
+                    ${kpi('Cost coverage estimate', this.paybackLabel)}
                 </div>
 
                 <div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin-top:14px;">
-                    <h3 style="margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">Scenario comparison (annual)</h3>
+                    <h3 style="margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748b;">Scenario comparison (selected period)</h3>
                     <table style="width:100%;border-collapse:collapse;font-size:11px;">
                         <thead><tr>
                             <th style="padding:3px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:left;">Scenario</th>
-                            ${['Spend', 'Revenue', 'Customers', 'ROAS', 'ROI'].map(t => `<th style="padding:3px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:right;">${t}</th>`).join('')}
+                            ${['Spend', 'Revenue', 'Customers', 'Revenue/cost', 'Contribution return'].map(t => `<th style="padding:3px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:right;">${t}</th>`).join('')}
                         </tr></thead>
                         <tbody>${this.comparison.map(s => `<tr>
                             <td style="padding:4px 8px;border-top:1px solid #e2e8f0;font-weight:${s.key === this.scenario ? 800 : 600};color:${s.key === this.scenario ? '#2563eb' : '#0f172a'};">${esc(s.label)}${s.key === this.scenario ? ' ·' : ''}</td>
@@ -1755,33 +1774,23 @@ function mpcApp() {
                         <canvas data-pdf-chart="month" width="580" height="260"></canvas>
                     </div>
                     <div style="flex:1;border:1px solid #e2e8f0;border-radius:14px;padding:14px;">
-                        <h3 style="margin:0 0 8px;font-size:12px;font-weight:800;color:#0f172a;">Annual revenue by channel</h3>
+                        <h3 style="margin:0 0 8px;font-size:12px;font-weight:800;color:#0f172a;">Period revenue by channel</h3>
                         <canvas data-pdf-chart="channel" width="440" height="260"></canvas>
                     </div>
                 </div>
 
                 <div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-top:18px;">
-                    <h3 style="margin:0 0 4px;font-size:12px;font-weight:800;color:#0f172a;">Channel summary (annual)</h3>
+                    <h3 style="margin:0 0 4px;font-size:12px;font-weight:800;color:#0f172a;">Channel summary (selected period)</h3>
                     <table style="width:100%;border-collapse:collapse;font-size:11px;">
                         <thead><tr>
                             <th style="padding:5px 8px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;text-align:left;">Channel</th>
-                            ${th('Annual spend')}${th('Annual revenue')}${th('Customers')}${th('CAC')}${th('ROAS')}${th('LTV:CAC')}${th('ROI %')}
+                            ${th('Period spend')}${th('Period revenue')}${th('Customers')}${th('CAC')}${th('Revenue/cost')}${th('LTV:CAC')}${th('Contribution return %')}
                         </tr></thead>
                         <tbody>${chanRows}</tbody>
                     </table>
                 </div>
 
-                <div style="border:1px solid #bfdbfe;background:#eff6ff;border-radius:14px;padding:18px;margin-top:18px;">
-                    <h3 style="margin:0;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#1d4ed8;">Total value of using Sayzio (year)</h3>
-                    <div style="display:flex;gap:20px;margin-top:10px;">
-                        <div style="flex:1;"><p style="margin:0;font-size:10px;color:#64748b;">Money saved on tools</p><p style="margin:2px 0 0;font-size:17px;font-weight:800;color:#0f172a;">${this.money(r.extraAnnual)}</p></div>
-                        <div style="flex:1;"><p style="margin:0;font-size:10px;color:#64748b;">Money saved via time</p><p style="margin:2px 0 0;font-size:17px;font-weight:800;color:#0f172a;">${this.money(r.timeAnnual)}</p></div>
-                        <div style="flex:1;"><p style="margin:0;font-size:10px;color:#64748b;">Effectiveness revenue</p><p style="margin:2px 0 0;font-size:17px;font-weight:800;color:#0f172a;">${this.money(r.upliftRevenue)}</p></div>
-                    </div>
-                    <p style="margin:12px 0 0;font-size:26px;font-weight:800;color:#2563eb;">${this.money(r.totalValue)}</p>
-                    <p style="margin:3px 0 0;font-size:10px;color:#64748b;">Tangible savings (tools + time) + additional effectiveness revenue · Sayzio plan: ${esc(this.selectedPlan.name)}</p>
-                </div>
-
+                <p style="margin:16px 0 0;font-size:10px;color:#64748b;">${this.period}-month horizon · sales delay ${this.n(this.p.sales_delay)} months · refunds ${this.n(this.p.refund_rate)}%. Modelled additional costs: ${esc((this.p.costs||[]).map(c=>c.name+' ('+this.money(c.amount)+' '+c.frequency+')').join('; ')||'None')}. Forecast contribution: ${this.money(m.totals.contribution)}. Unentered business costs are excluded.</p>
                 <p style="margin:16px 0 0;font-size:9px;color:#94a3b8;">Generated with the Sayzio Marketing Plan Calculator · Projections are illustrative estimates based on your assumptions.</p>
             </div>`;
         },
@@ -2001,18 +2010,18 @@ function mpcApp() {
             if (!this.actuals) return [];
             const m = this.model;
             return this.actuals.months.map(row => {
-                const mi = Math.max(0, Math.min(11, parseInt(String(row.ym).slice(5), 10) - 1));
+                const calendarMonth=Math.max(0,Math.min(11,parseInt(String(row.ym).slice(5),10)-1));const mi=(calendarMonth-this.n(this.p.start_month)+12)%12;
                 return {
                     ...row,
-                    planVisitors: m.monthTotals.visitors[mi],
-                    planLeads:    m.monthTotals.leads[mi],
-                    planRevenue:  m.monthTotals.revenue[mi],
+                    planVisitors: mi<this.period?m.monthTotals.visitors[mi]:null,
+                    planLeads: mi<this.period?m.monthTotals.leads[mi]:null,
+                    planRevenue: mi<this.period?m.monthTotals.revenue[mi]:null,
                 };
             });
         },
 
         openActual() {
-            this.tab = 'actual';
+            this.tab = 'actuals';
             this.$nextTick(() => this.renderActualChart());
         },
 
@@ -2073,7 +2082,7 @@ function mpcApp() {
         },
 
         openDashboard() {
-            this.tab = 'dashboard';
+            this.tab = 'overview';
             this.$nextTick(() => this.renderCharts());
         },
         renderCharts() {
@@ -2140,9 +2149,10 @@ function mpcApp() {
         },
 
         // ---------- save / load ----------
-        async save() {
+        async save(auto=false) {
             if (this.saving) return;
             this.saving = true; this.saveError = ''; this.savedFlash = false;
+            const sentSnapshot=this.snapshot();
             try {
                 const url = this.planId
                     ? '{{ route('user.marketing-plan.update', ['plan' => '__ID__']) }}'.replace('__ID__', this.planId)
@@ -2159,15 +2169,18 @@ function mpcApp() {
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.ok) throw new Error(data.message || 'Could not save the plan. Please try again.');
-                this._baseline = this.snapshot();
-                this.dirty = false;
+                this._baseline = sentSnapshot;
+                this.recomputeDirty();
                 if (!this.planId && data.redirect) { window.location.href = data.redirect; return; }
                 this.savedFlash = true;
                 setTimeout(() => this.savedFlash = false, 2500);
+                return true;
             } catch (e) {
                 this.saveError = e.message || 'Could not save the plan. Please try again.';
+                return false;
             } finally {
                 this.saving = false;
+                if(auto&&this.dirty&&!this.saveError)this.scheduleDraft();
             }
         },
     };

@@ -1387,6 +1387,13 @@ Route::prefix('user')->name('user.')->group(function () {
         // ---- Marketing Plan Calculator (Task #6737) ----
         // Interactive, browser-computed replacement for the 12-month
         // digital-marketing-plan spreadsheet. No AI spend — plain tool.
+        Route::post('marketing-plan/assist/estimate',[\App\Modules\User\Controllers\ForecastAssistController::class,'estimate'])->middleware('throttle:30,1')->name('marketing-plan.assist.estimate');
+        Route::post('marketing-plan/assist/generate',[\App\Modules\User\Controllers\ForecastAssistController::class,'generate'])->middleware('throttle:10,1')->name('marketing-plan.assist.generate');
+        Route::get('marketing-plan/{plan}/versions',[\App\Modules\User\Controllers\BudgetForecastController::class,'versions'])->whereNumber('plan')->name('marketing-plan.versions');
+        Route::post('marketing-plan/{plan}/versions/{version}/restore',[\App\Modules\User\Controllers\BudgetForecastController::class,'restore'])->whereNumber('plan')->whereNumber('version')->name('marketing-plan.restore');
+        Route::post('marketing-plan/{plan}/connect',[\App\Modules\User\Controllers\BudgetForecastController::class,'connect'])->whereNumber('plan')->name('marketing-plan.connect');
+        Route::post('marketing-plan/{plan}/share',[\App\Modules\User\Controllers\BudgetForecastController::class,'share'])->whereNumber('plan')->middleware('throttle:20,1')->name('marketing-plan.share');
+        Route::delete('marketing-plan/{plan}/share',[\App\Modules\User\Controllers\BudgetForecastController::class,'revoke'])->whereNumber('plan')->name('marketing-plan.revoke');
         Route::get   ('marketing-plan',               [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'index'])->name('marketing-plan.index');
         Route::get   ('marketing-plan/create',        [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'create'])->name('marketing-plan.create');
         Route::get   ('marketing-plan/actuals',       [\App\Modules\User\Controllers\MarketingPlanCalculatorController::class, 'actuals'])->middleware('throttle:30,1')->name('marketing-plan.actuals');

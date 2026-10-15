@@ -2,7 +2,7 @@
 function brandStudio() {
     return {
         brandKitId: @js((string)($campaign?->brief['brand_kit_id']??'')), brandName: '', brandColors: '', brandVoice: '', brandDescription: '',
-        projectId: '', mindIds: [],
+        projectId: @js((string)($campaign?->project_id??'')), mindIds: [],
         brief: @js($campaignBrief??''), mode: 'kit', bulkKind: 'short_link', bulkCount: 5,
         busy: false, error: '', estimateText: '',
         estQuote:null,estCredits: null, estBalance: {{ (int) $balance }}, estBusy: false,
