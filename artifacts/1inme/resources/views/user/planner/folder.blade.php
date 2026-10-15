@@ -8,19 +8,21 @@
  $coins=$runs->sum('coins_spent');
  $canAssignFolder=((int)$project->created_by_user_id===(int)auth()->id() || \App\Modules\User\Services\WorkspacePermissions::userCan('projects.edit_others')) && \App\Modules\User\Services\WorkspacePermissions::userCan('projects.edit') && \App\Modules\User\Services\WorkspacePermissions::userCan('planner.edit');
 @endphp
-@php $activeTab=in_array(request('tab'),['overview','plans','tasks','team','marketing','resources','remember','activity'])?request('tab'):'overview'; @endphp
+@php $activeTab=in_array(request('tab'),['overview','plans','tasks','team','marketing','resources','remember','activity','budget','brands'])?request('tab'):'overview'; @endphp
 <div class="notes-studio folder-workspace" x-data="{tab:@js($activeTab),resourceKinds:[],query:''}">
 @include('user.planner.folder-shell')
 <div class="notes-stack" x-show="tab==='overview'">
+    <div class="notes-metrics">
+        <div class="notes-metric"><i class="fas fa-link" aria-hidden="true"></i>Link engagement<strong>{{ number_format($links->sum(fn($i)=>$i['row']->total_clicks)) }}</strong><small>Lifetime clicks across {{ $links->count() }} links</small>@include('user.partials.count-card-art',['kind'=>'links','artId'=>'folder-links'])</div>
+        <div class="notes-metric"><i class="fas fa-check-double" aria-hidden="true"></i>Work completed<strong>{{ $done }} / {{ $tasks->count() }}</strong><small>{{ $plans->count() }} plans · {{ $tasks->count()-$done }} tasks remaining</small>@include('user.partials.count-card-art',['kind'=>'pages','artId'=>'folder-work'])</div>
+        <div class="notes-metric"><i class="fas fa-layer-group" aria-hidden="true"></i>Connected resources<strong>{{ count($resources) }}</strong><small>{{ collect($resources)->pluck('kind')->unique()->count() }} resource types in this folder</small>@include('user.partials.count-card-art',['kind'=>'folders','artId'=>'folder-resources'])</div>
+    </div>
+
 @if(\App\Modules\User\Services\WorkspacePermissions::userCan('links.view'))<a class="form-chip" href="{{ route('user.calendars.mine',['folder'=>$project->id]) }}">Folder schedule →</a>@endif
 @include('user.vault.clients.folder-projects')
+@include('user.planner.folder-hub')
 @include('user.planner.folder-map')
 @if(count($attention))<section class="notes-card"><h2>Needs attention</h2><div class="notes-actions">@foreach(array_slice($attention,0,6) as $issue)<a class="form-chip" href="{{ $issue['url'] }}"><i class="fas fa-circle-exclamation text-amber-500"></i>{{ $issue['label'] }}</a>@endforeach</div></section>@endif
-    <div class="notes-metrics">
-        <div class="notes-metric"><i class="fas fa-link" aria-hidden="true"></i>Link engagement<strong>{{ number_format($links->sum(fn($i)=>$i['row']->total_clicks)) }}</strong><small>Lifetime clicks across {{ $links->count() }} links</small></div>
-        <div class="notes-metric"><i class="fas fa-check-double" aria-hidden="true"></i>Work completed<strong>{{ $done }} / {{ $tasks->count() }}</strong><small>{{ $plans->count() }} plans · {{ $tasks->count()-$done }} tasks remaining</small></div>
-        <div class="notes-metric"><i class="fas fa-layer-group" aria-hidden="true"></i>Connected resources<strong>{{ count($resources) }}</strong><small>{{ collect($resources)->pluck('kind')->unique()->count() }} resource types in this folder</small></div>
-    </div>
     <div class="folder-overview-grid">
         <section class="notes-card"><div class="folder-panel-head"><h2>Content & performance</h2><a href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>'links']) }}">Manage links →</a></div>
             @forelse($links->sortByDesc(fn($i)=>$i['row']->total_clicks)->take(5) as $item)
@@ -58,12 +60,14 @@
     </div>
 </div>
 @include('user.planner.folder-connections')
-@if($canAssignFolder)<div class="notes-card"><h2>+ Add / move existing items</h2><p class="notes-hint mb-3">Select multiple resources. Moving them changes their folder association; the resource itself is kept.</p><form method="POST" action="{{ route('user.ai.planner.attach',$project) }}">@csrf
+@if($canAssignFolder)<div class="notes-card" id="assign-resources"><h2>+ Add / move existing items</h2><p class="notes-hint mb-3">Select multiple resources. Moving them changes their folder association; the resource itself is kept.</p><form method="POST" action="{{ route('user.ai.planner.attach',$project) }}">@csrf
 @include('user.planner.chooser',['choices'=>$choices,'fieldName'=>'items[]','selected'=>[],'label'=>'Add / move items','limit'=>50])<button class="btn-primary px-4 py-2 mt-3">Move selected to folder</button></form></div>@endif</div>
 <div x-show="tab==='tasks'" x-cloak>@include('user.planner.folder-tasks')</div>
 <div x-show="tab==='remember'" x-cloak>@include('user.planner.folder-notes')</div>
 <div x-show="tab==='team'" x-cloak>@include('user.planner.folder-team')</div>
 <div x-show="tab==='marketing'" x-cloak>@include('user.planner.folder-marketing')</div>
+<div x-show="tab==='budget'" x-cloak>@include('user.planner.folder-budget')</div>
+<div x-show="tab==='brands'" x-cloak>@include('user.planner.folder-brands')</div>
 <div x-show="tab==='activity'" x-cloak>@include('user.planner.folder-timeline')</div>
 
 </div>

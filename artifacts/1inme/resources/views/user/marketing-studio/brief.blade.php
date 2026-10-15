@@ -1,4 +1,5 @@
-@php $b=old()?:($campaign?->brief??[]); @endphp
+@php $b=old()?:($campaign?->brief??[]); if(isset($folderContext) && $folderContext && empty($b['brand_kit_id']) && $brandKits->contains('id',$folderContext->default_brand_kit_id)) $b['brand_kit_id']=$folderContext->default_brand_kit_id; @endphp
+@if(isset($folderContext) && $folderContext)<input type="hidden" name="project_id" value="{{ $folderContext->id }}"><p class="bk-muted">Folder: {{ $folderContext->name }}</p>@endif
 <div x-data="{detail:'basic'}">
 <div class="bk-tabs" role="tablist" aria-label="Brief details">@foreach(['basic'=>'Basic','more'=>'More options','advanced'=>'Advanced'] as $key=>$label)<button type="button" role="tab" :aria-selected="detail==='{{ $key }}'" @click="detail='{{ $key }}'">{{ $label }}</button>@endforeach</div>
 <div x-show="detail==='basic'">

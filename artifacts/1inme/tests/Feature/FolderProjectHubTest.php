@@ -168,4 +168,42 @@ class FolderProjectHubTest extends TestCase
             file_put_contents('/tmp/hub-reports.html', $page->getContent());
         }
     }
+    public function test_campaign_and_forecast_native_assignments_move_and_delete_without_destroying_content(): void
+    {
+        $u=$this->owner(); $p=$this->folder($u); $target=Project::create(['user_id'=>$u->id,'name'=>'Next']);
+        $campaign=\App\Modules\User\Models\MarketingCampaign::create(['user_id'=>$u->id,'project_id'=>$p->id,'name'=>'Studio launch','path'=>'quick','brief'=>[]]);
+        $forecast=\App\Modules\User\Models\MarketingPlanCalc::create(['user_id'=>$u->id,'workspace_id'=>$p->workspace_id,'name'=>'Launch forecast','payload'=>['project_id'=>$p->id,'annual_budget'=>12000]]);
+        app(PlannerResources::class)->attach($p,'budget',$forecast->id,$u);
+        $items=collect(app(PlannerResources::class)->folder($p,$u));
+        $this->assertSame(1,$items->where('kind','budget')->count());
+        $this->assertSame(1,$items->where('kind','campaign')->count());
+        $this->get('/user/projects/'.$p->id.'?tab=budget')->assertOk()->assertSee('Launch forecast')->assertSee('Modelled cost:');
+        $this->post('/user/ai/folders/'.$p->id.'/connections',['source'=>'campaign:'.$campaign->id,'target'=>'budget:'.$forecast->id,'label'=>'Funds'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->post('/user/ai/folders/'.$p->id.'/move',['destination'=>$target->id])->assertRedirect();
+        $this->assertSame($target->id,$campaign->fresh()->project_id);
+        $this->assertSame($target->id,$forecast->fresh()->payload['project_id']);
+        $this->assertCount(0,app(PlannerResources::class)->folder($p,$u));
+        $this->delete('/user/projects/'.$target->id)->assertRedirect();
+        $this->assertNull($campaign->fresh()->project_id);
+        $this->assertNull($forecast->fresh()->payload['project_id']);
+    }
+
+    public function test_studio_creation_carries_authorized_folder_context(): void
+    {
+        $u=$this->owner(); $p=$this->folder($u);
+        $this->get('/user/marketing-studio/create?project_id='.$p->id)->assertOk()->assertSee('Folder: Launch');
+        $brand=\App\Modules\User\Models\BrandKit::create(['user_id'=>$u->id,'name'=>'Folder identity']);
+        $this->put('/user/projects/'.$p->id,['name'=>$p->name,'default_brand_kit_id'=>$brand->id])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertEquals($brand->id,$p->fresh()->default_brand_kit_id);
+        $this->get('/user/marketing-studio/create?project_id='.$p->id)->assertOk()->assertSee('Folder identity');
+        $data=['name'=>'Folder campaign','path'=>'quick','goal'=>'Launch store','project_id'=>$p->id];
+        $this->post('/user/marketing-studio',$data)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('marketing_campaigns',['name'=>'Folder campaign','project_id'=>$p->id]);
+        $other=User::factory()->create();
+        $foreign=Project::create(['user_id'=>$other->id,'name'=>'Foreign']);
+        $data['project_id']=$foreign->id;
+        $this->post('/user/marketing-studio',$data)->assertNotFound();
+        $this->get('/user/marketing-studio/create?project_id='.$foreign->id)->assertNotFound();
+    }
+
 }

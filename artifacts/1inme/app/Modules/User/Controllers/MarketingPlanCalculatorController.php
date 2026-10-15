@@ -68,6 +68,10 @@ class MarketingPlanCalculatorController extends Controller
 
         $user     = $request->user();
         $payload  = MarketingPlanDefaults::defaults($user);
+        if ($request->filled('project_id')) {
+            $folder = \App\Modules\User\Models\Project::where('user_id', workspace_owner_id())->findOrFail($request->integer('project_id'));
+            $payload['project_id'] = $folder->id;
+        }
         $seedName = null;
         $aiSeed   = null;
 
@@ -308,6 +312,7 @@ class MarketingPlanCalculatorController extends Controller
 
             // Task #6767 — the originating industry preset key (badge only,
             // free-form so a removed preset can't block re-saving old plans).
+            'payload.project_id' => 'nullable|integer',
             'payload.start_month' => 'nullable|integer|min:0|max:11',
             'payload.scenario_labels' => 'nullable|array|max:5',
             'payload.scenario_labels.*' => 'string|max:60',
@@ -373,6 +378,8 @@ class MarketingPlanCalculatorController extends Controller
             'payload.channels.*.acv'   => 'nullable|numeric|min:0|max:1000000000000',
             'payload.tools.*.cost'     => 'nullable|numeric|min:0|max:1000000000000',
         ]);
+
+        if (!empty($validated['payload']['project_id'])) \App\Modules\User\Models\Project::where('user_id',workspace_owner_id())->findOrFail($validated['payload']['project_id']);
 
         // Hard cap the stored blob so a hostile client can't bloat the row.
         if (strlen((string) json_encode($request->input('payload'))) > 120_000) {

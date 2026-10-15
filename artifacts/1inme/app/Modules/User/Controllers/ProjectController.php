@@ -125,11 +125,13 @@ class ProjectController extends Controller
         $this->authorizeOwner($project);
 
         $validated = $request->validate([
+            'default_brand_kit_id' => 'nullable|integer',
             'name' => 'required|string|max:255',
             'color' => 'nullable|string|max:7',
             'description' => 'nullable|string|max:1000',
         ]);
 
+        if (!empty($validated['default_brand_kit_id'])) app(\App\Services\Planner\PlannerResources::class)->get('brand', (int)$validated['default_brand_kit_id'], $request->user());
         $validated['color'] = $this->normalizeColor($validated['color'] ?? $project->color);
 
         $project->update($validated);
@@ -156,6 +158,10 @@ class ProjectController extends Controller
             \App\Modules\User\Models\PlannerNote::where('project_id',$project->id)->update(['project_id'=>null]);
             \App\Modules\User\Models\ProjectItem::where('project_id',$project->id)->delete();
             \Illuminate\Support\Facades\DB::table('folder_relationships')->where('workspace_id',$project->workspace_id)->where('project_id',$project->id)->delete();
+            \App\Modules\User\Models\MarketingCampaign::where('project_id',$project->id)->update(['project_id'=>null]);
+            foreach (\App\Modules\User\Models\MarketingPlanCalc::where('payload->project_id',$project->id)->get() as $forecast) {
+                $forecast->update(['payload'=>array_replace($forecast->payload ?? [], ['project_id'=>null])]);
+            }
             $project->delete();
         });
 
