@@ -6,6 +6,7 @@
 <div class="w-full" x-data="aiStaffShow({
         staffId: {{ $staff->id }},
         domain: @js($staff->domain),
+        estimateUrl: '{{ route('user.ai.staff.estimate', $staff) }}',
         chatUrl: '{{ route('user.ai.staff.chat', $staff) }}',
         draftInvoiceUrl: '{{ route('user.ai.staff.draft-invoice', $staff) }}',
         chaseUrl: '{{ route('user.ai.staff.chase-suggestions', $staff) }}',
@@ -30,7 +31,7 @@
 
     @if(!$planAllowed)
         <div class="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-amber-200/90 text-sm mb-6">
-            Team assistants for this domain isn't available on your current plan.
+            AI Staff for this domain is not available on your current plan.
         </div>
     @endif
 
@@ -43,6 +44,7 @@
         <label class="block text-xs text-white/50 mb-1">Instructions / personality</label>
         <textarea name="instructions" maxlength="4000" rows="3"
                   class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-white text-sm">{{ $staff->instructions }}</textarea>
+        @include('user.ai.staff.connections')
         <div class="flex justify-between items-center mt-3">
             <button type="submit" class="text-sm px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700">Save</button>
             <button type="button" onclick="if(confirm('Remove this AI staff member?')) document.getElementById('destroy-staff').submit();"
@@ -61,7 +63,7 @@
         </div>
     @endif
 
-    @if(in_array($staff->domain, ['billing', 'contacts', 'general']))
+    @if($staff->domain !== 'inbox')
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 mb-6">
             <h3 class="text-white font-semibold mb-3"><i class="fas fa-comments text-blue-300/80 mr-1.5"></i>Chat with {{ $staff->name }}</h3>
             <div class="space-y-2 mb-3 max-h-80 overflow-y-auto" x-ref="log">
@@ -76,11 +78,14 @@
             </div>
             <form @submit.prevent="sendChat">
                 <div class="flex gap-2">
-                    <input type="text" x-model="draft" placeholder="Ask a question…" maxlength="2000"
+                    <input type="text" x-model="draft" @input="estimate=null" placeholder="Ask a question…" maxlength="2000"
                            class="flex-1 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-white text-sm">
-                    <button type="submit" :disabled="busy || !draft.trim()" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">Send</button>
+                    <button type="button" @click="estimateChat" :disabled="busy || !draft.trim()" class="px-3 py-2 rounded-xl border text-sm">Estimate</button>
+                    <button type="submit" :disabled="busy || !draft.trim() || estimate===null" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">Send</button>
                 </div>
+                <p class="text-xs mt-2" x-show="estimate!==null" x-text="`Estimated up to ${estimate} coins for this reply. Actual usage may differ.`"></p>
             </form>
+            <p class="text-xs mt-2">Test chat stays in this page until reload. Save settings before testing.</p>
         </div>
     @endif
 
@@ -158,6 +163,7 @@ function aiStaffShow(cfg) {
     return {
         messages: [],
         draft: '',
+        estimate: null,
         busy: false,
         invoicePrompt: '',
         invoiceError: '',
@@ -176,14 +182,23 @@ function aiStaffShow(cfg) {
             if (!res.ok) throw new Error((data.error && data.error.message) || 'Something went wrong.');
             return data;
         },
+        async estimateChat() {
+            this.busy=true;
+            try { const result=await this.postJson(cfg.estimateUrl,{message:this.draft.trim(),history:this.messages.slice(-10)}); this.estimate=result.estimated_coins; }
+            catch(e) { alert(e.message); }
+            finally { this.busy=false; }
+        },
         async sendChat() {
             const msg = this.draft.trim();
             if (!msg) return;
+            if(this.estimate===null || this.busy) return;
+            const history=this.messages.slice(-10);
+            this.estimate=null;
             this.messages.push({ role: 'user', content: msg });
             this.draft = '';
             this.busy = true;
             try {
-                const data = await this.postJson(cfg.chatUrl, { message: msg, history: this.messages.slice(-10) });
+                const data = await this.postJson(cfg.chatUrl, { message: msg, history });
                 this.messages.push({ role: 'assistant', content: data.reply });
             } catch (e) {
                 this.messages.push({ role: 'assistant', content: 'Error: ' + e.message });

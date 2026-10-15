@@ -1476,11 +1476,15 @@ Route::prefix('user')->name('user.')->group(function () {
             // AI Staff (Task #3523) — configurable AI agents across billing,
             // contacts, inbox and general domains. Confirm-before-act
             // suggestions mirror the Marketing Strategist pattern above.
+            Route::get('staff/reports', [\App\Modules\User\Controllers\AI\AiStaffReportController::class, 'index'])->name('staff.reports');
+            Route::get('zio-conversations', [\App\Modules\User\Controllers\AI\ZioConversationController::class, 'index'])->name('zio-conversations');
+            Route::get('zio-conversations/{conversation}', [\App\Modules\User\Controllers\AI\ZioConversationController::class, 'show'])->whereNumber('conversation')->name('zio-conversations.show');
             Route::get   ('staff',                                [\App\Modules\User\Controllers\AI\AiStaffController::class, 'index'])->name('staff.index');
             Route::post  ('staff',                                [\App\Modules\User\Controllers\AI\AiStaffController::class, 'store'])->middleware('throttle:20,1')->name('staff.store');
             Route::get   ('staff/{staff}',                        [\App\Modules\User\Controllers\AI\AiStaffController::class, 'show'])->whereNumber('staff')->name('staff.show');
             Route::put   ('staff/{staff}',                        [\App\Modules\User\Controllers\AI\AiStaffController::class, 'update'])->whereNumber('staff')->name('staff.update');
             Route::delete('staff/{staff}',                        [\App\Modules\User\Controllers\AI\AiStaffController::class, 'destroy'])->whereNumber('staff')->name('staff.destroy');
+            Route::post('staff/{staff}/estimate', [\App\Modules\User\Controllers\AI\AiStaffController::class, 'estimate'])->whereNumber('staff')->middleware('throttle:30,1')->name('staff.estimate');
             Route::post  ('staff/{staff}/chat',                   [\App\Modules\User\Controllers\AI\AiStaffController::class, 'chat'])->whereNumber('staff')->middleware('throttle:30,1')->name('staff.chat');
             Route::post  ('staff/{staff}/draft-invoice',          [\App\Modules\User\Controllers\AI\AiStaffController::class, 'draftInvoice'])->whereNumber('staff')->middleware('throttle:15,1')->name('staff.draft-invoice');
             Route::post  ('staff/{staff}/chase-suggestions',      [\App\Modules\User\Controllers\AI\AiStaffController::class, 'generateChaseSuggestions'])->whereNumber('staff')->middleware('throttle:15,1')->name('staff.chase-suggestions');

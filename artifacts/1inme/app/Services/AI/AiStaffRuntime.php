@@ -40,6 +40,10 @@ class AiStaffRuntime
      */
     public function chat(User $user, AiStaff $staff, string $message, array $history = []): array
     {
+        $connections = app(AiStaffConnections::class);
+        $budget = (int) ($staff->config['connections']['monthly_budget'] ?? 0);
+        abort_if($budget > 0 && $connections->spent($staff) >= $budget, 403, 'AI Staff monthly spending threshold reached.');
+
         $feature = $staff->featureKey();
         $model = AiEngineSettings::featureModel($feature, $user);
 
@@ -52,6 +56,7 @@ class AiStaffRuntime
         $messages[] = ['role' => 'user', 'content' => $message];
 
         $res = $this->openai->chat($user, $model, $messages, [
+            'meta' => ['ai_staff_id'=>$staff->id],
             'feature'     => $feature . '.chat',
             'related_id'  => $staff->id,
             'temperature' => 0.6,
@@ -87,6 +92,7 @@ class AiStaffRuntime
             $identity .= "\n\nLive workspace data (Snapshots):\n" . $snapshots;
         }
 
+        $identity .= "\n\n".app(AiStaffConnections::class)->context($staff);
         return $identity;
     }
 
@@ -98,9 +104,19 @@ class AiStaffRuntime
             AiStaff::DOMAIN_CONTACTS => ['contacts'],
             AiStaff::DOMAIN_INBOX    => ['inbox'],
             AiStaff::DOMAIN_GENERAL  => ['profile', 'links', 'biolinks', 'analytics', 'audience', 'payments'],
+            'sales' => ['contacts','links','billing'],
+            'support' => ['inbox','forms'],
+            'projects' => ['tasks'],
+            'client_success' => ['contacts','tasks','events'],
+            'marketing' => ['links','analytics','audience','social'],
+            'scheduling' => ['events'],
             default => [],
         };
 
+        $configured=$staff->config['connections']??[];
+        if(array_key_exists('data_keys',$configured))$keys=array_values(array_intersect($keys,$configured['data_keys']));
+        // Scoped client/folder context must not silently include unrelated aggregate data.
+        if(!empty($configured['client_ids'])||!empty($configured['project_ids']))$keys=[];
         $parts = [];
         foreach ($keys as $key) {
             $snap = trim($this->mind->snapshot($user, $key));
@@ -117,6 +133,11 @@ class AiStaffRuntime
      */
     public function draftInvoiceFromPrompt(User $user, AiStaff $staff, Workspace $ws, string $prompt): AiStaffSuggestion
     {
+        $connections = app(AiStaffConnections::class);
+        $budget = (int) ($staff->config['connections']['monthly_budget'] ?? 0);
+        abort_if($budget > 0 && $connections->spent($staff) >= $budget, 403, 'AI Staff monthly spending threshold reached.');
+        abort_if(($staff->config['connections']['mode'] ?? 'draft') === 'read', 403, 'This AI Staff member is read-only.');
+
         $model = AiEngineSettings::featureModel($staff->featureKey(), $user);
 
         $system = <<<PROMPT
@@ -141,6 +162,7 @@ PROMPT;
             ['role' => 'user', 'content' => $prompt],
         ], [
             'response_format' => ['type' => 'json_object'],
+            'meta' => ['ai_staff_id'=>$staff->id],
             'feature'         => $staff->featureKey() . '.draft_invoice',
             'related_id'      => $staff->id,
             'reason'          => 'AI Staff (Billing) draft invoice from prompt',
@@ -200,6 +222,11 @@ PROMPT;
      */
     public function overdueInvoiceSuggestions(User $user, AiStaff $staff, Workspace $ws): \Illuminate\Support\Collection
     {
+        $connections = app(AiStaffConnections::class);
+        $budget = (int) ($staff->config['connections']['monthly_budget'] ?? 0);
+        abort_if($budget > 0 && $connections->spent($staff) >= $budget, 403, 'AI Staff monthly spending threshold reached.');
+        abort_if(($staff->config['connections']['mode'] ?? 'draft') === 'read', 403, 'This AI Staff member is read-only.');
+
         $candidates = Invoice::query()
             ->where('workspace_id', $ws->id)
             ->where('kind', 'client')
@@ -251,6 +278,11 @@ PROMPT;
 
     protected function chaseMessage(User $user, AiStaff $staff, Invoice $invoice): string
     {
+        $connections = app(AiStaffConnections::class);
+        $budget = (int) ($staff->config['connections']['monthly_budget'] ?? 0);
+        abort_if($budget > 0 && $connections->spent($staff) >= $budget, 403, 'AI Staff monthly spending threshold reached.');
+        abort_if(($staff->config['connections']['mode'] ?? 'draft') === 'read', 403, 'This AI Staff member is read-only.');
+
         $model = AiEngineSettings::featureModel($staff->featureKey(), $user);
         $balance = number_format($invoice->balanceMinor() / 100, 2) . ' ' . strtoupper((string) $invoice->currency);
 
@@ -268,6 +300,7 @@ PROMPT;
             ['role' => 'system', 'content' => $system],
             ['role' => 'user', 'content' => $user_msg],
         ], [
+            'meta' => ['ai_staff_id'=>$staff->id],
             'feature'    => $staff->featureKey() . '.chase_message',
             'related_id' => $invoice->id,
             'reason'     => 'AI Staff (Billing) chase message',
@@ -280,6 +313,11 @@ PROMPT;
     /** @return array{summary:string,next_steps:array<int,string>} */
     public function summarizeContact(User $user, AiStaff $staff, Contact $contact): array
     {
+        $connections = app(AiStaffConnections::class);
+        $budget = (int) ($staff->config['connections']['monthly_budget'] ?? 0);
+        abort_if($budget > 0 && $connections->spent($staff) >= $budget, 403, 'AI Staff monthly spending threshold reached.');
+        abort_if(($staff->config['connections']['mode'] ?? 'draft') === 'read', 403, 'This AI Staff member is read-only.');
+
         $model = AiEngineSettings::featureModel($staff->featureKey(), $user);
         $profile = $this->contactBrief($contact);
 
@@ -296,6 +334,7 @@ PROMPT;
             ['role' => 'user', 'content' => $profile],
         ], [
             'response_format' => ['type' => 'json_object'],
+            'meta' => ['ai_staff_id'=>$staff->id],
             'feature'         => $staff->featureKey() . '.summarize_contact',
             'related_id'      => $contact->id,
             'reason'          => 'AI Staff (Contacts) summarize',
@@ -315,6 +354,11 @@ PROMPT;
 
     public function draftFollowup(User $user, AiStaff $staff, Contact $contact, string $goal = ''): string
     {
+        $connections = app(AiStaffConnections::class);
+        $budget = (int) ($staff->config['connections']['monthly_budget'] ?? 0);
+        abort_if($budget > 0 && $connections->spent($staff) >= $budget, 403, 'AI Staff monthly spending threshold reached.');
+        abort_if(($staff->config['connections']['mode'] ?? 'draft') === 'read', 403, 'This AI Staff member is read-only.');
+
         $model = AiEngineSettings::featureModel($staff->featureKey(), $user);
         $profile = $this->contactBrief($contact);
         $goalLine = trim($goal) !== '' ? "\n\nGoal for this follow-up: " . trim($goal) : '';
@@ -327,6 +371,7 @@ PROMPT;
             ['role' => 'system', 'content' => $system],
             ['role' => 'user', 'content' => $profile . $goalLine],
         ], [
+            'meta' => ['ai_staff_id'=>$staff->id],
             'feature'    => $staff->featureKey() . '.draft_followup',
             'related_id' => $contact->id,
             'reason'     => 'AI Staff (Contacts) draft follow-up',
