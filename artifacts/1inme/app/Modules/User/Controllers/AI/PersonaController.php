@@ -149,6 +149,7 @@ class PersonaController extends Controller
             'audience'         => 'required|string|min:3|max:400',
             'goals'            => 'nullable|string|max:600',
             'tone'             => 'nullable|string|max:200',
+            'instructions'     => 'nullable|string|max:2000',
             'mind_ids'         => 'nullable|array',
             'mind_ids.*'       => 'integer',
             'include_platform' => 'nullable|boolean',
@@ -156,7 +157,8 @@ class PersonaController extends Controller
 
         $brief = "Audience: {$data['audience']}\n"
             . "Goals: " . ($data['goals'] ?? 'unspecified') . "\n"
-            . "Preferred tone: " . ($data['tone'] ?? 'unspecified');
+            . "Preferred tone: " . ($data['tone'] ?? 'unspecified')
+            . "\nAdditional user instructions: " . ($data['instructions'] ?? 'None. Use sensible defaults and label assumptions.');
 
         // Resolve any selected Minds (own + opt-in platform) and pull
         // matching context. Embedding spend is on the asking user.
