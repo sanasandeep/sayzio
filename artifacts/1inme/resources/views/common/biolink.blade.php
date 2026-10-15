@@ -886,6 +886,7 @@
     @if(!empty($bs['custom_css']))
     <style>{!! $bs['custom_css'] !!}</style>
     @endif
+@if(!empty($brandShowcasePreview))<meta name="robots" content="noindex,nofollow"><style>a,button,input,select,textarea{pointer-events:none!important}</style><script>document.addEventListener('click',function(e){if(e.target.closest('a,button'))e.preventDefault();},true);document.addEventListener('submit',function(e){e.preventDefault();},true);</script>@endif
 </head>
 <body class="flex flex-col items-center {{ $mbEnabled && $mbPos === 'bottom' ? 'min-h-screen' : '' }}">
     @if($mbEnabled && !$mbIsFloating && $mbPos === 'top')
@@ -971,10 +972,10 @@
             // Lazily publish any due scheduled posts for this creator before
             // we surface their pinned post on the biolink.
             $creatorOwner = $link->user ?? null;
-            if ($creatorOwner) {
+            if ($creatorOwner && empty($brandShowcasePreview)) {
                 \App\Modules\User\Models\CreatorPost::publishDuePosts($creatorOwner->id);
             }
-            $pinnedPost = $creatorOwner
+            $pinnedPost = $creatorOwner && empty($brandShowcasePreview)
                 ? \App\Modules\User\Models\CreatorPost::where('user_id', $creatorOwner->id)
                     ->whereNotNull('pinned_at')
                     ->whereNotNull('published_at')
@@ -1348,9 +1349,9 @@
     </style>
     @endif
 
-    @include('common.partials.pixel-scripts', ['link' => $link])
+    @if(empty($brandShowcasePreview)) @include('common.partials.pixel-scripts', ['link' => $link]) @endif
 
-    @include('common.partials.cookie-consent', ['surface' => 'biolink', 'isOwner' => $__ccIsOwner])
+    @if(empty($brandShowcasePreview)) @include('common.partials.cookie-consent', ['surface' => 'biolink', 'isOwner' => $__ccIsOwner]) @endif
 
     @php
         // Per-biolink consent banner (task #1114). We only render this
@@ -1620,7 +1621,7 @@
         // session/heartbeat/dwell beacons entirely so previews stay light
         // and never pollute engagement analytics.
         try {
-            if (new URLSearchParams(location.search).get('_preview')) return;
+            if (@json($brandShowcasePreview ?? false) || new URLSearchParams(location.search).get('_preview')) return;
         } catch (e) {}
         var CONSENT_REQUIRED = {!! !empty(($link->settings['biolink']['privacy']['consent_banner_enabled'] ?? false)) ? 'true' : 'false' !!};
         var CONSENT_COOKIE   = @json('1inme_link_consent_' . (int) $link->id);

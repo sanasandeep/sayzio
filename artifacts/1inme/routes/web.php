@@ -878,3 +878,5 @@ Route::get('/{alias}/tickets/{code}', [\App\Modules\Common\Controllers\EventTick
     ->name('redirect.event.ticket')->middleware('events.enabled')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->where('code', '[A-Za-z0-9\-]+');
 
 Route::post("f/{slug}/event", [\App\Modules\User\Controllers\FormExperienceController::class, "event"])->middleware("throttle:60,1")->name("forms.public.event");
+
+Route::get('brand-showcases/{id}/{token}/{format}', [\App\Modules\User\Controllers\BrandKitShowcaseController::class, 'download'])->whereNumber('id')->where('token','[a-f0-9]{40}')->whereIn('format',['pdf','zip'])->middleware('throttle:10,1')->name('brand-showcases.download');

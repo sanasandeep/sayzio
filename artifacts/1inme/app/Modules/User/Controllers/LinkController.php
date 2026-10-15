@@ -999,6 +999,9 @@ class LinkController extends Controller
             'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,salon_spa,contact_directory,real_estate,education,community_club,nonprofit_campaign,file,ics,vcf,text,reviews,resume,paid_page,calendar,brand_kit,updates',
             'text_content' => 'required_if:type,text|nullable|string|max:20000',
             'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
+            'brand_showcase' => 'nullable|boolean',
+            'showcase_sections' => 'nullable|array|min:1|max:6',
+            'showcase_sections.*' => 'in:'.implode(',',array_keys(\App\Services\Brand\BrandKitShowcase::SECTIONS)),
             'brand_kit_id' => "nullable|integer|exists:brand_kits,id,user_id,{$userId}",
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
@@ -1146,6 +1149,12 @@ class LinkController extends Controller
         $pixelIds = $validated['pixel_ids'] ?? [];
         unset($validated['pixel_ids']);
 
+        if ($request->boolean('brand_showcase')) {
+            abort_unless($selectedBrandKit && $validated['type']==='biolink',422,'Choose a saved Brand Kit for this showcase.');
+            $validated['is_active']=false;
+        }
+        unset($validated['brand_showcase'],$validated['showcase_sections']);
+
         $link = Link::create($validated);
 
         // Resume / Portfolio links bridge to the user's standalone resume
@@ -1163,7 +1172,7 @@ class LinkController extends Controller
         // blocks are placeholders, so the PUBLIC page stays on its "being set
         // up" notice until the owner edits one -- see
         // Link::isUntouchedStarterPage().
-        if ($link->isBiolinkFamily()) {
+        if ($link->isBiolinkFamily() && !$request->boolean('brand_showcase')) {
             app(\App\Modules\User\Services\StarterPageService::class)->seed($link, workspace_owner());
         }
 
@@ -1241,6 +1250,10 @@ class LinkController extends Controller
 
         if ($selectedBrandKit && $link->isBiolinkFamily()) {
             app(\App\Services\Brand\BrandKitAssignments::class)->assign($selectedBrandKit, $link);
+        }
+
+        if ($request->boolean('brand_showcase')) {
+            app(\App\Services\Brand\BrandKitShowcase::class)->seed($link,$selectedBrandKit,$request->input('showcase_sections',\App\Services\Brand\BrandKitShowcase::DEFAULTS));
         }
 
         if (!empty($pixelIds)) {
