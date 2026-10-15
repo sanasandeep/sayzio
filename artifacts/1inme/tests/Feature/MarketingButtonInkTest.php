@@ -32,15 +32,16 @@ use Tests\TestCase;
  */
 class MarketingButtonInkTest extends TestCase
 {
+    use \Tests\Support\ReadsMarketingStyles;
     use RefreshDatabase;
     use AssertsAgainstLargeSubjects;
     use BandScanner;
 
     private function stylesheet(): string
     {
-        return (string) file_get_contents(
+        return $this->withLinkedMarketingStyles((string) file_get_contents(
             resource_path('views/public/partials/section-surfaces.blade.php')
-        );
+        ));
     }
 
     /**
@@ -156,7 +157,7 @@ class MarketingButtonInkTest extends TestCase
 
         foreach ($this->marketingViews() as $path) {
             $short = str_replace(resource_path('views/'), '', $path);
-            $source = (string) file_get_contents($path);
+            $source = $this->withLinkedMarketingStyles((string) file_get_contents($path));
 
             preg_match_all('/\bclass=(["\'])(.*?)\1/is', $source, $m, PREG_OFFSET_CAPTURE);
 
@@ -217,7 +218,7 @@ class MarketingButtonInkTest extends TestCase
         $found = 0;
 
         foreach ($this->marketingViews() as $path) {
-            preg_match_all('/\bclass=(["\'])(.*?)\1/is', (string) file_get_contents($path), $m);
+            preg_match_all('/\bclass=(["\'])(.*?)\1/is', $this->withLinkedMarketingStyles((string) file_get_contents($path)), $m);
 
             foreach ($m[2] as $classes) {
                 if (str_contains($classes, 'text-white') && preg_match('/(?<![\w:-])bg-[a-z]+-[5-9]\d{2}\b/', $classes)) {
@@ -232,7 +233,7 @@ class MarketingButtonInkTest extends TestCase
     /** And the rule has to reach the browser, not just sit in a partial. */
     public function test_a_rendered_marketing_page_carries_the_rule(): void
     {
-        $html = $this->get('/about')->assertOk()->getContent();
+        $html = $this->withLinkedMarketingStyles($this->get('/about')->assertOk()->getContent());
 
         $this->assertSubjectContains(
             '[class*="text-white"]',

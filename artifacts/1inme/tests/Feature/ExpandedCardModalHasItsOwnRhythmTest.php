@@ -21,12 +21,13 @@ use Tests\TestCase;
  */
 class ExpandedCardModalHasItsOwnRhythmTest extends TestCase
 {
+    use \Tests\Support\ReadsMarketingStyles;
     private function homepageCss(): string
     {
         $response = $this->get('/');
         $response->assertOk();
 
-        return $response->getContent();
+        return $this->withLinkedMarketingStyles($response->getContent());
     }
 
     /**

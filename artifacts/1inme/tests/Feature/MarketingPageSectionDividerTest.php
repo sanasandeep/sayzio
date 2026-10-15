@@ -38,6 +38,7 @@ use Tests\TestCase;
  */
 class MarketingPageSectionDividerTest extends TestCase
 {
+    use \Tests\Support\ReadsMarketingStyles;
     use RefreshDatabase;
     use AssertsAgainstLargeSubjects;
     use BandScanner;
@@ -105,7 +106,7 @@ class MarketingPageSectionDividerTest extends TestCase
 
         foreach ($this->marketingViews() as $path) {
             $short = str_replace(resource_path('views/'), '', $path);
-            $source = (string) file_get_contents($path);
+            $source = $this->withLinkedMarketingStyles((string) file_get_contents($path));
 
             foreach ($this->bandsIn($source) as [$tag, $classes, $line]) {
                 if ($this->declaresSeparator($classes)) {
@@ -145,7 +146,7 @@ class MarketingPageSectionDividerTest extends TestCase
         foreach ($this->marketingViews() as $path) {
             $short = str_replace(resource_path('views/'), '', $path);
 
-            foreach ($this->bandsIn((string) file_get_contents($path)) as [, $classes, $line]) {
+            foreach ($this->bandsIn($this->withLinkedMarketingStyles((string) file_get_contents($path))) as [, $classes, $line]) {
                 if (preg_match('/(?<![\w-])sec-rule(?![\w-])/', $classes)
                     && preg_match('/(?<![\w-])sec-ground(?![\w-])/', $classes)) {
                     $both[] = "{$short}:{$line}";
@@ -171,7 +172,7 @@ class MarketingPageSectionDividerTest extends TestCase
             'the marketing layout does not include the stylesheet that defines sec-rule'
         );
 
-        $partial = (string) file_get_contents(resource_path('views/public/partials/section-surfaces.blade.php'));
+        $partial = $this->withLinkedMarketingStyles((string) file_get_contents(resource_path('views/public/partials/section-surfaces.blade.php')));
 
         $this->assertSubjectContains('.sec-rule::before', $partial, 'the partial does not draw the hairline');
         $this->assertSubjectContains('html.light-mode .sec-rule::before', $partial, 'the hairline has no light-mode colour');
@@ -183,7 +184,7 @@ class MarketingPageSectionDividerTest extends TestCase
      */
     public function test_a_rendered_marketing_page_carries_the_stylesheet_and_the_class(): void
     {
-        $html = $this->get('/about')->assertOk()->getContent();
+        $html = $this->withLinkedMarketingStyles($this->get('/about')->assertOk()->getContent());
 
         $this->assertSubjectContains('.sec-rule::before', $html, '/about does not load the separator stylesheet');
         $this->assertSubjectContains('sec-rule', $html, '/about has no band carrying the class');

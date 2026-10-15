@@ -50,7 +50,7 @@
     $zioAlt   = $alt ?? '';
 @endphp
 <div class="zio-face"@if($zioSize) style="--size: {{ $zioSize }};"@endif>
-    <img src="{{ asset('branding/zio-body.png') }}"
+    <img src="{{ asset('branding/zio-body.webp') }}"
          alt="{{ $zioAlt }}" class="zio-mascot"
          width="220" height="220" loading="{{ $loading ?? 'eager' }}" decoding="async">
     <span class="zio-ant zio-ant--l"></span>

@@ -45,6 +45,7 @@ use Tests\TestCase;
 class HomepageSectionDividerTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Support\ReadsMarketingStyles;
     use AssertsAgainstLargeSubjects;
     use BandScanner;
 
@@ -68,7 +69,7 @@ class HomepageSectionDividerTest extends TestCase
         foreach ($candidates as $path) {
             if (is_file($path)) {
                 $css .= "
-" . file_get_contents($path);
+" . $this->withLinkedMarketingStyles((string) file_get_contents($path));
             }
         }
 

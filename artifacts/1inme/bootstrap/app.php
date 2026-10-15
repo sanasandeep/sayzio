@@ -23,11 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // instead of rejecting the heavy home render. No-op in production.
         $middleware->prepend(\App\Modules\Common\Middleware\DevStartupProbe::class);
 
-        // Production startup fast-path: the autoscale promote probe also polls
-        // the base path "/" (besides the configured "/up"), and a cold home
-        // render over the distant RDS exceeds its deadline, failing the
-        // publish. Answers probe UAs and the first seconds after boot with an
-        // instant 200. No-op in dev.
+        // Optional legacy autoscale readiness shortcut, disabled by default.
+        // Production health checks use /up; ordinary clients always see the homepage.
         $middleware->prepend(\App\Modules\Common\Middleware\ProdStartupProbe::class);
 
         $middleware->trustProxies(at: '*');
@@ -101,6 +98,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(append: [
+            \App\Modules\Common\Middleware\InjectSiteCustomCode::class,
             \App\Modules\User\Middleware\EnsureNotSuspended::class,
             // Task #3498 — blocks every state-changing request from the
             // read-only demo account (is_readonly_demo) before it reaches

@@ -1,0 +1,313 @@
+
+/* Brand-gradient launcher: a chat button, with tooltip.
+   It used to be the Zio mascot's head floating with no button under it, which
+   is why the idle state shrank to ~60% and faded to .65 opacity -- a character
+   peeking is allowed to be faint. A chat button is not: it is the one control
+   that has to look pressable at a glance, so it now sits at full opacity and
+   only springs the last few percent on hover. */
+.sa-launcher-wrap{
+  position:fixed;bottom:24px;z-index:99999;width:68px;height:68px;
+  transform:scale(.92);transform-origin:bottom right;opacity:1;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .25s ease, bottom .3s ease;
+  /* The wrapper is purely a positioning shell — its layout box, the decorative
+     aura/ring pseudo-elements, and the idle scale() padding must NOT swallow
+     clicks. Only the actual button (and the live tooltip) are interactive, so
+     the clickable hit area always matches the visible launcher. */
+  pointer-events:none;
+}
+.sa-launcher-wrap.sa-pos-right{right:24px}
+.sa-launcher-wrap.sa-pos-left{left:24px;transform-origin:bottom left}
+/* Hover/focus: spring up to full size + full opacity */
+.sa-launcher-wrap:hover,
+.sa-launcher-wrap:focus-within{
+  transform:scale(1);opacity:1;
+  animation:sa-launcher-pop .55s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes sa-launcher-pop{
+  0%  {transform:scale(.6)}
+  55% {transform:scale(1.12)}
+  100%{transform:scale(1)}
+}
+#sa-launcher{
+  position:absolute;inset:0;width:68px;height:68px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:0;color:#fff;z-index:2;
+  pointer-events:auto; /* re-enable clicks on the button itself (wrap is none) */
+  /* The mascot head was its own silhouette and needed no button behind it.
+     A glyph does: without a ground it reads as a stray icon rather than a
+     control. `--sa-accent` is the admin-set accent and stays the base of the
+     gradient, so an admin who changes it still changes this button. */
+  border-radius:50%;
+  background:linear-gradient(145deg, var(--sa-accent,#3d6bff) 0%, color-mix(in srgb, var(--sa-accent,#3d6bff) 62%, #6C4BFF) 100%);
+  box-shadow:0 10px 26px -8px color-mix(in srgb, var(--sa-accent,#3d6bff) 62%, transparent), 0 2px 6px rgba(15,23,42,.22);
+  transition:box-shadow .22s ease, transform .12s ease;
+}
+#sa-launcher:hover{box-shadow:0 14px 32px -8px color-mix(in srgb, var(--sa-accent,#3d6bff) 74%, transparent), 0 3px 8px rgba(15,23,42,.26)}
+#sa-launcher:active{transform:scale(.96)}
+#sa-launcher:focus-visible{outline:2px solid #90acff;outline-offset:3px;border-radius:50%}
+/* The glyph is a speech bubble with a sparkle inside it: it says "chat", and
+   the sparkle says the thing answering is AI, which is what the three orbiting
+   sparks around the mascot used to say. One mark instead of four moving parts. */
+#sa-launcher .sa-icon-bubble{position:relative;z-index:1;filter:drop-shadow(0 1px 2px rgba(15,23,42,.28))}
+/* Speech-bubble tooltip popping out next to the launcher */
+.sa-tooltip{
+  position:absolute;bottom:calc(100% + 14px);
+  background:#fff;color:#0f172a;
+  padding:9px 30px 9px 14px;
+  border-radius:14px;font-size:13px;line-height:1.35;font-weight:500;
+  font-family:'Space Grotesk','system-ui',sans-serif;
+  box-shadow:0 12px 30px -8px rgba(15,23,42,.35),0 4px 10px -4px rgba(15,23,42,.2);
+  max-width:240px;white-space:normal;
+  opacity:0;transform:translateY(10px) scale(.9);transform-origin:bottom right;
+  pointer-events:none;cursor:pointer;
+  transition:opacity .22s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.sa-tooltip.sa-pos-right{right:0;transform-origin:bottom right}
+.sa-tooltip.sa-pos-left{left:0;transform-origin:bottom left}
+.sa-tooltip.sa-show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;animation:sa-tip-bounce .6s ease-out .12s 1}
+.sa-tooltip::after{
+  content:"";position:absolute;bottom:-6px;width:14px;height:14px;
+  background:#fff;transform:rotate(45deg);
+  box-shadow:3px 3px 6px -3px rgba(15,23,42,.25);
+}
+.sa-tooltip.sa-pos-right::after{right:18px}
+.sa-tooltip.sa-pos-left::after{left:18px}
+.sa-tooltip-text{display:inline-block;min-height:1em}
+.sa-tooltip-text::after{content:"\200B"}
+.sa-tooltip-close{
+  position:absolute;top:4px;right:6px;width:18px;height:18px;
+  background:transparent;border:0;color:#64748b;font-size:16px;line-height:1;
+  cursor:pointer;padding:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+.sa-tooltip-close:hover{background:rgba(15,23,42,.08);color:#0f172a}
+@keyframes sa-tip-bounce{
+  0%{transform:translateY(0) scale(1)}
+  40%{transform:translateY(-3px) scale(1.03)}
+  100%{transform:translateY(0) scale(1)}
+}
+@media (prefers-reduced-motion:reduce){
+  #sa-launcher{animation:none}
+  .sa-tooltip,.sa-tooltip.sa-show{transition:none;animation:none}
+}
+#sa-panel-wrap{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 24px);z-index:99999;display:none;flex-direction:column;align-items:stretch}
+#sa-panel-wrap.sa-pos-right{right:20px}
+#sa-panel-wrap.sa-pos-left{left:20px}
+#sa-panel-wrap.sa-open{display:flex}
+#sa-panel{position:relative;width:100%;height:560px;max-height:calc(100vh - 120px);background:#0f172a;color:#e2e8f0;border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.08);font-family:'Space Grotesk','system-ui',sans-serif}
+/* Zio Bot mascot peeking over the top edge of the chat panel: it sits above
+   the panel (a flex sibling) and dips ~12px into the top edge so its hands read
+   as gripping the border. Centered so it never covers the header text/close. */
+#sa-peek{align-self:center;width:104px;max-width:60%;margin-bottom:-12px;pointer-events:none;z-index:1;line-height:0;transform-origin:bottom center;animation:sa-peek-rise .85s cubic-bezier(.22,1,.36,1) both,sa-peek-bob 4.5s ease-in-out 1s infinite}
+#sa-peek img{width:100%;height:auto;display:block;filter:drop-shadow(0 6px 10px rgba(15,23,42,.35))}
+@keyframes sa-peek-rise{0%{opacity:0;transform:translateY(34px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes sa-peek-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (max-width:480px){#sa-panel-wrap{width:calc(100vw - 16px);right:8px!important;left:8px!important;bottom:80px}#sa-panel{height:calc(100vh - 100px);height:calc(100dvh - 100px)}#sa-peek{width:84px}}
+@media (prefers-reduced-motion:reduce){#sa-peek{animation:none;opacity:1}}
+.sa-header{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sa-header img,.sa-header .sa-avatar{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.sa-header img{object-fit:contain;padding:1px}
+.sa-header h3{margin:0;font-size:14px;font-weight:600;color:#fff}
+.sa-header .sa-sub{font-size:11px;opacity:.65}
+.sa-close{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:transparent;border:0;color:#94a3b8;font-size:20px;line-height:1;border-radius:8px;cursor:pointer;transition:background .15s ease,color .15s ease}
+.sa-close:hover{background:rgba(255,255,255,.08);color:#e2e8f0}
+.sa-header-tools{display:flex;gap:6px;margin-left:auto}.sa-header-tool{width:36px;height:36px;border:1px solid #dbe2ef;border-radius:10px;background:transparent;color:inherit;font-size:22px;cursor:pointer}
+#sa-panel-wrap.sa-fullscreen{inset:16px!important;width:auto!important;transform:none!important}#sa-panel-wrap.sa-fullscreen #sa-panel{width:100%!important;height:calc(100dvh - 32px)!important;max-height:none!important}#sa-panel-wrap.sa-fullscreen #sa-peek{display:none}#sa-panel-wrap.sa-fullscreen .sa-msg{max-width:800px}#sa-panel-wrap.sa-fullscreen .sa-question{max-width:800px}
+.sa-export-form{padding:16px;background:#f8faff;color:#17213a;border-bottom:1px solid #dbe2ef;display:grid;gap:10px;max-height:50dvh;overflow:auto}.sa-export-form p{margin:0;font-size:12px}.sa-export-form label{display:grid;gap:6px;font-size:13px}.sa-export-form input{padding:10px;border:1px solid #cbd5e1;border-radius:8px;min-width:0;width:100%;box-sizing:border-box;background:#fff;color:#17213a}
+.sa-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.sa-msg{max-width:85%;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+.sa-msg.user{align-self:flex-end;background:var(--sa-accent,#3d6bff);color:#fff;border-bottom-right-radius:4px}
+.sa-msg.assistant{align-self:flex-start;background:rgba(255,255,255,.06);color:#e2e8f0;border-bottom-left-radius:4px}
+.sa-msg.error{align-self:center;background:rgba(239,68,68,.12);color:#fca5a5;font-size:12px;border-radius:8px}
+.sa-cutoff{align-self:flex-start;display:flex;align-items:center;gap:8px;font-size:11.5px;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);padding:6px 10px;border-radius:8px;margin-top:-2px;max-width:85%}
+.sa-cutoff button{background:rgba(251,191,36,.18);border:1px solid rgba(251,191,36,.35);color:#fde68a;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;font-family:inherit}
+.sa-cutoff button:hover{background:rgba(251,191,36,.32)}
+.sa-cutoff button:disabled{opacity:.5;cursor:not-allowed}
+.sa-question{padding:14px;border:1px solid #c7d2fe;border-radius:14px;background:#f8faff;color:#17213a}
+.sa-question-title{font-weight:650;margin-bottom:12px}.sa-question-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.sa-question .sa-btn{white-space:normal;text-align:left;border-radius:10px;padding:10px 12px}.sa-question-option{display:flex;gap:8px;align-items:center;padding:10px;background:#fff;border:1px solid #dbe2ef;border-radius:10px;cursor:pointer}
+.sa-social-row{display:grid;gap:8px;margin:12px 0}.sa-social-row select,.sa-social-setup>details select{max-width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px;background:white;color:#17213a}.sa-social-review{overflow-wrap:anywhere;font-size:12px}.sa-social-setup p{font-size:12px;line-height:1.5}
+.sa-question input[type=text]{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#17213a;margin-bottom:10px}
+.sa-question-other{display:block;margin-top:10px;border:0;background:transparent;color:#435be8;cursor:pointer;font:inherit}.sa-question button:disabled{opacity:.5;cursor:default}
+.sa-blocks{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.sa-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.sa-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer}
+.sa-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent}
+.sa-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;padding-right:4px}
+.sa-list-item{display:flex;gap:10px;align-items:flex-start;padding:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer}
+.sa-list-item:hover{background:rgba(255,255,255,.08)}
+.sa-list-item img{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.sa-list-item .sa-li-title{font-size:13px;font-weight:600;color:#fff}
+.sa-list-item .sa-li-desc{font-size:11px;opacity:.75;margin-top:2px}
+.sa-image{max-width:100%;border-radius:10px}
+.sa-form{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.sa-form input,.sa-form textarea{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);color:#fff;padding:8px 10px;border-radius:8px;font-size:13px;font-family:inherit;width:100%;box-sizing:border-box}
+.sa-form button{background:var(--sa-accent,#3d6bff);color:#fff;border:0;padding:8px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.sa-qc-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.sa-qc-tab{flex:1;min-width:80px;background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12)!important;color:#cbd5e1!important;padding:7px 8px!important;border-radius:8px!important;font-size:12px!important;font-weight:500!important;cursor:pointer}
+.sa-qc-tab.sa-qc-on{background:var(--sa-accent,#3d6bff)!important;border-color:transparent!important;color:#fff!important}
+.sa-actions{display:flex;padding:12px 14px 2px}
+.sa-contact-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(61,107,255,.12);border:1px solid rgba(61,107,255,.34);color:#c7d4ff;font-size:12.5px;font-weight:600;font-family:inherit;line-height:1;padding:9px 15px;border-radius:999px;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease}
+.sa-contact-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff;transform:translateY(-1px)}
+.sa-contact-btn:active{transform:translateY(0)}
+.sa-contact-btn svg{width:14px;height:14px}
+.sa-contact{flex:1;overflow-y:auto;padding:14px;display:none;flex-direction:column;gap:10px}
+.sa-contact.sa-show{display:flex}
+.sa-contact-back{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:transparent;border:0;color:#94a3b8;font-size:12px;cursor:pointer;font-family:inherit;padding:0}
+.sa-contact-back:hover{color:#e2e8f0}
+.sa-contact-intro{font-size:12.5px;color:#cbd5e1;line-height:1.45}
+.sa-contact-err{font-size:12px;color:#fca5a5}
+.sa-contact-done{padding:16px 8px;text-align:center;font-size:13px;color:#e2e8f0;line-height:1.5}
+.sa-gate{flex-direction:column;gap:8px;align-items:stretch;text-align:center}
+.sa-gate-note{font-size:12.5px;color:#cbd5e1;line-height:1.4}
+.sa-gate-cta{display:block;width:100%;border:0;cursor:pointer;background:var(--sa-accent,#3d6bff);color:#fff;text-decoration:none;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600}
+.sa-gate-cta:hover{filter:brightness(1.08)}
+.sa-gate-cta:disabled{opacity:.6;cursor:default}
+.sa-gate-input{width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#e6ecff;border-radius:10px;padding:9px 12px;font-size:13px;outline:none}
+.sa-gate-input::placeholder{color:#94a3b8}
+.sa-gate-input:focus{border-color:var(--sa-accent,#3d6bff)}
+.sa-gate-tabs{display:flex;gap:6px}
+.sa-gate-tab{flex:1;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#cbd5e1;border-radius:9px;padding:6px 8px;font-size:12px;font-weight:600}
+.sa-gate-tab.sa-gate-on{background:var(--sa-accent,#3d6bff);border-color:var(--sa-accent,#3d6bff);color:#fff}
+.sa-gate-hint{font-size:11.5px;color:#9fb4ff;line-height:1.4}
+.sa-gate-err{font-size:11.5px;color:#fca5a5;line-height:1.4}
+.sa-gate-alt{font-size:11.5px;color:#94a3b8;text-decoration:underline}
+.sa-gate-alt:hover{color:#cbd5e1}
+.sa-gate-trap{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+.sa-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}
+.sa-suggested .sa-btn{font-size:11.5px}
+.sa-low-balance{display:none;margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;align-items:center;gap:8px;flex-wrap:wrap}
+.sa-low-balance.sa-show{display:flex}
+.sa-low-balance .sa-lb-msg{flex:1;min-width:0}
+.sa-low-balance .sa-lb-cta{flex-shrink:0;background:rgba(251,191,36,.22);border:1px solid rgba(251,191,36,.45);color:#fde68a;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;text-decoration:none;font-family:inherit;cursor:pointer;white-space:nowrap}
+.sa-low-balance .sa-lb-cta:hover{background:rgba(251,191,36,.36);color:#fff}
+.sa-input-row{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)}
+.sa-input-row textarea{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;padding:8px 10px;border-radius:10px;resize:none;font-size:13px;font-family:inherit;max-height:120px;min-height:36px}
+.sa-input-row button{background:var(--sa-accent,#3d6bff);border:0;color:#fff;padding:0 14px;border-radius:10px;cursor:pointer;font-size:14px}
+.sa-input-row button:disabled{opacity:.5;cursor:not-allowed}
+.sa-typing{align-self:flex-start;font-size:11px;color:#94a3b8;padding:0 4px}
+.sa-badge{position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #0f172a}
+/* (.sa-launcher-wrap rules consolidated above with the new launcher styles.) */
+/* --- Light-mode overrides: follow the site theme (html.light-mode), keep purple accent + brand launcher intact --- */
+html.light-mode #sa-panel{background:#ffffff;color:#1e293b;border:1px solid rgba(15,23,42,.1);box-shadow:0 25px 60px rgba(15,23,42,.18)}
+html.light-mode .sa-header{border-bottom:1px solid rgba(15,23,42,.08)}
+html.light-mode .sa-header img,html.light-mode .sa-header .sa-avatar{background:rgba(15,23,42,.06);color:#0f172a}
+html.light-mode .sa-header h3{color:#0f172a}
+html.light-mode .sa-close{color:#64748b}
+html.light-mode .sa-close:hover{color:#0f172a}
+html.light-mode .sa-msg.assistant{background:rgba(15,23,42,.05);color:#1e293b}
+html.light-mode .sa-msg.error{background:rgba(239,68,68,.1);color:#b91c1c}
+html.light-mode .sa-cutoff{color:#b45309;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.4)}
+html.light-mode .sa-cutoff button{background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.5);color:#92400e}
+html.light-mode .sa-cutoff button:hover{background:rgba(251,191,36,.35)}
+html.light-mode .sa-btn{background:rgba(15,23,42,.05);border:1px solid rgba(15,23,42,.12);color:#1e293b}
+html.light-mode .sa-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff}
+html.light-mode .sa-list-item{background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.08)}
+html.light-mode .sa-list-item:hover{background:rgba(15,23,42,.06)}
+html.light-mode .sa-list-item .sa-li-title{color:#0f172a}
+html.light-mode .sa-form{background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.08)}
+html.light-mode .sa-form input,html.light-mode .sa-form textarea{background:#ffffff;border:1px solid rgba(15,23,42,.15);color:#1e293b}
+html.light-mode .sa-qc-tab{background:rgba(15,23,42,.05)!important;border:1px solid rgba(15,23,42,.12)!important;color:#475569!important}
+html.light-mode .sa-qc-tab.sa-qc-on{background:var(--sa-accent,#3d6bff)!important;color:#fff!important;border-color:transparent!important}
+html.light-mode .sa-contact-btn{background:rgba(61,107,255,.09);border-color:rgba(61,107,255,.28);color:#2742a8}
+html.light-mode .sa-contact-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff}
+html.light-mode .sa-contact-back{color:#64748b}
+html.light-mode .sa-contact-back:hover{color:#1e293b}
+html.light-mode .sa-contact-intro{color:#475569}
+html.light-mode .sa-contact-done{color:#1e293b}
+html.light-mode .sa-gate-note{color:#475569}
+html.light-mode .sa-gate-input{background:#fff;border-color:#cbd5e1;color:#0f172a}
+html.light-mode .sa-gate-input::placeholder{color:#94a3b8}
+html.light-mode .sa-gate-tab{background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+/* The selected tab has to restate its background here, not just its text
+   colour. `html.light-mode .sa-gate-tab` (0,2,1) outranks the base
+   `.sa-gate-tab.sa-gate-on` (0,2,0) that paints the accent, so in light mode
+   the pale resting fill won and white-on-#f1f5f9 left "Email" invisible. */
+html.light-mode .sa-gate-tab.sa-gate-on{background:var(--sa-accent,#3d6bff);border-color:var(--sa-accent,#3d6bff);color:#fff}
+html.light-mode .sa-gate-hint{color:#4f6bd8}
+html.light-mode .sa-gate-alt{color:#64748b}
+html.light-mode .sa-low-balance{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#92400e}
+html.light-mode .sa-low-balance .sa-lb-cta{background:rgba(251,191,36,.24);border:1px solid rgba(251,191,36,.5);color:#92400e}
+html.light-mode .sa-low-balance .sa-lb-cta:hover{background:rgba(251,191,36,.4);color:#0f172a}
+html.light-mode .sa-input-row{border-top:1px solid rgba(15,23,42,.08)}
+html.light-mode .sa-input-row textarea{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#1e293b}
+html.light-mode .sa-typing{color:#64748b}
+html.light-mode .sa-badge{border:2px solid #ffffff}
+/* ── Voice agent (mic in composer + activity strip + capabilities) ───── */
+.sa-mic{flex:0 0 auto;width:40px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:#cbd5e1;border-radius:10px;cursor:pointer;position:relative;padding:0;transition:background .15s,color .15s,border-color .15s}
+.sa-mic:hover{background:rgba(255,255,255,.12);color:#fff}
+.sa-mic:disabled{opacity:.5;cursor:default}
+.sa-mic svg{width:18px;height:18px}
+.sa-mic.sa-mic-rec{background:#ef4444;border-color:transparent;color:#fff;animation:sa-mic-pulse 1.3s ease-in-out infinite}
+/* ── Page snapshot (vision) button + attached-chip ─────────────────── */
+.sa-snap{flex:0 0 auto;width:40px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:#cbd5e1;border-radius:10px;cursor:pointer;padding:0;transition:background .15s,color .15s,border-color .15s}
+.sa-snap:hover{background:rgba(255,255,255,.12);color:#fff}
+.sa-snap:disabled{opacity:.5;cursor:default}
+.sa-snap svg{width:18px;height:18px}
+.sa-snap.sa-snap-on{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4);color:#6ee7b7}
+.sa-snap.sa-snap-busy{opacity:.6;cursor:progress}
+.sa-snap-chip{display:flex;align-items:center;gap:8px;margin:6px 10px 0;padding:6px 8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:10px;font-size:11px;color:#cbd5e1}
+.sa-snap-chip img{width:34px;height:24px;object-fit:cover;border-radius:5px;flex:0 0 auto}
+.sa-snap-chip span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sa-snap-chip button{flex:0 0 auto;background:transparent;border:0;color:#94a3b8;font-size:15px;line-height:1;cursor:pointer;padding:2px 4px}
+.sa-snap-chip button:hover{color:#fff}
+.sa-vision-note{font-size:11px;color:#94a3b8;padding:2px 6px 0;font-style:italic}
+html.light-mode .sa-snap{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#475569}
+html.light-mode .sa-snap:hover{background:rgba(15,23,42,.1);color:#0f172a}
+/* Same swallow as the mic: the "snapshot attached" state needs its green
+   restated, darkened for a light ground so the glyph keeps its contrast. */
+html.light-mode .sa-snap.sa-snap-on{background:rgba(16,185,129,.16);border:1px solid rgba(16,185,129,.45);color:#047857}
+html.light-mode .sa-snap-chip{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#334155}
+html.light-mode .sa-snap-chip button{color:#64748b}
+html.light-mode .sa-snap-chip button:hover{color:#0f172a}
+html.light-mode .sa-vision-note{color:#64748b}
+@keyframes sa-mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}50%{box-shadow:0 0 0 7px rgba(239,68,68,0)}}
+.sa-mic-lock{position:absolute;top:-5px;right:-5px;width:15px;height:15px;border-radius:50%;background:#fbbf24;color:#0f172a;font-size:9px;line-height:1;display:flex;align-items:center;justify-content:center;border:2px solid #0d1118;font-weight:700}
+.sa-voice{padding:6px 12px 0;display:flex;flex-direction:column;gap:6px}
+.sa-voice-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sa-voice-tool{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cbd5e1;font-size:11px;font-family:inherit;padding:4px 9px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;line-height:1}
+.sa-voice-tool:hover{background:rgba(255,255,255,.12);color:#fff}
+.sa-voice-tool.sa-on{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4);color:#6ee7b7}
+.sa-voice-status{font-size:11px;color:#94a3b8;margin-left:auto;text-align:right}
+.sa-voice-confirm{display:none;flex-direction:column;gap:6px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);border-radius:10px;padding:8px}
+.sa-voice-confirm.sa-show{display:flex}
+.sa-voice-confirm .sa-vc-title{font-size:11px;color:#fbbf24;font-weight:600}
+.sa-voice-confirm .sa-vc-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sa-voice-confirm .sa-vc-label{font-size:11px;color:#fde68a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.sa-voice-confirm .sa-vc-acts{display:flex;gap:6px;flex:0 0 auto}
+.sa-vc-yes{background:rgba(16,185,129,.85);border:0;color:#fff;font-size:11px;font-family:inherit;padding:3px 10px;border-radius:6px;cursor:pointer}
+.sa-vc-no{background:rgba(255,255,255,.12);border:0;color:#e2e8f0;font-size:11px;font-family:inherit;padding:3px 10px;border-radius:6px;cursor:pointer}
+.sa-voice-credits{display:none;font-size:10.5px;color:#94a3b8}
+.sa-voice-credits.sa-show{display:block}
+.sa-vcaps{position:absolute;inset:0;background:inherit;display:none;flex-direction:column;overflow:hidden}
+.sa-vcaps.sa-show{display:flex}
+.sa-vcaps-body{flex:1;overflow-y:auto;padding:6px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.sa-vcaps-h{font-size:11px;text-transform:capitalize;letter-spacing:.02em;color:#90acff;font-weight:700;margin:0 0 4px}
+.sa-vcaps-h.sa-vcaps-cant{color:#fca5a5}
+.sa-vcaps-list{display:flex;flex-direction:column;gap:6px}
+.sa-vcaps-item{display:flex;flex-direction:column;gap:1px}
+.sa-vcaps-name{font-size:12px;color:#e2e8f0;font-weight:600}
+.sa-vcaps-desc{font-size:11px;color:#94a3b8;line-height:1.35}
+.sa-vcaps-loading{font-size:12px;color:#94a3b8;padding:8px 0}
+@media (prefers-reduced-motion:reduce){.sa-mic.sa-mic-rec{animation:none}}
+html.light-mode .sa-mic{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#475569}
+html.light-mode .sa-mic:hover{background:rgba(15,23,42,.08);color:#0f172a}
+/* Recording has to restate its fill AND its border here. The rule above is
+   (0,2,1) and uses the `border` shorthand, so without this the light-mode
+   resting style wins and a live mic looks exactly like an idle one -- the
+   one state a person must never have to guess at. */
+html.light-mode .sa-mic.sa-mic-rec{background:#ef4444;border:1px solid #ef4444;color:#fff}
+html.light-mode .sa-mic-lock{border-color:#fff}
+html.light-mode .sa-voice-tool{background:rgba(15,23,42,.05);border-color:rgba(15,23,42,.12);color:#475569}
+html.light-mode .sa-voice-tool:hover{background:rgba(15,23,42,.1);color:#0f172a}
+html.light-mode .sa-voice-tool.sa-on{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:#047857}
+html.light-mode .sa-voice-status{color:#64748b}
+html.light-mode .sa-voice-confirm{border-color:rgba(180,83,9,.3);background:rgba(251,191,36,.12)}
+html.light-mode .sa-voice-confirm .sa-vc-title{color:#b45309}
+html.light-mode .sa-voice-confirm .sa-vc-label{color:#92400e}
+html.light-mode .sa-vc-no{background:rgba(15,23,42,.08);color:#334155}
+html.light-mode .sa-voice-credits{color:#64748b}
+html.light-mode .sa-vcaps-h{color:#3551c8}
+html.light-mode .sa-vcaps-h.sa-vcaps-cant{color:#dc2626}
+html.light-mode .sa-vcaps-name{color:#1e293b}
+html.light-mode .sa-vcaps-desc,html.light-mode .sa-vcaps-loading{color:#64748b}

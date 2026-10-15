@@ -270,10 +270,12 @@ class MarketingSchema
         return rtrim(url('/'), '/') . '/';
     }
 
-    /** Organization logo: the admin's default share image when present. */
+    /** Use the public branding icon, not an expiring private-storage share URL. */
     private static function logoUrl(): string
     {
-        return trim((string) AppSetting::get('marketing_default_share_image', ''));
+        $icon = trim((string) AppSetting::get('brand_icon_url', '/branding/icon.png'));
+        if ($icon === '' || str_contains(strtolower($icon), 'x-amz-signature=')) $icon = '/branding/icon.png';
+        return PlatformHosts::outboundUrl(url($icon));
     }
 
     /** Configured public social profile URLs, for Organization `sameAs`. */

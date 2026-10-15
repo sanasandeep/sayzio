@@ -220,6 +220,7 @@ class MarketingSettingsController extends Controller
             SitePagesContent::normalizeWhyComparison((array) ($data['why_comparison'] ?? []))
         );
 
+        \App\Modules\Common\Controllers\SitemapController::flushPublicCaches();
         return back()->with('success', 'Marketing settings saved.');
     }
 }

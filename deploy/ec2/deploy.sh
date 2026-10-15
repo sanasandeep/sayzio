@@ -329,6 +329,9 @@ fi
 # request-path rebuild, and the deploy never fails because of it.
 log "Warming home-page caches (best effort)..."
 cd "$APP_DIR/artifacts/1inme"
+if ! php artisan marketing:record-code-revision; then
+  echo "::1inme:: marketing sitemap revision could not be recorded; keeping its previous content date" >&2
+fi
 if ! php artisan home:warm-caches; then
   echo "::1inme:: boot home:warm-caches failed — first visitor may hit a cold home render (lazy rebuild still applies)" >&2
 fi

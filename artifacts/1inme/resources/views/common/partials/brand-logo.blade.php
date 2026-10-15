@@ -52,7 +52,7 @@
     };
 
     if ($variant === 'icon') {
-        $url = $__brand['icon'];
+        $url = $__brand['icon'] === '/branding/icon.png' ? asset('branding/icon-96.webp') : $__brand['icon'];
         $tag = '<img src="' . e($url) . '" alt="' . e($alt) . '"' . $__dim($url) . $__loading . ' class="' . e($height) . ' w-auto rounded-lg object-cover" style="' . $__sizeStyle . '">';
         echo $href ? '<a href="' . e($href) . '" class="inline-flex items-center">' . $tag . '</a>' : $tag;
     } else {

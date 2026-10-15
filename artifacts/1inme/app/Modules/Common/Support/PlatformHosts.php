@@ -517,6 +517,14 @@ class PlatformHosts
 
         $primary = self::primaryBrandDomain();
 
+        // The homepage has no query-driven content. Keep every non-content
+        // parameter out of canonical, social and structured-data URLs.
+        if ($request->path() === '/') {
+            return ($primary !== null && $brand !== null)
+                ? $request->getScheme().'://'.$primary.'/'
+                : rtrim($request->url(), '/').'/';
+        }
+
         // Not a brand host at all (dev, preview, a custom user domain): leave
         // the URL exactly as requested. Rewriting a customer's own domain onto
         // sayzio.app would hand their page's ranking to us.

@@ -73,4 +73,11 @@ server {
         add_header Cache-Control "public, immutable";
         try_files $uri =404;
     }
+    # Extracted marketing styles use content hashes in their filenames.
+    location /css/marketing/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
 }

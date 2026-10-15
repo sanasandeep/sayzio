@@ -37,6 +37,7 @@ use Tests\TestCase;
  */
 class HomepageDarkSurfaceInkTest extends TestCase
 {
+    use \Tests\Support\ReadsMarketingStyles;
     use RefreshDatabase;
     use AssertsAgainstLargeSubjects;
 
@@ -117,7 +118,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
         foreach ($candidates as $path) {
             if (is_file($path)) {
                 $css .= "
-" . file_get_contents($path);
+" . $this->withLinkedMarketingStyles((string) file_get_contents($path));
             }
         }
 
@@ -154,7 +155,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
 
             preg_match_all(
                 '/@include(?:If|When|Unless|First)?\s*\(\s*(?:[^)\'"]*?,\s*)?([\'"])([a-z0-9_.\-]+)\1/i',
-                (string) file_get_contents($path),
+                $this->withLinkedMarketingStyles((string) file_get_contents($path)),
                 $m
             );
 
@@ -211,7 +212,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
         $found = [];
 
         foreach ($this->homepageViews() as $path) {
-            $source = (string) file_get_contents($path);
+            $source = $this->withLinkedMarketingStyles((string) file_get_contents($path));
             $short = str_replace(resource_path('views/'), '', $path);
 
             foreach (preg_split('/(?<=\})/', $source) as $chunk) {
@@ -314,7 +315,7 @@ class HomepageDarkSurfaceInkTest extends TestCase
         $forced = [];
 
         foreach ($this->homepageStylesheets() as $path) {
-            $source = (string) file_get_contents($path);
+            $source = $this->withLinkedMarketingStyles((string) file_get_contents($path));
             $short = str_replace([resource_path('views/'), public_path()], '', $path);
 
             preg_match_all(
@@ -598,7 +599,10 @@ class HomepageDarkSurfaceInkTest extends TestCase
             // Weaker than the rendered checks above -- it reads the template
             // rather than the output -- and that is worth stating plainly
             // rather than hiding behind an identical-looking assertion.
-            . file_get_contents(resource_path('views/home/partials/notifications.blade.php'));
+            . file_get_contents(resource_path('views/home/partials/notifications.blade.php'))
+            // Retained for other designs; no longer part of the compact homepage.
+            . file_get_contents(resource_path('views/home/partials/ai-marketing-strategist.blade.php'))
+            . file_get_contents(resource_path('views/home/partials/ai-suite.blade.php'));
 
         foreach ([
             'nf-panel' => 'the notifications feed (Priya started following you)',

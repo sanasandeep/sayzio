@@ -74,6 +74,11 @@ class MarketingSitemap
                 $lastmod = $codeFallback;
             }
 
+            if ($entry['path'] === '/') {
+                $homeUpdated = self::homeLastmod();
+                if ($lastmod === null || $homeUpdated->greaterThan(Carbon::parse($lastmod))) $lastmod = $homeUpdated;
+            }
+
             $urls[] = [
                 // Pinned to the brand domain, not url(): this XML is cached and
                 // shared, and url() answers with whatever host built it (or
@@ -85,6 +90,16 @@ class MarketingSitemap
         }
 
         return view('public.sitemap', ['urls' => $urls])->render();
+    }
+
+    /** Most recent meaningful homepage code/content change, not request time. */
+    public static function homeLastmod(): Carbon
+    {
+        $latest = Carbon::parse(AppSetting::get('marketing_home_code_updated_at', '2026-10-15T20:31:05+00:00'));
+        $contentKeys = ['marketing_hero_copy', 'marketing_hero_badges', 'marketing_hero_marquee', 'marketing_home_design', 'marketing_link_types'];
+        $edited = AppSetting::whereIn('key', $contentKeys)->max('updated_at');
+        if ($edited && Carbon::parse($edited)->greaterThan($latest)) $latest = Carbon::parse($edited);
+        return $latest;
     }
 
     /**
