@@ -34,13 +34,23 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 </div>
 <div class="map-panel-backdrop" x-show="selected!==null" x-cloak @click.self="closePanel()">
 <aside id="folder-map-panel" class="map-detail-panel notes-card" role="dialog" aria-modal="true" aria-label="Assigned folder items" tabindex="-1" x-ref="panel" @keydown.tab="trapTab($event)">
-@foreach($mapGroups as $i=>$group)<div x-show="selected==={{ $i }}"><div class="folder-panel-head"><h2>{{ $group['label'] }}</h2><button class="form-chip" type="button" @click="closePanel()" aria-label="Close assigned items">×</button></div>
-@forelse(collect($resources)->whereIn('kind',$group['kinds']) as $item)<a class="folder-resource-row" href="{{ $item['url'] }}"><span class="folder-mini-copy"><strong>{{ $item['label'] }}</strong><small>{{ \App\Services\Planner\PlannerResources::typeLabels()[$item['kind']] }}</small></span><span>Open →</span></a>@empty<p class="folder-empty">Nothing assigned here yet.</p>@endforelse
-<div class="notes-actions mt-4"><a class="form-chip" href="{{ route('user.projects.show',[$project,'tab'=>$group['tab']]) }}">View all →</a><a class="form-chip" href="{{ route('user.projects.show',[$project,'tab'=>'resources']) }}#assign-resources">Assign existing</a>
+@foreach($mapGroups as $i=>$group)
+@php $panelItems=collect($resources)->whereIn('kind',$group['kinds']); @endphp
+<div class="map-panel-section" x-show="selected==={{ $i }}">
+<header class="map-panel-header"><span class="map-panel-emblem"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i></span><div class="map-panel-heading"><h2>{{ $group['label'] }}</h2><p>{{ $panelItems->count() }} assigned · {{ $project->name }}</p></div><button class="map-panel-close" type="button" @click="closePanel()" aria-label="Close assigned items"><i class="fas fa-xmark" aria-hidden="true"></i></button></header>
+<div class="map-panel-body">
+@forelse($panelItems as $item)
+<a class="map-item-card" href="{{ $item['url'] }}"><span class="map-item-icon"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i></span><span class="map-item-copy"><strong>{{ $item['label'] }}</strong><small>{{ \App\Services\Planner\PlannerResources::typeLabels()[$item['kind']] }}</small></span><span class="map-item-open">Open <i class="fas fa-arrow-right" aria-hidden="true"></i></span></a>
+@empty<div class="map-panel-empty"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i><strong>Nothing assigned here yet.</strong><p>Choose an existing item or create something new for this folder.</p></div>
+@endforelse
+</div>
+<footer class="map-panel-footer"><a class="form-chip" href="{{ route('user.projects.show',[$project,'tab'=>$group['tab']]) }}">View all →</a><a class="form-chip" href="{{ route('user.projects.show',[$project,'tab'=>'resources']) }}#assign-resources">Assign existing</a>
 @php $createLabel=match($group['tab']){'marketing'=>'Create campaign','budget'=>'Create forecast','plans'=>'Create Planner plan','links'=>'Create link','brands'=>'Create Brand Kit',default=>null}; @endphp
-@foreach($folderActions??[] as $action)@if($action['label']===$createLabel)<a class="form-chip" href="{{ $action['url'] }}">{{ $createLabel }}</a>@endif
+@foreach($folderActions??[] as $action)
+@if($action['label']===$createLabel)<a class="form-chip map-panel-primary" href="{{ $action['url'] }}">{{ $createLabel }}</a>@endif
 @endforeach
-</div></div>@endforeach
+</footer></div>
+@endforeach
 </aside></div>
 <div x-show="mode==='flow'" x-cloak><div class="folder-flow">
 @foreach([['Prepare',['file','mind','plan','budget','brand'],'resources','Knowledge & plans'],['Create',['link','form','qr'],'links','Content & forms'],['Reach',['campaign','studio','buzz','strategy'],'marketing','Marketing & audience'],['Act',['task'],'tasks','Tasks & outcomes']] as [$stage,$types,$tab,$detail])<a href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$tab]) }}" class="folder-flow-node"><span class="folder-eyebrow">{{ $stage }}</span><strong>{{ $detail }}</strong><span>{{ collect($resources)->whereIn('kind',$types)->count() }} assigned items</span><svg viewBox="0 0 100 16" height="16" aria-hidden="true"><path d="M0 8 H90 M84 2 L92 8 L84 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4"/></svg></a>@endforeach
