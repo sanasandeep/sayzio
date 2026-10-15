@@ -2,7 +2,7 @@
 @section('title', 'AI Persona Generator')
 
 @section('content')
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div class="persona-page w-full">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'AI Persona Generator',
@@ -20,6 +20,22 @@
             {{ session('error') }}
         </div>
     @endif
+
+    <section class="persona-shortcuts rounded-2xl border border-white/10 p-5 mb-6" aria-labelledby="persona-start-title">
+        <h2 id="persona-start-title" class="text-white font-semibold">Start with a persona brief</h2>
+        <p class="text-sm text-white/50 mt-1">Choose a starting point, adjust the details, then generate. Shortcuts do not spend coins.</p>
+        <div class="persona-preset-grid">
+        @foreach([
+            ['name'=>'Startup founders','icon'=>'fa-rocket','audience'=>'Solo SaaS founders launching their first paid product','goals'=>'Understand buying motivations, objections and the messages that turn interest into trials.','tone'=>'Practical, direct and encouraging'],
+            ['name'=>'Creators','icon'=>'fa-palette','audience'=>'Independent creators building an audience and selling digital products','goals'=>'Identify content needs, trust signals and reasons to buy or subscribe.','tone'=>'Warm, creative and clear'],
+            ['name'=>'Local business','icon'=>'fa-store','audience'=>'Local service business owners looking for more qualified customer enquiries','goals'=>'Understand daily frustrations, purchase decisions and offers that build trust.','tone'=>'Approachable, specific and professional'],
+            ['name'=>'Online shoppers','icon'=>'fa-bag-shopping','audience'=>'Online shoppers comparing quality, convenience and value before buying','goals'=>'Identify shopping triggers, hesitation, decision criteria and useful product messaging.','tone'=>'Helpful, confident and simple'],
+        ] as $preset)
+            <button type="button" class="persona-preset" data-persona-preset='{{ json_encode($preset, JSON_HEX_APOS | JSON_HEX_QUOT) }}'><i class="fas {{ $preset['icon'] }}" aria-hidden="true"></i><span>{{ $preset['name'] }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+        @endforeach
+        </div>
+        <p id="persona-preset-status" role="status" class="text-xs text-white/50 mt-3">All suggestions are editable.</p>
+    </section>
 
     <form method="POST" action="{{ route('user.ai.persona.generate') }}"
           class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
@@ -44,6 +60,13 @@
                    value="{{ old('tone', $input['tone'] ?? '') }}"
                    placeholder="e.g. friendly, expert, no jargon"
                    class="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+        </div>
+
+        <div>
+            <label for="persona-instructions" class="text-xs uppercase tracking-wider text-white/40">AI instructions (optional)</label>
+            <textarea id="persona-instructions" name="instructions" rows="3" maxlength="2000" class="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm" placeholder="e.g. Focus on Indian small businesses. Include buying objections and sample messaging. Clearly label assumptions; avoid invented demographics.">{{ old('instructions', $input['instructions'] ?? '') }}</textarea>
+            @error('instructions')<p class="text-xs text-red-300 mt-1">{{ $message }}</p>@enderror
+            <p class="text-xs text-white/40 mt-1">Tell the AI what to focus on, include or avoid.</p>
         </div>
 
         @include('user.ai._partials.mind-picker', [
@@ -165,3 +188,18 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelectorAll('[data-persona-preset]').forEach(function(button){button.addEventListener('click',function(){
+var form=document.querySelector('form[action="{{ route('user.ai.persona.generate') }}"]'),preset=JSON.parse(button.dataset.personaPreset);
+var changed=['audience','goals','tone'].some(function(name){return form.elements[name].value.trim();});
+if(changed&&!window.confirm('Replace audience, goals and tone with this starting point? Your AI instructions and knowledge selection will be kept.'))return;
+['audience','goals','tone'].forEach(function(name){form.elements[name].value=preset[name];form.elements[name].dispatchEvent(new Event('input',{bubbles:true}));});
+document.querySelectorAll('[data-persona-preset]').forEach(function(b){b.setAttribute('aria-pressed',b===button?'true':'false');});document.getElementById('persona-preset-status').textContent=preset.name+' brief selected. Review the details below, then generate.';form.elements.audience.focus();
+});});
+</script>
+@endpush
+<style>
+.persona-page{max-width:none;margin:0;padding:0}.persona-preset-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}.persona-preset{display:flex;align-items:center;gap:12px;text-align:left;padding:18px;border:1px solid var(--border-color,rgba(128,128,128,.2));border-radius:14px;background:rgba(99,102,241,.04);color:var(--text-primary,#fff);font-size:14px;font-weight:600}.persona-preset>i:first-child{color:#6478ef;background:rgba(99,102,241,.12);padding:12px;border-radius:12px}.persona-preset>i:last-child{margin-left:auto;color:#8d95aa;font-size:12px}.persona-preset:hover,.persona-preset[aria-pressed=true]{border-color:#6478ef;background:rgba(99,102,241,.1)}.persona-page form>button,.persona-page button[type=submit]{border-radius:12px}@media(max-width:1100px){.persona-preset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.persona-preset-grid{grid-template-columns:1fr}}
+</style>
