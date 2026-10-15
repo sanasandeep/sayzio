@@ -1,16 +1,47 @@
 @php
-$mapGroups=[['label'=>'Links & pages','kinds'=>['link'],'tab'=>'links','icon'=>'fa-link'],['label'=>'AI Minds','kinds'=>['mind'],'tab'=>'team','icon'=>'fa-brain'],['label'=>'Personas','kinds'=>['persona'],'tab'=>'team','icon'=>'fa-user'],['label'=>'Agents & Staff','kinds'=>['agent','staff','companion'],'tab'=>'team','icon'=>'fa-users-gear'],['label'=>'Planner plans','kinds'=>['plan'],'tab'=>'plans','icon'=>'fa-wand-magic-sparkles'],['label'=>'Tasks','kinds'=>['task'],'tab'=>'tasks','icon'=>'fa-check-double'],['label'=>'Files, kits & budgets','kinds'=>['form','qr','file','calendar','board','brand','budget'],'tab'=>'resources','icon'=>'fa-layer-group'],['label'=>'Campaigns','kinds'=>['campaign','strategy','buzz','studio'],'tab'=>'marketing','icon'=>'fa-bullhorn']];
-$chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people']);
+$mapGroups=[
+ ['label'=>'Links & pages','kinds'=>['link'],'tab'=>'links','icon'=>'fa-link','art'=>'links'],
+ ['label'=>'Campaigns','kinds'=>['campaign','strategy','studio','buzz'],'tab'=>'marketing','icon'=>'fa-bullhorn','art'=>'pages'],
+ ['label'=>'Budget & Forecast','kinds'=>['budget'],'tab'=>'budget','icon'=>'fa-wallet','art'=>'coins'],
+ ['label'=>'Brand Kits','kinds'=>['brand'],'tab'=>'brands','icon'=>'fa-palette','art'=>'folders'],
+ ['label'=>'Planner plans','kinds'=>['plan'],'tab'=>'plans','icon'=>'fa-wand-magic-sparkles','art'=>'pages'],
+ ['label'=>'Tasks','kinds'=>['task'],'tab'=>'tasks','icon'=>'fa-check-double','art'=>'pages'],
+ ['label'=>'AI Minds & team','kinds'=>['mind','persona','agent','staff','companion'],'tab'=>'team','icon'=>'fa-brain','art'=>'bot'],
+ ['label'=>'Resources','kinds'=>['form','qr','file','calendar','board'],'tab'=>'resources','icon'=>'fa-layer-group','art'=>'folders'],
+];
+$mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#365ce9';
+$chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor);
 @endphp
-<details class="notes-card"><summary class="folder-panel-head" style="cursor:pointer">Map view · explore connections</summary>
-<section class="folder-map" x-data="folderChart(@js($chartExports))">
-<div class="folder-panel-head"><div><h2>Your project, connected</h2><p class="notes-hint">Explore what is assigned and how the work can flow.</p></div><div class="folder-view-switch"><button @click="mode='hub'" :aria-pressed="mode==='hub'">Hub</button><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button></div></div>
+<section id="project-map" class="notes-card folder-map visual-folder-map" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports))" @keydown.escape.window="closePanel()">
+<div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='hub'" :aria-pressed="mode==='hub'">Hub</button><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button></div></div>
 <div class="notes-actions folder-export-actions"><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
-<div x-show="mode==='hub'" class="folder-hub">
-<svg class="folder-map-lines" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5">@foreach([120,370,630,880] as $x)<path d="M500 165 Q{{ $x }} 165 {{ $x }} 45"/><path d="M500 165 Q{{ $x }} 165 {{ $x }} 285"/>@endforeach</g><circle cx="500" cy="165" r="48" fill="none" stroke="currentColor" stroke-dasharray="3 8" class="map-orbit"/></svg>
-@foreach($mapGroups as $i=>$group)<a class="folder-map-node map-node-{{ $i }}" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$group['tab']]) }}"><span class="folder-mini-icon"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i></span><span><strong>{{ $group['label'] }}</strong><small>{{ collect($resources)->whereIn('kind',$group['kinds'])->count() }} assigned</small></span></a>@endforeach
-<div class="folder-map-center"><i class="fas fa-folder-open" aria-hidden="true"></i><strong>{{ $project->name }}</strong><small>Project hub</small></div>
+<div x-show="mode==='hub'" class="folder-hub visual-hub">
+<svg class="folder-map-lines" viewBox="0 0 1000 480" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8">@foreach([125,375,625,875] as $x)<path d="M500 240 Q{{ $x }} 240 {{ $x }} 90"/><path d="M500 240 Q{{ $x }} 240 {{ $x }} 390"/>@endforeach</g><circle cx="500" cy="240" r="55" fill="none" stroke="currentColor" stroke-dasharray="3 9"/></svg>
+@foreach($mapGroups as $i=>$group)
+@php $nodeItems=collect($resources)->whereIn('kind',$group['kinds']); @endphp
+<button type="button" class="folder-map-node map-node-{{ $i }} visual-map-node {{ $nodeItems->isEmpty()?'is-empty':'' }}" @click="openPanel({{ $i }},$event.currentTarget)" :aria-expanded="selected==={{ $i }}" aria-controls="folder-map-panel">
+<span class="map-node-art">@include('user.partials.count-card-art',['kind'=>$group['art'],'artId'=>'map-art-'.$i])</span><span class="map-node-copy"><strong>{{ $group['label'] }}</strong><small>{{ $nodeItems->count() }} assigned</small>
+@if($nodeItems->isEmpty())<span class="map-node-add">+ Assign</span>@else<span class="map-node-preview">{{ \Illuminate\Support\Str::limit($nodeItems->first()['label'],27) }}</span>@endif
+@if($group['tab']==='tasks' && $nodeItems->isNotEmpty())<span class="folder-progress"><span style="width:{{ round($nodeItems->filter(fn($v)=>$v['row']->completed_at)->count()/$nodeItems->count()*100) }}%"></span></span>@endif
+@if($group['tab']==='brands' && $nodeItems->isNotEmpty())<span class="map-brand-swatches">@foreach(collect($nodeItems->first()['row']->palette())->only(['primary','secondary','accent']) as $swatch)@if(is_string($swatch) && preg_match('/^#[0-9a-f]{6}$/i',$swatch))<i style="background:{{ $swatch }}"></i>@endif
+@endforeach</span>@endif
+@if($group['tab']==='links' && $nodeItems->isNotEmpty())@foreach($nodeItems->take(3) as $preview)@if(\Illuminate\Support\Str::startsWith((string)$preview['row']->favicon,['https://','http://','/']))<img class="map-node-thumb" src="{{ $preview['row']->favicon }}" alt="" loading="lazy">@endif
+@endforeach
+@endif
+</span></button>
+@endforeach
+<div class="folder-map-center"><i class="fas fa-folder-open" aria-hidden="true"></i><strong>{{ $project->name }}</strong><small>{{ count($resources) }} connected resources</small></div>
 </div>
+<div class="map-panel-backdrop" x-show="selected!==null" x-cloak @click.self="closePanel()">
+<aside id="folder-map-panel" class="map-detail-panel notes-card" role="dialog" aria-modal="true" aria-label="Assigned folder items" tabindex="-1" x-ref="panel" @keydown.tab="trapTab($event)">
+@foreach($mapGroups as $i=>$group)<div x-show="selected==={{ $i }}"><div class="folder-panel-head"><h2>{{ $group['label'] }}</h2><button class="form-chip" type="button" @click="closePanel()" aria-label="Close assigned items">×</button></div>
+@forelse(collect($resources)->whereIn('kind',$group['kinds']) as $item)<a class="folder-resource-row" href="{{ $item['url'] }}"><span class="folder-mini-copy"><strong>{{ $item['label'] }}</strong><small>{{ \App\Services\Planner\PlannerResources::typeLabels()[$item['kind']] }}</small></span><span>Open →</span></a>@empty<p class="folder-empty">Nothing assigned here yet.</p>@endforelse
+<div class="notes-actions mt-4"><a class="form-chip" href="{{ route('user.projects.show',[$project,'tab'=>$group['tab']]) }}">View all →</a><a class="form-chip" href="{{ route('user.projects.show',[$project,'tab'=>'resources']) }}#assign-resources">Assign existing</a>
+@php $createLabel=match($group['tab']){'marketing'=>'Create campaign','budget'=>'Create forecast','plans'=>'Create Planner plan','links'=>'Create link','brands'=>'Create Brand Kit',default=>null}; @endphp
+@foreach($folderActions??[] as $action)@if($action['label']===$createLabel)<a class="form-chip" href="{{ $action['url'] }}">{{ $createLabel }}</a>@endif
+@endforeach
+</div></div>@endforeach
+</aside></div>
 <div x-show="mode==='flow'" x-cloak><div class="folder-flow">
 @foreach([['Prepare',['file','mind','plan','budget','brand'],'resources','Knowledge & plans'],['Create',['link','form','qr'],'links','Content & forms'],['Reach',['campaign','studio','buzz','strategy'],'marketing','Marketing & audience'],['Act',['task'],'tasks','Tasks & outcomes']] as [$stage,$types,$tab,$detail])<a href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$tab]) }}" class="folder-flow-node"><span class="folder-eyebrow">{{ $stage }}</span><strong>{{ $detail }}</strong><span>{{ collect($resources)->whereIn('kind',$types)->count() }} assigned items</span><svg viewBox="0 0 100 16" height="16" aria-hidden="true"><path d="M0 8 H90 M84 2 L92 8 L84 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4"/></svg></a>@endforeach
 </div><p class="notes-hint mt-4"><span class="folder-suggestion-badge">Suggested workflow</span> This is a possible process, not measured attribution. Recorded item-to-item connections can be managed under Resources. Click a stage to work on it.</p><div class="notes-actions mt-3"><span class="notes-priority">Observed activity</span><span class="notes-hint">{{ number_format(collect($resources)->where('kind','link')->sum(fn($i)=>$i['row']->total_clicks)) }} lifetime link clicks · {{ number_format(collect($resources)->where('kind','buzz')->sum(fn($i)=>$i['row']->impressions)) }} Buzz impressions</span></div></div>
@@ -28,11 +59,11 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 @foreach(collect($resources)->where('kind','plan')->take(2) as $suggestionPlan)
 @if(!empty($suggestionPlan['row']->result['tasks']))<div class="folder-suggested-task"><span class="folder-suggestion-badge">AI plan suggestion · review first</span><strong>{{ $suggestionPlan['row']->result['tasks'][0]['title'] }}</strong><a href="{{ $suggestionPlan['url'] }}" class="notes-hint">Review in {{ $suggestionPlan['label'] }} →</a></div>@endif
 @endforeach
-</section></details>
+</section>
 
 <script>
 function folderChart(exports) {
-    return { mode:'hub', exporting:false, exportError:'', async download(format) {
+    return { mode:'hub', selected:null, trigger:null, openPanel(index,trigger){this.selected=index;this.trigger=trigger;this.previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';this.$nextTick(()=>this.$refs.panel.focus())}, closePanel(){if(this.selected===null)return;this.selected=null;document.body.style.overflow=this.previousOverflow||'';this.trigger?.focus()}, trapTab(event){const items=[...this.$refs.panel.querySelectorAll('a,button,[tabindex]')].filter(el=>el.getClientRects().length&&!el.disabled);const first=items[0],last=items.at(-1);if(!first){event.preventDefault();return}if(event.shiftKey&&(document.activeElement===first||document.activeElement===this.$refs.panel)){event.preventDefault();last.focus()}else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===this.$refs.panel)){event.preventDefault();first.focus()}}, exporting:false, exportError:'', async download(format) {
         this.exporting=true; this.exportError=''; let sourceUrl;
         try {
             const svg=exports[this.mode]; let blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});

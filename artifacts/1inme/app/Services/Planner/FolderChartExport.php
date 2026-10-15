@@ -5,12 +5,13 @@ namespace App\Services\Planner;
 /** Self-contained SVGs: no remote assets, and all labels are XML escaped. */
 class FolderChartExport
 {
-    public static function render(string $mode, string $name, array $resources, array $people): string
+    public static function render(string $mode, string $name, array $resources, array $people, string $color = '#365ce9'): string
     {
+        $color = preg_match('/^#[0-9a-f]{6}$/i', $color) ? $color : '#365ce9';
         $esc = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
         $items = collect($resources);
         $labels = match ($mode) {
-            'hub' => collect(['Links' => ['link'], 'AI Minds' => ['mind'], 'Personas' => ['persona'], 'Agents & Staff' => ['agent', 'staff', 'companion'], 'Planner plans' => ['plan'], 'Tasks' => ['task'], 'Files, kits & budgets' => ['form', 'qr', 'file', 'calendar', 'board', 'brand', 'budget'], 'Campaigns' => ['campaign', 'strategy', 'buzz', 'studio']])->map(fn ($kinds, $label) => [$label, $items->whereIn('kind', $kinds)->count().' assigned'])->values()->all(),
+            'hub' => collect(['Links & pages'=>['link'],'Campaigns'=>['campaign','strategy','studio','buzz'],'Budget & Forecast'=>['budget'],'Brand Kits'=>['brand'],'Planner plans'=>['plan'],'Tasks'=>['task'],'AI Minds & team'=>['mind','persona','agent','staff','companion'],'Resources'=>['form','qr','file','calendar','board']])->map(fn ($kinds, $label) => [$label, $items->whereIn('kind', $kinds)->count().' assigned'])->values()->all(),
             'flow' => collect(['Prepare' => ['file', 'mind', 'plan', 'brand', 'budget'], 'Create' => ['link', 'form', 'qr'], 'Reach' => ['campaign', 'studio', 'buzz', 'strategy'], 'Act' => ['task']])->map(fn ($kinds, $label) => [$label, $items->whereIn('kind', $kinds)->count().' assigned items'])->values()->all(),
             default => array_map(fn ($person) => [$person['name'].' · '.$person['role'], $person['open'].' open · '.$person['completed'].' complete · '.$person['actions'].' recorded actions (30d)'], $people),
         };
@@ -23,7 +24,7 @@ class FolderChartExport
             if ($mode === 'hub') {
                 $x = 44 + ($index % 4) * 283;
                 $y = $index < 4 ? 130 : 430;
-                $svg .= '<path d="M600 310 L'.($x + 130).' '.($index < 4 ? $y + 90 : $y).'" stroke="#bbc8ff" stroke-width="2"/>';
+                $svg .= '<path d="M600 310 L'.($x + 130).' '.($index < 4 ? $y + 90 : $y).'" stroke="'.$color.'" stroke-width="2"/>';
             } elseif ($mode === 'flow') {
                 $x = 44 + $index * 283;
                 $y = 230;
@@ -38,7 +39,7 @@ class FolderChartExport
             $svg .= '<rect x="'.$x.'" y="'.$y.'" width="'.$width.'" height="78" rx="16" fill="white" stroke="#dbe1ef"/><text x="'.($x + 18).'" y="'.($y + 30).'" font-size="16" font-weight="700">'.$esc(mb_strimwidth($label, 0, $mode === 'people' ? 95 : 25, '…')).'</text><text x="'.($x + 18).'" y="'.($y + 56).'" font-size="13" fill="#65718b">'.$esc($detail).'</text>';
         }
         if ($mode === 'hub') {
-            $svg .= '<rect x="490" y="270" width="220" height="80" rx="20" fill="#eaf0ff" stroke="#afbfff"/><text x="600" y="315" text-anchor="middle" font-size="18" font-weight="700">Project hub</text>';
+            $svg .= '<rect x="490" y="270" width="220" height="80" rx="20" fill="#eaf0ff" stroke="'.$color.'"/><text x="600" y="315" text-anchor="middle" font-size="18" font-weight="700">Project hub</text>';
         }
         $svg .= '<text x="44" y="'.($height - 30).'" font-size="13" fill="#65718b">'.$esc($mode === 'flow' ? 'Suggested workflow; not measured attribution.' : ($mode === 'people' ? 'Current assignments; actions from visible tasks in the last 30 days. Shared tasks count for each assignee.' : 'Counts reflect the resources visible to the exporting user.')).'</text></g></svg>';
 
