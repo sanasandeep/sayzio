@@ -15,4 +15,8 @@ html .minds-page .mind-stat-icon svg{display:block;stroke:#fff!important;fill:no
 /* Same opaque palette, radial light and dark base as dashboard overview cards. */
 html .minds-page .mind-stat{box-shadow:0 12px 24px color-mix(in srgb,var(--mind-stat-tone) 16%,transparent),inset 0 1px 0 rgba(255,255,255,.22);border-radius:22px;border:1px solid rgba(255,255,255,.16)!important}
 html .minds-page .mind-stat::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(130deg,rgba(255,255,255,.10),transparent 42%,rgba(255,255,255,.04));pointer-events:none}
+
+/* Floating artwork, without the previous glass square/backplate. */
+html .minds-page .mind-stat-icon{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;width:94px;height:90px;right:18px;top:28px;transform:rotate(10deg);filter:drop-shadow(0 12px 9px rgba(0,0,0,.2))}
+html .minds-page .mind-stat-icon svg{width:68px;height:68px;filter:drop-shadow(4px 5px 0 rgba(255,255,255,.25));stroke-width:1.8}
 </style>
