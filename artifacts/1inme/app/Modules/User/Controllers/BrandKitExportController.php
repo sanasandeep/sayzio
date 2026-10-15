@@ -18,13 +18,19 @@ class BrandKitExportController extends Controller
     public function download(BrandKit $brandKit, string $format)
     {
         abort_unless((int) $brandKit->user_id === (int) workspace_owner_id(), 403);
+
+        return $this->package($brandKit, $format);
+    }
+
+    public function package(BrandKit $brandKit, string $format, array $extraAssets = [])
+    {
         abort_unless(in_array($format, ['pdf', 'zip'], true), 404);
         $options = new Options(['isRemoteEnabled' => false, 'isPhpEnabled' => false, 'defaultFont' => 'DejaVu Sans']);
         $pdf = new Dompdf($options);
         $logoData = null;
         $logoPath = parse_url($brandKit->logo(), PHP_URL_PATH) ?: '';
         if (preg_match('~^/f/(\d+)/~', $logoPath, $match)) {
-            $logo = UserFile::where('user_id', workspace_owner_id())->find((int) $match[1]);
+            $logo = UserFile::where('user_id', $brandKit->user_id)->find((int) $match[1]);
             if ($logo && $logo->isScanClean() && ! $logo->quarantined_at && in_array($logo->mime_type, ['image/png', 'image/jpeg'], true) && $logo->size_bytes <= 2 * 1024 * 1024) {
                 $logoData = 'data:'.$logo->mime_type.';base64,'.base64_encode(Storage::disk($logo->disk ?: 'user_files')->get($logo->path));
             }
@@ -48,8 +54,8 @@ class BrandKitExportController extends Controller
             $manifest = [];
             $total = 0;
             $seen = [];
-            $urls = array_intersect_key($brandKit->config ?? [], BrandKitFields::MEDIA + array_fill_keys(['logo', 'logo_light', 'logo_dark', 'favicon'], ''));
-            foreach (BrandKitAsset::where('brand_kit_id', $brandKit->id)->with('file')->get() as $asset) {
+            $urls = array_merge(array_intersect_key($brandKit->config ?? [], BrandKitFields::MEDIA + array_fill_keys(['logo', 'logo_light', 'logo_dark', 'favicon'], '')), $extraAssets);
+            foreach ($brandKit->exists ? BrandKitAsset::where('brand_kit_id', $brandKit->id)->with('file')->get() : [] as $asset) {
                 if ($asset->file) {
                     $urls['generated-'.$asset->type] = $asset->file->url;
                 }
@@ -62,7 +68,7 @@ class BrandKitExportController extends Controller
                 // Resolve only owned library files. Never fetch arbitrary URLs or local paths.
                 $urlPath = parse_url($url, PHP_URL_PATH) ?: '';
                 if (preg_match('~^/f/(\d+)/~', $urlPath, $m)) {
-                    $file = UserFile::where('user_id', workspace_owner_id())->find((int) $m[1]);
+                    $file = UserFile::where('user_id', $brandKit->user_id)->find((int) $m[1]);
                     if ($file && ! $file->quarantined_at && $file->isScanClean() && ! isset($seen[$file->id])) {
                         $disk = Storage::disk($file->disk ?: 'user_files');
                         $bytes = $disk->size($file->path);
@@ -90,6 +96,6 @@ class BrandKitExportController extends Controller
             throw $e;
         }
 
-        return response()->download($path,$name.'-brand-kit.zip')->deleteFileAfterSend(true);
+        return response()->download($path, $name.'-brand-kit.zip')->deleteFileAfterSend(true);
     }
 }
