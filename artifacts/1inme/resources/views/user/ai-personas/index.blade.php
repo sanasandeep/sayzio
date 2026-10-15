@@ -2,23 +2,15 @@
 @section('title', 'AI Agents')
 
 @section('content')
-<div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+<div class="w-full space-y-6">
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
-    <div class="flex items-end justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-bold text-white">AI Agents</h1>
-            <p class="text-sm text-white/50 mt-1">Configurable agents that combine a system prompt, tone, and the AI Minds you choose. Test them here, then wire them into widgets.</p>
-            <p class="text-[11px] text-white/40 mt-1">{{ $used }} of {{ $caps['max_personas_per_user'] == -1 ? '∞' : $caps['max_personas_per_user'] }} used &middot; up to {{ $caps['max_minds_per_persona'] }} AI Minds per AI agent</p>
-        </div>
-        @if($caps['max_personas_per_user'] == -1 || $used < $caps['max_personas_per_user'])
-            <a href="{{ route('user.ai-personas.create') }}" class="btn-primary text-sm">
-                <i class="fas fa-plus"></i> New AI Agent
-            </a>
-        @endif
-    </div>
-
+    @php
+        $unlimited = in_array($caps['max_personas_per_user'], [-1, PHP_INT_MAX], true);
+        $agentActions = ($unlimited || $used < $caps['max_personas_per_user']) ? [['label'=>'New AI Agent','url'=>route('user.ai-personas.create'),'icon'=>'fa-plus','class'=>'btn-primary']] : [];
+    @endphp
+    @include('user.partials.page-hero', ['title'=>'AI Agents','subtitle'=>'Create assistants for sales, support and your business. Connect their knowledge, then test before publishing.','icon'=>'fa-user-astronaut','back'=>route('user.dashboard'),'actions'=>$agentActions,'chips'=>[['text'=>$used.' agents','icon'=>'fa-users'],['text'=>$unlimited?'Unlimited plan':$caps['max_personas_per_user'].' agent limit','icon'=>'fa-layer-group']]])
     @if($personas->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
             <i class="fas fa-user-astronaut text-4xl text-blue-400/70"></i>
