@@ -39,6 +39,8 @@ class UpdatesPageTest extends TestCase
 
         $this->user = User::factory()->create();
         $this->token = $this->user->createToken('test')->plainTextToken;
+        app()->instance('current_workspace', $this->user->ensureDefaultWorkspace());
+        app()->instance('workspace_owner', $this->user);
     }
 
     // ─── Link creation ───────────────────────────────────────────────────
@@ -60,11 +62,12 @@ class UpdatesPageTest extends TestCase
 
     public function test_store_blocked_by_plan_module_gate(): void
     {
-        $this->user->plan_features = array_merge(
-            $this->user->plan_features ?? [],
-            ['module_updates' => false]
-        );
-        $this->user->save();
+        $plan = \App\Modules\Admin\Models\Plan::create([
+            'name' => 'Updates disabled', 'slug' => 'updates-disabled',
+            'status' => 'active', 'monthly_price' => 0, 'annual_price' => 0,
+            'features' => ['module_updates' => false],
+        ]);
+        $this->user->update(['plan_id' => $plan->id]);
 
         $response = $this->actingAs($this->user)
             ->post(route('user.links.store'), [
@@ -72,7 +75,7 @@ class UpdatesPageTest extends TestCase
                 'title' => 'Updates',
             ]);
 
-        $response->assertSessionHasErrors([]);
+        $response->assertSessionHas('error', "Updates pages aren't available on your current plan. Upgrade to enable them.");
         $this->assertDatabaseMissing('links', ['user_id' => $this->user->id, 'type' => 'updates']);
     }
 
@@ -122,10 +125,27 @@ class UpdatesPageTest extends TestCase
         ]);
     }
 
+    public function test_entry_can_be_created_without_optional_body(): void
+    {
+        $link = $this->createUpdatesLink();
+        $this->actingAs($this->user)
+            ->post(route('user.links.updates.entries.store', $link), [
+                'title' => 'Title only',
+                'status' => 'draft',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('user.links.updates.editor', $link));
+        $this->assertDatabaseHas('update_entries', [
+            'link_id' => $link->id,
+            'title' => 'Title only',
+            'body' => null,
+        ]);
+    }
+
     public function test_publishing_entry_notifies_followers(): void
     {
         $link      = $this->createUpdatesLink();
-        $follower  = User::factory()->create(['notify_follower_updates' => true]);
+        $follower  = User::factory()->create(['notify_follower_updates' => true, 'follower_updates_mode' => 'digest']);
 
         // Make follower follow the creator.
         \App\Modules\User\Models\Follow::create([
@@ -152,7 +172,7 @@ class UpdatesPageTest extends TestCase
     public function test_re_saving_published_entry_does_not_double_notify(): void
     {
         $link     = $this->createUpdatesLink();
-        $follower = User::factory()->create(['notify_follower_updates' => true]);
+        $follower = User::factory()->create(['notify_follower_updates' => true, 'follower_updates_mode' => 'digest']);
         \App\Modules\User\Models\Follow::create([
             'creator_id'  => $this->user->id,
             'follower_id' => $follower->id,
@@ -183,7 +203,7 @@ class UpdatesPageTest extends TestCase
     public function test_draft_to_published_transition_notifies(): void
     {
         $link     = $this->createUpdatesLink();
-        $follower = User::factory()->create(['notify_follower_updates' => true]);
+        $follower = User::factory()->create(['notify_follower_updates' => true, 'follower_updates_mode' => 'digest']);
         \App\Modules\User\Models\Follow::create([
             'creator_id'  => $this->user->id,
             'follower_id' => $follower->id,

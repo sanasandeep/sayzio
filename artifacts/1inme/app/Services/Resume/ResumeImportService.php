@@ -66,19 +66,27 @@ class ResumeImportService
         // already in the document allowlist.
         $stored = UserFile::createFromUpload($file, $user);
 
+        $tmp = null;
         try {
             $disk = $stored->disk === 's3' ? 's3' : 'user_files';
-            $isRemote = config("filesystems.disks.{$disk}.driver") === 's3';
-            $absPath = $isRemote
-                ? Storage::disk($disk)->temporaryUrl($stored->path, now()->addMinutes(5))
-                : Storage::disk($disk)->path($stored->path);
-
-            $text = $this->extractText($absPath, $ext, $isRemote);
+            $tmp = tempnam(sys_get_temp_dir(), 'resume_');
+            if ($tmp === false) {
+                throw new RuntimeException('Could not create a temporary file.');
+            }
+            // Read with the configured storage credentials rather than
+            // fetching a signed public URL. Parsers need a local file.
+            $bytes = Storage::disk($disk)->get($stored->path);
+            if ($bytes === null || file_put_contents($tmp, $bytes) === false) {
+                throw new RuntimeException('Could not download file from storage.');
+            }
+            $text = $this->extractText($tmp, $ext, false);
         } catch (\Throwable $e) {
-            // Don't keep an uploaded blob in the vault we couldn't read —
-            // the user gets back nothing useful from it anyway.
             try { $stored->deleteFile(); } catch (\Throwable $ignored) {}
             throw new RuntimeException('Could not read this file: ' . $e->getMessage());
+        } finally {
+            if (is_string($tmp) && is_file($tmp)) {
+                unlink($tmp);
+            }
         }
 
         $candidates = $this->parseResumeText($user, $text, $linkedinHint);

@@ -362,6 +362,7 @@ class AiBiolinkBuilderService
 
             app(TemplateService::class)->applyPageToLink($link, $snapshot, $replaceBlocks);
         } catch (\Throwable $e) {
+            $this->imageSourcer->rollback($user, $sourced);
             if ($creditsSpent > 0) {
                 $this->credits->refund($user, $creditsSpent, [
                     'feature'    => self::FEATURE,

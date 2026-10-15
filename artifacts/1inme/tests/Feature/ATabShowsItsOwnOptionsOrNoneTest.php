@@ -83,7 +83,7 @@ class ATabShowsItsOwnOptionsOrNoneTest extends TestCase
         $card = $this->card();
 
         $this->assertStringContainsString(
-            "x-show=\"bgType === 'image' || bgType === 'slideshow' || bgType === 'video'\"",
+            "x-show=\"bgType === 'slideshow' || bgType === 'video' || bgType === 'template'\"",
             $card,
             'Finish describes what is saved, not what is being browsed'
         );

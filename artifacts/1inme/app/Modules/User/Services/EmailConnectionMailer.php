@@ -3,7 +3,7 @@
 namespace App\Modules\User\Services;
 
 use App\Modules\User\Models\IntegrationConfig;
-use Illuminate\Support\Facades\Mail;
+use App\Modules\Common\Services\Emailer;
 
 /**
  * Shared "send through a user's saved email connection" helper.
@@ -182,17 +182,20 @@ class EmailConnectionMailer
         $label     = $config->name;
 
         try {
-            Mail::purge($name);
-            Mail::mailer($name)->raw(
-                "This is a test message confirming your email connection \"{$label}\" is working.\n\n"
-                . 'Emails you route through this connection will be delivered from this server.',
-                function ($m) use ($to, $fromEmail, $fromName, $label) {
-                    $m->to($to)->subject("Test email — {$label}");
-                    if ($fromEmail) {
-                        $m->from($fromEmail, $fromName ?: null);
-                    }
-                }
-            );
+            $opts = [
+                'mailer' => $name,
+                'mailer_config' => app()->environment('production') ? $mailerConfig : ['transport' => 'log'],
+                'subject' => "Test email — {$label}",
+                'body' => "This is a test message confirming your email connection \"{$label}\" is working.\n\n"
+                    . 'Emails you route through this connection will be delivered from this server.',
+                'format' => 'text',
+                'user' => $config->user_id,
+                'throw_on_failure' => true,
+            ];
+            if ($fromEmail) {
+                $opts['from'] = ['address' => $fromEmail, 'name' => $fromName ?: ''];
+            }
+            Emailer::send('email.connection.test', $to, [], $opts);
         } catch (\Throwable $e) {
             return ['ok' => false, 'error' => $e->getMessage()];
         } finally {
