@@ -87,7 +87,9 @@ class BrandKitShowcase
         if (isset($c['voice'])) {
             $c['voice'] = ['tone' => (string) ($c['voice']['tone'] ?? ''), 'descriptors' => array_values(array_filter((array) ($c['voice']['descriptors'] ?? []), 'is_string'))];
         }
-        if (!is_string($c['block_theme'] ?? null) || !isset(BiolinkBlock::BLOCK_TEMPLATES[$c['block_theme']])) unset($c['block_theme']);
+        if (! is_string($c['block_theme'] ?? null) || ! isset(BiolinkBlock::BLOCK_TEMPLATES[$c['block_theme']])) {
+            unset($c['block_theme']);
+        }
         $assets = [];
         if (in_array('assets', $sections)) {
             foreach (BrandKitFields::MEDIA + ['logo' => 'Primary logo', 'logo_light' => 'Light logo', 'logo_dark' => 'Dark logo', 'favicon' => 'Favicon'] as $key => $label) {
@@ -123,7 +125,7 @@ class BrandKitShowcase
         $add = function ($type, $settings) use (&$out) {
             $out[] = ['type' => $type, 'settings' => $settings, 'sort_order' => count($out), 'is_active' => true];
         };
-        $heading = fn ($text) => $add('heading', ['text' => $text, 'size' => 'h2']);
+        $heading = fn ($text) => $add('heading', ['text' => $text, 'size' => 'h2', '_style' => ['font_family' => $this->font($c['fonts']['heading'] ?? 'Inter')]]);
         $paragraph = function ($text) use ($add) {
             if (trim((string) $text) !== '') {
                 $add('paragraph', ['text' => (string) $text]);
@@ -133,7 +135,7 @@ class BrandKitShowcase
         if (! empty($c['logo'])) {
             $add('avatar', ['url' => $c['logo'], 'rounded' => false, 'size' => 100]);
         }
-        $add('heading', ['text' => $snapshot['name'], 'size' => 'h1']);
+        $add('heading', ['text' => $snapshot['name'], 'size' => 'h1', '_style' => ['font_family' => $this->font($c['fonts']['heading'] ?? 'Inter')]]);
         if (in_array('brand', $sections)) {
             $paragraph($c['taglines'][0] ?? $c['description'] ?? '');
             $paragraph($c['bio'] ?? $c['short_bio'] ?? '');
@@ -155,7 +157,7 @@ class BrandKitShowcase
             $heading('Colors & typography');
             foreach (['primary', 'secondary', 'accent'] as $key) {
                 if (preg_match('/^#[0-9a-fA-F]{6}$/', $c['palette'][$key] ?? '')) {
-                    $add('heading', ['text' => ucfirst($key).' · '.$c['palette'][$key], 'size' => 'h3', '_style' => ['bg_color' => $c['palette'][$key], 'text_color' => $this->ink($c['palette'][$key]), 'border_radius' => 16, 'padding' => 18]]);
+                    $add('heading', ['text' => ucfirst($key).' · '.$c['palette'][$key], 'size' => 'h3', '_style' => ['font_family' => $this->font($c['fonts']['heading'] ?? 'Inter'), 'bg_color' => $c['palette'][$key], 'text_color' => $this->ink($c['palette'][$key]), 'border_radius' => 16, 'padding' => 18]]);
                 }
             }
             $paragraph('Heading: '.($c['fonts']['heading'] ?? 'Inter').' · Body: '.($c['fonts']['body'] ?? 'Inter'));
@@ -209,7 +211,7 @@ class BrandKitShowcase
         $theme = $c['block_theme'] ?? '';
         $blockTheme = BiolinkBlock::BLOCK_TEMPLATES[$theme]['style'] ?? [];
         if ($blockTheme) {
-            $blockTheme = array_replace($blockTheme, ['_template' => $theme, 'font_family' => $this->font($c['fonts']['heading'] ?? 'Inter'), 'text_color' => '#172033', 'apply_to_all' => true]);
+            $blockTheme = array_replace($blockTheme, ['_template' => $theme, 'font_family' => $this->font($c['fonts']['body'] ?? 'Inter'), 'text_color' => '#172033', 'apply_to_all' => true]);
         }
 
         return ['block_theme' => $blockTheme, 'background_type' => 'color', 'background_color' => '#ffffff', 'font_family' => $this->font($c['fonts']['body'] ?? 'Inter'), 'font_color' => '#172033', 'button_color' => preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#3454ef', 'button_text_color' => $this->ink(preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#3454ef')];

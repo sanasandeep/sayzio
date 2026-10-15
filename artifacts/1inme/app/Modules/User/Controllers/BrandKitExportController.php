@@ -65,8 +65,17 @@ class BrandKitExportController extends Controller
                     continue;
                 }
                 $entry = ['asset' => $label, 'url' => $url, 'included' => false];
-                // Resolve only owned library files. Never fetch arbitrary URLs or local paths.
+                // Only shipped demo SVGs and owned library files are embedded; remote URLs are never fetched.
                 $urlPath = parse_url($url, PHP_URL_PATH) ?: '';
+                if (preg_match('~^/brand-demo/([a-z0-9-]+\.svg)$~', $urlPath, $demo)) {
+                    $demoPath = public_path('brand-demo/'.$demo[1]);
+                    if (is_file($demoPath)) {
+                        $assetName = 'assets/'.Str::slug($label).'-demo.svg';
+                        $zip->addFromString($assetName, file_get_contents($demoPath));
+                        $entry['included'] = true;
+                        $entry['file'] = $assetName;
+                    }
+                }
                 if (preg_match('~^/f/(\d+)/~', $urlPath, $m)) {
                     $file = UserFile::where('user_id', $brandKit->user_id)->find((int) $m[1]);
                     if ($file && ! $file->quarantined_at && $file->isScanClean() && ! isset($seen[$file->id])) {
