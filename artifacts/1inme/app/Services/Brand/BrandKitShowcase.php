@@ -72,7 +72,7 @@ class BrandKitShowcase
             $copy(['description', 'bio', 'short_bio', 'long_bio', 'mission', 'vision', 'values', 'taglines', 'voice']);
         }
         // Visual styles always match the kit, even when the specs section is hidden.
-        $copy(['palette', 'fonts', 'block_theme']);
+        $copy(['palette', 'fonts', 'block_theme', ...array_keys(BrandKitPresentation::defaults()), 'logo_light', 'logo_dark', 'favicon', 'social_banner', 'background', 'icon_package_files', 'icon_package_fingerprint']);
         if (in_array('socials', $sections)) {
             $copy(['website_url', 'instagram', 'linkedin', 'facebook', 'youtube', 'tiktok', 'x_profile', 'contact_email', 'contact_phone']);
         }
@@ -114,6 +114,12 @@ class BrandKitShowcase
             $c['logo'] = $url;
         }
 
+        foreach (['logo_light', 'logo_dark', 'favicon', 'social_banner', 'background', 'icon_dark', 'icon_apple', 'icon_android'] as $key) {
+            if (! empty($c[$key])) {
+                $c[$key] = $this->assetUrl((string) $c[$key], (int) $kit->user_id) ?? '';
+            }
+        }
+
         return ['name' => $kit->name, 'config' => $c, 'assets' => array_values($assets), 'sections' => $sections];
     }
 
@@ -132,6 +138,9 @@ class BrandKitShowcase
             }
         };
         $button = fn ($label, $url) => $add('link', ['text' => $label, 'url' => $url]);
+        if (! empty($c['social_banner'])) {
+            $add('image', ['url' => $c['social_banner'], 'alt' => $snapshot['name'].' brand cover']);
+        }
         if (! empty($c['logo'])) {
             $add('avatar', ['url' => $c['logo'], 'rounded' => false, 'size' => 100]);
         }
@@ -157,25 +166,29 @@ class BrandKitShowcase
             $heading('Colors & typography');
             foreach (['primary', 'secondary', 'accent'] as $key) {
                 if (preg_match('/^#[0-9a-fA-F]{6}$/', $c['palette'][$key] ?? '')) {
-                    $add('heading', ['text' => ucfirst($key).' · '.$c['palette'][$key], 'size' => 'h3', '_style' => ['font_family' => $this->font($c['fonts']['heading'] ?? 'Inter'), 'bg_color' => $c['palette'][$key], 'text_color' => $this->ink($c['palette'][$key]), 'border_radius' => 16, 'padding' => 18]]);
+                    $add('heading', ['text' => ucfirst($key).' · '.$c['palette'][$key], 'size' => 'h3', '_style' => ['font_family' => $this->font($c['fonts']['heading'] ?? 'Inter'), 'bg_color' => $c['palette'][$key], 'text_color' => $this->ink($c['palette'][$key]), 'border_radius' => 16, 'padding' => 8, 'grid_span' => 4]]);
                 }
             }
+            $heading('Aa — Make your mark.');
+            $paragraph('The quick brown fox jumps over the lazy dog.');
             $paragraph('Heading: '.($c['fonts']['heading'] ?? 'Inter').' · Body: '.($c['fonts']['body'] ?? 'Inter'));
         }
         if (in_array('assets', $sections) && $snapshot['assets']) {
             $heading('Brand assets');
             foreach ($snapshot['assets'] as $asset) {
-                if ($asset['image']) {
-                    $add('image', ['url' => $asset['url'], 'alt' => $asset['label']]);
-                }$button('Download '.$asset['label'], $asset['url']);
+                $add('link_big', ['text' => 'Download '.$asset['label'], 'description' => 'Brand asset · view and download', 'url' => $asset['url'], 'thumbnail' => $asset['image'] ? $asset['url'] : '', 'icon' => 'fa-download']);
             }
         }
         if (in_array('guidelines', $sections)) {
+            $items = [];
             foreach (self::GUIDELINES as $key) {
                 if (! empty($c[$key])) {
-                    $heading(BrandKitFields::text()[$key]);
-                    $paragraph($c[$key]);
+                    $items[] = ['question' => BrandKitFields::text()[$key], 'answer' => $c[$key]];
                 }
+            }
+            if ($items) {
+                $heading('Brand guidelines');
+                $add('faq', ['items' => $items]);
             }
         }
         if (in_array('socials', $sections)) {
@@ -214,7 +227,7 @@ class BrandKitShowcase
             $blockTheme = array_replace($blockTheme, ['_template' => $theme, 'font_family' => $this->font($c['fonts']['body'] ?? 'Inter'), 'text_color' => '#172033', 'apply_to_all' => true]);
         }
 
-        return ['block_theme' => $blockTheme, 'background_type' => 'color', 'background_color' => '#ffffff', 'font_family' => $this->font($c['fonts']['body'] ?? 'Inter'), 'font_color' => '#172033', 'button_color' => preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#3454ef', 'button_text_color' => $this->ink(preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#3454ef')];
+        return ['brand_presentation' => BrandKitPresentation::values($c), 'brand_logos' => ['light' => ($c['logo_light'] ?? '') ?: ($c['logo'] ?? ''), 'dark' => ($c['logo_dark'] ?? '') ?: ($c['logo'] ?? '')], 'block_theme' => $blockTheme, 'background_type' => 'color', 'background_color' => '#ffffff', 'font_family' => $this->font($c['fonts']['body'] ?? 'Inter'), 'font_color' => '#172033', 'button_color' => preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#3454ef', 'button_text_color' => $this->ink(preg_match('/^#[0-9a-fA-F]{6}$/', $primary) ? $primary : '#3454ef')];
     }
 
     public function previewLink(BrandKit $kit, array $snapshot): Link
@@ -241,6 +254,9 @@ class BrandKitShowcase
             $base = url('/brand-showcases/'.$link->id.'/'.$token);
             $settings = $link->settings ?? [];
             $settings['biolink'] = array_replace($settings['biolink'] ?? [], $this->appearance($snapshot));
+            if (($kit->config['icon_package_fingerprint'] ?? '') === BrandIconPackage::fingerprint($kit)) {
+                $settings['biolink']['brand_icon_base'] = $base.'/icons/';
+            }
             $settings['brand_showcase'] = ['token' => $token, 'snapshot' => $snapshot];
             $link->update(['settings' => $settings, 'is_active' => false]);
             $link->biolinkBlocks()->delete();

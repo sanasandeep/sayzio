@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class BrandKitAssignments
 {
-    public const LINK_FIELDS = ['font_family', 'font_color', 'button_color', 'block_theme'];
+    public const LINK_FIELDS = ['brand_presentation', 'brand_logos', 'font_family', 'font_color', 'button_color', 'block_theme'];
 
     public function deleteKit(BrandKit $kit): void
     {
@@ -44,6 +44,10 @@ class BrandKitAssignments
         if ($link->isBiolinkFamily()) {
             app(AiBrandKitService::class)->applyToBiolink($kit, $link);
             $settings = $link->fresh()->settings ?? [];
+            if (isset($kit->config['showcase_mode'])) {
+                $settings['biolink']['brand_presentation'] = BrandKitPresentation::values($kit->config);
+                $settings['biolink']['brand_logos'] = ['light' => ($kit->config['logo_light'] ?? '') ?: $kit->logo(), 'dark' => ($kit->config['logo_dark'] ?? '') ?: $kit->logo()];
+            }
             foreach ($overrides as $field => $value) {
                 $settings['biolink'][$field] = $value;
             }

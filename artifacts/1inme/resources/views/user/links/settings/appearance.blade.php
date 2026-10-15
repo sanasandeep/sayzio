@@ -46,6 +46,7 @@
             </div>
 
             @include('user.brand-kits.link-assignment',['link'=>$link])
+            @include('user.brand-kits.page-theme-settings')
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                 @csrf
 

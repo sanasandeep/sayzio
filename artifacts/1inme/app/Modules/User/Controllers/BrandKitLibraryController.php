@@ -65,7 +65,7 @@ class BrandKitLibraryController extends Controller
     private function fields(Request $r): array
     {
         $d = $r->validate(['name' => 'required|string|max:120', 'description' => 'nullable|string|max:2000', 'logo' => 'nullable|string|max:2048', 'logo_light' => 'nullable|string|max:2048', 'logo_dark' => 'nullable|string|max:2048', 'favicon' => 'nullable|string|max:2048', 'website' => 'nullable|url:http,https|max:2048', 'primary' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'secondary' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'accent' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'heading' => 'nullable|string|max:100', 'body' => 'nullable|string|max:100', 'tone' => 'nullable|string|max:200', 'taglines' => 'nullable|string|max:1000', 'bio' => 'nullable|string|max:2000', 'audience' => 'nullable|string|max:1000', 'instructions' => 'nullable|string|max:4000', 'exclusions' => 'nullable|string|max:2000', 'block_theme' => 'nullable|in:'.implode(',', $this->ai->allowedBlockThemes()), 'is_default' => 'nullable|boolean']);
-        $rules = [];
+        $rules = \App\Services\Brand\BrandKitPresentation::rules();
         foreach (BrandKitFields::text() as $key => $label) {
             $rules[$key] = 'nullable|string|max:4000';
         }
@@ -97,6 +97,7 @@ class BrandKitLibraryController extends Controller
         foreach (array_keys(BrandKitFields::text() + BrandKitFields::MEDIA) as $key) {
             $c[$key] = $d[$key] ?? ($c[$key] ?? '');
         }
+        $c = array_replace($c, array_intersect_key($d, \App\Services\Brand\BrandKitPresentation::defaults()));
         $c['approval_status'] = $d['approval_status'] ?? 'draft';
         DB::transaction(function () use ($r, $d, $kit, $c) {
             if (! $kit->exists) {
