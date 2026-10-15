@@ -15,7 +15,7 @@
         '" style="border:0;width:100%;max-width:380px;height:540px;border-radius:18px;overflow:hidden;"></iframe>';
 @endphp
 
-<div class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+<div class="widget-page w-full space-y-6">
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
     @if($errors->any())
         <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
@@ -23,18 +23,8 @@
         </div>
     @endif
 
-    <div class="flex items-start justify-between gap-3">
-        <div>
-            <a href="{{ route('user.ai-companions.index') }}" class="text-xs text-white/40 hover:text-white/70"><i class="fas fa-arrow-left"></i> Back</a>
-            <h1 class="text-2xl font-bold text-white mt-1">{{ $companion->name }}</h1>
-            <p class="text-xs text-white/50 mt-1">Public id: <span class="font-mono">{{ $companion->public_id }}</span></p>
-        </div>
-        <a href="{{ route('user.ai-companions.conversations', $companion) }}" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm">
-            <i class="fas fa-comment"></i> View conversations
-        </a>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    @include('user.partials.page-hero', ['title'=>$companion->name,'subtitle'=>'Design your chat experience. Preview changes instantly, then save to publish.','icon'=>'fa-comments','back'=>route('user.ai-companions.index'),'actions'=>[['label'=>'Conversations','url'=>route('user.ai-companions.conversations',$companion),'icon'=>'fa-comment','class'=>'btn-secondary']],'chips'=>[['text'=>'Chat Widget','icon'=>'fa-comments']]])
+    <div class="widget-stats grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
             <p class="text-[10px] uppercase tracking-wider text-white/40">Turns this month</p>
             <p class="text-2xl font-bold text-white mt-1">{{ number_format($usage['turns']) }}</p>
@@ -59,15 +49,18 @@
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
             <p class="text-[10px] uppercase tracking-wider text-white/40">Free turns / mo</p>
-            <p class="text-2xl font-bold text-white mt-1">{{ $companion->free_turns_per_month }}</p>
+            <p class="text-2xl font-bold text-white mt-1">{{ $companion->free_turns_per_month < 0 ? 'Unlimited' : number_format($companion->free_turns_per_month) }}</p>
             <p class="text-[10px] text-white/40">Beyond this, turns charge coins</p>
         </div>
     </div>
 
-    <form method="POST" action="{{ route('user.ai-companions.update', $companion) }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-5">
+    <div class="widget-editor-grid">
+    <form method="POST" action="{{ route('user.ai-companions.update', $companion) }}" id="widget-editor" x-data="{ tab: 'basic', placement: @js(old('placement',$companion->placement)) }" @invalid.capture="tab=$event.target.closest('[data-widget-tab]')?.dataset.widgetTab || 'basic'" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-5">
         @csrf @method('PUT')
+        <nav class="widget-tabs" aria-label="Widget settings"><template x-for="item in [{id:'basic',label:'Basic info'},{id:'more',label:'More info'},{id:'advanced',label:'Advanced'}]"><button type="button" :aria-pressed="tab===item.id" @click="tab=item.id" x-text="item.label"></button></template></nav>
+        <p class="text-xs text-white/50">Basic settings are enough to start. Preview changes on the right; save when ready.</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div data-widget-tab="basic" x-show="tab==='basic'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-xs font-semibold text-white/70 mb-1">Name</label>
                 <input name="name" required maxlength="120" value="{{ old('name', $companion->name) }}"
@@ -86,7 +79,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     @foreach($placements as $key => $label)
                         <label class="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-white cursor-pointer hover:bg-white/[0.06]">
-                            <input type="radio" name="placement" value="{{ $key }}" @checked(old('placement', $companion->placement)===$key) class="mr-2">
+                            <input type="radio" x-model="placement" name="placement" value="{{ $key }}" @checked(old('placement', $companion->placement)===$key) class="mr-2">
                             {{ $label }}
                         </label>
                     @endforeach
@@ -94,7 +87,7 @@
             </div>
         </div>
 
-        <fieldset class="space-y-3">
+        <fieldset data-widget-tab="more" x-show="tab==='more'" class="space-y-3">
             <legend class="text-xs font-bold text-white/80 uppercase tracking-wider">Visuals</legend>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
@@ -130,26 +123,27 @@
             <div class="flex flex-wrap gap-4 pt-2 text-xs text-white/70">
                 <label><input type="hidden" name="config[show_branding]" value="0"><input type="checkbox" name="config[show_branding]" value="1" @checked(!empty($config['show_branding']))> Show "Powered by Sayzio"</label>
                 <label><input type="hidden" name="config[inline]" value="0"><input type="checkbox" name="config[inline]" value="1" @checked(!empty($config['inline']))> Inline mode (Link in Bio only)</label>
-                <label><input type="hidden" name="config[auto_send_inbox]" value="0"><input type="checkbox" name="config[auto_send_inbox]" value="1" @checked(!empty($config['auto_send_inbox']))> Auto-send inbox replies</label>
+                <label x-show="placement==='inbox'"><input type="hidden" name="config[auto_send_inbox]" value="0"><input type="checkbox" name="config[auto_send_inbox]" value="1" @checked(!empty($config['auto_send_inbox']))> Auto-send inbox replies</label>
             </div>
         </fieldset>
 
-        <fieldset class="space-y-3">
+        <fieldset data-widget-tab="advanced" x-show="tab==='advanced'" class="space-y-3">
             <legend class="text-xs font-bold text-white/80 uppercase tracking-wider">Limits & guardrails</legend>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[11px] font-semibold text-white/60 mb-1">Free turns / month</label>
-                    <input type="number" min="0" name="free_turns_per_month" value="{{ $companion->free_turns_per_month }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <input type="number" min="0" name="free_turns_per_month" @disabled($companion->free_turns_per_month < 0) value="{{ max(0,$companion->free_turns_per_month) }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold text-white/60 mb-1">Hard monthly cap (0 = platform default)</label>
                     <input type="number" min="0" name="hard_cap_per_month" value="{{ $companion->hard_cap_per_month }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                 </div>
             </div>
+            <div><label class="block text-xs text-white/60 mb-1">Auto-open delay (milliseconds, 0 = off)</label><input type="number" min="0" max="60000" name="config[auto_open_after_ms]" value="{{ $config['auto_open_after_ms'] ?? 0 }}" class="theme-input w-full"></div>
         </fieldset>
 
-        @if($companion->placement === 'embed')
-            <fieldset class="space-y-3">
+        <div data-widget-tab="advanced" x-show="tab==='advanced'">
+            <fieldset x-show="placement==='embed'" class="space-y-3">
                 <legend class="text-xs font-bold text-white/80 uppercase tracking-wider">Allowed domains</legend>
                 <p class="text-[11px] text-white/50">Only the listed domains can embed this chat widget. Use a leading dot (e.g. <code>.example.com</code>) to allow subdomains.</p>
                 @php $domains = old('allowed_domains', $companion->allowed_domains ?: ['']); @endphp
@@ -165,10 +159,10 @@
                 <button type="button" onclick="document.getElementById('domains-list').insertAdjacentHTML('beforeend','<div class=\'flex gap-2\'><input name=\'allowed_domains[]\' placeholder=\'example.com\' class=\'flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white\'><button type=button onclick=this.parentElement.remove() class=\'px-2 py-1 rounded-lg bg-red-500/10 text-red-300 text-xs\'><i class=\'fas fa-times\'></i></button></div>')"
                         class="text-xs text-blue-300 hover:text-blue-200"><i class="fas fa-plus"></i> Add domain</button>
             </fieldset>
-        @endif
+            </div>
 
-        @if($companion->placement === 'biolink')
-            <fieldset class="space-y-2">
+        <div data-widget-tab="more" x-show="tab==='more'">
+            <fieldset x-show="placement==='biolink'" class="space-y-2">
                 <legend class="text-xs font-bold text-white/80 uppercase tracking-wider">Link in Bio pages to render on</legend>
                 <p class="text-[11px] text-white/50">Add an "AI Companion" block to one of these Link in Bio pages to actually show the chatbot. This list just scopes which links it's allowed on.</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 overflow-auto pr-2">
@@ -183,12 +177,14 @@
                     @endforelse
                 </div>
             </fieldset>
-        @endif
+        </div>
 
         <div class="flex justify-end gap-2 pt-2">
             <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save Chat Widget</button>
         </div>
     </form>
+    @include('user.ai-companions.preview')
+    </div>
 
     @if($companion->placement === 'embed')
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
