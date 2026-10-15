@@ -26,7 +26,7 @@ class AiMindPickerController extends Controller
 {
     use ApiResponses;
 
-    private const FEATURES = ['persona', 'coach'];
+    private const FEATURES = ['persona'];
 
     public function minds(Request $request)
     {

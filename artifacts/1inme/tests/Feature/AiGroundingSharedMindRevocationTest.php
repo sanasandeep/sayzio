@@ -188,17 +188,6 @@ class AiGroundingSharedMindRevocationTest extends TestCase
         return $bucket;
     }
 
-    private function callCoach(User $member, Link $link, array $mindIds)
-    {
-        return $this->actingAs($member->fresh())
-            ->withSession(['active_workspace_id' => $this->personalWorkspace($member)->id])
-            ->from(route('user.ai.coach.show'))
-            ->post(route('user.ai.coach.suggest'), [
-                'link_id'  => $link->id,
-                'goal'     => 'increase engagement',
-                'mind_ids' => $mindIds,
-            ]);
-    }
 
     private function callPersona(User $member, array $mindIds)
     {
@@ -228,79 +217,7 @@ class AiGroundingSharedMindRevocationTest extends TestCase
     // Coach
     // ===================================================================
 
-    public function test_coach_grounding_excludes_shared_mind_before_and_after_seat_suspension(): void
-    {
-        $owner  = $this->user();
-        $member = $this->user();
-        $team   = $this->team($owner);
-        $ms     = $this->memberOf($team, $member);
 
-        $shared  = $this->mind($owner);
-        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_WORKSPACE, $team->id);
-        $ownMind = $this->mind($member);
-        $link    = $this->ownLink($member);
-
-        $shares   = app(AiResourceShareService::class);
-        $captured = $this->captureGroundingMinds();
-
-        // The teammate genuinely has LIVE USE access right now…
-        $this->assertTrue($shares->canUseMind($member->fresh(), $shared));
-
-        // …yet Coach grounding still drops the shared Mind (owner-only),
-        // querying only the member's own Mind.
-        $this->callCoach($member, $link, [$ownMind->id, $shared->id]);
-        $this->assertEquals(
-            [$ownMind->id],
-            $captured->lastIds(),
-            'Coach must ground only on the member\'s own Mind, never a shared one.'
-        );
-
-        // Suspend the seat — share row untouched, live access lost.
-        $ms->forceFill(['suspended_at' => now()])->save();
-        $this->assertDatabaseHas('ai_resource_shares', [
-            'resource_type' => AiResourceShare::RESOURCE_MIND,
-            'resource_id'   => $shared->id,
-        ]);
-        $this->assertFalse($shares->canUseMind($member->fresh(), $shared));
-
-        // Still excluded after revocation — never folded in.
-        $this->callCoach($member, $link, [$ownMind->id, $shared->id]);
-        $this->assertEquals([$ownMind->id], $captured->lastIds());
-    }
-
-    public function test_coach_grounding_excludes_shared_mind_before_and_after_badge_detach(): void
-    {
-        $owner  = $this->user();
-        $holder = $this->user();
-        $badge  = $this->badge();
-        $owner->accountBadges()->attach($badge->id);
-        $holder->accountBadges()->attach($badge->id);
-
-        $shared  = $this->mind($owner);
-        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_BADGE, $badge->id);
-        $ownMind = $this->mind($holder);
-        $link    = $this->ownLink($holder);
-
-        $shares   = app(AiResourceShareService::class);
-        $captured = $this->captureGroundingMinds();
-
-        $this->assertTrue($shares->canUseMind($holder->fresh(), $shared));
-
-        $this->callCoach($holder, $link, [$ownMind->id, $shared->id]);
-        $this->assertEquals([$ownMind->id], $captured->lastIds());
-
-        $holder->accountBadges()->detach($badge->id);
-        $this->assertDatabaseHas('ai_resource_shares', [
-            'resource_type' => AiResourceShare::RESOURCE_MIND,
-            'resource_id'   => $shared->id,
-            'audience_type' => AiResourceShare::AUDIENCE_BADGE,
-            'audience_id'   => $badge->id,
-        ]);
-        $this->assertFalse($shares->canUseMind($holder->fresh(), $shared));
-
-        $this->callCoach($holder, $link, [$ownMind->id, $shared->id]);
-        $this->assertEquals([$ownMind->id], $captured->lastIds());
-    }
 
     // ===================================================================
     // Persona
