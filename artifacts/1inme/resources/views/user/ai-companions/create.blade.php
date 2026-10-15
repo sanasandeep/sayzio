@@ -2,12 +2,8 @@
 @section('title', 'New Chat Widget')
 
 @section('content')
-<div class="max-w-2xl mx-auto px-4 py-8 space-y-6">
-    <div>
-        <a href="{{ route('user.ai-companions.index') }}" class="text-xs text-white/40 hover:text-white/70"><i class="fas fa-arrow-left"></i> Back</a>
-        <h1 class="text-2xl font-bold text-white mt-1">New Chat Widget</h1>
-        <p class="text-sm text-white/50 mt-1">Wrap an AI agent in a chat surface. You can change the placement and visuals later.</p>
-    </div>
+<div class="w-full space-y-6">
+    @include('user.partials.page-hero', ['title'=>'New Chat Widget','subtitle'=>'Choose an agent and placement, then customize the appearance with a live preview.','icon'=>'fa-comments','back'=>route('user.ai-companions.index'),'actions'=>[],'chips'=>[]])
 
     @if($errors->any())
         <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
