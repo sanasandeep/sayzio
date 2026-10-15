@@ -2,6 +2,7 @@
 @section('title', 'Conversations · ' . $companion->name)
 
 @section('content')
+@include('user.partials.ai-workspace-nav')
 <div class="max-w-5xl mx-auto px-4 py-8 space-y-4">
     <div class="flex items-end justify-between gap-3">
         <div>

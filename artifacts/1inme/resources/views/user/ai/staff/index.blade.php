@@ -1,12 +1,13 @@
 @extends('user.layouts.app')
-@section('title', 'AI Staff')
+@section('title', 'Team assistants')
 
 @section('content')
-<div class="max-w-5xl mx-auto px-4 py-8">
+@include('user.partials.ai-workspace-nav')
+<div class="w-full">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
-        'title'    => 'AI Staff',
-        'subtitle' => 'Hire configurable AI agents that work billing, contacts, inbox and general questions for you, grounded in your own data, and they always confirm before sending anything.',
+        'title'    => 'Team assistants',
+        'subtitle' => 'Configure internal assistants for billing, contacts and inbox work. Review their suggestions before applying changes.',
         'balance'  => $balance,
     ])
 
@@ -85,7 +86,7 @@
                 <li class="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex items-center justify-between gap-3">
                     <div class="min-w-0">
                         <p class="text-sm text-white/80 truncate">{{ $sug->title }}</p>
-                        <p class="text-[11px] text-white/40">{{ $sug->aiStaff->name ?? 'AI Staff' }} &middot; {{ ucfirst($sug->status) }} &middot; {{ $sug->created_at->diffForHumans() }}</p>
+                        <p class="text-[11px] text-white/40">{{ $sug->aiStaff->name ?? 'Team assistants' }} &middot; {{ ucfirst($sug->status) }} &middot; {{ $sug->created_at->diffForHumans() }}</p>
                     </div>
                     @if($sug->aiStaff)
                         <a href="{{ route('user.ai.staff.show', $sug->aiStaff) }}" class="text-xs text-blue-300 hover:text-blue-200 shrink-0">View →</a>

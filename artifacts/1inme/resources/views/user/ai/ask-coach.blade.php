@@ -1,15 +1,20 @@
 @extends('user.layouts.app')
-@section('title', 'AI Coach')
+@section('title', 'Ask Zio')
 
 @section('content')
-<div class="max-w-6xl mx-auto px-4 py-8">
+@include('user.partials.ai-workspace-nav')
+<div class="w-full">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
-        'title'    => 'AI Coach',
-        'subtitle' => 'Read-only self-support, the assistant pulls from your live links, audience, payments and account to answer.',
+        'title'    => 'Ask Zio',
+        'subtitle' => 'Your Sayzio assistant. Analyze your business here, or open page guidance for navigation and supported actions.',
         'balance'  => $balance,
     ])
 
+    <div class="rounded-2xl border border-white/10 p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div><strong class="text-sm">Business insights</strong><p class="text-xs text-white/50 mt-1">This workspace uses your accessible business data. Page guidance opens the floating Zio assistant; its chat history is separate.</p></div>
+        <button type="button" class="btn-primary text-sm" onclick="var launcher=document.getElementById('sa-launcher');if(launcher)launcher.click();else this.nextElementSibling.hidden=false;">Open page guidance</button><span hidden class="text-xs text-white/50">Page guidance is unavailable with the current assistant settings.</span>
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
         {{-- Sidebar: chats --}}
         <aside class="rounded-2xl border border-white/10 bg-white/[0.03] p-3 space-y-2 md:max-h-[75vh] md:overflow-y-auto">

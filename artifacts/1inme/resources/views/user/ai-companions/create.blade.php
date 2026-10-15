@@ -1,9 +1,10 @@
 @extends('user.layouts.app')
-@section('title', 'New Chat Widget')
+@section('title', 'New Channel')
 
 @section('content')
+@include('user.partials.ai-workspace-nav')
 <div class="w-full space-y-6">
-    @include('user.partials.page-hero', ['title'=>'New Chat Widget','subtitle'=>'Choose an agent and placement, then customize the appearance with a live preview.','icon'=>'fa-comments','back'=>route('user.ai-companions.index'),'actions'=>[],'chips'=>[]])
+    @include('user.partials.page-hero', ['title'=>'New Channel','subtitle'=>'Choose an agent and placement, then customize the appearance with a live preview.','icon'=>'fa-comments','back'=>route('user.ai-companions.index'),'actions'=>[],'chips'=>[]])
 
     @if($errors->any())
         <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">

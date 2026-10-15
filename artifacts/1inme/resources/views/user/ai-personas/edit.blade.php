@@ -1,7 +1,8 @@
 @extends('user.layouts.app')
-@section('title', 'Edit AI Agent')
+@section('title', 'Edit Agent')
 
 @section('content')
+@include('user.partials.ai-workspace-nav')
 <div class="agents-page w-full space-y-6"
      x-data="personaTester({
         endpoint: '{{ route('user.ai-personas.test', $persona) }}',

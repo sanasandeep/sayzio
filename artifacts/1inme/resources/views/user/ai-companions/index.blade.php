@@ -1,16 +1,17 @@
 @extends('user.layouts.app')
-@section('title', 'Chat Widgets')
+@section('title', 'Channels')
 
 @section('content')
+@include('user.partials.ai-workspace-nav')
 <div class="w-full space-y-6">
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
     @php
         $unlimited = in_array($caps['max_companions_per_user'], [-1, PHP_INT_MAX], true);
-        $widgetActions = ($unlimited || $used < $caps['max_companions_per_user']) ? [['label'=>'New Chat Widget','url'=>route('user.ai-companions.create'),'icon'=>'fa-plus','class'=>'btn-primary']] : [];
+        $widgetActions = ($unlimited || $used < $caps['max_companions_per_user']) ? [['label'=>'New Channel','url'=>route('user.ai-companions.create'),'icon'=>'fa-plus','class'=>'btn-primary']] : [];
     @endphp
-    @include('user.partials.page-hero', ['title'=>'Chat Widgets','subtitle'=>'Bring your AI agents to Link in Bio, your website and inbox.','icon'=>'fa-comments','back'=>route('user.dashboard'),'actions'=>$widgetActions,'chips'=>[['text'=>$used.' widgets','icon'=>'fa-comments'],['text'=>$unlimited?'Unlimited plan':$caps['max_companions_per_user'].' widget limit','icon'=>'fa-layer-group']]])
+    @include('user.partials.page-hero', ['title'=>'Channels','subtitle'=>'Bring your AI agents to Link in Bio, your website and inbox.','icon'=>'fa-comments','back'=>route('user.dashboard'),'actions'=>$widgetActions,'chips'=>[['text'=>$used.' widgets','icon'=>'fa-comments'],['text'=>$unlimited?'Unlimited plan':$caps['max_companions_per_user'].' widget limit','icon'=>'fa-layer-group']]])
     @if($companions->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
             <i class="fas fa-comments text-4xl text-blue-400/70"></i>
