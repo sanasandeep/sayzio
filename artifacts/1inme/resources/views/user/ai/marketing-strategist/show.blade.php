@@ -4,9 +4,12 @@
 @php $plan = (array) ($strategy->strategy ?? []); @endphp
 
 @section('content')
+@include('user.marketing-studio.styles')
+@include('user.marketing-studio.nav',['tab'=>'strategy'])
+@if(!empty($campaign))<div class="ms-next"><h3 class="font-semibold">Turn this strategy into materials</h3><p class="bk-muted my-3">Carry this strategy and campaign context into creation. Review the estimate and generated proposal first.</p><a class="btn-primary" href="{{ route('user.marketing-studio.build',[$campaign,'strategy_id'=>$strategy->id]) }}">Build with this strategy</a></div>@endif
 <div class="max-w-4xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
-        'kicker'   => 'AI · Marketing Strategist',
+        'kicker'   => 'AI · Marketing Studio',
         'title'    => $strategy->title,
         'subtitle' => $strategy->goalSummary(200),
         'balance'  => $balance,

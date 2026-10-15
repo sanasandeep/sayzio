@@ -34,7 +34,7 @@ class AiFeatureCatalog
         'brand_kit'     => 'Brand Kit',
         'brand_asset'   => 'Brand Kit — Visual Asset',
         'qr_art'        => 'QR — AI Art',
-        'marketing_strategist' => 'Marketing Strategist',
+        'marketing_strategist' => 'Marketing Studio · strategy',
         'marketing_strategist.chat' => 'Marketing Strategist — Chat',
         'marketing_strategist.report' => 'Marketing Strategist — Report',
         'ai_staff_billing'      => 'AI Staff — Billing',
@@ -48,7 +48,7 @@ class AiFeatureCatalog
         'service_booking_builder' => 'AI Service Booking Builder',
         'resume_builder'        => 'AI Resume Builder',
         'audience_type_estimation' => 'AI Audience Type Estimation',
-        'brand_studio'  => 'AI Brand Studio',
+        'brand_studio'  => 'Marketing Studio · material creation',
     ];
 
     public static function featureLabel(?string $feature): string

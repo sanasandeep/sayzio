@@ -1,11 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'AI Marketing Strategist')
+@section('title', 'AI Marketing Studio')
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
-        'title'    => 'AI Marketing Strategist',
+        'title'    => 'AI Marketing Studio',
         'subtitle' => 'Your AI digital performer, feed in your own Sayzio data and get an organic + paid plan built around real features.',
         'balance'  => $balance,
     ])

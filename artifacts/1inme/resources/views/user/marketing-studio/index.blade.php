@@ -1,0 +1,11 @@
+@extends('user.layouts.app')
+@section('title','AI Marketing Studio')
+@section('content')
+@include('user.marketing-studio.styles')
+<div class="ms-page" x-data="{search:''}">
+@include('user.partials.page-hero',['title'=>'AI Marketing Studio','subtitle'=>'Plan your marketing. Create the materials. Keep everything connected.','emblemIcon'=>'fa-wand-magic-sparkles','back'=>route('user.dashboard'),'chips'=>[['text'=>'Strategy + creation']],'actions'=>[['label'=>'New campaign','url'=>route('user.marketing-studio.create'),'icon'=>'fa-plus','class'=>'btn-primary']]])
+<div class="bk-actions my-6"><input class="bk-input" x-model="search" style="max-width:460px" placeholder="Search campaigns…" aria-label="Search campaigns"></div>
+<div class="ms-cards">@forelse($campaigns as $item)<article class="ms-card" x-show="!search||@js(mb_strtolower($item->name)).includes(search.toLowerCase())"><p class="ms-kicker">{{ $item->plan_id?'Connected to Planner':'Campaign' }}</p><h2 class="text-xl font-bold mt-3">{{ $item->name }}</h2><p class="bk-muted my-3">{{ Str::limit($item->brief['goal']??'',140) }}</p><div class="bk-actions mb-5"><span class="ms-status">{{ count($item->strategy_ids??[]) }} strategies</span><span class="ms-status">{{ count($item->studio_ids??[]) }} creation runs</span></div><a class="btn-primary" href="{{ route('user.marketing-studio.show',$item) }}">Continue</a></article>@empty<div class="ms-card"><h2 class="text-xl font-bold">Your next campaign starts here</h2><p class="bk-muted my-4">Create only what you need, or start with an AI marketing strategy. Review estimates before generating.</p><a class="btn-primary" href="{{ route('user.marketing-studio.create') }}">Create campaign</a></div>@endforelse</div>
+<details class="ms-card mt-6"><summary class="font-semibold cursor-pointer">Previous strategies & creations</summary><p class="bk-muted my-3">Your existing work is preserved and opens in its editor.</p><div class="ms-cards">@foreach($legacyStrategies as $item)<a class="bk-check" href="{{ route('user.ai.marketing-strategist.show',$item->id) }}">Strategy · {{ $item->title }}</a>@endforeach @foreach($legacyKits as $item)<a class="bk-check" href="{{ route('user.brand-studio.show',$item) }}">Materials · {{ $item->name }}</a>@endforeach</div></details>
+</div>
+@endsection

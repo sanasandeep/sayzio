@@ -1098,12 +1098,12 @@
                             <span class="nav-label">Brand Kits</span>
                             <span class="sidebar-tooltip">Brand Kits</span>
                         </a>
-                        <a href="{{ route('user.brand-studio.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.brand-studio.*') ? 'active' : '' }}"
+                        <a href="{{ (Route::has('user.marketing-studio.index')?route('user.marketing-studio.index'):route('user.brand-studio.index')) }}"
+                           class="sidebar-link {{ nav_route_is('user.marketing-studio.*','user.brand-studio.*','user.ai.marketing-strategist.*') ? 'active' : '' }}"
                            style="--nav-tint:#2fb4ff; --nav-tint-soft:rgba(47,180,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div>
-                            <span class="nav-label">AI Brand Studio</span>
-                            <span class="sidebar-tooltip">AI Brand Studio</span>
+                            <span class="nav-label">AI Marketing Studio</span>
+                            <span class="sidebar-tooltip">AI Marketing Studio</span>
                         </a>
                         @if(auth()->check())
                         <a href="{{ \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()) ? route('user.ai.ask-coach.show') : route('user.ai.companion.show') }}"
@@ -1115,13 +1115,6 @@
                         </a>
                         @endif
                         @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
-                        <a href="{{ route('user.ai.marketing-strategist.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.ai.marketing-strategist.*') ? 'active' : '' }}"
-                           style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
-                            <span class="nav-label">AI Marketing Strategist</span>
-                            <span class="sidebar-tooltip">AI Marketing Strategist</span>
-                        </a>
                         @endif
                         @if(auth()->check() && auth()->user()->planFeatureEnabled('marketing_plan_calculator'))
                         <a href="{{ route('user.marketing-plan.index') }}"
@@ -1833,12 +1826,11 @@
 
                                 <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ nav_route_is('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Channels</span></a>
                                 <a href="{{ route('user.brand-kits.index') }}" class="sidebar-link {{ nav_route_is('user.brand-kits.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div> <span>Brand Kits</span></a>
-                                <a href="{{ route('user.brand-studio.index') }}" class="sidebar-link {{ nav_route_is('user.brand-studio.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div> <span>AI Brand Studio</span></a>
+                                <a href="{{ (Route::has('user.marketing-studio.index')?route('user.marketing-studio.index'):route('user.brand-studio.index')) }}" class="sidebar-link {{ nav_route_is('user.marketing-studio.*','user.brand-studio.*','user.ai.marketing-strategist.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div> <span>AI Marketing Studio</span></a>
                                 @if(auth()->check())
                                 <a href="{{ \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()) ? route('user.ai.ask-coach.show') : route('user.ai.companion.show') }}" class="sidebar-link {{ nav_route_is('user.ai.ask-coach.*', 'user.ai.companion.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Ask Zio</span></a>
                                 @endif
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
-                                <a href="{{ route('user.ai.marketing-strategist.index') }}" class="sidebar-link {{ nav_route_is('user.ai.marketing-strategist.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>AI Marketing Strategist</span></a>
                                 @endif
                                 @if(auth()->check() && auth()->user()->planFeatureEnabled('marketing_plan_calculator'))
                                 <a href="{{ route('user.marketing-plan.index') }}" class="sidebar-link {{ nav_route_is('user.marketing-plan.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calculator"></i></div> <span>Marketing Plan Calculator</span></a>

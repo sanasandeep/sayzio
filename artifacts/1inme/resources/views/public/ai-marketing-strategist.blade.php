@@ -1,5 +1,5 @@
 @extends('public.layouts.site')
-@section('title', 'AI Marketing Strategist')
+@section('title', 'AI Marketing Studio')
 
 @section('content')
 @php
@@ -86,7 +86,7 @@
         ['q' => 'Does it use my real account data?', 'a' => 'Yes. You choose which sources to include (links, analytics, audience, pixels, AI Brand Kit and more), and the strategist builds the plan from a compact, PII-free snapshot of just those. It never invents metrics, follower counts or URLs.'],
         ['q' => 'What do I actually get back?', 'a' => 'A structured strategy: a short summary, an organic plan and a paid plan where every play names the Sayzio feature it uses, the KPIs to watch, and a short list of one-click actions you can apply right away.'],
         ['q' => 'Can I change the plan after it is generated?', 'a' => 'Absolutely. You can chat with the strategist to refine it: swap channels, tighten the budget, go deeper on a play, and it stays grounded in your data and the original plan.'],
-        ['q' => 'Which plans include the AI Marketing Strategist?', 'a' => 'It is included on every paid Sayzio plan. Generation is metered against your plan allowance, and any overage is covered by your coin wallet so you are never cut off mid-plan.'],
+        ['q' => 'Which plans include the AI Marketing Studio?', 'a' => 'Available strategy and material-creation capabilities depend on your plan. AI actions show an estimate and use coins; saving a campaign brief does not require AI.'],
         ['q' => 'Will it post or spend money on its own?', 'a' => 'No. It only proposes a plan and one-click actions. Nothing is created, posted or spent until you choose to apply it.'],
     ];
 
@@ -161,7 +161,7 @@
 @endphp
 
 <style>
-    /* ===== AI Marketing Strategist — typewriter terminal ===== */
+    /* ===== AI Marketing Studio — typewriter terminal ===== */
     .ms-term {
         position: relative;
         border-radius: 20px;
@@ -258,14 +258,14 @@
             <div data-anim="fade-right">
                 <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border"
                       style="background: {{ $accent }}1a; border-color: {{ $accent }}33; color: {{ $accent }};">
-                    <i class="fas fa-wand-magic-sparkles text-[10px]"></i> AI Marketing Strategist
+                    <i class="fas fa-wand-magic-sparkles text-[10px]"></i> AI Marketing Studio
                 </span>
                 <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
                     Your marketing plan,
                     <span class="block grad-text">written from your own data.</span>
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    Tell it your goal. The AI Marketing Strategist reads your real links, analytics and audience, then types out a practical organic + paid plan built around the Sayzio features you already have, with one-click actions you can apply instantly.
+                    Tell it your goal. The AI Marketing Studio reads your real links, analytics and audience, then types out a practical organic + paid plan built around the Sayzio features you already have, with one-click actions you can apply instantly.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     <a href="/register" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
@@ -284,12 +284,12 @@
             {{-- Typewriter centerpiece --}}
             <div data-anim="fade-left" class="relative">
                 <div class="ms-term" id="msTerm" role="img"
-                     aria-label="A live demo of the AI Marketing Strategist typing out a marketing strategy from a creator's goal.">
+                     aria-label="A live demo of the AI Marketing Studio typing out a marketing strategy from a creator's goal.">
                     <div class="ms-term-bar">
                         <span class="ms-dot" aria-hidden="true"></span>
                         <span class="ms-dot" aria-hidden="true"></span>
                         <span class="ms-dot" aria-hidden="true"></span>
-                        <span class="ms-term-title"><span class="ms-live" aria-hidden="true"></span> Sayzio · AI Marketing Strategist</span>
+                        <span class="ms-term-title"><span class="ms-live" aria-hidden="true"></span> Sayzio · AI Marketing Studio</span>
                     </div>
                     <div class="ms-term-body">
                         @php $msFirst = $examples[0] ?? ['goal' => '', 'lines' => []]; @endphp
@@ -599,7 +599,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">FAQ</div>
-            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Common questions about the <span class="grad-text">AI Marketing Strategist</span>.</h3>
+            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Common questions about the <span class="grad-text">AI Marketing Studio</span>.</h3>
         </div>
         <div class="space-y-3" data-anim="fade-up" data-stagger>
             @foreach($faqs as $faq)
@@ -624,7 +624,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Stop guessing. <span class="grad-text">Get the plan.</span></h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Create your free Sayzio, point the AI Marketing Strategist at your account, and watch it write a plan you can actually run, organic and paid, grounded in your data.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Create your free Sayzio, point the AI Marketing Studio at your account, and watch it write a plan you can actually run, organic and paid, grounded in your data.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="/register" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Build my strategy free</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>

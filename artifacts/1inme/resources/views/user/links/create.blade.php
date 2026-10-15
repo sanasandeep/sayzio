@@ -2,6 +2,7 @@
 @section('title', 'Create Link')
 
 @section('content')
+@if(Route::has('user.marketing-studio.create'))<div class="flex justify-end mb-4"><a class="btn-ghost" href="{{ route('user.marketing-studio.create',['output'=>'biolink']) }}">✨ Create with AI</a></div>@endif
 @php
     $aliasLimits = $aliasLimits ?? ['min' => 3, 'max' => 50];
     $domainHost  = $domainHost ?? request()->getHost();
