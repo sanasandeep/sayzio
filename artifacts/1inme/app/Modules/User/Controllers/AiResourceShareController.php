@@ -55,26 +55,28 @@ class AiResourceShareController extends Controller
     {
         $data = $request->validate([
             // Combined "type:id", e.g. "workspace:5" or "badge:3".
-            'audience' => 'required|string|max:40',
+            'audience' => 'required_without:audiences|nullable|string|max:40',
+            'audiences' => 'required_without:audience|array|min:1|max:50',
+            'audiences.*' => 'required|string|max:40|distinct',
             'access'   => 'required|in:use,edit',
         ]);
 
-        [$audienceType, $audienceId] = array_pad(explode(':', $data['audience'], 2), 2, null);
-        if (!in_array($audienceType, AiResourceShare::AUDIENCE_TYPES, true) || !ctype_digit((string) $audienceId)) {
-            return back()->with('error', 'Pick a valid team or badge group to share with.');
+        $targets = [];
+        foreach (($data['audiences'] ?? [$data['audience']]) as $audience) {
+            [$type, $id] = array_pad(explode(':', $audience, 2), 2, null);
+            if (!in_array($type, AiResourceShare::AUDIENCE_TYPES, true) || !ctype_digit((string) $id)) {
+                return back()->withInput()->with('error', 'Pick valid teams or badge groups to share with.');
+            }
+            $targets[] = [$type, (int) $id];
         }
-
         try {
-            $this->shares->share(
-                $request->user(),
-                $resourceType,
-                $resourceId,
-                $audienceType,
-                (int) $audienceId,
-                $data['access'],
-            );
+            \Illuminate\Support\Facades\DB::transaction(function () use ($targets, $request, $resourceType, $resourceId, $data) {
+                foreach ($targets as [$type, $id]) {
+                    $this->shares->share($request->user(), $resourceType, $resourceId, $type, $id, $data['access']);
+                }
+            });
         } catch (\InvalidArgumentException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         return back()->with('status', 'Sharing updated.');
