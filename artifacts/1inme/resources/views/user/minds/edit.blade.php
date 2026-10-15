@@ -2,49 +2,45 @@
 @section('title', $mind->name)
 
 @section('content')
+@include('user.minds.partials.styles')
 @php
     use App\Modules\User\Models\AiMindSource;
     $statusColor = [
-        AiMindSource::STATUS_QUEUED     => 'bg-amber-500/10 text-amber-300',
+        AiMindSource::STATUS_QUEUED     => 'bg-amber-500/10 text-white/60',
         AiMindSource::STATUS_PROCESSING => 'bg-blue-500/10 text-blue-300',
         AiMindSource::STATUS_READY      => 'bg-emerald-500/10 text-emerald-300',
         AiMindSource::STATUS_FAILED     => 'bg-red-500/10 text-red-300',
         AiMindSource::STATUS_DISABLED   => 'bg-white/10 text-white/60',
     ];
 @endphp
-<div class="max-w-5xl mx-auto px-4 py-8 space-y-6"
+<div class="minds-page w-full space-y-6"
      x-data="mindEdit({{ Js::from(['askUrl' => route('user.minds.ask', $mind), 'csrf' => csrf_token()]) }})">
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-            <a href="{{ route('user.minds.index') }}" class="text-xs text-white/40 hover:text-white/60"><i class="fas fa-arrow-left"></i> All AI Minds</a>
-            <h1 class="text-2xl font-bold text-white mt-1">{{ $mind->name }}
-                @if($isPlatform)<span class="ml-2 text-[10px] uppercase tracking-wider text-cyan-300/80 align-middle">Platform default</span>@endif
-                @if(!$isPlatform && !$isOwner)<span class="ml-2 text-[10px] uppercase tracking-wider text-sky-300/80 align-middle">Shared · {{ $shareAccess === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}</span>@endif
-                @if($mind->is_disabled)<span class="ml-2 text-[10px] uppercase tracking-wider text-red-300 align-middle">Disabled</span>@endif
-            </h1>
-            <p class="text-sm text-white/50 mt-1">{{ $mind->description }}</p>
-        </div>
-        <div class="text-xs text-white/40 text-right">
-            {{ $sources->count() }} / {{ $caps['max_sources_per_mind'] }} sources<br>
-            {{ number_format($mind->chunks_count ?? $mind->chunks()->count()) }} chunks indexed
-        </div>
-    </div>
+    @include('user.partials.page-hero', [
+        'title' => $mind->name, 'subtitle' => $mind->description, 'icon' => 'fa-brain',
+        'back' => route('user.minds.index'), 'actions' => [],
+        'chips' => [
+            ['text' => $isPlatform ? 'Platform default' : ($isOwner ? 'Your AI Mind' : 'Shared AI Mind'), 'icon' => 'fa-brain'],
+            ['text' => $sources->count().' sources', 'icon' => 'fa-layer-group'],
+            ['text' => number_format($mind->chunks_count ?? $mind->chunks()->count()).' indexed sections', 'icon' => 'fa-database'],
+        ],
+    ])
+    @if($mind->is_disabled)<p role="status" class="text-sm text-red-300">This AI Mind is disabled.</p>@endif
 
     {{-- Coin usage (last 30 days) --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold flex items-center gap-2">
-                <i class="fas fa-coins text-amber-300"></i> Coins used
+                <i class="fas fa-coins text-white/60"></i> Coins used
             </h3>
             <span class="text-[11px] uppercase tracking-wider text-white/40">Last {{ $creditUsage['days'] }} days</span>
         </div>
-        <div class="grid grid-cols-3 gap-3 mt-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
             <div class="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                 <p class="text-[10px] uppercase tracking-wider text-white/40">Ingestion</p>
-                <p class="text-xl font-bold text-cyan-300 mt-1">{{ number_format($creditUsage['ingest']) }}</p>
+                <p class="text-xl font-bold text-indigo-300 mt-1">{{ number_format($creditUsage['ingest']) }}</p>
                 <p class="text-[11px] text-white/40 mt-1">Embedding sources</p>
             </div>
             <div class="rounded-xl border border-white/10 bg-white/[0.02] p-3">
@@ -58,7 +54,9 @@
                 <p class="text-[11px] text-white/40 mt-1">Combined spend</p>
             </div>
         </div>
-        <x-mind-daily-spend-chart :days="$dailyCreditSpend" />
+        @if($creditUsage['total'] > 0)
+            <x-mind-daily-spend-chart :days="$dailyCreditSpend" />
+        @endif
         @if($creditUsage['total'] === 0)
             <p class="text-[11px] text-white/40 mt-3">No coins spent on this AI Mind in the last {{ $creditUsage['days'] }} days.</p>
         @endif
@@ -102,7 +100,7 @@
             <h3 class="text-white font-semibold">Add a source</h3>
             <div class="flex gap-1 text-xs">
                 @foreach(['text'=>'Text','faq'=>'FAQ','document'=>'Document','link'=>'Link','webhook'=>'Webhook','connector'=>'API connector','feature'=>'Sayzio data'] as $k=>$lbl)
-                    <button type="button" @click="addType='{{ $k }}'" :class="addType==='{{ $k }}' ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'"
+                    <button type="button" @click="addType='{{ $k }}'" :class="addType==='{{ $k }}' ? 'bg-indigo-600 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'"
                         class="px-3 py-1.5 rounded-lg">{{ $lbl }}</button>
                 @endforeach
             </div>
@@ -113,7 +111,7 @@
             @csrf <input type="hidden" name="type" value="text">
             <input name="title" required placeholder="Title" maxlength="200" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
             <textarea name="body" required rows="6" maxlength="{{ $caps['max_text_chars'] }}" placeholder="Paste content here ({{ number_format($caps['max_text_chars']) }} char max)" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm"></textarea>
-            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Add text</button>
+            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Add text</button>
         </form>
 
         {{-- FAQ --}}
@@ -128,8 +126,8 @@
                 </div>
             </template>
             <div class="flex justify-between">
-                <button type="button" @click="rows.push({q:'',a:''})" class="text-xs text-cyan-300 hover:underline"><i class="fas fa-plus"></i> Add row</button>
-                <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Add FAQ</button>
+                <button type="button" @click="rows.push({q:'',a:''})" class="text-xs text-indigo-300 hover:underline"><i class="fas fa-plus"></i> Add row</button>
+                <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Add FAQ</button>
             </div>
         </form>
 
@@ -139,7 +137,7 @@
             <input name="title" required placeholder="Document title" maxlength="200" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
             <input type="file" name="file" required accept=".pdf,.docx,.txt,.md" class="w-full text-sm text-white/70">
             <p class="text-[11px] text-white/40">PDF, DOCX, TXT, MD · max {{ $caps['max_doc_size_mb'] }}MB · max {{ $caps['max_docs_per_mind'] }} docs per AI Mind. Image-only PDFs are skipped.</p>
-            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Upload</button>
+            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Upload</button>
         </form>
 
         {{-- LINK --}}
@@ -152,7 +150,7 @@
                 <input name="refresh_minutes" type="number" min="{{ max(15, $caps['link_refresh_min_minutes']) }}" max="43200" value="1440"
                     class="w-32 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
             </div>
-            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Add link</button>
+            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Add link</button>
         </form>
 
         {{-- WEBHOOK --}}
@@ -160,7 +158,7 @@
             @csrf <input type="hidden" name="type" value="webhook">
             <p class="text-xs text-white/40">Creates an inbound URL with a secret token. POST content to it from any external system to keep this AI Mind in sync. Up to {{ $caps['max_webhooks_per_mind'] }} webhook sources per AI Mind.</p>
             <input name="title" required placeholder="Webhook source title" maxlength="200" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
-            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Create webhook</button>
+            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Create webhook</button>
         </form>
 
         {{-- API CONNECTOR --}}
@@ -198,7 +196,7 @@
                 <input name="refresh_minutes" type="number" min="{{ max(15, $caps['link_refresh_min_minutes']) }}" max="43200" value="1440"
                     class="w-32 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
             </div>
-            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Add connector</button>
+            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Add connector</button>
         </form>
 
         {{-- FEATURE --}}
@@ -210,7 +208,7 @@
                     <option value="{{ $key }}">{{ $label }}</option>
                 @endforeach
             </select>
-            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Attach feature</button>
+            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm">Attach feature</button>
         </form>
     </div>
     @endif
@@ -244,7 +242,7 @@
                                 @if($s->type==='feature') · {{ \App\Services\AI\AiMindFeatureAdapter::label($s->feature_key) }} @endif
                                 · {{ number_format($s->chunks_count ?? $s->chunks()->count()) }} chunks
                                 @if(($sourceCreditSpend[$s->id] ?? 0) > 0)
-                                    · <span class="text-amber-300" title="Coins spent embedding this source in the last {{ $creditUsage['days'] }} days">{{ number_format($sourceCreditSpend[$s->id]) }} coins / 30d</span>
+                                    · <span class="text-white/60" title="Coins spent embedding this source in the last {{ $creditUsage['days'] }} days">{{ number_format($sourceCreditSpend[$s->id]) }} coins / 30d</span>
                                 @endif
                                 @if($s->status_message) · <span class="{{ $s->status === AiMindSource::STATUS_READY ? 'text-emerald-300/80' : 'text-red-300' }}">{{ $s->status_message }}</span>@endif
                             </p>
@@ -269,7 +267,7 @@
                             <div>
                                 <span class="text-white/40 block mb-1">Inbound URL, POST your content here</span>
                                 <div class="flex items-center gap-2">
-                                    <code class="flex-1 min-w-0 truncate text-cyan-200 bg-white/5 rounded px-2 py-1">{{ $whUrl }}</code>
+                                    <code class="flex-1 min-w-0 truncate text-indigo-300 bg-white/5 rounded px-2 py-1">{{ $whUrl }}</code>
                                     <button type="button" onclick="navigator.clipboard.writeText(@js($whUrl)); window.toast && window.toast('Copied URL')" class="text-white/60 hover:text-white px-2 py-1"><i class="fas fa-copy"></i></button>
                                 </div>
                             </div>
@@ -280,13 +278,13 @@
                                     <code class="flex-1 min-w-0 truncate text-amber-200 bg-white/5 rounded px-2 py-1">{{ $whToken }}</code>
                                     <button type="button" onclick="navigator.clipboard.writeText(@js($whToken)); window.toast && window.toast('Copied token')" class="text-white/60 hover:text-white px-2 py-1"><i class="fas fa-copy"></i></button>
                                 </div>
-                                <p class="text-amber-300/70 mt-1">Copy it now, for security this token is shown only once.</p>
+                                <p class="text-white/60/70 mt-1">Copy it now, for security this token is shown only once.</p>
                                 @else
                                 <div class="flex items-center gap-2">
                                     <code class="flex-1 min-w-0 truncate text-white/30 bg-white/5 rounded px-2 py-1 select-none">••••••••••••••••••••••••••••</code>
                                     <form method="POST" action="{{ route('user.minds.sources.rotate-webhook', [$mind, $s]) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Regenerate webhook token?', message: 'The current token will stop working immediately. Update any system using it.', confirmText: 'Regenerate', confirmIcon: 'fa-rotate', iconClass: 'fa-rotate'})">
                                         @csrf
-                                        <button type="submit" class="whitespace-nowrap text-cyan-300 hover:text-cyan-200 px-2 py-1"><i class="fas fa-rotate"></i> Regenerate</button>
+                                        <button type="submit" class="whitespace-nowrap text-indigo-300 hover:text-indigo-300 px-2 py-1"><i class="fas fa-rotate"></i> Regenerate</button>
                                     </form>
                                 </div>
                                 <p class="text-white/30 mt-1">Hidden for security. Lost it? Regenerate a new token.</p>
