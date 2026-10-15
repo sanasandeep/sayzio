@@ -93,7 +93,7 @@ class MindController extends Controller
         $user = $request->user();
         $isOwner = !$mind->isPlatform() && (int) $mind->user_id === (int) $user->id;
         $shareAccess = $this->shares->accessForMind($user, $mind);
-        $canEdit = $isOwner || $shareAccess === AiResourceShare::ACCESS_EDIT;
+        $canEdit = !$mind->isPlatform() && !$mind->is_disabled && ($isOwner || $shareAccess === AiResourceShare::ACCESS_EDIT);
         $sources = $mind->sources()->withCount('chunks')->latest('id')->get();
         $creditUsage      = $usage->usageForMind((int) $mind->id);
         $sourceCreditSpend = $usage->ingestionBySource((int) $mind->id);

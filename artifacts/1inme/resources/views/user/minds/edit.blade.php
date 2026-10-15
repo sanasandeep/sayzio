@@ -29,6 +29,14 @@
     ])
     @if($mind->is_disabled)<p role="status" class="text-sm text-red-300">This AI Mind is disabled.</p>@endif
 
+    @if($isPlatform)
+        <div class="rounded-2xl border border-white/10 p-5 text-sm text-white/60" role="note">
+            <strong class="text-white">Managed by Sayzio</strong>
+            <p class="mt-1">This built-in knowledge base is read-only here. To add your own documents, links or FAQs, create a personal AI Mind.</p>
+            <a class="inline-block mt-3 text-indigo-300" href="{{ route('user.minds.create') }}">Create your AI Mind <i class="fas fa-arrow-right ml-1"></i></a>
+        </div>
+    @endif
+
     {{-- Coin usage (last 30 days) --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div class="flex items-center justify-between">
@@ -94,7 +102,7 @@
     @endif
 
     {{-- Add source --}}
-    @if($canEdit || auth()->user()->hasPermission('user.ai_minds.manage_platform'))
+    @if($canEdit)
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold">Add a source</h3>
@@ -248,7 +256,7 @@
                             </p>
                         </div>
                         <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded {{ $statusColor[$s->status] ?? 'bg-white/10 text-white/60' }}">{{ $s->status }}</span>
-                        @if($canEdit || auth()->user()->hasPermission('user.ai_minds.manage_platform'))
+                        @if($canEdit)
                         <form method="POST" action="{{ route('user.minds.sources.refresh', [$mind, $s]) }}">@csrf
                             <button class="text-xs text-white/60 hover:text-white px-2 py-1" title="Re-ingest"><i class="fas fa-rotate"></i></button>
                         </form>
@@ -259,7 +267,7 @@
                         @endif
                       </div>
 
-                      @if($s->type==='webhook' && ($canEdit || auth()->user()->hasPermission('user.ai_minds.manage_platform')))
+                      @if($s->type==='webhook' && ($canEdit))
                         @php($whUrl = route('mind.webhook.ingest', $s))
                         @php($revealed = session('revealed_webhook'))
                         @php($whToken = ($revealed && (int)($revealed['id'] ?? 0) === (int)$s->id) ? $revealed['token'] : null)
