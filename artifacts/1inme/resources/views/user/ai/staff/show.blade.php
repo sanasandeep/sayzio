@@ -6,7 +6,7 @@
 <div class="w-full" x-data="aiStaffShow({
         staffId: {{ $staff->id }},
         domain: @js($staff->domain),
-        estimateUrl: '{{ route('user.ai.staff.estimate', $staff) }}',
+        estimateUrl: '{{ \Illuminate\Support\Facades\Route::has('user.ai.staff.estimate') ? route('user.ai.staff.estimate', $staff) : '' }}',
         chatUrl: '{{ route('user.ai.staff.chat', $staff) }}',
         draftInvoiceUrl: '{{ route('user.ai.staff.draft-invoice', $staff) }}',
         chaseUrl: '{{ route('user.ai.staff.chase-suggestions', $staff) }}',
@@ -183,6 +183,7 @@ function aiStaffShow(cfg) {
             return data;
         },
         async estimateChat() {
+            if(!cfg.estimateUrl) { alert("Deployment is finishing. Refresh this page in a moment."); return; }
             this.busy=true;
             try { const result=await this.postJson(cfg.estimateUrl,{message:this.draft.trim(),history:this.messages.slice(-10)}); this.estimate=result.estimated_coins; }
             catch(e) { alert(e.message); }

@@ -312,7 +312,9 @@
                     <a href="{{ route('admin.ai-usage.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-usage.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-microchip"></i></div><span>AI Usage</span></a>
                     <a href="{{ route('admin.ai-minds.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div><span>AI Minds</span></a>
                     <a href="{{ route('admin.ai-personas.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-personas.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div><span>AI Personas</span></a>
+                    @if(\Illuminate\Support\Facades\Route::has('admin.ai-staff-reports'))
                     <a href="{{ route('admin.ai-staff-reports') }}" class="sidebar-link"><div class="nav-icon-wrap"><i class="fas fa-chart-bar"></i></div><span>AI Staff reports</span></a>
+                    @endif
                     <a href="{{ route('admin.site-assistant.edit') }}" class="sidebar-link {{ request()->routeIs('admin.site-assistant.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div><span>Ask Zio</span></a>
                     <a href="{{ route('admin.ask-coach.index') }}" class="sidebar-link {{ request()->routeIs('admin.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div><span>AI Coach</span></a>
                     <a href="{{ route('admin.ai-companions.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div><span>AI Companions</span></a>

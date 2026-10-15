@@ -11,7 +11,9 @@
         'balance'  => $balance,
     ])
 
+    @if(\Illuminate\Support\Facades\Route::has('user.ai.staff.reports'))
     <a href="{{ route('user.ai.staff.reports') }}" class="btn-secondary inline-flex mb-5"><i class="fas fa-chart-line mr-2"></i>Reports & activity</a>
+    @endif
     @if(!$enabled)
         <div class="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-amber-200/90 text-sm mb-6">
             AI features are currently disabled on this platform.
