@@ -26,6 +26,7 @@
 
     <form method="POST" action="{{ route('user.links.store') }}">
         @csrf
+        @include('user.brand-kits.create-selection')
         <input type="hidden" name="type" value="{{ $linkType }}">
 
         <div class="glass rounded-2xl p-6 mb-6 space-y-4">

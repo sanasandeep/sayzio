@@ -177,10 +177,16 @@ class QrCodeController extends Controller
         if ($msg = $this->savedQrLimitMessage()) {
             return back()->with('error', $msg)->withInput();
         }
+        $selectedBrandKit = null;
+        if ($request->filled('brand_kit_id')) {
+            $selectedBrandKit = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())->findOrFail($request->integer('brand_kit_id'));
+            abort_if(!empty($selectedBrandKit->config['archived_at']), 422, 'Restore the archived kit first.');
+        }
         $data = $this->validateRequest($request);
         $qrCode = new QrCodeModel($data);
         $qrCode->user_id = workspace_owner_id();
         $qrCode->save();
+        if ($selectedBrandKit) app(\App\Services\Brand\BrandKitAssignments::class)->assignQr($selectedBrandKit, $qrCode);
         return redirect()->route('user.qr-codes.edit', $qrCode)->with('success', 'QR code saved.');
     }
 

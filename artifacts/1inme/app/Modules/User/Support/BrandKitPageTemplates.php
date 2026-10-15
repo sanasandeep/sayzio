@@ -34,16 +34,17 @@ class BrandKitPageTemplates
 
     /** Section keys the owner can toggle on/off, with their default state. */
     public const SECTION_DEFAULTS = [
-        'logos'   => true,
-        'colors'  => true,
-        'fonts'   => true,
-        'voice'   => true,
-        'about'   => true,
+        'logos' => true,
+        'colors' => true,
+        'fonts' => true,
+        'voice' => true,
+        'about' => true,
         'socials' => true,
         'contact' => true,
     ];
 
-    private const MAX_LOGOS   = 8;
+    private const MAX_LOGOS = 8;
+
     private const MAX_SOCIALS = 12;
 
     /**
@@ -56,48 +57,48 @@ class BrandKitPageTemplates
     {
         return [
             'studio' => [
-                'name'       => 'Studio',
-                'tagline'    => 'Deep, premium dark canvas.',
-                'scheme'     => 'dark',
-                'page_bg'    => '#0b0f1a',
-                'text'       => '#f4f6fb',
+                'name' => 'Studio',
+                'tagline' => 'Deep, premium dark canvas.',
+                'scheme' => 'dark',
+                'page_bg' => '#0b0f1a',
+                'text' => '#f4f6fb',
                 'text_muted' => 'rgba(244,246,251,0.62)',
-                'card_bg'    => 'rgba(255,255,255,0.05)',
-                'card_border'=> 'rgba(255,255,255,0.12)',
-                'radius'     => '20px',
+                'card_bg' => 'rgba(255,255,255,0.05)',
+                'card_border' => 'rgba(255,255,255,0.12)',
+                'radius' => '20px',
             ],
             'daylight' => [
-                'name'       => 'Daylight',
-                'tagline'    => 'Clean, bright and minimal.',
-                'scheme'     => 'light',
-                'page_bg'    => '#f6f7fb',
-                'text'       => '#0f172a',
+                'name' => 'Daylight',
+                'tagline' => 'Clean, bright and minimal.',
+                'scheme' => 'light',
+                'page_bg' => '#f6f7fb',
+                'text' => '#0f172a',
                 'text_muted' => 'rgba(15,23,42,0.58)',
-                'card_bg'    => '#ffffff',
-                'card_border'=> 'rgba(15,23,42,0.08)',
-                'radius'     => '18px',
+                'card_bg' => '#ffffff',
+                'card_border' => 'rgba(15,23,42,0.08)',
+                'radius' => '18px',
             ],
             'editorial' => [
-                'name'       => 'Editorial',
-                'tagline'    => 'Warm paper, magazine feel.',
-                'scheme'     => 'light',
-                'page_bg'    => '#f3efe7',
-                'text'       => '#211c16',
+                'name' => 'Editorial',
+                'tagline' => 'Warm paper, magazine feel.',
+                'scheme' => 'light',
+                'page_bg' => '#f3efe7',
+                'text' => '#211c16',
                 'text_muted' => 'rgba(33,28,22,0.55)',
-                'card_bg'    => '#fffdf9',
-                'card_border'=> 'rgba(33,28,22,0.10)',
-                'radius'     => '14px',
+                'card_bg' => '#fffdf9',
+                'card_border' => 'rgba(33,28,22,0.10)',
+                'radius' => '14px',
             ],
             'mono' => [
-                'name'       => 'Mono',
-                'tagline'    => 'Stark, neutral, type-forward.',
-                'scheme'     => 'light',
-                'page_bg'    => '#ffffff',
-                'text'       => '#111111',
+                'name' => 'Mono',
+                'tagline' => 'Stark, neutral, type-forward.',
+                'scheme' => 'light',
+                'page_bg' => '#ffffff',
+                'text' => '#111111',
                 'text_muted' => 'rgba(17,17,17,0.55)',
-                'card_bg'    => '#fafafa',
-                'card_border'=> 'rgba(17,17,17,0.12)',
-                'radius'     => '6px',
+                'card_bg' => '#fafafa',
+                'card_border' => 'rgba(17,17,17,0.12)',
+                'radius' => '6px',
             ],
         ];
     }
@@ -122,7 +123,8 @@ class BrandKitPageTemplates
     public static function get(?string $id): array
     {
         $all = self::all();
-        $id  = self::exists($id) ? $id : self::DEFAULT_ID;
+        $id = self::exists($id) ? $id : self::DEFAULT_ID;
+
         return ['id' => $id] + $all[$id];
     }
 
@@ -139,14 +141,25 @@ class BrandKitPageTemplates
         $config = is_array($kit?->config) ? $kit->config : [];
 
         $palette = is_array($config['palette'] ?? null) ? $config['palette'] : [];
-        $fonts   = is_array($config['fonts'] ?? null) ? $config['fonts'] : [];
-        $voice   = is_array($config['voice'] ?? null) ? $config['voice'] : [];
+        $fonts = is_array($config['fonts'] ?? null) ? $config['fonts'] : [];
+        $voice = is_array($config['voice'] ?? null) ? $config['voice'] : [];
 
         // A logo-sourced kit carries the logo URL under `source`.
         $logos = [];
-        $source = is_array($config['source'] ?? null) ? $config['source'] : [];
-        if (($source['type'] ?? '') === 'logo' && !empty($source['value'])) {
-            $logos[] = ['label' => 'Primary logo', 'url' => (string) $source['value']];
+        foreach (['logo' => 'Primary logo', 'logo_secondary' => 'Secondary logo', 'logo_light' => 'Light logo', 'logo_dark' => 'Dark logo', 'logo_monochrome' => 'Monochrome logo', 'brand_icon' => 'Brand icon'] as $key => $label) {
+            $url = $key === 'logo' ? $kit?->logo() : ($config[$key] ?? '');
+            if (is_string($url) && str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
+                $url = url($url);
+            }
+            if ($url) {
+                $logos[] = ['label' => $label, 'url' => $url];
+            }
+        }
+        $socials = [];
+        foreach (['instagram', 'linkedin', 'facebook', 'youtube', 'tiktok', 'x_profile'] as $key) {
+            if (! empty($config[$key])) {
+                $socials[] = ['label' => ucfirst(str_replace('_profile', '', $key)), 'url' => $config[$key]];
+            }
         }
 
         $taglines = [];
@@ -158,32 +171,32 @@ class BrandKitPageTemplates
         }
 
         return self::normalize([
-            'kit_id'      => $kit?->id,
-            'brand_name'  => (string) ($kit?->name ?: $owner->name ?: 'My Brand'),
-            'tagline'     => $taglines[0] ?? '',
-            'about'       => (string) ($config['bio'] ?? ''),
-            'boilerplate' => '',
-            'palette'     => [
-                'primary'   => (string) ($palette['primary'] ?? '#3d6bff'),
+            'kit_id' => $kit?->id,
+            'brand_name' => (string) ($kit?->name ?: $owner->name ?: 'My Brand'),
+            'tagline' => $taglines[0] ?? '',
+            'about' => (string) ($config['bio'] ?? ''),
+            'boilerplate' => $config['long_bio'] ?? '',
+            'palette' => [
+                'primary' => (string) ($palette['primary'] ?? '#3d6bff'),
                 'secondary' => (string) ($palette['secondary'] ?? ''),
-                'accent'    => (string) ($palette['accent'] ?? ''),
-                'neutrals'  => array_values((array) ($palette['neutrals'] ?? [])),
+                'accent' => (string) ($palette['accent'] ?? ''),
+                'neutrals' => array_values((array) ($palette['neutrals'] ?? [])),
             ],
-            'fonts'       => [
+            'fonts' => [
                 'heading' => (string) ($fonts['heading'] ?? 'Inter'),
-                'body'    => (string) ($fonts['body'] ?? 'Inter'),
+                'body' => (string) ($fonts['body'] ?? 'Inter'),
             ],
-            'voice'       => [
-                'tone'        => (string) ($voice['tone'] ?? ''),
+            'voice' => [
+                'tone' => (string) ($voice['tone'] ?? ''),
                 'descriptors' => array_values((array) ($voice['descriptors'] ?? [])),
             ],
-            'taglines'    => $taglines,
-            'logos'       => $logos,
-            'socials'     => [],
-            'contact_email' => '',
-            'contact_url'   => '',
-            'template'    => self::DEFAULT_ID,
-            'sections'    => self::SECTION_DEFAULTS,
+            'taglines' => $taglines,
+            'logos' => $logos,
+            'socials' => $socials,
+            'contact_email' => $config['contact_email'] ?? '',
+            'contact_url' => $config['website_url'] ?? '',
+            'template' => self::DEFAULT_ID,
+            'sections' => self::SECTION_DEFAULTS,
         ]);
     }
 
@@ -236,7 +249,7 @@ class BrandKitPageTemplates
         }
 
         $email = trim((string) ($in['contact_email'] ?? ''));
-        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if ($email !== '' && ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $email = '';
         }
 
@@ -244,32 +257,32 @@ class BrandKitPageTemplates
         $kitId = isset($in['kit_id']) && is_numeric($in['kit_id']) ? (int) $in['kit_id'] : null;
 
         return [
-            'kit_id'        => $kitId,
-            'brand_name'    => mb_substr(trim((string) ($in['brand_name'] ?? '')), 0, 120) ?: 'My Brand',
-            'tagline'       => mb_substr(trim((string) ($in['tagline'] ?? '')), 0, 200),
-            'about'         => mb_substr(trim((string) ($in['about'] ?? '')), 0, 2000),
-            'boilerplate'   => mb_substr(trim((string) ($in['boilerplate'] ?? '')), 0, 4000),
-            'palette'       => [
-                'primary'   => self::hex($palette['primary'] ?? null) ?? '#3d6bff',
+            'kit_id' => $kitId,
+            'brand_name' => mb_substr(trim((string) ($in['brand_name'] ?? '')), 0, 120) ?: 'My Brand',
+            'tagline' => mb_substr(trim((string) ($in['tagline'] ?? '')), 0, 200),
+            'about' => mb_substr(trim((string) ($in['about'] ?? '')), 0, 2000),
+            'boilerplate' => mb_substr(trim((string) ($in['boilerplate'] ?? '')), 0, 4000),
+            'palette' => [
+                'primary' => self::hex($palette['primary'] ?? null) ?? '#3d6bff',
                 'secondary' => self::hex($palette['secondary'] ?? null) ?? '',
-                'accent'    => self::hex($palette['accent'] ?? null) ?? '',
-                'neutrals'  => $neutrals,
+                'accent' => self::hex($palette['accent'] ?? null) ?? '',
+                'neutrals' => $neutrals,
             ],
-            'fonts'         => [
+            'fonts' => [
                 'heading' => self::fontName($fonts['heading'] ?? null) ?: 'Inter',
-                'body'    => self::fontName($fonts['body'] ?? null) ?: 'Inter',
+                'body' => self::fontName($fonts['body'] ?? null) ?: 'Inter',
             ],
-            'voice'         => [
-                'tone'        => mb_substr(trim((string) ($voice['tone'] ?? '')), 0, 240),
+            'voice' => [
+                'tone' => mb_substr(trim((string) ($voice['tone'] ?? '')), 0, 240),
                 'descriptors' => $descriptors,
             ],
-            'taglines'      => $taglines,
-            'logos'         => $logos,
-            'socials'       => $socials,
+            'taglines' => $taglines,
+            'logos' => $logos,
+            'socials' => $socials,
             'contact_email' => $email,
-            'contact_url'   => $contactUrl,
-            'template'      => self::exists($in['template'] ?? null) ? (string) $in['template'] : self::DEFAULT_ID,
-            'sections'      => $sections,
+            'contact_url' => $contactUrl,
+            'template' => self::exists($in['template'] ?? null) ? (string) $in['template'] : self::DEFAULT_ID,
+            'sections' => $sections,
         ];
     }
 
@@ -285,15 +298,15 @@ class BrandKitPageTemplates
     {
         $out = [];
         foreach ((array) $rows as $row) {
-            if (!is_array($row)) {
+            if (! is_array($row)) {
                 continue;
             }
             $label = mb_substr(trim((string) ($row['label'] ?? '')), 0, 80);
-            $url   = self::url($row['url'] ?? '');
+            $url = self::url($row['url'] ?? '');
             if ($requireUrl && $url === '') {
                 continue;
             }
-            if (!$requireUrl && $label === '' && $url === '') {
+            if (! $requireUrl && $label === '' && $url === '') {
                 continue;
             }
             $out[] = ['label' => $label, 'url' => $url];
@@ -301,6 +314,7 @@ class BrandKitPageTemplates
                 break;
             }
         }
+
         return $out;
     }
 
@@ -311,9 +325,10 @@ class BrandKitPageTemplates
         if ($value === '') {
             return null;
         }
-        if (!str_starts_with($value, '#')) {
-            $value = '#' . $value;
+        if (! str_starts_with($value, '#')) {
+            $value = '#'.$value;
         }
+
         return preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $value)
             ? strtolower($value)
             : null;
@@ -326,6 +341,7 @@ class BrandKitPageTemplates
         if ($value === '' || mb_strlen($value) > 2048) {
             return '';
         }
+
         return filter_var($value, FILTER_VALIDATE_URL) && preg_match('#^https?://#i', $value)
             ? $value
             : '';
@@ -336,6 +352,7 @@ class BrandKitPageTemplates
     {
         $value = trim((string) $value);
         $value = preg_replace('/[^A-Za-z0-9 \-]/', '', $value) ?? '';
+
         return mb_substr($value, 0, 60);
     }
 }

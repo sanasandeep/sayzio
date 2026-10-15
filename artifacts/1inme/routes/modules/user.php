@@ -1055,6 +1055,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put('brand-kits/{brandKit}', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'save'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.update');
         Route::post('brand-kits/{brandKit}/duplicate', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'duplicate'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.duplicate');
         Route::post('brand-kits/{brandKit}/archive', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'archive'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.archive');
+        Route::post('brand-kits/{brandKit}/revisions/{revision}/restore', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'restore'])->whereNumber(['brandKit','revision'])->middleware('workspace.can:links.create')->name('brand-kits.restore');
+        Route::get('brand-kits/{brandKit}/export/{format}', [\App\Modules\User\Controllers\BrandKitExportController::class,'download'])->whereNumber('brandKit')->whereIn('format',['pdf','zip'])->middleware('workspace.can:links.view')->name('brand-kits.export');
         Route::post('brand-kits/{brandKit}/publish', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'publish'])->whereNumber('brandKit')->middleware('workspace.can:links.edit')->name('brand-kits.publish');
         Route::post('qr-codes/{qrCode}/brand-identity', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'qrAssignment'])->whereNumber('qrCode')->middleware('workspace.can:links.edit')->name('qr-codes.brand-identity');
         Route::post('links/{link}/brand-identity', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'assignment'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.brand-identity');
@@ -1063,7 +1065,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('brand-kits/generate',                     [\App\Modules\User\Controllers\BrandKitController::class, 'generate'])->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('brand-kits.generate');
         Route::post  ('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'saveDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.save');
         Route::delete('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'clearDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.clear');
-        Route::delete('brand-kits/{brandKit}',                   [\App\Modules\User\Controllers\BrandKitController::class, 'destroy'])->middleware('workspace.can:links.create')->name('brand-kits.destroy');
+        Route::delete('brand-kits/{brandKit}',                   [\App\Modules\User\Controllers\BrandKitLibraryController::class, 'destroy'])->middleware('workspace.can:links.create')->name('brand-kits.destroy');
 
         // Brand Kit visual assets (Task #5612): AI-generated logo, favicon,
         // letterhead, banners, avatar, OG image, business card, background and

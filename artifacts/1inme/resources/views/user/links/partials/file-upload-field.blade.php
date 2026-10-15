@@ -8,8 +8,8 @@ $acceptMap = [
     'image' => '.jpg,.jpeg,.png,.gif,.webp,.svg',
     'video' => '.mp4,.webm,.ogg,.mov',
     'audio' => '.mp3,.wav,.ogg,.webm,.aac,.m4a',
-    'document' => '.pdf,.ppt,.pptx,.xls,.xlsx,.doc,.docx',
-    'all' => '.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm,.ogg,.mov,.mp3,.wav,.aac,.m4a,.pdf,.ppt,.pptx,.xls,.xlsx,.doc,.docx',
+    'document' => '.ttf,.otf,.woff,.woff2,.pdf,.ppt,.pptx,.xls,.xlsx,.doc,.docx',
+    'all' => '.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.webm,.ogg,.mov,.mp3,.wav,.aac,.m4a,.ttf,.otf,.woff,.woff2,.pdf,.ppt,.pptx,.xls,.xlsx,.doc,.docx',
 ];
 $accept = $acceptMap[$acceptTypes] ?? $acceptMap['all'];
 $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);

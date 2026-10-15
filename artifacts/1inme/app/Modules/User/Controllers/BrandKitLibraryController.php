@@ -14,8 +14,10 @@ use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\Brand\AiBrandKitService;
 use App\Services\Brand\BrandKitAssignments;
+use App\Services\Brand\BrandKitFields;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class BrandKitLibraryController extends Controller
@@ -35,9 +37,16 @@ class BrandKitLibraryController extends Controller
     public function index(Request $r)
     {
         $kits = BrandKit::where('user_id', workspace_owner_id())->latest()->get();
+        $savedAssets = BrandKitAsset::whereIn('brand_kit_id', $kits->pluck('id'))->with('file')->get();
+        $assetsCount = $kits->sum(function ($kit) use ($savedAssets) {
+            $manual = array_values(array_filter(array_intersect_key($kit->config ?? [], BrandKitFields::MEDIA + array_fill_keys(['logo', 'logo_light', 'logo_dark', 'favicon'], ''))));
+            $generated = $savedAssets->where('brand_kit_id', $kit->id)->map(fn ($asset) => $asset->file?->url)->filter()->all();
+
+            return count(array_unique(array_merge($manual, $generated)));
+        });
         $links = Link::where('user_id', workspace_owner_id())->whereIn('settings->brand_identity->kit_id', $kits->pluck('id'))->get();
 
-        return view('user.brand-kits.library', ['kits' => $kits, 'canCreate' => AiPlanAccess::underQuantityCap(workspace_owner(), 'brand_kits', BrandKit::withoutGlobalScope('workspace')->where('user_id', workspace_owner_id())->count()), 'assignedLinks' => $links, 'assetsCount' => BrandKitAsset::whereIn('brand_kit_id', $kits->pluck('id'))->count(), 'cap' => AiPlanAccess::quantityCap(workspace_owner(), 'brand_kits'), 'assignedQrCount' => QrCode::where('user_id', workspace_owner_id())->whereIn('design->brand_identity->kit_id', $kits->pluck('id'))->count(), 'balance' => app(AiUsageCharger::class)->getBalance($r->user())]);
+        return view('user.brand-kits.library', ['kits' => $kits, 'canCreate' => AiPlanAccess::underQuantityCap(workspace_owner(), 'brand_kits', BrandKit::withoutGlobalScope('workspace')->where('user_id', workspace_owner_id())->count()), 'assignedLinks' => $links, 'assetsCount' => $assetsCount, 'cap' => AiPlanAccess::quantityCap(workspace_owner(), 'brand_kits'), 'assignedQrCount' => QrCode::where('user_id', workspace_owner_id())->whereIn('design->brand_identity->kit_id', $kits->pluck('id'))->count(), 'balance' => app(AiUsageCharger::class)->getBalance($r->user())]);
     }
 
     public function editor(Request $r, ?BrandKit $brandKit = null)
@@ -50,13 +59,22 @@ class BrandKitLibraryController extends Controller
             return view('user.ai.disabled', ['title' => 'Brand Kits', 'upgradePlan' => AiPlanAccess::quantityUpgradePlan(workspace_owner(), 'brand_kits', BrandKit::withoutGlobalScope('workspace')->where('user_id', workspace_owner_id())->count())]);
         }
 
-        return view('user.brand-kits.editor', ['kit' => $brandKit, 'themes' => $this->ai->allowedBlockThemes(), 'minds' => AiMind::where('user_id', $r->user()->id)->where('is_disabled', false)->get(), 'assigned' => $brandKit ? $this->assignments->links($brandKit) : collect(), 'qrCodes' => QrCode::where('user_id', workspace_owner_id())->get(), 'assignedQr' => $brandKit ? $this->assignments->qrCodes($brandKit) : collect(), 'links' => Link::where('user_id', workspace_owner_id())->orderBy('title')->get(['id', 'title', 'alias', 'settings', 'type']), 'balance' => app(AiUsageCharger::class)->getBalance($r->user())]);
+        return view('user.brand-kits.editor', ['revisions' => $brandKit && Schema::hasTable('brand_kit_revisions') ? DB::table('brand_kit_revisions')->where('brand_kit_id', $brandKit->id)->latest('id')->limit(20)->get() : collect(), 'kit' => $brandKit, 'themes' => $this->ai->allowedBlockThemes(), 'minds' => AiMind::where('user_id', $r->user()->id)->where('is_disabled', false)->get(), 'assigned' => $brandKit ? $this->assignments->links($brandKit) : collect(), 'qrCodes' => QrCode::where('user_id', workspace_owner_id())->get(), 'assignedQr' => $brandKit ? $this->assignments->qrCodes($brandKit) : collect(), 'links' => Link::where('user_id', workspace_owner_id())->orderBy('title')->get(['id', 'title', 'alias', 'settings', 'type']), 'balance' => app(AiUsageCharger::class)->getBalance($r->user())]);
     }
 
     private function fields(Request $r): array
     {
         $d = $r->validate(['name' => 'required|string|max:120', 'description' => 'nullable|string|max:2000', 'logo' => 'nullable|string|max:2048', 'logo_light' => 'nullable|string|max:2048', 'logo_dark' => 'nullable|string|max:2048', 'favicon' => 'nullable|string|max:2048', 'website' => 'nullable|url:http,https|max:2048', 'primary' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'], 'secondary' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'accent' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'heading' => 'nullable|string|max:100', 'body' => 'nullable|string|max:100', 'tone' => 'nullable|string|max:200', 'taglines' => 'nullable|string|max:1000', 'bio' => 'nullable|string|max:2000', 'audience' => 'nullable|string|max:1000', 'instructions' => 'nullable|string|max:4000', 'exclusions' => 'nullable|string|max:2000', 'block_theme' => 'nullable|in:'.implode(',', $this->ai->allowedBlockThemes()), 'is_default' => 'nullable|boolean']);
-        foreach (['logo', 'logo_light', 'logo_dark', 'favicon'] as $field) {
+        $rules = [];
+        foreach (BrandKitFields::text() as $key => $label) {
+            $rules[$key] = 'nullable|string|max:4000';
+        }
+        foreach (BrandKitFields::MEDIA as $key => $label) {
+            $rules[$key] = 'nullable|string|max:2048';
+        }
+        $rules['approval_status'] = 'nullable|in:draft,review,approved';
+        $d = array_merge($d, $r->validate($rules));
+        foreach (['logo', 'logo_light', 'logo_dark', 'favicon', ...array_keys(BrandKitFields::MEDIA)] as $field) {
             if (! empty($d[$field])) {
                 abort_unless(preg_match('~^(https?://|/(?!/))~i', $d[$field]), 422, 'Use an image from Upload, My Files or an HTTP(S) URL.');
             }
@@ -76,10 +94,17 @@ class BrandKitLibraryController extends Controller
         $kit = $brandKit ?? new BrandKit(['user_id' => workspace_owner_id()]);
         $c = $kit->config ?? [];
         $c = array_replace($c, ['description' => $d['description'] ?? '', 'logo' => $d['logo'] ?? '', 'logo_light' => $d['logo_light'] ?? '', 'logo_dark' => $d['logo_dark'] ?? '', 'favicon' => $d['favicon'] ?? '', 'website_url' => $d['website'] ?? '', 'palette' => array_replace($c['palette'] ?? [], ['primary' => $d['primary'], 'secondary' => $d['secondary'] ?? '', 'accent' => $d['accent'] ?? '']), 'fonts' => ['heading' => $d['heading'] ?? 'Inter', 'body' => $d['body'] ?? 'Inter'], 'voice' => array_replace($c['voice'] ?? [], ['tone' => $d['tone'] ?? '']), 'taglines' => array_values(array_filter(array_map('trim', explode("\n", $d['taglines'] ?? '')))), 'bio' => $d['bio'] ?? '', 'audience' => $d['audience'] ?? '', 'instructions' => $d['instructions'] ?? '', 'exclusions' => $d['exclusions'] ?? '', 'block_theme' => $d['block_theme'] ?? '']);
+        foreach (array_keys(BrandKitFields::text() + BrandKitFields::MEDIA) as $key) {
+            $c[$key] = $d[$key] ?? ($c[$key] ?? '');
+        }
+        $c['approval_status'] = $d['approval_status'] ?? 'draft';
         DB::transaction(function () use ($r, $d, $kit, $c) {
             if (! $kit->exists) {
                 User::whereKey(workspace_owner_id())->lockForUpdate()->first();
                 $this->room($r);
+            }
+            if ($kit->exists && Schema::hasTable('brand_kit_revisions')) {
+                DB::table('brand_kit_revisions')->insert(['brand_kit_id' => $kit->id, 'user_id' => $r->user()->id, 'name' => $kit->name, 'config' => json_encode($kit->config), 'created_at' => now()]);
             }
             if ($r->boolean('is_default')) {
                 BrandKit::where('user_id', workspace_owner_id())->update(['is_default' => false]);
@@ -118,6 +143,28 @@ class BrandKitLibraryController extends Controller
         $brandKit->save();
 
         return back()->with('status', 'Kit archive status updated. Published pages are unchanged.');
+    }
+
+    public function destroy(Request $r, BrandKit $brandKit)
+    {
+        $this->owned($brandKit);
+        $this->assignments->deleteKit($brandKit);
+
+        return redirect()->route('user.brand-kits.index')->with('status', 'Brand Kit deleted. Published styles and files in My Files were retained.');
+    }
+
+    public function restore(Request $r, BrandKit $brandKit, int $revision)
+    {
+        $this->owned($brandKit);
+        abort_unless(Schema::hasTable('brand_kit_revisions'), 503, 'Saved versions are becoming available. Please try again shortly.');
+        $snapshot = DB::table('brand_kit_revisions')->where('brand_kit_id', $brandKit->id)->where('id', $revision)->first();
+        abort_unless($snapshot, 404);
+        DB::transaction(function () use ($r, $brandKit, $snapshot) {
+            DB::table('brand_kit_revisions')->insert(['brand_kit_id' => $brandKit->id, 'user_id' => $r->user()->id, 'name' => $brandKit->name, 'config' => json_encode($brandKit->config), 'created_at' => now()]);
+            $brandKit->update(['name' => $snapshot->name, 'slug' => Str::slug($snapshot->name), 'config' => json_decode($snapshot->config, true)]);
+        });
+
+        return back()->with('status', 'Saved version restored. Published items are unchanged.');
     }
 
     public function assignment(Request $r, Link $link)
@@ -187,7 +234,7 @@ class BrandKitLibraryController extends Controller
 
     private function draftInput(Request $r): array
     {
-        $d = $r->validate(['brief' => 'required|string|max:20000', 'mind_ids' => 'nullable|array|max:8', 'mind_ids.*' => 'integer', 'components' => 'required|array|min:1|max:6', 'components.*' => 'in:'.implode(',', AiBrandKitService::COMPONENTS), 'quote' => 'nullable|string', 'kit_id' => 'nullable|integer']);
+        $d = $r->validate(['brief' => 'required|string|max:20000', 'mind_ids' => 'nullable|array|max:8', 'mind_ids.*' => 'integer', 'components' => 'required|array|min:1|max:10', 'components.*' => 'in:'.implode(',', AiBrandKitService::COMPONENTS), 'quote' => 'nullable|string', 'kit_id' => 'nullable|integer']);
         $ids = array_unique($d['mind_ids'] ?? []);
         $minds = AiMind::where('user_id', $r->user()->id)->where('is_disabled', false)->whereIn('id', $ids)->get();
         abort_unless($minds->count() === count($ids), 422, 'A selected AI Mind is unavailable.');
