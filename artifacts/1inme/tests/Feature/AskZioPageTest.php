@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Common\Models\SiteAssistantConversation;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\ZioTranscriptRecorder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\RouteCollection;
 use Tests\TestCase;
@@ -57,5 +58,18 @@ class AskZioPageTest extends TestCase
     {
         $user = User::factory()->create();
         $this->actingAs($user)->getJson('/user/ai/voice/capabilities')->assertOk()->assertJsonMissingPath('tools.admin')->assertJsonFragment(['I can guide supported controls and prepare drafts. A prepared draft is not a saved change.']);
+    }
+
+    public function test_history_hides_empty_sessions_and_uses_recorded_message_counts_and_cost(): void
+    {
+        $user = User::factory()->create();
+        $empty = SiteAssistantConversation::create(['bound_user_id' => $user->id, 'visitor_token' => bin2hex(random_bytes(32)), 'last_page_title' => 'Empty visit']);
+        $token = bin2hex(random_bytes(32));
+        $conversation = SiteAssistantConversation::create(['bound_user_id' => $user->id, 'visitor_token' => $token]);
+        ZioTranscriptRecorder::record($user, $token, [['role' => 'user', 'content' => 'Help with my links'], ['role' => 'assistant', 'content' => 'Here is help', 'credits_spent' => 7]]);
+        $this->assertSame(1, $conversation->fresh()->turns_count);
+        $this->assertSame(7, $conversation->fresh()->credits_spent);
+        $conversation->update(['turns_count' => 0, 'credits_spent' => 0]);
+        $this->actingAs($user)->get('/user/ai/zio-conversations')->assertOk()->assertDontSee('Empty visit')->assertSee('Help with my links')->assertSee('7 recorded coins')->assertSee('1 messages from you');
     }
 }
