@@ -107,6 +107,27 @@ class AiResourceShareOwnershipTest extends TestCase
     }
 
     /** Map a scenario kind to its web share route base. */
+    public function test_multiple_teams_share_atomically(): void
+    {
+        $owner = $this->newUser();
+        $mind = $this->newMind($owner);
+        $first = $this->newTeam($owner);
+        $second = $this->newTeam($owner);
+        $url = "/user/minds/{$mind->id}/shares";
+        $this->actingAs($owner)->post($url, ['audiences' => ["workspace:{$first->id}", "workspace:{$second->id}"], 'access' => 'use'])->assertSessionHas('status');
+        $this->assertSame(2, AiResourceShare::where('resource_id', $mind->id)->count());
+    }
+
+    public function test_invalid_bulk_audience_rolls_back_valid_share(): void
+    {
+        $owner = $this->newUser();
+        $mind = $this->newMind($owner);
+        $valid = $this->newTeam($owner);
+        $foreign = $this->newTeam($this->newUser());
+        $this->actingAs($owner)->post("/user/minds/{$mind->id}/shares", ['audiences' => ["workspace:{$valid->id}", "workspace:{$foreign->id}"], 'access' => 'edit'])->assertSessionHas('error');
+        $this->assertSame(0, AiResourceShare::where('resource_id', $mind->id)->count());
+    }
+
     private function routeBase(string $kind, Model $resource): string
     {
         return $kind === 'mind'

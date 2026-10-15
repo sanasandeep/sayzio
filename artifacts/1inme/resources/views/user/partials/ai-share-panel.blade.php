@@ -17,7 +17,7 @@
 <div class="ai-share-panel rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
     <div>
         <h3 class="text-white font-semibold flex items-center gap-2"><i class="fas fa-user-group text-sky-300"></i> Share this {{ $resourceLabel }}</h3>
-        <p class="text-xs text-white/40 mt-1">Choose a team or badge group and set their access. You stay the owner and can remove access at any time.</p>
+        <p class="text-xs text-white/40 mt-1">Select one or more teams or badge groups and set their access. You stay the owner and can remove access at any time.</p>
     </div>
 
     @if($hasTargets)
@@ -25,22 +25,16 @@
         @csrf
         <div class="ai-share-audience">
             <label class="text-xs uppercase tracking-wider text-white/40 block mb-1">Share with</label>
-            <select aria-label="Share with" name="audience" required class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
-                @if($shareWorkspaces->isNotEmpty())
-                <optgroup label="Teams">
-                    @foreach($shareWorkspaces as $ws)
-                        <option value="workspace:{{ $ws->id }}">{{ $ws->name }}</option>
-                    @endforeach
-                </optgroup>
-                @endif
-                @if($shareBadges->isNotEmpty())
-                <optgroup label="Badge groups">
-                    @foreach($shareBadges as $badge)
-                        <option value="badge:{{ $badge->id }}">{{ $badge->name }}</option>
-                    @endforeach
-                </optgroup>
-                @endif
-            </select>
+            <fieldset class="ai-share-options"><legend class="sr-only">Teams and badge groups</legend>
+                @foreach($shareWorkspaces as $ws)
+                    <label class="ai-share-choice"><input type="checkbox" name="audiences[]" value="workspace:{{ $ws->id }}" @checked(in_array('workspace:'.$ws->id, old('audiences', [])))><span>{{ $ws->name }}<small>Team</small></span></label>
+                @endforeach
+                @foreach($shareBadges as $badge)
+                    <label class="ai-share-choice"><input type="checkbox" name="audiences[]" value="badge:{{ $badge->id }}" @checked(in_array('badge:'.$badge->id, old('audiences', [])))><span>{{ $badge->name }}<small>Badge group</small></span></label>
+                @endforeach
+            </fieldset>
+            @error('audiences')<p class="text-xs text-red-300 mt-1">{{ $message }}</p>@enderror
+
         </div>
         <div>
             <label class="text-xs uppercase tracking-wider text-white/40 block mb-1">Access</label>
@@ -84,5 +78,6 @@
 @once
 <style>
 .ai-share-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,220px) auto;gap:14px;align-items:end;padding:16px;background:var(--surface-subtle,rgba(128,128,128,.04));border:1px solid var(--border-color,rgba(128,128,128,.14));border-radius:14px}.ai-share-form>div{min-width:0}.ai-share-form select{width:100%;min-height:44px}.ai-share-submit{min-height:44px;padding:10px 20px;border-radius:12px;white-space:nowrap;background:#3454ef!important;color:#fff!important;font-size:14px;font-weight:600}.ai-share-note{font-size:12px;color:var(--text-secondary,#9299aa);margin-top:12px}.ai-share-panel li{flex-wrap:wrap}.ai-share-panel h3 i{color:#5671ed!important}@media(max-width:640px){.ai-share-form{grid-template-columns:1fr}.ai-share-submit{width:100%}}
+.ai-share-options{display:flex;flex-wrap:wrap;gap:8px;max-height:240px;overflow:auto}.ai-share-choice{display:flex;gap:10px;align-items:center;padding:10px 14px;border:1px solid var(--border-color,#dbe2ef);border-radius:12px;cursor:pointer;min-width:150px}.ai-share-choice:has(input:checked){border-color:#5269ed;background:rgba(82,105,237,.08)}.ai-share-choice input{accent-color:#3454ef;width:16px;height:16px}.ai-share-choice span{font-size:13px}.ai-share-choice small{display:block;font-size:10px;color:var(--text-secondary,#9299aa);margin-top:2px}
 </style>
 @endonce
