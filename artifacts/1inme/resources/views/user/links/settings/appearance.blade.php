@@ -45,6 +45,7 @@
                 @include('user.links.partials.aliases-card', ['link' => $link, 'domains' => $domains ?? collect()])
             </div>
 
+            @include('user.brand-kits.link-assignment',['link'=>$link])
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                 @csrf
 

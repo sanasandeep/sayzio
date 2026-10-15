@@ -276,6 +276,7 @@ class BrandKitAssetService
         }
         $config = is_array($kit->config) ? $kit->config : [];
         $config['logo_url'] = $url;
+        $config['logo'] = $url;
         $kit->update(['config' => $config]);
     }
 

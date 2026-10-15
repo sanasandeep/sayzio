@@ -2166,6 +2166,7 @@ class BiolinkBlockController extends Controller
         if (!empty($settings['biolink']['custom_branding_logo'])) {
             $settings['biolink']['custom_branding_logo'] = $this->sanitizeUrl($settings['biolink']['custom_branding_logo']);
         }
+        $settings=app(\App\Services\Brand\BrandKitAssignments::class)->captureOverrides($link,$settings);
         $updateData['settings'] = $settings;
 
         $link->update($updateData);

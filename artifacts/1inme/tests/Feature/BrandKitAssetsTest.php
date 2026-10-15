@@ -284,10 +284,10 @@ class BrandKitAssetsTest extends TestCase
 
         $this->actingAs($intruder)
             ->getJson("/user/brand-kits/{$kit->id}/assets")
-            ->assertStatus(403);
+            ->assertStatus(404);
         $this->actingAs($intruder)
             ->postJson("/user/brand-kits/{$kit->id}/assets/logo/generate")
-            ->assertStatus(403);
+            ->assertStatus(404);
     }
 
     // ── Vault count exemption ─────────────────────────────────────────

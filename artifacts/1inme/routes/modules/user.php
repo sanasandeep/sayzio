@@ -1048,7 +1048,17 @@ Route::prefix('user')->name('user.')->group(function () {
         // AI Brand Kit — persistent per-creator brand identity (palette, fonts,
         // voice, taglines, bio, recommended block theme). Plan-gated via the
         // max_brand_kits quantity cap; can be applied to a biolink or QR code.
-        Route::get   ('brand-kits',                              [\App\Modules\User\Controllers\BrandKitController::class, 'index'])->middleware('workspace.can:links.view')->name('brand-kits.index');
+        Route::get('brand-kits/create', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'editor'])->middleware('workspace.can:links.create')->name('brand-kits.create');
+        Route::post('brand-kits/manual', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'save'])->middleware('workspace.can:links.create')->name('brand-kits.store');
+        Route::post('brand-kits/draft', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'draft'])->middleware(['workspace.can:links.create','throttle:10,1'])->name('brand-kits.draft');
+        Route::get('brand-kits/{brandKit}/edit', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'editor'])->whereNumber('brandKit')->middleware('workspace.can:links.view')->name('brand-kits.edit');
+        Route::put('brand-kits/{brandKit}', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'save'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.update');
+        Route::post('brand-kits/{brandKit}/duplicate', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'duplicate'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.duplicate');
+        Route::post('brand-kits/{brandKit}/archive', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'archive'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.archive');
+        Route::post('brand-kits/{brandKit}/publish', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'publish'])->whereNumber('brandKit')->middleware('workspace.can:links.edit')->name('brand-kits.publish');
+        Route::post('qr-codes/{qrCode}/brand-identity', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'qrAssignment'])->whereNumber('qrCode')->middleware('workspace.can:links.edit')->name('qr-codes.brand-identity');
+        Route::post('links/{link}/brand-identity', [\App\Modules\User\Controllers\BrandKitLibraryController::class,'assignment'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.brand-identity');
+        Route::get   ('brand-kits',                              [\App\Modules\User\Controllers\BrandKitLibraryController::class, 'index'])->middleware('workspace.can:links.view')->name('brand-kits.index');
         Route::post  ('brand-kits/estimate',                     [\App\Modules\User\Controllers\BrandKitController::class, 'estimate'])->middleware(['workspace.can:links.create', 'throttle:30,1'])->name('brand-kits.estimate');
         Route::post  ('brand-kits/generate',                     [\App\Modules\User\Controllers\BrandKitController::class, 'generate'])->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('brand-kits.generate');
         Route::post  ('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'saveDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.save');

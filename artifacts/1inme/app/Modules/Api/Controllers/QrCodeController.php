@@ -80,6 +80,7 @@ class QrCodeController extends Controller
         } catch (ValidationException $e) {
             return $this->fail('Validation failed', 422, 'validation_error', $e->errors());
         }
+        if(isset($attrs['design']))$attrs['design']=app(\App\Services\Brand\BrandKitAssignments::class)->captureQrOverrides($q,$attrs['design']);
         $q->fill($attrs)->save();
         return $this->ok(['qr_code' => $this->transform($q->fresh())]);
     }

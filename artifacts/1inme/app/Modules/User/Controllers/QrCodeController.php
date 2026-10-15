@@ -187,7 +187,9 @@ class QrCodeController extends Controller
     public function update(Request $request, QrCodeModel $qrCode)
     {
         abort_unless($qrCode->user_id === workspace_owner_id(), 403);
-        $qrCode->fill($this->validateRequest($request))->save();
+        $data=$this->validateRequest($request);
+        $data['design']=app(\App\Services\Brand\BrandKitAssignments::class)->captureQrOverrides($qrCode,$data['design']??[]);
+        $qrCode->fill($data)->save();
         return redirect()->route('user.qr-codes.edit', $qrCode)->with('success', 'QR code updated.');
     }
 

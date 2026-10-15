@@ -34,11 +34,9 @@ use Illuminate\Validation\ValidationException;
  * is gated by the per-plan `max_brand_kits` quantity cap; plan-less users
  * (cap 0) get a plan-gated rejection the mobile upgrade prompt understands.
  *
- * Ownership: brand kits are owned by `user_id`, and apply targets (biolinks /
- * QR codes) are resolved against the authenticated user's own rows. The Sanctum
- * path never binds `current_workspace`, so the BelongsToWorkspace read scope is
- * skipped and `where('user_id', …)` returns the caller's rows across workspaces,
- * matching the rest of the API surface (QrCodeController / CardScanController).
+ * Ownership: kits and listed targets are restricted to the signed-in user
+ * and their active workspace. Shared apply methods also reject cross-workspace
+ * targets. Saved-kit quantity caps are counted across the account.
  */
 class BrandKitController extends Controller
 {
@@ -53,7 +51,7 @@ class BrandKitController extends Controller
     public function index(Request $request)
     {
         $user  = $request->user();
-        $list  = BrandKit::where('user_id', $user->id)->latest()->get();
+        $list  = BrandKit::where('user_id', $user->id)->where('workspace_id',$this->activeWorkspaceId($user))->latest()->get();
         $count = $list->count();
 
         $aiEnabled = AiEngineSettings::isEnabled();
@@ -61,7 +59,7 @@ class BrandKitController extends Controller
         $canCreate = AiPlanAccess::underQuantityCap($user, 'brand_kits', $count);
         $upgrade   = $canCreate ? null : AiPlanAccess::quantityUpgradePlan($user, 'brand_kits', $count);
 
-        $biolinks = Link::where('user_id', $user->id)
+        $biolinks = Link::where('user_id', $user->id)->where('workspace_id',$this->activeWorkspaceId($user))
             ->where('type', 'biolink')
             ->orderByDesc('id')
             ->get(['id', 'title', 'alias'])
@@ -72,7 +70,7 @@ class BrandKitController extends Controller
             ])
             ->all();
 
-        $qrCodes = QrCode::where('user_id', $user->id)
+        $qrCodes = QrCode::where('user_id', $user->id)->where('workspace_id',$this->activeWorkspaceId($user))
             ->orderByDesc('id')
             ->get(['id', 'name'])
             ->map(fn ($q) => [
@@ -95,63 +93,10 @@ class BrandKitController extends Controller
         ]);
     }
 
-    /**
-     * Brand Consistency Score (Task #2664 web parity).
-     *
-     * Audits the caller's biolinks against their default Brand Kit and returns
-     * the 0-100 on-brand score plus per-link findings with plain-English
-     * reasons. Plan-gated behind the legacy-safe `brand_consistency` feature.
-     * The mobile client turns each finding into a one-tap "Apply fix" by
-     * calling the existing apply-to-biolink endpoint with the returned
-     * `kit_id` + `link_id`, so there is no new apply path. Mirrors the audit
-     * the web BrandKitController@index embeds in the page.
-     */
+    /** Legacy client compatibility: Brand Kits no longer run audits. */
     public function consistency(Request $request)
     {
-        $user = $request->user();
-
-        if (!AiPlanAccess::featureAllowed($user, 'brand_consistency')) {
-            return $this->ok(['available' => false, 'has_kit' => false, 'audit' => null]);
-        }
-
-        $kit = BrandKit::defaultFor($user->id);
-        if (!$kit) {
-            return $this->ok(['available' => true, 'has_kit' => false, 'audit' => null]);
-        }
-
-        $biolinks = Link::where('user_id', $user->id)
-            ->where('type', 'biolink')
-            ->orderByDesc('id')
-            ->get(['id', 'title', 'alias', 'type', 'settings']);
-
-        $audit = app(BrandConsistencyService::class)->audit($kit, $biolinks);
-
-        return $this->ok([
-            'available' => true,
-            'has_kit'   => true,
-            'audit'     => [
-                'score'          => $audit['score'],
-                'grade'          => $audit['grade'],
-                'label'          => $audit['label'],
-                'kit_id'         => $audit['kit_id'],
-                'kit_name'       => $audit['kit_name'],
-                'links_total'    => $audit['links_total'],
-                'links_on_brand' => $audit['links_on_brand'],
-                // Off-brand pages only (worst-first), each with the kit-vs-page
-                // mismatches a one-tap "Apply fix" resolves. apply_url (a web
-                // route) is dropped — mobile applies via kit_id + link_id.
-                'findings'       => array_map(fn ($f) => [
-                    'link_id'    => $f['link_id'],
-                    'title'      => $f['title'],
-                    'alias'      => $f['alias'],
-                    'score'      => $f['score'],
-                    'severity'   => $f['severity'],
-                    'headline'   => $f['headline'],
-                    'reason'     => $f['reason'],
-                    'mismatches' => $f['mismatches'],
-                ], $audit['findings']),
-            ],
-        ]);
+        return $this->ok(['available'=>false,'has_kit'=>false,'audit'=>null,'retired'=>true]);
     }
 
     /** Upfront, worst-case credit cost before the user taps Generate. */
@@ -186,7 +131,7 @@ class BrandKitController extends Controller
             return $this->fail('AI features are currently unavailable.', 503, 'ai_unavailable');
         }
 
-        $count = BrandKit::where('user_id', $user->id)->count();
+        $count = BrandKit::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
         if (!AiPlanAccess::underQuantityCap($user, 'brand_kits', $count)) {
             return $this->planGate(
                 AiPlanAccess::quantityLimitMessage($user, 'brand_kits', 'brand kit', $count),
@@ -212,6 +157,8 @@ class BrandKitController extends Controller
         } catch (\RuntimeException $e) {
             return $this->fail($e->getMessage(), 422, 'generation_failed');
         }
+
+        $result['kit']->forceFill(['workspace_id'=>$this->activeWorkspaceId($user)])->save();
 
         return $this->created([
             'credits_spent' => $result['credits_spent'],
@@ -402,10 +349,10 @@ class BrandKitController extends Controller
 
     // ── helpers ──────────────────────────────────────────────────────
 
-    /** Resolve a kit owned by the signed-in user (workspace scope is skipped). */
+    /** Resolve a kit owned by the signed-in user in their active workspace. */
     protected function resolveKit(Request $request, int $id): ?BrandKit
     {
-        $kit = BrandKit::find($id);
+        $kit = BrandKit::where('workspace_id',$this->activeWorkspaceId($request->user()))->find($id);
         if (!$kit || $kit->user_id !== $request->user()->id) {
             return null;
         }
