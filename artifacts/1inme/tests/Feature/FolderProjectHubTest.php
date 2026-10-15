@@ -59,6 +59,9 @@ class FolderProjectHubTest extends TestCase
                 file_put_contents('/tmp/hub-'.$tab.'.html', $page->getContent());
             }
         }
+        if (getenv('FORMS_UI_FIXTURE')) {
+            foreach (['reports','links'] as $nativeTab) file_put_contents('/tmp/hub-'.$nativeTab.'.html',$this->get('/user/projects/'.$p->id.'?tab='.$nativeTab)->assertOk()->getContent());
+        }
         $this->get('/user/projects/'.$p->id.'/edit')->assertOk()->assertSee('Delete folder, keep contents');
     }
 
