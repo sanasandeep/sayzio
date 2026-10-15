@@ -3040,11 +3040,9 @@ class SitePagesContent
     public static function heroCopyDefault(): array
     {
         return [
-            'headline'  => 'Never miss another customer.',
-            'highlight' => 'customer',
-            'subheading' => 'One link for your page, your QR codes and your short links. '
-                . 'And when you are busy, **your AI Zio answers your visitors and picks up '
-                . 'your calls**. **Free forever**, no card.',
+            'headline' => 'From your first visitor to your next repeat customer.',
+            'highlight' => 'repeat customer',
+            'subheading' => 'Create your business presence, attract leads, manage customers, and deliver your work. **All in one connected platform**, with AI helping along the way.',
         ];
     }
 
@@ -3067,6 +3065,12 @@ class SitePagesContent
     public static function normalizeHeroCopy(array $input): array
     {
         $default = self::heroCopyDefault();
+        // Upgrade the previous shipped bundle; preserve genuinely customized copy.
+        if (($input['headline'] ?? '') === 'Never miss another customer.'
+            && ($input['highlight'] ?? '') === 'customer'
+            && ($input['subheading'] ?? '') === 'One link for your page, your QR codes and your short links. And when you are busy, **your AI Zio answers your visitors and picks up your calls**. **Free forever**, no card.') {
+            $input = [];
+        }
 
         $headline   = trim((string) ($input['headline'] ?? ''));
         $subheading = trim((string) ($input['subheading'] ?? ''));

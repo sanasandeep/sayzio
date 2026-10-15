@@ -139,7 +139,7 @@ class HomepageZioIsAliveInBothPlacesTest extends TestCase
     public function test_the_float_scales_with_the_artwork(): void
     {
         $hero = (string) file_get_contents(
-            resource_path('views/home/partials/hero.blade.php')
+            resource_path('views/home/partials/zio-legacy-styles.blade.php')
         );
 
         // Not [^}]* -- the keyframe's own percentage blocks carry braces, so

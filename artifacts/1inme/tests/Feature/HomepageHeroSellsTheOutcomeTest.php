@@ -1,92 +1,41 @@
 <?php
-
 namespace Tests\Feature;
 
+use App\Modules\User\Models\User;
+use App\Modules\Common\Support\SitePagesContent;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/**
- * The hero says what the visitor gets, and its proof line agrees with it.
- *
- * The old headline was "Your link, now it talks back" -- a description of what
- * the product does. Somebody deciding in five seconds is scanning for what
- * they get, and "talks back" is not that. The strongest claim on the page,
- * "picks up your calls", was buried as the third item in a comma list in the
- * subhead, and it is the one thing no other link-in-bio tool does.
- *
- * Sana chose this direction from three drafts. The headline is deliberately
- * narrower than the (mixed) user base; the audience section below the hero is
- * what catches everyone it does not speak to.
- *
- * The pairing these tests hold is the one that broke before: a headline about
- * customers above a proof line that says "creators" tells a business owner the
- * proof is about somebody else. Change either and the other has to follow.
- */
 class HomepageHeroSellsTheOutcomeTest extends TestCase
 {
-    private function hero(): string
+    use RefreshDatabase;
+
+    public function test_journey_is_readable_without_javascript_and_guest_can_register(): void
     {
-        $response = $this->get('/');
-        $response->assertOk();
-
-        $html = $response->getContent();
-
-        // Scope to the hero. Asserting against the whole document would let a
-        // match anywhere on a 700 KB page pass for a match in the headline.
-        $start = strpos($html, 'id="hero-h"');
-        $this->assertNotFalse($start, 'the hero headline element is gone from the homepage');
-
-        return substr($html, max(0, $start - 4000), 8000);
+        $response=$this->get('/')->assertOk()->assertSee('From your first visitor')->assertSee('repeat customer')->assertSee('Illustrative journey')->assertSee('Alex Morgan')->assertSee('CRM')->assertSee('Delivery &amp; support',false)->assertSee('Start free')->assertSee('See how Sayzio works');
+        $dom=new \DOMDocument(); @$dom->loadHTML($response->getContent()); $xpath=new \DOMXPath($dom);
+        $this->assertSame(7,$xpath->query('//*[@data-journey-step]')->length);
+        $cta=$xpath->query('//*[@id="hero"]//a[contains(@class,"sj-primary")]')->item(0);
+        $this->assertSame(route('register.page'),$cta->getAttribute('href'));
+        if(getenv('HERO_UI_FIXTURE'))file_put_contents('/tmp/customer-journey-guest.html',$response->getContent());
     }
 
-    public function test_the_headline_names_an_outcome(): void
+    public function test_signed_in_cta_opens_dashboard(): void
     {
-        $this->assertStringContainsString(
-            'Never miss another',
-            $this->hero(),
-            'the hero headline has changed. If that is deliberate, update this test and '
-            . 'check the proof line under it still agrees with the new headline.'
-        );
+        $response=$this->actingAs(User::factory()->create())->get('/')->assertOk();
+        $dom=new \DOMDocument(); @$dom->loadHTML($response->getContent()); $xpath=new \DOMXPath($dom);
+        $cta=$xpath->query('//*[@id="hero"]//a[contains(@class,"sj-primary")]')->item(0);
+        $this->assertSame(route('user.dashboard'),$cta->getAttribute('href'));
+        $this->assertStringContainsString('Go to dashboard',$cta->textContent);
+        if(getenv('HERO_UI_FIXTURE'))file_put_contents('/tmp/customer-journey-auth.html',$response->getContent());
     }
 
-    /**
-     * The claim that earns the headline is still in the copy.
-     *
-     * If "picks up calls" ever leaves the hero, the headline is writing a
-     * cheque the page no longer cashes.
-     */
-    public function test_the_call_answering_claim_backs_the_headline(): void
+    public function test_previous_shipped_bundle_upgrades_but_custom_copy_is_preserved(): void
     {
-        $this->assertMatchesRegularExpression(
-            '/picks up (your )?calls/i',
-            $this->hero(),
-            'the headline promises the customer you would otherwise miss, but the subhead '
-            . 'no longer says the AI picks up calls -- which is the thing that makes the '
-            . 'promise true'
-        );
-    }
-
-    /**
-     * The proof line includes the audience the headline addresses.
-     *
-     * "375,000+ creators" under a headline about customers reads as proof
-     * about somebody else.
-     */
-    public function test_the_proof_line_includes_businesses(): void
-    {
-        $this->assertMatchesRegularExpression(
-            '/375,000\+.{0,120}businesses/is',
-            $this->hero(),
-            'the hero proof line no longer mentions businesses, so a business owner reading '
-            . 'a headline about customers is told the 375,000 are creators'
-        );
-    }
-
-    /** And it is not back to Indian digit grouping. */
-    public function test_the_hero_number_is_grouped_for_the_audience(): void
-    {
-        $hero = $this->hero();
-
-        $this->assertStringContainsString('375,000+', $hero);
-        $this->assertStringNotContainsString('3,75,000', $hero);
+        $copy=SitePagesContent::normalizeHeroCopy(['headline'=>'Never miss another customer.','highlight'=>'customer','subheading'=>'One link for your page, your QR codes and your short links. And when you are busy, **your AI Zio answers your visitors and picks up your calls**. **Free forever**, no card.']);
+        $this->assertStringContainsString('repeat customer',$copy['headline']);
+        $copy=SitePagesContent::normalizeHeroCopy(['headline'=>'Custom title','subheading'=>'Custom content']);
+        $this->assertSame('Custom title',$copy['headline']);
+        $this->assertSame('Custom content',$copy['subheading']);
     }
 }
