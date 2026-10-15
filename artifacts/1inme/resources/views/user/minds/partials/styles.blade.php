@@ -3,4 +3,12 @@
 @media(max-width:640px){.minds-page .grid-cols-3{grid-template-columns:1fr}}
 .mind-stat{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px!important;min-height:128px;position:relative;background:linear-gradient(130deg,rgba(var(--mind-stat-rgb),.075),transparent)!important}.mind-stat-copy{position:relative;z-index:1}.mind-stat-label{font-size:12px;font-weight:600;color:var(--text-secondary,#a0a8ba)}.mind-stat-value{font-size:28px;font-weight:700;line-height:1.3;margin:7px 0;color:var(--text-primary,#fff)}.mind-stat-note{font-size:12px;color:var(--text-faint,#9299aa)}.mind-stat-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex-shrink:0;border-radius:14px;background:rgba(var(--mind-stat-rgb),.12);border:1px solid rgba(var(--mind-stat-rgb),.2);color:rgb(var(--mind-stat-rgb))}.mind-stat-icon svg{width:25px;height:25px}
 .minds-page .mind-stat{min-height:200px;padding:24px!important;border-radius:24px;background:linear-gradient(135deg,rgba(var(--mind-stat-rgb),.96),rgba(var(--mind-stat-rgb),.63))!important;box-shadow:0 14px 26px rgba(var(--mind-stat-rgb),.15);border:1px solid rgba(255,255,255,.3)!important;overflow:hidden}.minds-page .mind-stat-label{color:#fff;font-size:15px}.minds-page .mind-stat-value{color:#fff;font-size:48px;margin-top:28px}.minds-page .mind-stat-note{color:rgba(255,255,255,.8)}.minds-page .mind-stat-icon{position:absolute;right:20px;top:38px;width:72px;height:72px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;transform:rotate(12deg);box-shadow:6px 7px 0 rgba(255,255,255,.12)}.minds-page .mind-stat-icon svg{width:44px;height:44px;filter:drop-shadow(3px 4px 0 rgba(255,255,255,.25))}
+
+/* Dedicated color cards must not inherit neutral shared stat-card overrides. */
+html .minds-page .mind-stat{isolation:isolate;position:relative;display:flex;align-items:center;min-height:200px;background-color:rgb(var(--mind-stat-rgb))!important;color:#fff!important}
+html .minds-page .mind-stat-copy{position:relative;z-index:2;max-width:calc(100% - 86px)}
+html .minds-page .mind-stat-label,html .minds-page .mind-stat-value{color:#fff!important;opacity:1!important;visibility:visible!important}
+html .minds-page .mind-stat-note{color:rgba(255,255,255,.85)!important;opacity:1!important}
+html .minds-page .mind-stat-icon{color:#fff!important;z-index:1}
+html .minds-page .mind-stat-icon svg{display:block;stroke:#fff!important;fill:none!important}
 </style>
