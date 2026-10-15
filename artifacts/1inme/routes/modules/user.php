@@ -1425,10 +1425,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get   ('companion/{thread}/export',       [\App\Modules\User\Controllers\AI\CompanionController::class, 'export'])->whereNumber('thread')->name('companion.export');
             Route::delete('companion/{thread}',              [\App\Modules\User\Controllers\AI\CompanionController::class, 'destroy'])->whereNumber('thread')->name('companion.destroy');
 
-            Route::get ('coach',         [\App\Modules\User\Controllers\AI\CoachController::class, 'show'])->name('coach.show');
-            Route::post('coach/suggest', [\App\Modules\User\Controllers\AI\CoachController::class, 'suggest'])->middleware('throttle:30,1')->name('coach.suggest');
-            Route::post  ('coach/defaults', [\App\Modules\User\Controllers\AI\CoachController::class, 'saveDefaults'])->name('coach.defaults.save');
-            Route::delete('coach/defaults', [\App\Modules\User\Controllers\AI\CoachController::class, 'clearDefaults'])->name('coach.defaults.clear');
+            // Retired standalone optimizer; optimization remains in link statistics.
+            Route::get('coach', fn () => redirect()->route('user.links.index')->with('status', 'Open a link’s stats to use optimization tools.'));
 
             // Ask Coach — multi-turn data-aware self-support chatbot
             // (separate from the per-link Coach above; spend tagged

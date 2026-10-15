@@ -7,7 +7,6 @@
         'Personas'   => 'AI Agents',
         'Companion'  => 'AI Chat',
         'Companions' => 'Chat Widgets',
-        'Coach'      => 'AI Link Optimizer',
         'Ask Coach'  => 'AI Coach',
     ];
     $__aiDisplayTitle = $__aiLabelMap[$title ?? ''] ?? ($title ?? 'AI');
@@ -57,7 +56,6 @@
         'Personas'   => 'AI Agents let you create and switch between configurable agents (each with its own prompt, tone, and knowledge) for different audiences.',
         'Companion'  => 'AI Chat is a chat assistant that helps you draft content and answer questions about your account.',
         'Companions' => 'Chat Widgets are embeddable AI chatbots you can drop into your pages, widgets and inbox.',
-        'Coach'      => 'AI Link Optimizer gives you AI-powered suggestions to grow and fine-tune your links and pages.',
         'Ask Coach'  => 'AI Coach lets you chat with an AI advisor for tips on improving your account.',
     ];
     $__featureBlurb = $__featureBlurbs[$title ?? ''] ?? null;
@@ -199,7 +197,7 @@
             <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
                 <p class="font-medium text-white/80">What you’re missing</p>
                 <p class="mt-1">
-                    AI features on {{ $__appName }} (like AI Minds, AI Agents, AI Chat and AI Link Optimizer) help you
+                    AI features on {{ $__appName }} (like AI Minds, AI Agents, Ask Zio and link insights) help you
                     draft content, answer questions about your account and build pages faster. They run on
                     your coin balance once an administrator enables the engine.
                 </p>

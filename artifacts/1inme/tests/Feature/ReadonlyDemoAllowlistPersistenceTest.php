@@ -702,39 +702,6 @@ class ReadonlyDemoAllowlistPersistenceTest extends TestCase
         $response->assertOk()->assertJsonStructure(['estimated_credits', 'balance']);
     }
 
-    /**
-     * AI-*generation* preview that IS allowlisted — user.ai.coach.suggest
-     * (POST /user/ai/coach/suggest). Unlike the estimate routes this DOES call
-     * the model, so we stub OpenAiService (no network, no charge). Its only
-     * allowed side effect is flashing a result and redirecting — no rows.
-     */
-    public function test_allowlisted_ai_coach_suggest_persists_nothing(): void
-    {
-        AiEngineSettings::setEnabled(true);
-        $this->mockOpenAi();
-
-        $demo = $this->makeDemoUser($this->paidAiPlan());
-        $link = Link::create([
-            'user_id'      => $demo->id,
-            'workspace_id' => $this->wsId($demo),
-            'type'         => Link::TYPE_BIOLINK,
-            'alias'        => Link::generateAlias(),
-            'title'        => 'Demo Biolink',
-            'is_active'    => true,
-        ]);
-
-        $this->loginViaOtp($demo);
-
-        $response = $this->assertPersistsNothing(
-            fn () => $this->post(route('user.ai.coach.suggest'), [
-                'link_id' => $link->id,
-                'goal'    => 'increase engagement',
-            ]),
-            'user.ai.coach.suggest'
-        );
-
-        $response->assertRedirect(route('user.ai.coach.show'));
-    }
 
     /**
      * Notes generation saves records, so readonly demo users must be blocked.

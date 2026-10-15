@@ -73,7 +73,7 @@
         // public/images/zio-nodes/.
         $zioNodes = [
             ['img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder',   'd' => 'Describe your idea in a sentence and Zio assembles a complete, on-brand page for you.', 'tag' => 'Live in ~30s'],
-            ['img' => 'growth.png',    'c' => '#10b981',   't' => 'AI Link Optimizer', 'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
+            ['img' => 'growth.png',    'c' => '#10b981',   't' => 'Link stats & insights', 'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
             ['img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',          'd' => 'Zio answers your calls and turns every caller into a captured lead while you focus.', 'tag' => '24/7 answer'],
             ['img' => 'analytics.png', 'c' => 'var(--c3)', 't' => 'Live Analytics',    'd' => 'Watch every click, scan and visit land in real time on a live world map.', 'tag' => 'Real-time'],
             ['img' => 'link.png',      'c' => 'var(--c1)', 't' => 'Smart Links',       'd' => 'Turn long URLs into branded short links you can track, tag and retarget.', 'tag' => 'Branded'],

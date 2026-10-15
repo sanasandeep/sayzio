@@ -235,7 +235,6 @@ class UserSidebarMemberRoleGatingTest extends TestCase
 
         // Ungated AI items render even with the engine off and `view` revoked.
         $this->assertNavItem($member, $ws, 'user.ai.mind.show', true);
-        $this->assertNavItem($member, $ws, 'user.ai.coach.show', true);
         // Minds is hidden because this member lacks settings_view…
         $this->assertNavItem($member, $ws, 'user.minds.index', false);
         // …while Ask Coach (plan-gated, empty allow-list) still shows.

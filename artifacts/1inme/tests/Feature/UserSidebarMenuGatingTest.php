@@ -184,7 +184,6 @@ class UserSidebarMenuGatingTest extends TestCase
         'user.ai-personas.index',
         'user.ai.companion.show',
         'user.ai-companions.index',
-        'user.ai.coach.show',
     ];
 
     public function test_all_ai_items_shown_when_engine_disabled(): void

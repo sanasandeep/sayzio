@@ -131,7 +131,6 @@ class BlockReadonlyDemoWrites
         'creator-profile.subscribe.preview-promo', // previews a promo-code discount
         'rm.public.quote',                          // restaurant estimated-bill quote
         'sb.public.quote',                          // service-booking price quote
-        'user.ai.coach.suggest',                    // AI coach suggestions
         'user.ai.cost-estimate',                    // unified AI coin-cost estimate (read-only, no charge)
         'user.ai.marketing-strategist.estimate',    // AI credit-cost estimate
         'user.billing.companies.emails.preview',    // renders an email-template preview
