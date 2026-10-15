@@ -5,7 +5,7 @@
 @php
     $embedSnippet = '<script src="' . $embedScriptUrl . '" data-companion="' . $companion->public_id .
         '" data-accent="' . ($config['accent'] ?? '#3d6bff') .
-        '" data-position="' . ($config['position'] ?? 'bottom-right') .
+        '" data-appearance="' . htmlspecialchars(json_encode(\App\Services\AI\CompanionAppearance::variables($config)), ENT_QUOTES) . '" data-position="' . ($config['position'] ?? 'bottom-right') .
         '" data-label="' . htmlspecialchars($config['launcher_label'] ?? 'Chat', ENT_QUOTES) .
         '" data-greeting="' . htmlspecialchars($config['greeting_bubble'] ?? '', ENT_QUOTES) .
         '" data-placeholder="' . htmlspecialchars($config['placeholder'] ?? 'Ask me anything…', ENT_QUOTES) .
@@ -114,6 +114,7 @@
             </div>
         </fieldset>
 
+        <div data-widget-tab="more" x-show="tab==='more'">@include('user.ai-companions.appearance')</div>
         <fieldset data-widget-tab="advanced" x-show="tab==='advanced'" class="space-y-3">
             <legend class="text-xs font-bold text-white/80 uppercase tracking-wider">Limits & guardrails</legend>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
