@@ -99,7 +99,7 @@ class FolderWorkController extends Controller
         foreach (['source', 'target'] as $side) {
             [$kind,$id] = explode(':', $v[$side]);
             app(PlannerResources::class)->get($kind, (int) $id, $r->user());
-            abort_unless(ProjectItem::where('project_id', $project->id)->where('kind', $kind)->where('resource_id', $id)->exists() || (in_array($kind, ['link', 'form', 'qr', 'plan']) && PlannerResources::TYPES[$kind]::whereKey($id)->where('project_id', $project->id)->exists()), 422, 'Connect items assigned to this folder.');
+            abort_unless(collect(app(PlannerResources::class)->folder($project,$r->user()))->contains(fn($item)=>$item['kind']===$kind && (int)$item['row']->id===(int)$id), 422, 'Connect items assigned to this folder.');
         }
         [$sk,$si] = explode(':', $v['source']);
         [$tk,$ti] = explode(':', $v['target']);
@@ -122,9 +122,12 @@ class FolderWorkController extends Controller
         $v = $r->validate(['destination' => 'required|integer|different:project']);
         $target = Project::where('user_id', workspace_owner_id())->where('id', '!=', $project->id)->findOrFail($v['destination']);
         DB::transaction(function () use ($project, $target) {
-            foreach (['link', 'form', 'qr', 'plan'] as $kind) {
+            foreach (['link', 'form', 'qr', 'plan', 'campaign'] as $kind) {
                 $class = PlannerResources::TYPES[$kind];
                 $class::where('project_id', $project->id)->update(['project_id' => $target->id]);
+            }
+            foreach (\App\Modules\User\Models\MarketingPlanCalc::where('payload->project_id',$project->id)->get() as $forecast) {
+                $forecast->update(['payload'=>array_replace($forecast->payload ?? [], ['project_id'=>$target->id])]);
             }
             ProjectItem::where('project_id', $project->id)->update(['project_id' => $target->id]);
             PlannerNote::where('project_id', $project->id)->update(['project_id' => $target->id]);

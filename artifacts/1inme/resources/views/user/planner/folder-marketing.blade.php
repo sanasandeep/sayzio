@@ -1,12 +1,12 @@
 @php
-    $marketing=collect($resources)->whereIn('kind',['strategy','budget','buzz','brand','studio']);
+    $marketing=collect($resources)->whereIn('kind',['campaign','strategy','buzz','studio']);
     $buzz=$marketing->where('kind','buzz');
-    $marketingOptions=['strategy'=>'Strategies','budget'=>'Budgets','buzz'=>'Buzz campaigns','brand'=>'Brand kits','studio'=>'Brand Studio'];
+    $marketingOptions=['campaign'=>'Studio campaigns','strategy'=>'Strategies','buzz'=>'Buzz campaigns','studio'=>'Studio materials'];
     $marketingChoices=array_values(array_filter($choices,fn($choice)=>isset($marketingOptions[$choice['kind']])));
     $marketingSearch=$marketing->map(fn($item)=>['kind'=>$item['kind'],'label'=>mb_strtolower($item['label'])])->values()->all();
 @endphp
 <div class="notes-stack folder-marketing" x-data="{marketingKinds:[],marketingQuery:'',assignMarketing:false}">
-    <div class="folder-panel-head"><div><span class="folder-eyebrow">Plan · create · reach · measure</span><h2 class="text-xl font-bold">Project marketing</h2><p class="notes-hint">Your strategies, budgets, brand assets and campaigns, connected to {{ $project->name }}.</p></div>@if($canAssignFolder)<button type="button" class="btn-primary px-4 py-2" @click="assignMarketing=!assignMarketing" :aria-expanded="assignMarketing"><i class="fas fa-plus" aria-hidden="true"></i> Assign resources</button>@endif</div>
+    <div class="folder-panel-head"><div><span class="folder-eyebrow">Plan · create · reach · measure</span><h2 class="text-xl font-bold">Campaigns</h2><p class="notes-hint">Your strategies, budgets, brand assets and campaigns, connected to {{ $project->name }}.</p></div>@if($canAssignFolder)<button type="button" class="btn-primary px-4 py-2" @click="assignMarketing=!assignMarketing" :aria-expanded="assignMarketing"><i class="fas fa-plus" aria-hidden="true"></i> Assign resources</button>@endif</div>
     @if($canAssignFolder)
     <form method="post" action="{{ route('user.ai.planner.attach',$project) }}" x-show="assignMarketing" x-cloak class="notes-card folder-assignment-panel">@csrf
         <div class="folder-panel-head"><div><h2>Connect marketing resources</h2><p class="notes-hint">Choose several existing items. Moving an item changes its folder association.</p></div><button type="button" class="form-chip" @click="assignMarketing=false">Close</button></div>
@@ -26,8 +26,9 @@
             <div class="folder-card-grid">
             @foreach($marketing as $item)
                 <article class="folder-marketing-card" x-show="(!marketingKinds.length||marketingKinds.includes(@js($item['kind'])))&&@js(mb_strtolower($item['label'])).includes(marketingQuery.trim().toLowerCase())">
-                    <div class="folder-panel-head"><span class="folder-mini-icon"><i class="fas {{ ['strategy'=>'fa-bullseye','budget'=>'fa-wallet','buzz'=>'fa-bullhorn','brand'=>'fa-palette','studio'=>'fa-wand-magic-sparkles'][$item['kind']] }}" aria-hidden="true"></i></span><span class="folder-resource-type">{{ $marketingOptions[$item['kind']] }}</span></div><h3>{{ $item['label'] }}</h3>
+                    <div class="folder-panel-head"><span class="folder-mini-icon"><i class="fas {{ ['campaign'=>'fa-bullhorn','strategy'=>'fa-bullseye','budget'=>'fa-wallet','buzz'=>'fa-bullhorn','brand'=>'fa-palette','studio'=>'fa-wand-magic-sparkles'][$item['kind']] }}" aria-hidden="true"></i></span><span class="folder-resource-type">{{ $marketingOptions[$item['kind']] }}</span></div><h3>{{ $item['label'] }}</h3>
                     @if($item['kind']==='buzz')<p class="notes-hint">{{ $item['row']->is_active?'Active campaign':'Inactive campaign' }}</p><div class="folder-campaign-results"><span><strong>{{ number_format($item['row']->impressions) }}</strong>Impressions</span><span><strong>{{ number_format($item['row']->clicks) }}</strong>Clicks</span><span><strong>{{ number_format($item['row']->conversions) }}</strong>Conversions</span></div>
+                    @elseif($item['kind']==='campaign')<p class="notes-hint">{{ count($item['row']->studio_ids ?? []) }} Studio material sets · {{ $item['row']->plan_id ? 'Planner connected' : 'No Planner connection' }}</p>
                     @elseif($item['kind']==='strategy')<p class="notes-hint">{{ $item['row']->goal }} · {{ ucfirst($item['row']->status) }}</p>
                     @else<p class="notes-hint">{{ $item['kind']==='budget'?'Review campaign costs and estimates.':'Keep your campaign’s identity and creative assets together.' }}</p>@endif
                     <a class="folder-marketing-open" href="{{ $item['url'] }}">Open resource <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
@@ -41,7 +42,7 @@
     @endif
     <section class="notes-card"><div class="folder-panel-head"><div><h2>Start a marketing workflow</h2><p class="notes-hint">Choose your next step. Each tool keeps its usual permissions and AI estimate.</p></div></div><div class="folder-workflow-grid">
         <a href="{{ route('user.ai.mind.show',['project_id'=>$project->id,'purpose'=>'campaign']) }}"><span class="folder-mini-icon"><i class="fas fa-wand-magic-sparkles"></i></span><strong>Plan this campaign</strong><p>Turn your ideas into a plan you can review and connect to tasks.</p><span>Start planning →</span></a>
-        <a href="{{ route('user.ai.marketing-strategist.index') }}"><span class="folder-mini-icon"><i class="fas fa-bullseye"></i></span><strong>Marketing Strategist</strong><p>Develop the audience, positioning and direction for your campaign.</p><span>Open strategist →</span></a>
-        <a href="{{ route('user.marketing-plan.index') }}"><span class="folder-mini-icon"><i class="fas fa-wallet"></i></span><strong>Budget calculator</strong><p>Estimate your campaign spend before committing to the next step.</p><span>Review budget →</span></a>
+        <a href="{{ route('user.marketing-studio.create',['project_id'=>$project->id]) }}"><span class="folder-mini-icon"><i class="fas fa-bullseye"></i></span><strong>Marketing Studio</strong><p>Develop the audience, positioning and direction for your campaign.</p><span>Create campaign →</span></a>
+        <a href="{{ route('user.marketing-plan.create',['project_id'=>$project->id]) }}"><span class="folder-mini-icon"><i class="fas fa-wallet"></i></span><strong>Budget & Forecast</strong><p>Estimate your campaign spend before committing to the next step.</p><span>Review budget →</span></a>
     </div></section>
 </div>

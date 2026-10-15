@@ -10,7 +10,7 @@ class Project extends Model
 {
     
     use BelongsToWorkspace;
-protected $fillable = ['user_id', 'name', 'color', 'description'];
+protected $fillable = ['user_id', 'name', 'color', 'description', 'default_brand_kit_id'];
 
     public function user()
     {

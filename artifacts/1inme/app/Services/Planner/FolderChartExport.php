@@ -10,8 +10,8 @@ class FolderChartExport
         $esc = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
         $items = collect($resources);
         $labels = match ($mode) {
-            'hub' => collect(['Links' => ['link'], 'Minds' => ['mind'], 'Personas' => ['persona'], 'Agents & Staff' => ['agent', 'staff', 'companion'], 'Plans' => ['plan'], 'Tasks' => ['task'], 'Resources' => ['form', 'qr', 'file', 'calendar', 'board'], 'Marketing' => ['strategy', 'budget', 'buzz', 'brand', 'studio']])->map(fn ($kinds, $label) => [$label, $items->whereIn('kind', $kinds)->count().' assigned'])->values()->all(),
-            'flow' => collect(['Prepare' => ['file', 'mind', 'plan'], 'Create' => ['link', 'form', 'qr'], 'Reach' => ['buzz', 'strategy'], 'Act' => ['task']])->map(fn ($kinds, $label) => [$label, $items->whereIn('kind', $kinds)->count().' assigned items'])->values()->all(),
+            'hub' => collect(['Links' => ['link'], 'AI Minds' => ['mind'], 'Personas' => ['persona'], 'Agents & Staff' => ['agent', 'staff', 'companion'], 'Planner plans' => ['plan'], 'Tasks' => ['task'], 'Files, kits & budgets' => ['form', 'qr', 'file', 'calendar', 'board', 'brand', 'budget'], 'Campaigns' => ['campaign', 'strategy', 'buzz', 'studio']])->map(fn ($kinds, $label) => [$label, $items->whereIn('kind', $kinds)->count().' assigned'])->values()->all(),
+            'flow' => collect(['Prepare' => ['file', 'mind', 'plan', 'brand', 'budget'], 'Create' => ['link', 'form', 'qr'], 'Reach' => ['campaign', 'studio', 'buzz', 'strategy'], 'Act' => ['task']])->map(fn ($kinds, $label) => [$label, $items->whereIn('kind', $kinds)->count().' assigned items'])->values()->all(),
             default => array_map(fn ($person) => [$person['name'].' · '.$person['role'], $person['open'].' open · '.$person['completed'].' complete · '.$person['actions'].' recorded actions (30d)'], $people),
         };
         if (! $labels) {

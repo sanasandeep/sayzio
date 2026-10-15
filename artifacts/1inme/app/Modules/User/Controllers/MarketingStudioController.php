@@ -36,7 +36,7 @@ class MarketingStudioController extends Controller
 
     public function create(Request $r)
     {
-        return view('user.marketing-studio.create', $this->options() + ['campaign' => null]);
+        return view('user.marketing-studio.create', $this->options() + ['campaign' => null, 'folderContext' => $r->filled('project_id') ? \App\Modules\User\Models\Project::where('user_id', workspace_owner_id())->findOrFail($r->integer('project_id')) : null]);
     }
 
     private function options(): array
@@ -48,7 +48,8 @@ class MarketingStudioController extends Controller
 
     private function input(Request $r): array
     {
-        $d = $r->validate(['name' => 'required|string|max:160', 'path' => 'required|in:quick,strategy', 'goal' => 'required|string|max:2000', 'offer' => 'nullable|string|max:1000', 'audience' => 'nullable|string|max:300', 'content' => 'nullable|string|max:5000', 'language' => 'nullable|string|max:100', 'channels' => 'nullable|string|max:300', 'budget' => 'nullable|string|max:120', 'constraints' => 'nullable|string|max:1000', 'output' => 'nullable|in:biolink,form,short_link,qr_code,vcard', 'brand_kit_id' => 'nullable|integer', 'persona_id' => 'nullable|integer', 'agent_id' => 'nullable|integer', 'mind_ids' => 'nullable|array|max:8', 'mind_ids.*' => 'integer']);
+        $d = $r->validate(['project_id' => 'nullable|integer', 'name' => 'required|string|max:160', 'path' => 'required|in:quick,strategy', 'goal' => 'required|string|max:2000', 'offer' => 'nullable|string|max:1000', 'audience' => 'nullable|string|max:300', 'content' => 'nullable|string|max:5000', 'language' => 'nullable|string|max:100', 'channels' => 'nullable|string|max:300', 'budget' => 'nullable|string|max:120', 'constraints' => 'nullable|string|max:1000', 'output' => 'nullable|in:biolink,form,short_link,qr_code,vcard', 'brand_kit_id' => 'nullable|integer', 'persona_id' => 'nullable|integer', 'agent_id' => 'nullable|integer', 'mind_ids' => 'nullable|array|max:8', 'mind_ids.*' => 'integer']);
+        if (!empty($d['project_id'])) \App\Modules\User\Models\Project::where('user_id', workspace_owner_id())->findOrFail($d['project_id']);
         foreach (['brand_kit_id' => 'brand', 'persona_id' => 'persona', 'agent_id' => 'agent'] as $key => $kind) {
             if (! empty($d[$key])) {
                 $this->studio->contextModel($kind, (int) $d[$key]);
@@ -64,7 +65,7 @@ class MarketingStudioController extends Controller
     public function store(Request $r)
     {
         $d = $this->input($r);
-        $campaign = MarketingCampaign::create(['user_id' => $r->user()->id, 'workspace_id' => app('current_workspace')->id, 'name' => $d['name'], 'path' => $d['path'], 'brief' => collect($d)->except(['name', 'path'])->all(), 'strategy_ids' => [], 'studio_ids' => []]);
+        $campaign = MarketingCampaign::create(['user_id' => $r->user()->id, 'workspace_id' => app('current_workspace')->id, 'name' => $d['name'], 'path' => $d['path'], 'project_id' => $d['project_id'] ?? null, 'brief' => collect($d)->except(['name', 'path'])->all(), 'strategy_ids' => [], 'studio_ids' => []]);
         if (! empty($d['output']) && $d['path'] === 'quick') {
             return redirect()->route('user.marketing-studio.build', [$campaign, 'output' => $d['output']]);
         }

@@ -9,6 +9,7 @@
         @csrf @method('PUT')
         @include('user.projects._form', ['project' => $project])
 
+        <section class="notes-card mt-4"><label for="folder-brand">Default Brand Kit for new campaigns</label><select id="folder-brand" name="default_brand_kit_id" class="theme-input"><option value="">Choose when creating</option>@foreach(collect($choices)->where('kind','brand') as $brand)<option value="{{ $brand['id'] }}" @selected(old('default_brand_kit_id',$project->default_brand_kit_id)==$brand['id'])>{{ $brand['label'] }}</option>@endforeach</select><p class="notes-hint">Prefills the Brand Kit in new Studio campaigns created from this folder. Existing campaigns and published pages keep their settings.</p></section>
         <div class="flex items-center justify-end gap-3 mt-4">
             <a href="{{ route('user.projects.index') }}" class="px-4 py-2.5 text-sm text-secondary hover:bg-white/10 rounded-xl">Cancel</a>
             <button type="submit" class="btn-primary px-6 py-2.5 rounded-xl text-sm font-medium">Save Changes</button>
