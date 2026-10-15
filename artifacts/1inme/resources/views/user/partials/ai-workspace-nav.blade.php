@@ -12,7 +12,7 @@
 <a href="{{ route('user.ai.companion.show') }}">General chat</a>
 @if($aiUser && \App\Services\AI\AiPlanAccess::featureAllowed($aiUser,'ask_coach'))<a href="{{ route('user.ai.ask-coach.show') }}">Business insights</a>@endif
 <button type="button" onclick="document.getElementById('sa-launcher')?.click()">Page guidance</button>
-<a href="{{ route('user.ai.zio-conversations') }}">Page guidance history</a>
+@if(\Illuminate\Support\Facades\Route::has('user.ai.zio-conversations'))<a href="{{ route('user.ai.zio-conversations') }}">Page guidance history</a>@endif
 </nav>
 @endif
 @if(request()->routeIs('user.ai-personas.*','user.ai.staff.*'))
