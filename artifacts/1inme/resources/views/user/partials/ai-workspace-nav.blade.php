@@ -4,20 +4,21 @@
 @endphp
 <nav class="ai-workspace-nav" aria-label="AI workspace">
     @if($aiUser)<a href="{{ \App\Services\AI\AiPlanAccess::featureAllowed($aiUser,'ask_coach') ? route('user.ai.ask-coach.show') : route('user.ai.companion.show') }}" @if(request()->routeIs('user.ai.ask-coach.*','user.ai.companion.*')) aria-current="page" @endif><i class="fas fa-comment-dots"></i> Ask Zio</a>@endif
-    @if($aiUser)<a href="{{ route('user.ai-personas.index') }}" @if(request()->routeIs('user.ai.ask-coach.*','user.ai.companion.*'))
-<nav class="ai-workspace-nav ai-workspace-subnav" aria-label="Ask Zio modes">
-    <a href="{{ route('user.ai.companion.show') }}" @if(request()->routeIs('user.ai.companion.*')) aria-current="page" @endif>General chat</a>
-    @if($aiUser && \App\Services\AI\AiPlanAccess::featureAllowed($aiUser,'ask_coach'))<a href="{{ route('user.ai.ask-coach.show') }}" @if(request()->routeIs('user.ai.ask-coach.*')) aria-current="page" @endif>Business insights</a>@endif
-    <button type="button" onclick="var button=document.getElementById('sa-launcher');if(button)button.click();">Page guidance</button>
-</nav>
-@endif
-@if(request()->routeIs('user.ai-personas.*','user.ai.staff.*')) aria-current="page" @endif><i class="fas fa-user-astronaut"></i> Agents</a>@endif
+    @if($aiUser)<a href="{{ route('user.ai-personas.index') }}" @if(request()->routeIs('user.ai-personas.*','user.ai.staff.*')) aria-current="page" @endif><i class="fas fa-user-astronaut"></i> Agents</a>@endif
     @if($aiUser)<a href="{{ route('user.ai-companions.index') }}" @if(request()->routeIs('user.ai-companions.*')) aria-current="page" @endif><i class="fas fa-comments"></i> Channels</a>@endif
 </nav>
+@if(request()->routeIs('user.ai.ask-coach.*','user.ai.companion.*','user.ai.zio-conversations*'))
+<nav class="ai-workspace-nav ai-workspace-subnav" aria-label="Ask Zio modes">
+<a href="{{ route('user.ai.companion.show') }}">General chat</a>
+@if($aiUser && \App\Services\AI\AiPlanAccess::featureAllowed($aiUser,'ask_coach'))<a href="{{ route('user.ai.ask-coach.show') }}">Business insights</a>@endif
+<button type="button" onclick="document.getElementById('sa-launcher')?.click()">Page guidance</button>
+<a href="{{ route('user.ai.zio-conversations') }}">Page guidance history</a>
+</nav>
+@endif
 @if(request()->routeIs('user.ai-personas.*','user.ai.staff.*'))
 <nav class="ai-workspace-nav ai-workspace-subnav" aria-label="Agent types">
     @if($aiUser)<a href="{{ route('user.ai-personas.index') }}" @if(request()->routeIs('user.ai-personas.*')) aria-current="page" @endif>Customer agents</a>@endif
-    @if($staffAvailable)<a href="{{ route('user.ai.staff.index') }}" @if(request()->routeIs('user.ai.staff.*')) aria-current="page" @endif>Team assistants</a>@endif
+    @if($staffAvailable)<a href="{{ route('user.ai.staff.index') }}" @if(request()->routeIs('user.ai.staff.*')) aria-current="page" @endif>AI Staff</a>@endif
 </nav>
 @endif
 @once

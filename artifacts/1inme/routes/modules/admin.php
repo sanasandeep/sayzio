@@ -776,6 +776,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('reseed-default',     [\App\Modules\Admin\Controllers\AiMindAdminController::class, 'reseedDefault'])->middleware(CheckPermission::class . ':settings.manage')->name('reseed');
         });
 
+        Route::get('ai-staff-reports', [\App\Modules\User\Controllers\AI\AiStaffReportController::class, 'admin'])->middleware(CheckPermission::class . ':settings.manage')->name('ai-staff-reports');
+
         // Ask Coach — usage + quality + central system prompt + per-plan toggle.
         Route::prefix('ask-coach')->name('ask-coach.')->group(function () {
             Route::get('/',         [\App\Modules\Admin\Controllers\AskCoachAdminController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');

@@ -28,6 +28,8 @@ class AiStaff extends Model
         self::DOMAIN_CONTACTS => 'Contacts & Leads',
         self::DOMAIN_INBOX    => 'Inbox',
         self::DOMAIN_GENERAL  => 'General Assistant',
+        'sales' => 'Sales', 'support' => 'Customer support', 'projects' => 'Projects & tasks',
+        'client_success' => 'Client success', 'marketing' => 'Marketing & content', 'scheduling' => 'Scheduling',
     ];
 
     public const DOMAIN_DESCRIPTIONS = [
@@ -35,6 +37,12 @@ class AiStaff extends Model
         self::DOMAIN_CONTACTS => 'Summarizes contacts & leads, suggests next steps, and drafts follow-up messages.',
         self::DOMAIN_INBOX    => 'Wires into your Inbox Agent settings to triage and draft/send replies for incoming messages.',
         self::DOMAIN_GENERAL  => 'Answers questions about your Sayzio account, grounded in your live workspace data.',
+        'sales' => 'Suggests qualification questions, proposals and sales follow-up drafts. No autonomous sending.',
+        'support' => 'Drafts grounded answers, summarizes issues and recommends escalation.',
+        'projects' => 'Reviews task progress and drafts practical plans. Does not modify tasks automatically.',
+        'client_success' => 'Drafts client updates and renewal follow-up recommendations.',
+        'marketing' => 'Drafts campaigns and content from selected knowledge and business data.',
+        'scheduling' => 'Reviews available event context and drafts scheduling suggestions. Does not book meetings.',
     ];
 
     protected $fillable = [
@@ -73,7 +81,7 @@ class AiStaff extends Model
     /** The AiPlanAccess / AiFeatureCatalog / AiUsageCharger feature key for this staff's domain. */
     public function featureKey(): string
     {
-        return 'ai_staff_' . $this->domain;
+        return 'ai_staff_' . (in_array($this->domain, ['billing','contacts','inbox','general'], true) ? $this->domain : 'general');
     }
 
     public function markUsed(): void

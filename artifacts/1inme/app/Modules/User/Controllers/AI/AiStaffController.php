@@ -49,6 +49,7 @@ class AiStaffController extends Controller
             'suggestions' => $suggestions,
             'balance'     => $this->credits->getBalance($request->user()),
             'enabled'     => AiEngineSettings::isEnabled(),
+            ...app(\App\Services\AI\AiStaffConnections::class)->options($request->user()),
         ]);
     }
 
@@ -60,15 +61,17 @@ class AiStaffController extends Controller
             'instructions' => ['nullable', 'string', 'max:4000'],
         ]);
 
-        if (!AiPlanAccess::featureAllowed($request->user(), 'ai_staff_' . $data['domain'])) {
+        if (!AiPlanAccess::featureAllowed($request->user(), (new AiStaff(['domain'=>$data['domain']]))->featureKey())) {
             return back()->with('error', 'AI Staff for this domain is not available on your current plan.')->withInput();
         }
 
+        $connections=app(\App\Services\AI\AiStaffConnections::class)->validate($request);
         $staff = AiStaff::create([
             'user_id'      => $request->user()->id,
             'name'         => $data['name'],
             'domain'       => $data['domain'],
             'instructions' => $data['instructions'] ?? null,
+            'config' => ['connections'=>$connections],
         ]);
 
         return redirect()->route('user.ai.staff.show', $staff)->with('status', "{$staff->name} hired.");
@@ -89,6 +92,7 @@ class AiStaffController extends Controller
             'contacts'    => $contacts,
             'balance'     => $this->credits->getBalance($request->user()),
             'planAllowed' => AiPlanAccess::featureAllowed($request->user(), $staff->featureKey()),
+            ...app(\App\Services\AI\AiStaffConnections::class)->options($request->user()),
         ]);
     }
 
@@ -102,7 +106,10 @@ class AiStaffController extends Controller
             'is_disabled'  => ['nullable', 'boolean'],
         ]);
 
+        $config=(array)$staff->config;
+        if($request->has('connections'))$config['connections']=app(\App\Services\AI\AiStaffConnections::class)->validate($request);
         $staff->forceFill([
+            'config'=>$config,
             'name'         => $data['name'],
             'instructions' => $data['instructions'] ?? null,
             'is_disabled'  => (bool) ($data['is_disabled'] ?? false),
@@ -117,6 +124,17 @@ class AiStaffController extends Controller
         $staff->delete();
 
         return redirect()->route('user.ai.staff.index')->with('status', 'Staff member removed.');
+    }
+
+    public function estimate(Request $request, AiStaff $staff)
+    {
+        $this->authorizeOwned($request, $staff);
+        $this->ensureActionable($request, $staff);
+        $data=$request->validate(['message'=>'required|string|max:2000','history'=>'nullable|array|max:10','history.*.content'=>'required|string|max:4000','history.*.role'=>'required|in:user,assistant']);
+        $model=AiEngineSettings::featureModel($staff->featureKey(),$request->user());
+        $text=$this->runtime->systemPrompt($staff)."\n".collect($data['history']??[])->pluck('content')->implode("\n")."\n".$data['message'];
+        $coins=app(\App\Services\AI\OpenAiService::class)->estimateChatCoinsForText($model,$text,100,700,$request->user());
+        return response()->json(['estimated_coins'=>$coins,'model'=>$model]);
     }
 
     /** Free-form chat with a staff member. */
@@ -264,6 +282,9 @@ class AiStaffController extends Controller
     protected function ensureActionable(Request $request, AiStaff $staff, ?string $expectDomain = null): void
     {
         if ($expectDomain !== null && $staff->domain !== $expectDomain) abort(404);
+        if (($staff->config['connections']['mode'] ?? 'draft') === 'read' && $expectDomain !== null) abort(403, 'This staff member is read-only.');
+        $budget=(int)($staff->config['connections']['monthly_budget']??0);
+        if($budget>0 && app(\App\Services\AI\AiStaffConnections::class)->spent($staff)>=$budget)abort(403,'Monthly staff budget reached.');
         if (!AiEngineSettings::isEnabled()) abort(404);
         if (!$staff->isEnabled()) abort(403, 'This AI staff member is disabled.');
         if (!AiPlanAccess::featureAllowed($request->user(), $staff->featureKey())) {

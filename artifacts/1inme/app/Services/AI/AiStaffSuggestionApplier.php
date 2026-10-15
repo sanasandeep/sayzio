@@ -32,6 +32,8 @@ class AiStaffSuggestionApplier
      */
     public function claimAndApply(User $user, AiStaffSuggestion $suggestion): array
     {
+        $staff=$suggestion->aiStaff;
+        if($staff && ($staff->config['connections']['mode']??'draft')==='read')throw new \RuntimeException('This AI Staff member is read-only.');
         $claimed = AiStaffSuggestion::query()
             ->whereKey($suggestion->getKey())
             ->where('status', AiStaffSuggestion::STATUS_PENDING)

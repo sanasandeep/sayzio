@@ -58,7 +58,7 @@ class ZioPageKnowledge
         }
         $friendly = ['user.ai-personas.index' => 'Agents',
             'user.ai-companions.index' => 'Channels',
-            'user.ai.staff.index' => 'Team assistants',
+            'user.ai.staff.index' => 'AI Staff',
             'user.ai.ask-coach.show' => 'Ask Zio',
             'user.vault.clients.index' => 'Clients', 'user.projects.index' => 'Folders', 'user.calendars.mine' => 'Calendar', 'user.qr-codes.index' => 'QR Codes'];
         if (in_array($needle, ['block', 'blocks', 'biolink blocks', 'social blocks'], true)) {
