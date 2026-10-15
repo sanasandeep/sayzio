@@ -28,7 +28,6 @@
 @endguest
 <a href="#sayzio-journey" class="sj-secondary" data-journey-replay><i class="fas fa-play" aria-hidden="true"></i>See how Sayzio works</a>
 </div>
-<p class="sj-features">Pages & QR codes <span>·</span> Marketing <span>·</span> CRM<br>Sales & billing <span>·</span> Projects & support</p>
 <div class="sj-proof">@foreach($heroBadges as $badge)<span><i class="{{ !empty($badge['pulse'])?'pulse-dot':'' }}" aria-hidden="true"></i><b>{{ $badge['value'] }}</b> {{ $badge['label'] }}</span>@endforeach</div>
 </div>
 <div id="sayzio-journey" class="sj-board" aria-label="Illustrative customer journey">
@@ -39,7 +38,7 @@
 @endforeach
 </ol>
 <div class="sj-explanation" aria-live="off">@foreach($journey as $i=>$stage)<p data-journey-description="{{ $i }}" @if($i!==0) hidden @endif>{{ $stage[5] }}</p>@endforeach</div>
-<div class="sj-board-foot"><div class="sj-zio">@include('home.partials.zio-face',['mouth'=>false,'alt'=>'Zio, your AI helper','size'=>'110px'])<span><strong>AI helps along the way</strong><small>Create, plan, answer and assist.</small></span></div><button class="sj-playback" type="button" data-journey-toggle aria-label="Pause journey animation"><i class="fas fa-pause" aria-hidden="true"></i></button></div>
+<div class="sj-board-foot"><div class="sj-zio">@include('home.partials.zio-face',['mouth'=>true,'alt'=>'Zio, your AI helper','size'=>'110px'])<span><strong>AI helps along the way</strong><small>Create, plan, answer and assist.</small></span></div><button class="sj-playback" type="button" data-journey-toggle aria-label="Pause journey animation"><i class="fas fa-pause" aria-hidden="true"></i></button></div>
 <p class="sj-demo-note">Example only. Connect tools and review actions as needed.</p>
 </div>
 </div>
