@@ -2,6 +2,7 @@
 @section('title', $source->title)
 
 @section('content')
+@include('user.minds.partials.styles')
 @php
     use App\Modules\User\Models\AiMindSource;
 
@@ -47,7 +48,7 @@
 
     $highlightMatched = false;
 @endphp
-<div class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+<div class="minds-page w-full space-y-6">
     <div>
         <a href="{{ route('user.minds.edit', $mind) }}" class="text-xs text-white/40 hover:text-white/60">
             <i class="fas fa-arrow-left"></i> Back to {{ $mind->name }}
@@ -78,7 +79,7 @@
             @case(AiMindSource::TYPE_LINK)
                 <p class="text-sm text-white/60 mb-2">Synced from URL:</p>
                 <a href="{{ $source->url }}" target="_blank" rel="noopener noreferrer"
-                   class="text-cyan-300 hover:underline break-all">{{ $source->url }}</a>
+                   class="text-indigo-300 hover:underline break-all">{{ $source->url }}</a>
                 @if(!empty($source->body))
                     <div class="mt-4 pt-4 border-t border-white/10">
                         <p class="text-xs uppercase tracking-wider text-white/40 mb-2">Last fetched content</p>

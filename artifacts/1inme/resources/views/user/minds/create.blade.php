@@ -2,13 +2,11 @@
 @section('title', 'New AI Mind')
 
 @section('content')
-<div class="max-w-2xl mx-auto px-4 py-8 space-y-6">
+@include('user.minds.partials.styles')
+<div class="minds-page w-full space-y-6">
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
-    <div>
-        <h1 class="text-2xl font-bold text-white">Create an AI Mind</h1>
-        <p class="text-sm text-white/50 mt-1">Give your AI Mind a name. You'll add sources (text, FAQs, documents, links, Sayzio data) on the next page.</p>
-    </div>
+    @include('user.partials.page-hero', ['title' => 'New AI Mind', 'subtitle' => 'Name your knowledge base, then add sources for your AI agents.', 'icon' => 'fa-brain', 'back' => route('user.minds.index'), 'actions' => [], 'chips' => []])
 
     <form method="POST" action="{{ route('user.minds.store') }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4">
         @csrf
@@ -32,7 +30,7 @@
         ]])
         <div class="flex items-center justify-end gap-2 pt-2">
             <a href="{{ route('user.minds.index') }}" class="px-4 py-2 rounded-xl bg-white/5 text-white/70 text-sm">Cancel</a>
-            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium">Create AI Mind</button>
+            <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium">Create AI Mind</button>
         </div>
     </form>
 </div>

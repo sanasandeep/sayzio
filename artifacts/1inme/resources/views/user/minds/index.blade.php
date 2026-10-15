@@ -2,39 +2,34 @@
 @section('title', 'AI Minds')
 
 @section('content')
-<div class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+@include('user.minds.partials.styles')
+<div class="minds-page w-full space-y-6">
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
-    <div class="flex flex-wrap items-end justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-bold text-white">AI Minds</h1>
-            <p class="text-sm text-white/50 mt-1">Labelled AI Minds your AI agents and AI Link Optimizer can draw on. Add text, FAQs, documents, links, or live Sayzio data.</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <span class="text-xs text-white/40">{{ $usedMinds }} / {{ $caps['max_minds_per_user'] == -1 ? '∞' : $caps['max_minds_per_user'] }} AI Minds</span>
-            @if($caps['max_minds_per_user'] == -1 || $usedMinds < $caps['max_minds_per_user'])
-                <a href="{{ route('user.minds.create') }}" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium">
-                    <i class="fas fa-plus mr-1"></i> New AI Mind
-                </a>
-            @else
-                <button disabled class="px-4 py-2 rounded-xl bg-white/5 text-white/30 text-sm cursor-not-allowed">Limit reached</button>
-            @endif
-        </div>
-    </div>
+    @php
+        $unlimitedMinds = $caps['max_minds_per_user'] == -1 || $caps['max_minds_per_user'] == PHP_INT_MAX;
+        $mindActions = ($unlimitedMinds || $usedMinds < $caps['max_minds_per_user'])
+            ? [['label' => 'New AI Mind', 'url' => route('user.minds.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary']] : [];
+    @endphp
+    @include('user.partials.page-hero', [
+        'title' => 'AI Minds', 'subtitle' => 'Manage the knowledge your AI agents use. Add documents, FAQs, links and Sayzio data.',
+        'icon' => 'fa-brain', 'back' => route('user.dashboard'), 'actions' => $mindActions,
+        'chips' => [['text' => $usedMinds.' AI Minds', 'icon' => 'fa-brain'], ['text' => $unlimitedMinds ? 'Unlimited plan' : $caps['max_minds_per_user'].' mind limit', 'icon' => 'fa-layer-group']],
+    ])
 
     @if($platform->isNotEmpty())
         <div>
             <h2 class="text-xs uppercase tracking-wider text-white/40 mb-2">Platform AI Mind</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 @foreach($platform as $m)
-                    <a href="{{ route('user.minds.edit', $m) }}" class="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-900/20 to-blue-900/10 p-5 hover:border-white/20 transition">
+                    <a href="{{ route('user.minds.edit', $m) }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 hover:border-white/20 transition">
                         <div class="flex items-start justify-between gap-2">
                             <div>
-                                <p class="text-white font-semibold">{{ $m->name }} <span class="ml-1 text-[10px] uppercase tracking-wider text-cyan-300/80">Default</span></p>
+                                <p class="text-white font-semibold">{{ $m->name }} <span class="ml-1 text-[10px] uppercase tracking-wider text-indigo-300">Default</span></p>
                                 <p class="text-xs text-white/50 mt-1">{{ $m->description ?: 'Sayzio product knowledge available to every AI agent.' }}</p>
                             </div>
-                            <i class="fas fa-network-wired text-cyan-400/60"></i>
+                            <i class="fas fa-network-wired text-indigo-300"></i>
                         </div>
                         <div class="mt-3 flex items-center gap-3 text-xs text-white/40">
                             <span><i class="fas fa-layer-group mr-1"></i>{{ $m->sources_count }} sources</span>
@@ -51,7 +46,7 @@
         <h2 class="text-xs uppercase tracking-wider text-white/40 mb-2">Your AI Minds</h2>
         @if($mine->isEmpty())
             <div class="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/40 text-sm">
-                You don't have any AI Minds yet. <a class="text-cyan-300 hover:underline" href="{{ route('user.minds.create') }}">Create your first one</a>.
+                You don't have any AI Minds yet. <a class="text-indigo-300 hover:underline" href="{{ route('user.minds.create') }}">Create your first one</a>.
             </div>
         @else
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -76,7 +71,7 @@
                             </form>
                             <form method="POST" action="{{ route('user.minds.destroy', $m) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this AI Mind?', message: 'All of its sources will be removed too.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
-                                <button class="px-3 py-1.5 text-xs rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300"><i class="fas fa-trash"></i></button>
+                                <button aria-label="Delete {{ $m->name }}" class="px-3 py-1.5 text-xs rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300"><i class="fas fa-trash"></i></button>
                             </form>
                         </div>
                     </div>
