@@ -155,7 +155,7 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
 function fileUploadField_{{ $fieldId }}() {
     return {
         mode: '{{ $currentValue ? "url" : "upload" }}',
-        value: '{{ $currentValue }}',
+        value: @js($currentValue),
         fileMeta: null,
         dragging: false,
         uploading: false,

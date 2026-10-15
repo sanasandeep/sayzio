@@ -2,7 +2,7 @@
 @section('title', 'Edit AI Agent')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 py-8 space-y-6"
+<div class="agents-page w-full space-y-6"
      x-data="personaTester({
         endpoint: '{{ route('user.ai-personas.test', $persona) }}',
         greeting: @js($persona->greeting),
@@ -10,19 +10,7 @@
      })">
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
 
-    <div class="flex items-end justify-between gap-3">
-        <div>
-            <a href="{{ route('user.ai-personas.index') }}" class="text-xs text-white/50 hover:text-white"><i class="fas fa-arrow-left"></i> Back to AI Agents</a>
-            <h1 class="text-2xl font-bold text-white mt-2">{{ $persona->name }}
-                @if(!$isOwner)<span class="ml-2 text-[10px] uppercase tracking-wider text-sky-300/80 align-middle">Shared · {{ $shareAccess === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}</span>@endif
-            </h1>
-            <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; Coin balance: <span class="text-blue-300">{{ number_format($balance) }}</span></p>
-            @if($persona->is_disabled)
-                <p class="mt-2 text-xs text-red-300">This AI agent is disabled by an administrator: {{ $persona->disabled_reason }}</p>
-            @endif
-        </div>
-    </div>
-
+    @include('user.partials.page-hero', ['title'=>$persona->name,'subtitle'=>'Configure, ground and test your AI agent. Save a version when your draft is ready.','icon'=>'fa-user-astronaut','back'=>route('user.ai-personas.index'),'actions'=>[],'chips'=>[['text'=>number_format($balance).' coins','icon'=>'fa-coins'],['text'=>$isOwner?'Your agent':($canEdit?'Shared editor':'View only'),'icon'=>'fa-user']]])
     @unless($canEdit)
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
             <i class="fas fa-eye mr-1 text-sky-300"></i> This agent was shared with you for use only. You can test it below, but only the owner (or an editor) can change its configuration.
@@ -32,11 +20,15 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {{-- ================= EDITOR ================= --}}
         @if($canEdit)
-        <form method="POST" action="{{ route('user.ai-personas.update', $persona) }}" class="lg:col-span-2 space-y-5">
+        <form @submit="if(!$el.checkValidity()) editorTab='basic'" method="POST" action="{{ route('user.ai-personas.update', $persona) }}" @invalid.capture="editorTab=$event.target.closest('[data-agent-tab]')?.dataset.agentTab || 'basic'" id="agent-editor" class="lg:col-span-2 space-y-5" x-data="{ editorTab: 'basic' }">
             @csrf @method('PUT')
 
+            <nav class="agent-tabs" aria-label="Agent settings">
+                <template x-for="tab in [{id:'basic',label:'Basic info'},{id:'more',label:'More info'},{id:'advanced',label:'Advanced'}]"><button type="button" :aria-pressed="editorTab===tab.id" @click="editorTab=tab.id" x-text="tab.label"></button></template>
+            </nav>
+            @include('user.ai-personas.draft-card')
             {{-- Identity --}}
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+            <div data-agent-tab="basic" x-show="editorTab==='basic'" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
                 <h3 class="text-white font-semibold">Identity</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -46,9 +38,7 @@
                         @error('name')<p class="text-xs text-red-400 mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="text-[11px] uppercase tracking-wider text-white/50">Avatar URL</label>
-                        <input type="url" name="avatar_url" maxlength="1024" value="{{ old('avatar_url', $persona->avatar_url) }}"
-                            class="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+                        @include('user.links.partials.file-upload-field', ['fieldName'=>'avatar_url','currentValue'=>old('avatar_url',$persona->avatar_url),'acceptTypes'=>'image','labelText'=>'Agent avatar'])
                     </div>
                 </div>
                 <div>
@@ -59,7 +49,7 @@
             </div>
 
             {{-- Voice --}}
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+            <div data-agent-tab="basic" x-show="editorTab==='basic'" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
                 <h3 class="text-white font-semibold">Voice</h3>
                 <div>
                     <label class="text-[11px] uppercase tracking-wider text-white/50">System prompt *</label>
@@ -105,7 +95,7 @@
             </div>
 
             {{-- Model knobs --}}
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+            <div data-agent-tab="advanced" x-show="editorTab==='advanced'" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
                 <h3 class="text-white font-semibold">Model</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="md:col-span-1">
@@ -134,7 +124,7 @@
             </div>
 
             {{-- Knowledge --}}
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+            <div data-agent-tab="basic" x-show="editorTab==='basic'" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
                 <h3 class="text-white font-semibold">AI Minds</h3>
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="hidden" name="use_default_mind" value="0">
@@ -171,7 +161,7 @@
             </div>
 
             {{-- Behaviour --}}
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+            <div data-agent-tab="advanced" x-show="editorTab==='advanced'" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
                 <h3 class="text-white font-semibold">Behaviour</h3>
                 <div>
                     <label class="text-[11px] uppercase tracking-wider text-white/50">When uncertain *</label>
@@ -195,7 +185,7 @@
             </div>
 
             {{-- Greeting & CTA --}}
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+            <div data-agent-tab="more" x-show="editorTab==='more'" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
                 <h3 class="text-white font-semibold">Greeting &amp; CTA</h3>
                 <div>
                     <label class="text-[11px] uppercase tracking-wider text-white/50">Opening greeting</label>
@@ -403,3 +393,5 @@ function personaTester(opts) {
 }
 </script>
 @endsection
+
+<style>.agents-page{max-width:none;margin:0;padding:0}.agent-tabs{display:flex;gap:8px;position:sticky;top:0;z-index:5;padding:10px;border:1px solid var(--border-color,#dbe2ef);border-radius:16px;background:var(--bg-card,#fff)}.agent-tabs button{padding:10px 18px;border-radius:11px;font-size:13px;color:var(--text-secondary,#9299aa)}.agent-tabs button[aria-pressed=true]{background:#3454ef;color:#fff}.agent-draft-actions{display:flex;gap:8px;flex-wrap:wrap}.agent-draft-actions button{padding:9px 15px;border:1px solid var(--border-color,#dbe2ef);border-radius:10px;font-size:13px}.agent-draft-actions button:disabled{opacity:.5}.agent-draft-result{white-space:pre-wrap;max-height:260px;overflow:auto;font-size:12px;padding:14px;border:1px solid var(--border-color,#dbe2ef);border-radius:12px}.agents-page [x-cloak]{display:none!important}</style>

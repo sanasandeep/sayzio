@@ -1537,6 +1537,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::delete('{persona}',         [\App\Modules\User\Controllers\AI\PersonasController::class, 'destroy'])->whereNumber('persona')->name('destroy');
             Route::post  ('{persona}/duplicate',[\App\Modules\User\Controllers\AI\PersonasController::class, 'duplicate'])->whereNumber('persona')->middleware(CheckPlanLimit::class . ':ai_personas')->name('duplicate');
             Route::post  ('{persona}/versions/{version}/rollback', [\App\Modules\User\Controllers\AI\PersonasController::class, 'rollback'])->whereNumber('persona')->whereNumber('version')->name('rollback');
+            Route::post('{persona}/draft', [\App\Modules\User\Controllers\AI\PersonasController::class, 'draft'])->whereNumber('persona')->middleware('throttle:10,1')->name('draft');
             Route::post  ('{persona}/test',    [\App\Modules\User\Controllers\AI\PersonasController::class, 'test'])->whereNumber('persona')->middleware('throttle:20,1')->name('test');
             // Sharing into teams / badge groups (owner only).
             Route::post  ('{persona}/shares',         [\App\Modules\User\Controllers\AiResourceShareController::class, 'storePersona'])->whereNumber('persona')->name('shares.store');
