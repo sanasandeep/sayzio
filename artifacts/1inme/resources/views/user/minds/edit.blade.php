@@ -51,7 +51,7 @@
                 ['key'=>'query','label'=>'Questions','note'=>'Live test queries','color'=>'59,130,246','path'=>'M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-3 3V11.5A8.5 8.5 0 0 1 9.5 3h3a8.5 8.5 0 0 1 8.5 8.5ZM7 10h10M7 14h6'],
                 ['key'=>'total','label'=>'Total coins','note'=>'Combined spend','color'=>'16,185,129','path'=>'M20 6c0 2-4 4-8 4S4 8 4 6s4-4 8-4 8 2 8 4ZM4 6v6c0 2 4 4 8 4s8-2 8-4V6M4 12v6c0 2 4 4 8 4s8-2 8-4v-6'],
             ] as $stat)
-                <div class="stat-card mind-stat" style="--mind-stat-rgb:{{ $stat['color'] }};--stat-accent:linear-gradient(90deg,rgba({{ $stat['color'] }},1),rgba({{ $stat['color'] }},.35));--stat-glow:rgba({{ $stat['color'] }},.1);--stat-border-color:rgba({{ $stat['color'] }},.2)">
+                <div class="mind-stat" style="background:linear-gradient(135deg,rgb({{ $stat['color'] }}),rgba({{ $stat['color'] }},.8))!important;--mind-stat-rgb:{{ $stat['color'] }};--stat-accent:linear-gradient(90deg,rgba({{ $stat['color'] }},1),rgba({{ $stat['color'] }},.35));--stat-glow:rgba({{ $stat['color'] }},.1);--stat-border-color:rgba({{ $stat['color'] }},.2)">
                     <div class="mind-stat-copy"><p class="mind-stat-label">{{ $stat['label'] }}</p><p class="mind-stat-value">{{ number_format($creditUsage[$stat['key']]) }}</p><p class="mind-stat-note">{{ $stat['note'] }}</p></div>
                     <span class="mind-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $stat['path'] }}"/></svg></span>
                 </div>
