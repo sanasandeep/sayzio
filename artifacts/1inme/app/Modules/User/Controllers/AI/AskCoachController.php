@@ -146,7 +146,7 @@ class AskCoachController extends Controller
             ])->all()
             : [];
 
-        $guidanceQuery = \App\Modules\Common\Models\SiteAssistantConversation::where('bound_user_id', $user->id)->where('turns_count','>',0);
+        $guidanceQuery = \App\Modules\Common\Models\SiteAssistantConversation::where('bound_user_id', $user->id)->whereHas('messages',fn($q)=>$q->where('role','user'));
         if ($search !== '') {
             $guidanceQuery->where(function ($q) use ($like) {
                 $q->where('last_page_title','like',$like)->orWhereHas('messages',fn($m)=>$m->whereIn('role',['user','assistant'])->where('content','like',$like));

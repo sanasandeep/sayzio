@@ -10,7 +10,7 @@ class ZioConversationController extends Controller
 {
     public function index(Request $request)
     {
-        return view('user.ai.zio-conversations', ['conversations' => SiteAssistantConversation::where('bound_user_id', $request->user()->id)->latest('last_message_at')->paginate(20), 'conversation' => null]);
+        return view('user.ai.zio-conversations', ['conversations' => SiteAssistantConversation::where('bound_user_id', $request->user()->id)->whereHas('messages', fn ($q) => $q->where('role', 'user'))->withCount(['messages as user_messages_count' => fn ($q) => $q->where('role', 'user'), 'messages as assistant_messages_count' => fn ($q) => $q->where('role', 'assistant')])->withSum('messages', 'credits_spent')->with(['messages' => fn ($q) => $q->where('role', 'user')->oldest('id')->limit(1)])->latest('last_message_at')->paginate(20), 'conversation' => null]);
     }
 
     public function show(Request $request, SiteAssistantConversation $conversation)

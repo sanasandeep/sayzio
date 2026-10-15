@@ -22,6 +22,7 @@ class ZioTranscriptRecorder
             foreach ($messages as $message) {
                 SiteAssistantMessage::create(['conversation_id' => $conversation->id] + $message);
             }
+            $conversation->turns_count += count(array_filter($messages, fn ($message) => ($message['role'] ?? '') === 'user'));
             $conversation->last_message_at = now();
             $conversation->credits_spent += (int) array_sum(array_column($messages, 'credits_spent'));
             $conversation->save();
