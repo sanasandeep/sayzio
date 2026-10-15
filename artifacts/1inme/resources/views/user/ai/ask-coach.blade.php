@@ -12,7 +12,7 @@
     ])
 
     <div class="rounded-2xl border border-white/10 p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div><strong class="text-sm">Business insights</strong><p class="text-xs text-white/50 mt-1">This workspace uses your accessible business data. Page guidance opens the floating Zio assistant; its chat history is separate.</p></div>
+        <div><strong class="text-sm">Business insights</strong><p class="text-xs text-white/50 mt-1">This workspace uses your accessible business data. Page guidance opens the floating Zio assistant; its saved conversations are listed below under Page guidance.</p></div>
         <button type="button" class="btn-primary text-sm" onclick="var launcher=document.getElementById('sa-launcher');if(launcher)launcher.click();else this.nextElementSibling.hidden=false;">Open page guidance</button><span hidden class="text-xs text-white/50">Page guidance is unavailable with the current assistant settings.</span>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
@@ -61,6 +61,19 @@
                 @if($threads->hasPages())
                     <div class="pt-2">{{ $threads->links() }}</div>
                 @endif
+            @endif
+
+            @if(\Illuminate\Support\Facades\Route::has('user.ai.zio-conversations.show'))
+            <div class="mt-4 pt-3 border-t border-white/5">
+                <h2 class="text-xs font-semibold mb-2">Page guidance · Ask Zio</h2>
+                @forelse($guidanceSessions as $session)
+                <a class="block px-3 py-2 rounded-xl text-sm hover:bg-white/5" href="{{ route('user.ai.zio-conversations.show',$session) }}">
+                    <span class="block truncate">{{ \Illuminate\Support\Str::limit($session->messages->first()?->content ?: $session->last_page_title ?: 'Page guidance chat',70) }}</span>
+                    <span class="block text-[10px] opacity-50">{{ $session->last_message_at?->diffForHumans() }} · {{ $session->turns_count }} turns</span>
+                </a>
+                @empty<p class="text-xs opacity-50">{{ $search !== '' ? 'No matching page guidance chats.' : 'No saved page guidance chats yet.' }}</p>@endforelse
+                <a class="text-xs inline-block mt-2" href="{{ route('user.ai.zio-conversations') }}">View all page guidance chats →</a>
+            </div>
             @endif
 
             {{-- Tools panel — be transparent about what Coach can see --}}
