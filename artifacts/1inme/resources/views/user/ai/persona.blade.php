@@ -21,31 +21,18 @@
         </div>
     @endif
 
-    <section class="persona-shortcuts rounded-2xl border border-white/10 p-5 mb-6" aria-labelledby="persona-start-title">
-        <h2 id="persona-start-title" class="text-white font-semibold">Start with a persona brief</h2>
+    <details class="persona-shortcuts rounded-2xl border border-white/10 p-5 mb-6" aria-labelledby="persona-start-title">
+        <summary id="persona-start-title" class="persona-gallery-summary"><span><strong>Choose a persona brief</strong><small>54 starting points · Sales, support &amp; startups</small></span><span>Browse briefs <i class="fas fa-chevron-down" aria-hidden="true"></i></span></summary>
         <p class="text-sm text-white/50 mt-1">Choose a starting point, adjust the details, then generate. Shortcuts do not spend coins.</p>
-        <div class="persona-gallery-toolbar"><label class="persona-search"><i class="fas fa-search" aria-hidden="true"></i><input type="search" id="persona-preset-search" aria-label="Search persona briefs" placeholder="Search persona briefs…"></label><span id="persona-preset-count" class="text-xs text-white/50">12 starting points</span></div>
+        <div class="persona-gallery-toolbar"><label class="persona-search"><i class="fas fa-search" aria-hidden="true"></i><input type="search" id="persona-preset-search" aria-label="Search persona briefs" placeholder="Search persona briefs…"></label><span id="persona-preset-count" class="text-xs text-white/50">54 starting points</span></div>
         <div class="persona-preset-grid">
-        @foreach([
-            ['name'=>'Startup founders','icon'=>'fa-rocket','audience'=>'Solo SaaS founders launching their first paid product','goals'=>'Understand buying motivations, objections and the messages that turn interest into trials.','tone'=>'Practical, direct and encouraging'],
-            ['name'=>'Creators','icon'=>'fa-palette','audience'=>'Independent creators building an audience and selling digital products','goals'=>'Identify content needs, trust signals and reasons to buy or subscribe.','tone'=>'Warm, creative and clear'],
-            ['name'=>'Local business','icon'=>'fa-store','audience'=>'Local service business owners looking for more qualified customer enquiries','goals'=>'Understand daily frustrations, purchase decisions and offers that build trust.','tone'=>'Approachable, specific and professional'],
-            ['name'=>'Online shoppers','icon'=>'fa-bag-shopping','audience'=>'Online shoppers comparing quality, convenience and value before buying','goals'=>'Identify shopping triggers, hesitation, decision criteria and useful product messaging.','tone'=>'Helpful, confident and simple'],
-            ['name'=>'Freelancers','icon'=>'fa-laptop','audience'=>'Independent freelancers growing a sustainable client business','goals'=>'Identify client acquisition challenges, pricing objections and trust-building messages.','tone'=>'Professional, helpful and direct','category'=>'Business'],
-            ['name'=>'Students','icon'=>'fa-graduation-cap','audience'=>'University students exploring practical skills and their first career opportunities','goals'=>'Understand learning needs, affordability concerns and career decision criteria.','tone'=>'Encouraging, clear and practical','category'=>'Education'],
-            ['name'=>'Career changers','icon'=>'fa-briefcase','audience'=>'Working professionals moving into a new industry or role','goals'=>'Understand skill gaps, uncertainty and support needed to take the next step.','tone'=>'Reassuring, realistic and actionable','category'=>'Education'],
-            ['name'=>'Coaches & consultants','icon'=>'fa-comments','audience'=>'Independent coaches and consultants building a trusted practice','goals'=>'Identify positioning needs, client objections and reasons to book a consultation.','tone'=>'Empathetic, expert and clear','category'=>'Business'],
-            ['name'=>'Community members','icon'=>'fa-users','audience'=>'People considering joining a professional interest-based community','goals'=>'Understand belonging, participation and membership value expectations.','tone'=>'Welcoming, inclusive and useful','category'=>'Community'],
-            ['name'=>'Product teams','icon'=>'fa-cubes','audience'=>'Small product teams evaluating tools to improve collaboration','goals'=>'Identify workflow friction, adoption barriers and purchase decision criteria.','tone'=>'Concise, evidence-led and professional','category'=>'Business'],
-            ['name'=>'Travel planners','icon'=>'fa-compass','audience'=>'Independent travellers comparing destinations, stays and experiences','goals'=>'Understand planning frustrations, budget tradeoffs and booking motivations.','tone'=>'Inspiring, practical and friendly','category'=>'Lifestyle'],
-            ['name'=>'Wellness seekers','icon'=>'fa-leaf','audience'=>'Adults exploring sustainable everyday wellness habits','goals'=>'Understand routine challenges and preferences without assuming medical conditions or giving medical advice.','tone'=>'Supportive, balanced and non-judgmental','category'=>'Lifestyle'],
-        ] as $preset)
-            <button type="button" aria-pressed="false" class="persona-preset" data-persona-preset='{{ json_encode($preset, JSON_HEX_APOS | JSON_HEX_QUOT) }}'><i class="fas {{ $preset['icon'] }}" aria-hidden="true"></i><span class="persona-preset-copy"><small>{{ $preset['category'] ?? (in_array($preset['name'], ['Startup founders', 'Local business']) ? 'Business' : 'Audience') }}</small><strong>{{ $preset['name'] }}</strong><em>{{ $preset['audience'] }}</em></span><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+        @foreach(config('persona_briefs') as $preset)
+            <button type="button" aria-pressed="false" class="persona-preset" data-persona-preset='{{ json_encode($preset, JSON_HEX_APOS | JSON_HEX_QUOT) }}'><i class="fas {{ $preset['icon'] }}" aria-hidden="true"></i><span class="persona-preset-copy"><small>{{ $preset['category'] ?? (in_array($preset['name'], ['Startup founders', 'Local business']) ? 'Business' : 'Audience') }}</small><strong>{{ $preset['name'] }}</strong></span><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
         @endforeach
         </div>
         <p id="persona-preset-empty" hidden class="text-sm text-white/50 mt-3">No matching briefs. Try another search or write your own audience below.</p>
         <p id="persona-preset-status" role="status" class="text-xs text-white/50 mt-3">All suggestions are editable.</p>
-    </section>
+    </details>
 
     <form method="POST" action="{{ route('user.ai.persona.generate') }}"
           class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
@@ -202,7 +189,7 @@
 @push('scripts')
 <script>
 var presetSearch=document.getElementById('persona-preset-search');
-presetSearch.addEventListener('input',function(){var query=presetSearch.value.trim().toLowerCase(),count=0;document.querySelectorAll('[data-persona-preset]').forEach(function(card){var match=card.textContent.toLowerCase().includes(query);card.hidden=!match;if(match)count++;});document.getElementById('persona-preset-count').textContent=count+' starting points';document.getElementById('persona-preset-empty').hidden=count>0;});
+presetSearch.addEventListener('input',function(){var query=presetSearch.value.trim().toLowerCase(),count=0;document.querySelectorAll('[data-persona-preset]').forEach(function(card){var match=(card.textContent+' '+JSON.parse(card.dataset.personaPreset).audience).toLowerCase().includes(query);card.hidden=!match;if(match)count++;});document.getElementById('persona-preset-count').textContent=count+' starting points';document.getElementById('persona-preset-empty').hidden=count>0;});
 document.querySelectorAll('[data-persona-preset]').forEach(function(button){button.addEventListener('click',function(){
 var form=document.querySelector('form[action="{{ route('user.ai.persona.generate') }}"]'),preset=JSON.parse(button.dataset.personaPreset);
 var changed=['audience','goals','tone'].some(function(name){return form.elements[name].value.trim();});
@@ -218,4 +205,8 @@ document.querySelectorAll('[data-persona-preset]').forEach(function(b){b.setAttr
 
 <style>
 .persona-gallery-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:20px}.persona-search{display:flex;align-items:center;gap:10px;border:1px solid var(--border-color,#dbe2ef);border-radius:12px;padding:10px 14px;max-width:420px;width:100%;color:#9299aa}.persona-search input{width:100%;background:transparent;border:0!important;outline:0;color:var(--text-primary,inherit);font-size:14px}.persona-preset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.persona-preset{align-items:flex-start;min-height:154px;transition:box-shadow .2s,border-color .2s,transform .2s;background:linear-gradient(140deg,rgba(99,102,241,.07),transparent)}.persona-preset:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(40,55,100,.08)}.persona-preset[hidden]{display:none}.persona-preset-copy{min-width:0}.persona-preset-copy small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#8790aa;margin-bottom:5px}.persona-preset-copy strong{display:block;font-size:14px}.persona-preset-copy em{display:block;font-style:normal;font-size:12px;line-height:1.5;font-weight:400;color:var(--text-secondary,#9299aa);margin-top:7px}.persona-preset>i:last-child{margin-top:14px}@media(max-width:1100px){.persona-preset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.persona-preset-grid{grid-template-columns:1fr}.persona-gallery-toolbar{align-items:flex-start;flex-direction:column}}
+</style>
+
+<style>
+.persona-gallery-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;list-style:none;color:var(--text-primary,inherit)}.persona-gallery-summary::-webkit-details-marker{display:none}.persona-gallery-summary small{display:block;font-size:12px;font-weight:400;color:var(--text-secondary,#9299aa);margin-top:5px}.persona-gallery-summary>span:last-child{font-size:12px;color:#6478ef}.persona-shortcuts:not([open])>p{display:none}.persona-shortcuts[open] .persona-gallery-summary{margin-bottom:16px}.persona-preset-grid{grid-template-columns:repeat(4,minmax(0,1fr));max-height:420px;overflow:auto;padding:2px;gap:8px}.persona-preset{min-height:76px;padding:12px;align-items:center}.persona-preset>i:first-child{padding:9px}.persona-preset>i:last-child{margin-top:0}.persona-preset-copy strong{font-size:12px}.persona-preset-copy small{font-size:9px}@media(max-width:1100px){.persona-preset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.persona-preset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.persona-preset-grid{grid-template-columns:1fr}.persona-gallery-summary{align-items:flex-start}}
 </style>
