@@ -18,7 +18,7 @@ use Tests\TestCase;
  *
  * This guards three behaviours that a future change to the plan features,
  * the block registry, or the label resolver could silently break:
- *   1. `'*'` => "All blocks" (matrix) / "All biolink blocks" (card).
+ *   1. `'*'` => "All blocks" (matrix) / "All Link in Bio blocks" (card).
  *   2. An array of slugs => the correct (de-duped) count + named list.
  *   3. Unknown / legacy slugs => a humanized label, never a raw token.
  *
@@ -100,11 +100,11 @@ class PricingPageBlocksPerPlanTest extends TestCase
 
         // --- Wildcard plan ------------------------------------------------
         $resp->assertSee('All blocks');          // matrix cell
-        $resp->assertSee('All biolink blocks');  // plan card
+        $resp->assertSee('All Link in Bio blocks');  // plan card
 
         // --- Named array plan --------------------------------------------
         $resp->assertSee('3 blocks');            // matrix count
-        $resp->assertSee('3 biolink blocks');    // card count
+        $resp->assertSee('3 Link in Bio blocks');    // card count
         // Friendly labels from the live block registry (sorted, de-duped).
         $resp->assertSee('Link Button');
         $resp->assertSee('Markdown');
@@ -118,7 +118,7 @@ class PricingPageBlocksPerPlanTest extends TestCase
         // De-duplication: the duplicated slug collapses to a single label and
         // the count is 2, not 3.
         $resp->assertSee('2 blocks');
-        $resp->assertSee('2 biolink blocks');
+        $resp->assertSee('2 Link in Bio blocks');
         $resp->assertDontSee('Legacy Mystery Block, Legacy Mystery Block');
     }
 }

@@ -432,6 +432,241 @@ class PlansAndAddonsSeeder extends Seeder
     }
 
     /**
+     * The canonical public-plan ladder.
+     *
+     * One declared matrix, keyed by slug in display order, holding every
+     * feature key whose value must RISE (never fall) as the price rises.
+     * Read by:
+     *  - the align_public_plan_ladder migration, which writes these onto the
+     *    live rows (authoritatively — unlike the overlay path in
+     *    convergePlans(), which only fills keys that are absent);
+     *  - PlanLadderMonotonicityTest, which fails if any pair inverts.
+     *
+     * Background: before this existed the lineup was inverted in production.
+     * Bio Plus at $8 carried 10 bio pages, 250 short links, a custom domain,
+     * badge removal and teams; Creator at $12 carried 3 pages, 50 links, no
+     * domain, no badge removal and no teams. Professional at $25 still showed
+     * the Sayzio badge that $8 removed. Nothing caught it because no two plans
+     * were ever compared to each other — each was edited on its own admin
+     * screen. Hence the matrix and the guard.
+     *
+     * Deliberate notes on specific values:
+     *  - `free` is NOT reduced anywhere. It is the only plan with users (97 at
+     *    the time of writing) and lowering a cap under a live user's existing
+     *    pages is a support incident, not a pricing change.
+     *  - The other page types (menus, bookings, reviews, resumes, calendars)
+     *    stay at free's 1-each across the bio family rather than dropping to
+     *    0. 0 would be a DECREASE against free and break the ladder; 1 keeps
+     *    them as the same taste free already gets, while the real allowance
+     *    starts at Creator, which is where the marketing boundary sits.
+     *  - `analytics` is a string tier, ordered basic < advanced by
+     *    ANALYTICS_RANK in the guard test.
+     *
+     * @return array<string, array<string, int|bool|string>>
+     */
+    public static function publicPlanLadder(): array
+    {
+        return [
+            'free' => [
+                'max_biolinks' => 1,
+                'max_links' => 10,
+                'max_custom_domains' => 0,
+                'module_domains' => true,
+                'custom_domains' => false,
+                'remove_branding' => false,
+                'max_seats_per_workspace' => 1,
+                'teams' => false,
+                'max_projects' => 1,
+                'max_forms' => 1,
+                'analytics' => 'basic',
+                'analytics_export' => false,
+                'link_password' => false,
+                'link_expiry' => false,
+                'custom_forms' => false,
+                'paid_forms' => false,
+                'api_access' => false,
+                'priority_support' => false,
+                'included_coins_monthly' => 0,
+                'max_restaurant_menu' => 1,
+                'max_store_menu' => 1,
+                'max_service_booking' => 1,
+                'max_reviews' => 1,
+                'max_resume' => 1,
+                'max_calendars' => 1,
+                'max_paid_page' => 0,
+            ],
+            'bio-lite' => [
+                'max_biolinks' => 3,
+                'max_links' => 100,
+                'max_custom_domains' => 0,
+                'module_domains' => true,
+                'custom_domains' => false,
+                'remove_branding' => true,
+                'max_seats_per_workspace' => 1,
+                'teams' => false,
+                'max_projects' => 1,
+                'max_forms' => 1,
+                'analytics' => 'basic',
+                'analytics_export' => false,
+                'link_password' => false,
+                'link_expiry' => false,
+                'custom_forms' => false,
+                'paid_forms' => false,
+                'api_access' => false,
+                'priority_support' => false,
+                'included_coins_monthly' => 100,
+                'max_restaurant_menu' => 1,
+                'max_store_menu' => 1,
+                'max_service_booking' => 1,
+                'max_reviews' => 1,
+                'max_resume' => 1,
+                'max_calendars' => 1,
+                'max_paid_page' => 0,
+            ],
+            'bio-plus' => [
+                'max_biolinks' => 10,
+                'max_links' => 500,
+                'max_custom_domains' => 1,
+                'module_domains' => true,
+                'custom_domains' => true,
+                'remove_branding' => true,
+                'max_seats_per_workspace' => 1,
+                'teams' => false,
+                'max_projects' => 3,
+                'max_forms' => 3,
+                'analytics' => 'basic',
+                'analytics_export' => true,
+                'link_password' => true,
+                'link_expiry' => true,
+                'custom_forms' => true,
+                'paid_forms' => false,
+                'api_access' => false,
+                'priority_support' => false,
+                'included_coins_monthly' => 300,
+                'max_restaurant_menu' => 1,
+                'max_store_menu' => 1,
+                'max_service_booking' => 1,
+                'max_reviews' => 1,
+                'max_resume' => 1,
+                'max_calendars' => 1,
+                'max_paid_page' => 0,
+            ],
+            'creator' => [
+                'max_biolinks' => 25,
+                'max_links' => 2000,
+                'max_custom_domains' => 2,
+                'module_domains' => true,
+                'custom_domains' => true,
+                'remove_branding' => true,
+                'max_seats_per_workspace' => 3,
+                'teams' => true,
+                'max_projects' => 10,
+                'max_forms' => 10,
+                'analytics' => 'advanced',
+                'analytics_export' => true,
+                'link_password' => true,
+                'link_expiry' => true,
+                'custom_forms' => true,
+                'paid_forms' => false,
+                'api_access' => false,
+                'priority_support' => false,
+                'included_coins_monthly' => 800,
+                'max_restaurant_menu' => 10,
+                'max_store_menu' => 10,
+                'max_service_booking' => 10,
+                'max_reviews' => 10,
+                'max_resume' => 10,
+                'max_calendars' => 10,
+                'max_paid_page' => 0,
+            ],
+            'professional' => [
+                'max_biolinks' => 100,
+                'max_links' => -1,
+                'max_custom_domains' => 5,
+                'module_domains' => true,
+                'custom_domains' => true,
+                'remove_branding' => true,
+                'max_seats_per_workspace' => 10,
+                'teams' => true,
+                'max_projects' => 50,
+                'max_forms' => 50,
+                'analytics' => 'advanced',
+                'analytics_export' => true,
+                'link_password' => true,
+                'link_expiry' => true,
+                'custom_forms' => true,
+                'paid_forms' => true,
+                'api_access' => true,
+                'priority_support' => true,
+                'included_coins_monthly' => 2500,
+                'max_restaurant_menu' => 50,
+                'max_store_menu' => 50,
+                'max_service_booking' => 50,
+                'max_reviews' => 50,
+                'max_resume' => 50,
+                'max_calendars' => 50,
+                'max_paid_page' => 50,
+            ],
+        ];
+    }
+
+    /**
+     * How the public plans are grouped on /pricing.
+     *
+     * Declared in code, not in each plan's metadata, on purpose. Bio Lite and
+     * Bio Plus were created straight in the admin UI, so they existed in
+     * production while every piece of code that thought it knew the lineup
+     * had never heard of them — the seeder, the test database and the live
+     * site all disagreed. A curator-editable `metadata.tier` fails the same
+     * way: add a plan, forget the tier, and it lands in the wrong band or
+     * none, silently, with nothing failing.
+     *
+     * A map here cannot drift, and PlanGroupCoverageTest fails the build when
+     * a plan is missing from it. The cost is that a brand-new plan needs a
+     * deploy before it is grouped; the controller shows ungrouped plans in a
+     * fallback band meanwhile, so the failure mode is "appears in the wrong
+     * place" rather than "silently vanishes from pricing".
+     *
+     * `on_pricing` false means the group lives behind the one door link
+     * rather than on the main rail. /pricing?all=1 shows everything.
+     *
+     * `free` leads the bio group: the free plan is one bio page, so that is
+     * where someone shopping for a bio page starts.
+     *
+     * @return array<string, array{title: string, blurb: ?string, slugs: list<string>, on_pricing: bool}>
+     */
+    public static function publicPlanGroups(): array
+    {
+        return [
+            'bio' => [
+                'title' => 'Link in bio',
+                'blurb' => 'One page, done properly.',
+                'slugs' => ['free', 'bio-lite', 'bio-plus'],
+                'on_pricing' => true,
+            ],
+            'platform' => [
+                'title' => 'The whole platform',
+                'blurb' => 'Pages, QR codes, menus, events, payments and the AI suite.',
+                'slugs' => ['creator', 'professional'],
+                'on_pricing' => true,
+            ],
+            'teams' => [
+                'title' => 'For teams',
+                'blurb' => 'Seats, shared workspaces and white-label.',
+                'slugs' => ['business', 'agency'],
+                'on_pricing' => false,
+            ],
+            'devs' => [
+                'title' => 'For developers',
+                'blurb' => 'API volume, webhooks and SLAs.',
+                'slugs' => ['developer', 'enterprise-api'],
+                'on_pricing' => false,
+            ],
+        ];
+    }
+
+
+    /**
      * Idempotently converge the default addon catalog, their plan
      * attachments, and their USD/INR prices. Split out from run() so the
      * one-time lineup data migration can skip this slower pass (it only needs
@@ -634,13 +869,93 @@ class PlansAndAddonsSeeder extends Seeder
     }
 
     /**
+     * The full lineup: the seven-plan definitions below, plus the two Link-in-
+     * Bio plans derived from them.
+     *
+     * Bio Lite and Bio Plus were created directly in the admin UI and so never
+     * existed in this seeder, which is why a fresh install, a test database and
+     * production disagreed about how many plans there are. They are derived
+     * from the Creator definition rather than hand-written because a plan
+     * definition carries ~100 feature keys: copying them twice is how the keys
+     * drift apart, and the ladder matrix already states every value that is
+     * meant to differ.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function planDefinitions(): array
+    {
+        $defs = $this->corePlanDefinitions();
+
+        $creator = null;
+        foreach ($defs as $def) {
+            if ($def['slug'] === 'creator') {
+                $creator = $def;
+                break;
+            }
+        }
+        if ($creator === null) {
+            return $defs;
+        }
+
+        $ladder = self::publicPlanLadder();
+
+        $bio = [
+            'bio-lite' => [
+                'name' => 'Bio Lite',
+                'description' => 'A focused Link in Bio plan with three pages, 100 short links and no Sayzio badge.',
+                'monthly_price' => 4.00,
+                'annual_price' => 36.00,
+                'sort_order' => 2,
+            ],
+            'bio-plus' => [
+                'name' => 'Bio Plus',
+                'description' => 'Grow your Link in Bio presence with ten pages, 500 short links, a custom domain and exportable analytics.',
+                'monthly_price' => 8.00,
+                'annual_price' => 72.00,
+                'sort_order' => 3,
+            ],
+        ];
+
+        $derived = [];
+        foreach ($bio as $slug => $core) {
+            $def = $creator;
+            $def['slug'] = $slug;
+            $def['name'] = $core['name'];
+            $def['description'] = $core['description'];
+            $def['monthly_price'] = $core['monthly_price'];
+            $def['annual_price'] = $core['annual_price'];
+            $def['sort_order'] = $core['sort_order'];
+            $def['trial_days'] = 1;
+            $def['is_default'] = false;
+            $def['is_popular'] = false;
+            $def['metadata'] = ['tier' => $slug];
+            // Everything the two plans are meant to differ on is declared in
+            // the ladder; anything absent from it is intentionally identical
+            // to Creator.
+            $def['features'] = array_merge($creator['features'], $ladder[$slug] ?? []);
+            $derived[] = $def;
+        }
+
+        // Insert the bio family between Starter and Creator so admin ordering
+        // matches the pricing page.
+        $out = array_merge($defs, $derived);
+        foreach ($out as &$definition) {
+            $definition['features'] = array_merge($definition['features'], $ladder[$definition['slug']] ?? []);
+        }
+        unset($definition);
+        usort($out, fn (array $a, array $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
+
+        return $out;
+    }
+
+    /**
      * The 7-plan lineup. Each definition carries the full feature-key
      * superset (including workspace, AI-suite, integration and alias keys)
      * because these slugs are new — the tier-keyed backfill seed-migrations
      * only recognise the old slugs, so anything omitted here would silently
      * fall back to whatever default a call site happens to pass.
      */
-    private function planDefinitions(): array
+    private function corePlanDefinitions(): array
     {
         return [
             [
