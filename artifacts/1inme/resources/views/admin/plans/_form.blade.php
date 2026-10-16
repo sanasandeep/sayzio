@@ -148,7 +148,7 @@
                     <label for="plan_category" class="block text-sm text-white/80 mb-1 ak-strong">Plan category <span class="text-white/40 font-normal">(admin only)</span></label>
                     <input id="plan_category" name="plan_category" list="plan-category-options" autocomplete="off"
                            value="{{ old('plan_category', $isEdit ? $plan->plan_category : '') }}"
-                           placeholder="e.g. bio-entry — leave blank if this plan stands alone"
+                           placeholder="e.g. bio-entry. Leave blank if this plan stands alone"
                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                     <datalist id="plan-category-options">
                         @foreach(\App\Modules\Admin\Support\PlanCategories::options() as $categoryOption)
@@ -173,7 +173,7 @@
                     </label>
                     <p class="text-[11px] text-white/40 mt-1 ml-2 ak-note">
                         The variant NEW visitors are shown. Exactly one per category. Changing it does not
-                        re-price anyone who has already been shown a different variant — they keep what they
+                        re-price anyone who has already been shown a different variant: they keep what they
                         were quoted, permanently.
                     </p>
                 </div>
