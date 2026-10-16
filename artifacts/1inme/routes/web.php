@@ -350,6 +350,8 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     Route::view('/forms',        'public.forms',        ['seoKey' => 'forms'])       ->name('site.forms');
     Route::view('/notifications','public.notifications', ['seoKey' => 'notifications'])->name('site.notifications');
     Route::get('/pricing',          [\App\Modules\Common\Controllers\PricingPagesController::class, 'plans'])   ->name('site.pricing');
+    // Advances the visitor's plan set, then redirects back to /pricing.
+    Route::get('/pricing/another',  [\App\Modules\Common\Controllers\PricingPagesController::class, 'anotherSet'])->name('site.pricing.another');
     // Lightweight AJAX target the /pricing Alpine toggle pings whenever
     // the visitor flips Monthly ↔ Annual. The page itself doesn't
     // navigate on toggle, so this is what makes the choice survive a

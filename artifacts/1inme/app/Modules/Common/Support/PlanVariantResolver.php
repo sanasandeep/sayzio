@@ -44,7 +44,15 @@ class PlanVariantResolver
     public const COOKIE = 'sayzio_pv';
     private const COOKIE_MINUTES = 60 * 24 * 730;
 
-    public function __construct(private readonly Request $request) {}
+    private readonly PlanSetRoller $roller;
+
+    private readonly int $roll;
+
+    public function __construct(private readonly Request $request)
+    {
+        $this->roller = new PlanSetRoller($request);
+        $this->roll = $this->roller->current();
+    }
 
     /**
      * Reduce a plan collection to one plan per category, in the order the
@@ -76,6 +84,20 @@ class PlanVariantResolver
         $chosen = $byCategory->map(function (Collection $variants, string $category) use ($pins, &$toPin) {
             if ($variants->count() === 1) {
                 return $variants->first();
+            }
+
+            // An explicit "show me another set" moves the visitor to a new
+            // roll, and the roll decides the variant from then on. The pin
+            // still records what they were shown, and still governs a visitor
+            // who has never asked for another set, so a passive page view
+            // never re-prices anyone.
+            if ($this->roll > 0) {
+                $ordered = $variants->sortBy([['sort_order', 'asc'], ['id', 'asc']])->values();
+                $pick = $ordered[$this->roller->variantIndex($category, $ordered->count(), $this->roll)]
+                    ?? $ordered->first();
+                $toPin[$category] = $pick->id;
+
+                return $pick;
             }
 
             $pinnedId = $pins[$category] ?? null;
@@ -164,9 +186,20 @@ class PlanVariantResolver
             ];
         }
 
-        // insertOrIgnore, never upsert: a pin is written once and is not ours
-        // to change afterwards. A concurrent request that got there first has
-        // already quoted the visitor a price.
+        // On roll 0 a pin is written once and is not ours to change: a
+        // concurrent request that got there first has already quoted the
+        // visitor a price. Past roll 0 the visitor has explicitly asked for a
+        // different set, so the record is updated to what they are now seeing.
+        if ($this->roll > 0) {
+            DB::table('plan_variant_pins')->upsert(
+                $rows,
+                $userId ? ['user_id', 'plan_category'] : ['visitor_token', 'plan_category'],
+                ['plan_id', 'updated_at'],
+            );
+
+            return;
+        }
+
         DB::table('plan_variant_pins')->insertOrIgnore($rows);
     }
 

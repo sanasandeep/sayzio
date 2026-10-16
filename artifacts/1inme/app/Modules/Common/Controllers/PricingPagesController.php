@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\CoinPackage;
 use App\Modules\Admin\Models\Plan;
 use Database\Seeders\PlansAndAddonsSeeder;
+use App\Modules\Common\Support\PlanSetRoller;
 use App\Modules\Common\Support\PlanVariantResolver;
 use App\Modules\Common\Support\PricingPageCache;
 use App\Modules\User\Models\BillingAddress;
@@ -194,10 +195,46 @@ class PricingPagesController extends Controller
         }
 
         $allPlanBands = array_merge($planBands, $doorBands);
-        $primarySlugs = ['free', 'bio-lite', 'creator', 'professional'];
-        $primary = collect($primarySlugs)->map(fn ($slug) => $rowsBySlug->get($slug))->filter()->values();
+
+        // ---- The visitor's set --------------------------------------
+        // Free plus SET_SIZE paid plans, one per category, chosen by this
+        // visitor's roll. The same roll always yields the same set, so a
+        // refresh or a return visit is identical; "show me another set"
+        // advances the roll and only then do the names and prices move.
+        $roller = new PlanSetRoller($request);
+        $freeRow = $rows->first(fn (array $r) => !empty($r['is_free']));
+        $paidByCategory = $rows
+            ->reject(fn (array $r) => !empty($r['is_free']))
+            ->keyBy(fn (array $r) => $r['model']->categoryKey());
+
+        // Only categories whose band is on the pricing page are eligible. The
+        // teams and developer bands sit behind the door on purpose, and a solo
+        // creator landing on "Enterprise API" as one of their three plans is
+        // exactly what that door exists to prevent.
+        $frontCategories = $paidByCategory
+            ->filter(function (array $row) use ($groupDefs) {
+                foreach ($groupDefs as $def) {
+                    if (in_array($row['model']->slug, $def['slugs'], true)) {
+                        return !empty($def['on_pricing']);
+                    }
+                }
+
+                // A plan nobody has grouped yet stays eligible: invisible is a
+                // worse failure than slightly out of place.
+                return true;
+            })
+            ->keys()
+            ->all();
+
+        $setCategories = $roller->categories($frontCategories);
+        $primary = collect([$freeRow])
+            ->concat(collect($setCategories)->map(fn (string $c) => $paidByCategory->get($c)))
+            ->filter()
+            ->values();
+
+        $primaryIds = $primary->pluck('model.id')->all();
         $hidden = $rows->filter(fn ($row) => in_array($row['model']->slug, $groupedSlugs, true)
-            && !in_array($row['model']->slug, $primarySlugs, true))->values();
+            && !in_array($row['model']->id, $primaryIds, true))->values();
         $planBands = $primary->isEmpty() ? [] : [[
             'key' => 'essentials', 'title' => 'Choose your plan',
             'blurb' => 'Start free. Build your bio. Grow your business.', 'rows' => $primary,
@@ -222,6 +259,8 @@ class PricingPagesController extends Controller
             'packages'      => $packages,
             'wallet_enabled'=> WalletService::isEnabled(),
             'recommendation'=> $recommendation,
+            'anotherSetUrl' => route('site.pricing.another'),
+            'planRoll'      => $roller->current(),
             'planBands'     => $planBands,
             'doorBands'     => $doorBands,
             'showAllGroups' => $showAllGroups,
@@ -259,5 +298,22 @@ class PricingPagesController extends Controller
         Cookie::queue(BillingCyclePreference::remember($data['cycle']));
 
         return response()->noContent();
+    }
+
+    /**
+     * "Show me another set": advance the roll and come back.
+     *
+     * A plain redirect rather than a JSON endpoint so the page re-renders
+     * through exactly the same path as a normal visit. One way for a set to
+     * be built means the thing a visitor sees after clicking cannot drift
+     * from the thing they would have seen by typing the URL.
+     */
+    public function anotherSet(Request $request)
+    {
+        (new PlanSetRoller($request))->advance();
+
+        return redirect()
+            ->route('site.pricing', $request->only(['cycle', 'all']))
+            ->withFragment('plans');
     }
 }

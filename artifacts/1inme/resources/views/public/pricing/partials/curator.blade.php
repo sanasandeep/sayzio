@@ -2,7 +2,7 @@
     <div class="curator-invitation">
         <img src="{{ asset('branding/icon-96.webp') }}" width="56" height="56" alt="Zio">
         <div><h2>Find your fit with Zio.</h2><p>Tell us what you need. Get an instant match from our existing plans.</p><small>No AI call or coins. Saved only in this tab session.</small></div>
-        <div class="curator-actions"><button type="button" class="sy-btn" @click="matcherOpen = !matcherOpen" :aria-expanded="matcherOpen" aria-controls="pricing-matcher-form">✦ Curate with Zio</button><button type="button" class="curator-text-button" @click="showAllPlans()">See all plans</button></div>
+        <div class="curator-actions"><button type="button" class="sy-btn" @click="matcherOpen = !matcherOpen" :aria-expanded="matcherOpen" aria-controls="pricing-matcher-form">✦ Curate with Zio</button><a class="curator-text-button" href="{{ $anotherSetUrl }}" rel="nofollow">Show me another set</a><button type="button" class="curator-text-button" @click="showAllPlans()">See all plans</button></div>
     </div>
     <form id="pricing-matcher-form" x-show="matcherOpen && !matching" x-cloak @submit.prevent="curatePlans()" class="curator-form">
         <div class="curator-fields">
