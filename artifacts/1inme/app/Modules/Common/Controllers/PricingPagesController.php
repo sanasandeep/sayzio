@@ -184,23 +184,21 @@ class PricingPagesController extends Controller
             ];
         }
 
-        $displayRows = $rows;
-        if (!$showAllGroups) {
-            $primarySlugs = ['free', 'bio-lite', 'creator'];
-            $primary = collect($primarySlugs)->map(fn ($slug) => $rowsBySlug->get($slug))->filter()->values();
-            $hidden = $rows->filter(fn ($row) => in_array($row['model']->slug, $groupedSlugs, true)
-                && !in_array($row['model']->slug, $primarySlugs, true))->values();
-            $planBands = $primary->isEmpty() ? [] : [[
-                'key' => 'essentials', 'title' => 'Choose your plan',
-                'blurb' => 'Start free. Build your bio. Grow your business.', 'rows' => $primary,
-            ]];
-            // Keep newly added, unclassified plans discoverable until they are grouped.
-            if ($ungrouped->isNotEmpty()) {
-                $planBands[] = ['key' => 'ungrouped', 'title' => 'More plans', 'blurb' => null, 'rows' => $ungrouped];
-            }
-            $doorBands = $hidden->isEmpty() ? [] : [['rows' => $hidden]];
-            $displayRows = $primary->concat($ungrouped)->values();
+        $allPlanBands = array_merge($planBands, $doorBands);
+        $primarySlugs = ['free', 'bio-lite', 'creator', 'professional'];
+        $primary = collect($primarySlugs)->map(fn ($slug) => $rowsBySlug->get($slug))->filter()->values();
+        $hidden = $rows->filter(fn ($row) => in_array($row['model']->slug, $groupedSlugs, true)
+            && !in_array($row['model']->slug, $primarySlugs, true))->values();
+        $planBands = $primary->isEmpty() ? [] : [[
+            'key' => 'essentials', 'title' => 'Choose your plan',
+            'blurb' => 'Start free. Build your bio. Grow your business.', 'rows' => $primary,
+        ]];
+        // Keep newly added, unclassified plans discoverable until they are grouped.
+        if ($ungrouped->isNotEmpty()) {
+            $planBands[] = ['key' => 'ungrouped', 'title' => 'More plans', 'blurb' => null, 'rows' => $ungrouped];
         }
+        $doorBands = $hidden->isEmpty() ? [] : [['rows' => $hidden]];
+        $displayRows = $primary->concat($ungrouped)->values();
 
         $recommendation = PlanRecommender::for($user, $displayRows->pluck('model'));
 
@@ -218,6 +216,17 @@ class PricingPagesController extends Controller
             'planBands'     => $planBands,
             'doorBands'     => $doorBands,
             'showAllGroups' => $showAllGroups,
+            'catalogueRows' => $rows,
+            'allPlanBands' => $allPlanBands,
+            'pricingNames' => ['free' => 'Free', 'bio-lite' => 'Bio'],
+            'curationCatalogue' => $rows->map(fn ($row) => [
+                'id' => $row['model']->id, 'slug' => $row['model']->slug,
+                'name' => match ($row['model']->slug) { 'free' => 'Free', 'bio-lite' => 'Bio', default => $row['model']->name },
+                'prices' => $row['prices'],
+                'features' => array_intersect_key($row['model']->features ?? [], array_flip([
+                    'max_biolinks', 'max_links', 'max_seats_per_workspace', 'custom_domains', 'paid_forms', 'api_access',
+                ])),
+            ])->values(),
         ]);
     }
 
