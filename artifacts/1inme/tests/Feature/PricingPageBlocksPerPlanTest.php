@@ -8,25 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-/**
- * The public /pricing page surfaces each plan's allowed biolink blocks in
- * two places: the per-plan cards (the "Link in bio" feature group) and the
- * "Compare features at a glance" matrix ("Content blocks" row). Both read
- * `block_types_allowed` from the plan features and resolve slugs to friendly
- * labels through the same resolver, which is backed by
- * {@see \App\Modules\User\Models\BiolinkBlock::pickerTypes()}.
- *
- * This guards three behaviours that a future change to the plan features,
- * the block registry, or the label resolver could silently break:
- *   1. `'*'` => "All blocks" (matrix) / "All Link in Bio blocks" (card).
- *   2. An array of slugs => the correct (de-duped) count + named list.
- *   3. Unknown / legacy slugs => a humanized label, never a raw token.
- *
- * We delete any seeded plans first so the card "delta" logic (each card only
- * shows features that improve on the previous plan) is fully controlled by
- * the ordering we set here, and so assertions can't be perturbed by the
- * lineup the data migration seeds.
- */
+/** Detailed block counts and friendly names stay in the comparison matrix. */
 class PricingPageBlocksPerPlanTest extends TestCase
 {
     use RefreshDatabase;
@@ -100,11 +82,9 @@ class PricingPageBlocksPerPlanTest extends TestCase
 
         // --- Wildcard plan ------------------------------------------------
         $resp->assertSee('All blocks');          // matrix cell
-        $resp->assertSee('All Link in Bio blocks');  // plan card
 
         // --- Named array plan --------------------------------------------
         $resp->assertSee('3 blocks');            // matrix count
-        $resp->assertSee('3 Link in Bio blocks');    // card count
         // Friendly labels from the live block registry (sorted, de-duped).
         $resp->assertSee('Link Button');
         $resp->assertSee('Markdown');
@@ -118,7 +98,6 @@ class PricingPageBlocksPerPlanTest extends TestCase
         // De-duplication: the duplicated slug collapses to a single label and
         // the count is 2, not 3.
         $resp->assertSee('2 blocks');
-        $resp->assertSee('2 Link in Bio blocks');
         $resp->assertDontSee('Legacy Mystery Block, Legacy Mystery Block');
     }
 }
