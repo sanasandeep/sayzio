@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PlanSetRoller;
 use App\Modules\User\Models\BillingAddress;
 use App\Modules\User\Models\Subscription;
 use App\Modules\User\Models\User;
@@ -77,6 +78,27 @@ class PlanVariantLeakTest extends TestCase
         );
         $this->assertOnePerCategory($plans, 'the downgrade list');
         $this->assertContains($bio[0]->categoryKey(), $plans->map->categoryKey()->all());
+    }
+
+    /**
+     * A variant belongs to its anchor's band. Before the group map was
+     * widened to cover category siblings, every generated variant counted as
+     * ungrouped, so the curated grid rendered its nine cards and then
+     * repeated them under the "More plans" catch-all.
+     */
+    public function test_generated_variants_do_not_fall_into_the_ungrouped_band(): void
+    {
+        $this->artisan('plans:generate-variants')->assertSuccessful();
+        $this->artisan('plans:audit-public')->assertSuccessful();
+
+        $curated = $this->withCookie(PlanSetRoller::COOKIE, '1')->get('/pricing')->assertOk();
+
+        $this->assertNotContains(
+            'ungrouped',
+            array_column($curated->viewData('planBands'), 'key'),
+            'the curated page repeated its own plans under the ungrouped catch-all',
+        );
+        $curated->assertDontSee('More plans', false);
     }
 
     /**

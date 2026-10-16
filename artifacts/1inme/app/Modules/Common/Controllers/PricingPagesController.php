@@ -147,7 +147,11 @@ class PricingPagesController extends Controller
         // The map is PlansAndAddonsSeeder::publicPlanGroups() — code, not
         // plan metadata, so an admin edit cannot silently re-shuffle the page.
         $showAllGroups = $request->boolean('all');
-        $groupDefs = PlansAndAddonsSeeder::publicPlanGroups();
+        // Widened to cover each named plan's category siblings. Without it
+        // every generated variant is "not in any group" and lands in the
+        // ungrouped catch-all below -- which is how a curated grid came to
+        // render nine cards and then repeat them under "More plans".
+        $groupDefs = PlanVariantResolver::expandGroups(PlansAndAddonsSeeder::publicPlanGroups());
         $rowsBySlug = $rows->keyBy(fn (array $r) => $r['model']->slug);
 
         $planBands = [];
