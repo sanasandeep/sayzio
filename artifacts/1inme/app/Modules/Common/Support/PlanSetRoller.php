@@ -88,9 +88,16 @@ class PlanSetRoller
         $roll ??= $this->current();
 
         // A per-visitor shuffle so two people on roll 0 do not see the same
-        // three, then a rotation by the roll so each click moves the window.
+        // three, then a one-step rotation per roll.
+        //
+        // One step, not $size: there are usually only four eligible
+        // categories for three slots, so a bigger stride would land back on
+        // the same subset immediately. The variety a visitor actually notices
+        // comes from the variants inside each category (a different name at a
+        // slightly different price), not from swapping whole categories in
+        // and out, which there are rarely enough of to do well.
         usort($categories, fn (string $a, string $b) => $this->seed($a, 0) <=> $this->seed($b, 0));
-        $offset = ($roll * $size) % count($categories);
+        $offset = $roll % count($categories);
 
         return array_slice(array_merge($categories, $categories), $offset, $size);
     }

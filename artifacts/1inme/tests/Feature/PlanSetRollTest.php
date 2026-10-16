@@ -64,18 +64,39 @@ class PlanSetRollTest extends TestCase
         $this->assertSame($first->id, $third->id, 'refreshing re-priced a visitor who had not asked for anything');
     }
 
-    public function test_the_set_rotates_rather_than_repeating_the_same_categories(): void
+    /**
+     * Only four categories are usually eligible for three slots, so two sets
+     * cannot be disjoint. What has to change is the set's composition, and
+     * the real variety comes from the variants inside each category.
+     */
+    public function test_each_roll_moves_the_set_along(): void
     {
         $roller = new PlanSetRoller(request());
-        $all = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'];
+        $all = ['a', 'b', 'c', 'd'];
 
-        $firstSet = $roller->categories($all, 0);
-        $secondSet = $roller->categories($all, 1);
+        $first = $roller->categories($all, 0);
+        $second = $roller->categories($all, 1);
 
-        $this->assertCount(3, $firstSet);
-        $this->assertCount(3, $secondSet);
-        $this->assertSame([], array_intersect($firstSet, $secondSet),
-            'the second set repeated a category from the first, so clicking felt like nothing happened');
+        $this->assertCount(3, $first);
+        $this->assertCount(3, $second);
+        $this->assertNotSame($first, $second, 'advancing the roll returned the identical set');
+    }
+
+    /**
+     * The teams and developer bands sit behind a door on purpose. The roll
+     * picks from whatever it is handed, so the guard that matters is that the
+     * caller hands it only front-page categories; this pins the behaviour the
+     * controller depends on.
+     */
+    public function test_the_roll_only_ever_returns_categories_it_was_given(): void
+    {
+        $roller = new PlanSetRoller(request());
+        $front = ['bio-entry', 'bio-advanced', 'platform-solo', 'platform-pro'];
+
+        for ($roll = 0; $roll < 12; $roll++) {
+            $set = $roller->categories($front, $roll);
+            $this->assertSame([], array_diff($set, $front), "roll {$roll} invented a category");
+        }
     }
 
     public function test_a_category_with_one_plan_cannot_be_rolled(): void

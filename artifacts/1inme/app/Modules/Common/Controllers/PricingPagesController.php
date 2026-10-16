@@ -207,7 +207,26 @@ class PricingPagesController extends Controller
             ->reject(fn (array $r) => !empty($r['is_free']))
             ->keyBy(fn (array $r) => $r['model']->categoryKey());
 
-        $setCategories = $roller->categories($paidByCategory->keys()->all());
+        // Only categories whose band is on the pricing page are eligible. The
+        // teams and developer bands sit behind the door on purpose, and a solo
+        // creator landing on "Enterprise API" as one of their three plans is
+        // exactly what that door exists to prevent.
+        $frontCategories = $paidByCategory
+            ->filter(function (array $row) use ($groupDefs) {
+                foreach ($groupDefs as $def) {
+                    if (in_array($row['model']->slug, $def['slugs'], true)) {
+                        return !empty($def['on_pricing']);
+                    }
+                }
+
+                // A plan nobody has grouped yet stays eligible: invisible is a
+                // worse failure than slightly out of place.
+                return true;
+            })
+            ->keys()
+            ->all();
+
+        $setCategories = $roller->categories($frontCategories);
         $primary = collect([$freeRow])
             ->concat(collect($setCategories)->map(fn (string $c) => $paidByCategory->get($c)))
             ->filter()

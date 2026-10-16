@@ -15,7 +15,23 @@ class PublicPricingGroupsTest extends TestCase
     {
         $response = $this->get('/pricing')->assertOk();
         $this->assertSame(['essentials'], array_column($response->viewData('planBands'), 'key'));
-        $this->assertSame(['free', 'bio-lite', 'creator', 'professional'], $response->viewData('plans')->pluck('model.slug')->all());
+        // The paid three are now chosen by the visitor's roll rather than
+        // hardcoded, so this pins the shape instead of the slugs: free first,
+        // then three plans drawn only from the bands that are on the pricing
+        // page. Teams and developers sit behind the door and must never
+        // appear here.
+        $shown = $response->viewData('plans')->pluck('model.slug')->all();
+        $this->assertSame('free', $shown[0], 'the free plan must lead the set');
+        $frontSlugs = collect(PlansAndAddonsSeeder::publicPlanGroups())
+            ->filter(fn (array $def) => ! empty($def['on_pricing']))
+            ->pluck('slugs')
+            ->flatten()
+            ->all();
+        $this->assertSame(
+            [],
+            array_diff($shown, $frontSlugs),
+            'the default set included a plan from a band that lives behind the door',
+        );
         $this->assertCount(4, $response->viewData('planModels'));
         $this->assertCount(5, $response->viewData('doorBands')[0]['rows']);
         $response->assertSee('See all plans', false);
