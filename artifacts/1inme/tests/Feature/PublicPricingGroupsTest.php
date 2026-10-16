@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PlanSetRoller;
 use Database\Seeders\PlansAndAddonsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -48,6 +49,71 @@ class PublicPricingGroupsTest extends TestCase
         $all = $this->get('/pricing?all=1')->assertOk();
         $this->assertSame(['bio', 'platform', 'teams', 'devs'], array_column($all->viewData('allPlanBands'), 'key'));
         $all->assertSee('Curate with Zio');
+    }
+
+    /**
+     * Pressing Curate is the visitor asking to see more, so it opens the page
+     * out to one plan from every category rather than handing back another
+     * three. Pressing again keeps it open and rolls the variants.
+     */
+    public function test_curating_opens_the_page_out_to_one_plan_per_category(): void
+    {
+        $short = $this->get('/pricing')->assertOk();
+        $this->assertCount(4, $short->viewData('plans'), 'the first view is Free plus three');
+        $this->assertEmpty($short->viewData('planGrid'), 'the short view is a rail, not a grid');
+
+        // The roll lives in a cookie, so pressing Curate has to SET that
+        // cookie on the redirect for the next page load to see it. Assert
+        // that, because it is the whole mechanism: a browser carries the
+        // cookie across the 302 by itself, and this is the only place the
+        // handover can be checked.
+        $press = $this->get('/pricing/another')->assertRedirect();
+        $cookie = $press->getCookie(PlanSetRoller::COOKIE);
+        $this->assertNotNull($cookie, 'pressing Curate did not set the roll cookie, so the next page load forgets it');
+        $this->assertSame('1', $cookie->getValue(), 'pressing Curate did not advance the roll');
+
+        // Laravel's test client keeps no cookie jar: it sends only what
+        // withCookie() put there, and never reads Set-Cookie off a response.
+        // So the cookie the browser would carry for us has to be handed over
+        // by hand. Do not delete this line to "simplify" the test — without
+        // it the second request arrives on roll 0 and renders the short page,
+        // which looks exactly like the feature being broken.
+        $curated = $this->withCookie(PlanSetRoller::COOKIE, $cookie->getValue())
+            ->get('/pricing')
+            ->assertOk();
+
+        $categories = $curated->viewData('plans')
+            ->map(fn (array $row) => $row['model']->categoryKey())
+            ->all();
+
+        $this->assertSame(
+            $categories,
+            array_values(array_unique($categories)),
+            'the curated grid showed two plans from the same category',
+        );
+
+        // One card per category, all of them — not "more than three". Derive
+        // the number from the catalogue rather than hardcoding nine, so
+        // adding a tenth category fails this test only if the grid stops
+        // showing it.
+        $allCategories = Plan::active()->public()->get()
+            ->map(fn (Plan $plan) => $plan->categoryKey())
+            ->unique()
+            ->count();
+        $this->assertGreaterThan(4, $allCategories, 'the fixture has too few categories to prove anything');
+        $this->assertCount(
+            $allCategories,
+            $categories,
+            'curating should open the page out to one plan from every category',
+        );
+        $this->assertNotEmpty($curated->viewData('planGrid'), 'the curated view should render as a grid');
+
+        $amounts = $curated->viewData('plans')
+            ->map(fn (array $row) => (int) ($row['prices']['USD']['monthly']['amount_minor'] ?? 0))
+            ->all();
+        $sorted = $amounts;
+        sort($sorted);
+        $this->assertSame($sorted, $amounts, 'the curated grid is not in ascending price order');
     }
 
     public function test_session_matcher_only_receives_public_plan_features(): void
