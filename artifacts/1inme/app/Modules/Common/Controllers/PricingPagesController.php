@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\CoinPackage;
 use App\Modules\Admin\Models\Plan;
 use Database\Seeders\PlansAndAddonsSeeder;
+use App\Modules\Common\Support\PlanVariantResolver;
 use App\Modules\Common\Support\PricingPageCache;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\Billing\WalletService;
@@ -84,6 +85,14 @@ class PricingPagesController extends Controller
         };
 
         [$plans, $packageModels] = PricingPageCache::catalog();
+
+        // Reduce each plan category to the ONE variant this visitor sees,
+        // BEFORE anything downstream touches the collection. The page embeds
+        // its catalogue as JSON for the client-side matcher, so filtering in
+        // the browser would leave every sibling price sitting in the page
+        // source. Everything after this line — bands, the compare table, the
+        // curator catalogue — sees representatives only.
+        $plans = (new PlanVariantResolver($request))->representatives($plans);
         $rows = $plans->map(function (Plan $p) use ($currencies, $taxFor) {
             $prices = [];
             $tax = [];

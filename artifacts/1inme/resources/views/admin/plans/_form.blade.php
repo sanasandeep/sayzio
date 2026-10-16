@@ -141,6 +141,42 @@
                     </label>
                     <p class="text-[11px] text-white/40 mt-1 ml-2 ak-note">Highlights this plan as the second card in the landing-page pricing block. Saving will clear the flag on any other plan.</p>
                 </div>
+                {{-- Plan category: admin-only bucket of near-identical variants.
+                     Free text on purpose — the datalist offers what exists so a
+                     typo cannot silently split one category into two. --}}
+                <div class="col-span-2">
+                    <label for="plan_category" class="block text-sm text-white/80 mb-1 ak-strong">Plan category <span class="text-white/40 font-normal">(admin only)</span></label>
+                    <input id="plan_category" name="plan_category" list="plan-category-options" autocomplete="off"
+                           value="{{ old('plan_category', $isEdit ? $plan->plan_category : '') }}"
+                           placeholder="e.g. bio-entry — leave blank if this plan stands alone"
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
+                    <datalist id="plan-category-options">
+                        @foreach(\App\Modules\Admin\Support\PlanCategories::options() as $categoryOption)
+                            <option value="{{ $categoryOption }}"></option>
+                        @endforeach
+                    </datalist>
+                    <p class="text-[11px] text-white/40 mt-1 ml-2 ak-note">
+                        Plans sharing a category compete for ONE slot on the pricing page: a visitor sees
+                        exactly one of them and never sees the others. Use it for near-identical variants that
+                        differ only in name, price and minor features. Blank means this plan is its own slot,
+                        which is how every plan behaved before categories existed. Never shown to customers.
+                        Keep every variant of a category inside the same pricing band.
+                    </p>
+                </div>
+                <div class="col-span-2">
+                    <label class="flex items-center gap-2 text-sm text-white/80 p-2 rounded hover:bg-white/5 ak-strong">
+                        <input type="hidden" name="is_category_default" value="0">
+                        <input type="checkbox" name="is_category_default" value="1"
+                               {{ old('is_category_default', $isEdit ? $plan->is_category_default : false) ? 'checked' : '' }}
+                               class="rounded border-white/10 text-blue-400 ak-blue">
+                        Default variant for this category
+                    </label>
+                    <p class="text-[11px] text-white/40 mt-1 ml-2 ak-note">
+                        The variant NEW visitors are shown. Exactly one per category. Changing it does not
+                        re-price anyone who has already been shown a different variant — they keep what they
+                        were quoted, permanently.
+                    </p>
+                </div>
                 <div>
                     <label class="flex items-center gap-2 text-sm text-white/80 p-2 rounded hover:bg-white/5 ak-strong">
                         <input type="hidden" name="is_internal" value="0">
