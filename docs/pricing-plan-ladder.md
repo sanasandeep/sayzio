@@ -1,8 +1,8 @@
 # Public pricing configuration
 
 The approved five-plan ladder is defined by `PlansAndAddonsSeeder::publicPlanLadder()`.
-Prices are unchanged. The default page shows Starter, Bio Lite and Creator as compact tiles.
-The comparison table uses those same three plans. All plans, grouped by Bio,
+Prices are unchanged. The default page shows Free, Bio (the Bio Lite billing plan), Creator and Professional as compact tiles.
+The comparison table uses those same four plans. All plans, grouped by Bio,
 Platform, Teams and Developers, are available through `/pricing?all=1`. Unknown active public plans
 remain visible in a More plans group.
 
@@ -32,3 +32,14 @@ Targeted tests: `vendor/bin/phpunit --filter 'PlanLadder|PlanGroup|Pricing'` aga
 isolated test database. The homepage tests cover the current compact pricing teaser,
 not the retired two-card pricing rail. The obsolete `fix/plan-ladder` branch is not
 part of this release.
+
+## Session matcher
+
+Curate with Zio is an instant rules-based matcher, not a generative AI call. It
+compares requested pages, seats, domains, paid forms and API access with the current
+public catalogue and ranks matching options by the selected currency/cadence price.
+It labels missing requirements when no exact match exists. Results expand the full
+catalogue and comparison on the same page. Answers and expansion state use only
+`sessionStorage` under `sayzio.pricing.matcher.v1`; reset removes that key. No
+preference is written to an account, cookie, localStorage or database. Existing
+site currency/cadence preferences are separate and retain their normal behavior.

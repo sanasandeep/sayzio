@@ -15,13 +15,28 @@ class PublicPricingGroupsTest extends TestCase
     {
         $response = $this->get('/pricing')->assertOk();
         $this->assertSame(['essentials'], array_column($response->viewData('planBands'), 'key'));
-        $this->assertSame(['free', 'bio-lite', 'creator'], $response->viewData('plans')->pluck('model.slug')->all());
-        $this->assertCount(3, $response->viewData('planModels'));
-        $this->assertCount(6, $response->viewData('doorBands')[0]['rows']);
+        $this->assertSame(['free', 'bio-lite', 'creator', 'professional'], $response->viewData('plans')->pluck('model.slug')->all());
+        $this->assertCount(4, $response->viewData('planModels'));
+        $this->assertCount(5, $response->viewData('doorBands')[0]['rows']);
         $response->assertSee('See all plans', false);
         $all = $this->get('/pricing?all=1')->assertOk();
-        $this->assertSame(['bio', 'platform', 'teams', 'devs'], array_column($all->viewData('planBands'), 'key'));
-        $all->assertDontSee('See all plans', false);
+        $this->assertSame(['bio', 'platform', 'teams', 'devs'], array_column($all->viewData('allPlanBands'), 'key'));
+        $all->assertSee('Curate with Zio');
+    }
+
+    public function test_session_matcher_only_receives_public_plan_features(): void
+    {
+        $response = $this->get('/pricing')->assertOk();
+        $catalogue = $response->viewData('curationCatalogue');
+        $this->assertNotContains('unlimited', $catalogue->pluck('slug')->all());
+        $this->assertSame('Bio', $catalogue->firstWhere('slug', 'bio-lite')['name']);
+        $this->assertSame('Free', $catalogue->firstWhere('slug', 'free')['name']);
+        foreach ($catalogue as $plan) {
+            $this->assertSame([], array_diff(array_keys($plan['features']), [
+                'max_biolinks', 'max_links', 'max_seats_per_workspace', 'custom_domains', 'paid_forms', 'api_access',
+            ]));
+        }
+        $response->assertSee('No AI call or coins. Saved only in this tab session.');
     }
 
     public function test_audit_detects_saved_admin_drift_without_modifying_it(): void
