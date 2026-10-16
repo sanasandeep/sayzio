@@ -31,6 +31,7 @@ class PlanWriter
         $validated['slug'] = $this->uniqueSlug($validated['name']);
         $validated['is_popular'] = $request->boolean('is_popular');
         $validated['is_internal'] = $request->boolean('is_internal');
+        $validated['is_category_default'] = $request->boolean('is_category_default');
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
@@ -64,6 +65,7 @@ class PlanWriter
         $validated = $request->validate($this->rules());
         $validated['is_popular'] = $request->boolean('is_popular');
         $validated['is_internal'] = $request->boolean('is_internal');
+        $validated['is_category_default'] = $request->boolean('is_category_default');
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
@@ -312,6 +314,8 @@ class PlanWriter
             'sort_order' => 'integer|min:0',
             'is_popular' => 'nullable|boolean',
             'is_internal' => 'nullable|boolean',
+            'plan_category' => 'nullable|string|max:64',
+            'is_category_default' => 'nullable|boolean',
 
             // First-term introductory discount (folded through
             // IntroDiscount::normalize() before persistence).

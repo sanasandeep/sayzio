@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Plan extends Model
 {
     protected $fillable = [
-        'name', 'slug', 'description',
+        'name', 'slug', 'plan_category', 'is_category_default', 'description',
         'monthly_price', 'annual_price',
         'monthly_price_secondary', 'annual_price_secondary',
         'trial_days', 'grace_days', 'refund_window_days',
@@ -29,7 +29,25 @@ class Plan extends Model
             'is_popular' => 'boolean',
             'is_archived' => 'boolean',
             'is_internal' => 'boolean',
+            'is_category_default' => 'boolean',
         ];
+    }
+
+    /**
+     * The bucket this plan competes in on the pricing page.
+     *
+     * A plan with no `plan_category` is its own category, so every plan that
+     * predates categories keeps behaving exactly as it did: one plan, one
+     * slot. That is what lets publicPlanGroups() go on naming slugs while
+     * newer entries name categories.
+     *
+     * Admin-only. Never render this.
+     */
+    public function categoryKey(): string
+    {
+        $category = trim((string) ($this->plan_category ?? ''));
+
+        return $category !== '' ? $category : (string) $this->slug;
     }
 
     public function users()
