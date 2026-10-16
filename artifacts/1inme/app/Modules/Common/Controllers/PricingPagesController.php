@@ -227,8 +227,18 @@ class PricingPagesController extends Controller
             ->all();
 
         $setCategories = $roller->categories($frontCategories);
+        // Cheapest first. The roll picks WHICH categories appear; it must not
+        // decide the order they are read in, or a visitor meets $25 before $8
+        // and the page stops looking like a ladder.
+        $amount = fn (array $row) => (int) ($row['prices']['USD']['monthly']['amount_minor'] ?? 0);
         $primary = collect([$freeRow])
-            ->concat(collect($setCategories)->map(fn (string $c) => $paidByCategory->get($c)))
+            ->concat(
+                collect($setCategories)
+                    ->map(fn (string $c) => $paidByCategory->get($c))
+                    ->filter()
+                    ->sortBy($amount)
+                    ->values()
+            )
             ->filter()
             ->values();
 

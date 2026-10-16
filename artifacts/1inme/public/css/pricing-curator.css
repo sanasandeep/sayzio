@@ -10,3 +10,15 @@
 @keyframes curator-spin{to{transform:rotate(360deg)}}@keyframes curator-bob{50%{transform:translateY(-4px)}}
 @media(max-width:640px){.curator-invitation{padding:18px;flex-wrap:wrap;gap:12px}.curator-invitation>div:not(.curator-actions){flex:1;min-width:190px}.curator-actions{width:100%;margin:4px 0 0;flex-direction:row;justify-content:space-between}.curator-fields{grid-template-columns:1fr}.curator-form,.curator-results{padding:18px}.curator-submit,.curator-expanded-head{align-items:flex-start;flex-direction:column}.curator-expanded-head button{padding:8px 0}.curator-result-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.curator-orbit:before,.curator-orbit img,.curator-dots i{animation:none}}
+/* Plan cards arrive one after another after a curate, so the change is
+   something a visitor watches rather than something that has already
+   happened by the time they look back at the page. */
+.plans-row>.sy-card{animation:curator-deal .42s cubic-bezier(.22,.61,.36,1) both}
+.plans-row>.sy-card:nth-child(1){animation-delay:.04s}
+.plans-row>.sy-card:nth-child(2){animation-delay:.12s}
+.plans-row>.sy-card:nth-child(3){animation-delay:.2s}
+.plans-row>.sy-card:nth-child(4){animation-delay:.28s}
+.plans-row>.sy-card:nth-child(n+5){animation-delay:.34s}
+@keyframes curator-deal{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+.curator-loading strong{min-height:20px}
+@media(prefers-reduced-motion:reduce){.plans-row>.sy-card{animation:none}}
