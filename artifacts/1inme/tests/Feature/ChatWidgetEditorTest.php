@@ -28,6 +28,45 @@ class ChatWidgetEditorTest extends TestCase
  }
 
  /**
+  * PLACEMENT_PAGE has been offered in the picker since the start with
+  * nowhere to send anyone: no route served it, and the editor fell through
+  * to the Link-in-Bio instructions, which are about a different surface
+  * entirely.
+  */
+ public function test_the_full_page_placement_has_a_page_and_the_editor_shows_its_link(): void
+ {
+  AiEngineSettings::setEnabled(true);
+  $user=User::factory()->create();
+  $agent=AiPersonaAgent::create(['user_id'=>$user->id,'name'=>'Support agent','system_prompt'=>'Help users','model'=>'test','fallback_behavior'=>'clarify','greeting'=>'Hi, what can I do for you?']);
+  $widget=AiCompanion::create(['user_id'=>$user->id,'persona_id'=>$agent->id,'public_id'=>'cmp_fullpagefixture00001','name'=>'Support','placement'=>'page','free_turns_per_month'=>-1,'config'=>AiCompanion::defaultConfig()]);
+  $estimator=\Mockery::mock(AiCostEstimator::class);$estimator->shouldReceive('companionPerDay')->andReturn(['per_day'=>0,'based_on_usage'=>false,'avg_per_turn'=>0,'ceiling_per_day'=>0]);$this->app->instance(AiCostEstimator::class,$estimator);
+
+  // The page itself, logged out: it is a public destination.
+  $page=$this->get('/companion/'.$widget->public_id)->assertOk();
+  $page->assertSee('Support');
+  $page->assertSee('Hi, what can I do for you?');
+
+  // And the editor hands the owner the link rather than Link-in-Bio advice.
+  $html=$this->actingAs($user)->get('/user/ai-companions/'.$widget->id)->assertOk()->getContent();
+  $this->assertStringContainsString('/companion/'.$widget->public_id,$html,'the editor did not show the chat page link');
+  $this->assertStringNotContainsString('How to add it to a Link in Bio',$html,'a full-page widget was given Link-in-Bio instructions');
+ }
+
+ /**
+  * The URL exists exactly when the owner chose that placement. Otherwise
+  * every embed widget would also quietly have a public chat page its owner
+  * never asked for.
+  */
+ public function test_a_widget_that_is_not_full_page_has_no_chat_page(): void
+ {
+  $user=User::factory()->create();
+  $agent=AiPersonaAgent::create(['user_id'=>$user->id,'name'=>'Support agent','system_prompt'=>'Help users','model'=>'test','fallback_behavior'=>'clarify']);
+  $widget=AiCompanion::create(['user_id'=>$user->id,'persona_id'=>$agent->id,'public_id'=>'cmp_embedonlyfixture0001','name'=>'Support','placement'=>'embed','free_turns_per_month'=>-1,'config'=>AiCompanion::defaultConfig()]);
+
+  $this->get('/companion/'.$widget->public_id)->assertNotFound();
+ }
+
+ /**
   * Every key the model carries has to be settable from the editor.
   *
   * This is the check that was missing. defaultConfig() grew to fourteen

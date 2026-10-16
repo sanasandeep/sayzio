@@ -14,6 +14,11 @@
         html, body { margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:#fff; color:#111; }
         @media (prefers-color-scheme: dark) { html, body { background:#0b0b10; color:#f5f5f7; } }
         .wrap { display:flex; flex-direction:column; height:100vh; }
+        /* As a destination of its own the chat gets a column rather than the
+           full width of whatever monitor it is opened on. Inside an iframe
+           the frame is already the constraint, so this only applies there. */
+        body.full .wrap { max-width:720px; margin:0 auto; box-shadow:0 0 0 1px rgba(0,0,0,.06); }
+        @media (prefers-color-scheme: dark) { body.full .wrap { box-shadow:0 0 0 1px rgba(255,255,255,.08); } }
         .header { background: var(--accent); color:#fff; padding:12px 14px; font-weight:600; font-size:14px; display:flex; align-items:center; justify-content:space-between; }
         .body { flex:1; overflow:auto; padding:14px; }
         .msg { max-width:85%; padding:9px 12px; border-radius:14px; margin-bottom:8px; font-size:14px; line-height:1.4; white-space:pre-wrap; word-wrap:break-word; }
@@ -34,7 +39,7 @@
         .foot { font-size:10px; text-align:center; padding:6px; opacity:.55; }
     </style>
 </head>
-<body>
+<body class="{{ !empty($fullPage) ? 'full' : '' }}">
 @php $brand = $companion->brandingConfig(); @endphp
 <div class="wrap">
     <div class="header">
