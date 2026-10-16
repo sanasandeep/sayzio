@@ -107,12 +107,42 @@
                     <label class="block text-[11px] font-semibold text-white/60 mb-1">Input placeholder</label>
                     <input name="config[placeholder]" maxlength="120" value="{{ $config['placeholder'] ?? 'Ask me anything…' }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                 </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-white/60 mb-1">Launcher icon</label>
+                    <input name="config[launcher_icon]" maxlength="64" value="{{ $config['launcher_icon'] ?? 'fa-comments' }}" placeholder="fa-comments" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-[10px] text-white/40 mt-1">Font Awesome class, e.g. <code>fa-comments</code>.</p>
+                </div>
             </div>
+            @if($branding['can_avatar'])
+                <div class="pt-2">
+                    @include('user.links.partials.file-upload-field', [
+                        'fieldName'    => 'config[avatar_url]',
+                        'currentValue' => $config['avatar_url'] ?? '',
+                        'acceptTypes'  => 'image',
+                        'labelText'    => 'Agent avatar',
+                        'labelClass'   => 'block text-[11px] font-semibold text-white/60 mb-1',
+                    ])
+                    <p class="text-[10px] text-white/40 mt-1">Shown beside the agent's name in the chat header. Leave empty for the default.</p>
+                </div>
+            @endif
             <div class="flex flex-wrap gap-4 pt-2 text-xs text-white/70">
                 <label><input type="hidden" name="config[show_branding]" value="0"><input type="checkbox" name="config[show_branding]" value="1" @checked(!empty($config['show_branding']))> Show "Powered by Sayzio"</label>
                 <label><input type="hidden" name="config[inline]" value="0"><input type="checkbox" name="config[inline]" value="1" @checked(!empty($config['inline']))> Inline mode (Link in Bio only)</label>
                 <label x-show="placement==='inbox'"><input type="hidden" name="config[auto_send_inbox]" value="0"><input type="checkbox" name="config[auto_send_inbox]" value="1" @checked(!empty($config['auto_send_inbox']))> Auto-send inbox replies</label>
             </div>
+            @if($branding['can_custom_branding'])
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-white/60 mb-1">Footer text</label>
+                        <input name="config[custom_branding_text]" maxlength="60" value="{{ $config['custom_branding_text'] ?? '' }}" placeholder="Powered by Acme" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-semibold text-white/60 mb-1">Footer link</label>
+                        <input name="config[custom_branding_url]" type="url" maxlength="255" value="{{ $config['custom_branding_url'] ?? '' }}" placeholder="https://acme.com" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    </div>
+                    <p class="text-[10px] text-white/40 md:col-span-2">Replaces "Powered by Sayzio" on every public surface of this chat widget. Your plan includes custom branding.</p>
+                </div>
+            @endif
         </fieldset>
 
         <div data-widget-tab="more" x-show="tab==='more'">@include('user.ai-companions.appearance')</div>

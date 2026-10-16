@@ -152,6 +152,10 @@ class CompanionsController extends Controller
             'links'          => $links,
             'attachedLinks'  => $companion->links->pluck('id')->all(),
             'caps'           => CompanionSettings::caps(),
+            // The owner's branding entitlements. Without these the editor
+            // cannot know whether to offer the avatar and custom-branding
+            // fields, which is why they were never offered at all.
+            'branding'       => $companion->brandingCapabilities(),
             'placements'     => AiCompanion::PLACEMENTS,
             'config'         => $companion->effectiveConfig(),
             'usage'          => $usage,
@@ -183,6 +187,14 @@ class CompanionsController extends Controller
             'config.theme'             => 'nullable|in:auto,light,dark',
             'config.accent'            => 'nullable|string|max:32',
             'config.launcher_icon'     => 'nullable|string|max:64',
+            // Accepted here for the first time. The model has carried these
+            // three since the start and the mobile API already writes them;
+            // the web form was the only surface that could not. Entitlement
+            // is enforced at READ time in brandingConfig(), so validating
+            // them generously here cannot leak a paid capability.
+            'config.avatar_url'           => 'nullable|url:http,https|max:2048',
+            'config.custom_branding_text' => 'nullable|string|max:60',
+            'config.custom_branding_url'  => 'nullable|url:http,https|max:255',
             'config.launcher_label'    => 'nullable|string|max:60',
             'config.position'          => 'nullable|in:bottom-right,bottom-left',
             'config.greeting_bubble'   => 'nullable|string|max:280',
