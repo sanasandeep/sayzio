@@ -49,7 +49,15 @@ class PlanVariantLeakTest extends TestCase
             'the upgrade list offered a variant of the category the customer is already in — same features, a few rupees more',
         );
         $this->assertOnePerCategory($plans, 'the upgrade list');
-        $this->assertCount(1, $plans, 'one genuinely higher category was available, so exactly one plan should be offered');
+        // The genuinely higher category IS still offered — the exclusion
+        // above must remove siblings, not the whole upgrade path. (Count is
+        // deliberately not pinned: the seeded catalogue sits in this database
+        // too, and most of it is dearer than the fixture.)
+        $this->assertContains(
+            'leak-pro',
+            $plans->map(fn (Plan $p) => $p->categoryKey())->all(),
+            'excluding siblings also removed the real upgrade',
+        );
     }
 
     public function test_the_downgrade_list_never_offers_a_sibling_either(): void
