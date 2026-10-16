@@ -821,6 +821,23 @@
              for the outline and for a screen reader, which can now jump to the
              plans as a group instead of landing on "Starter" with nothing
              saying what Starter is one of. --}}
+        {{-- ───────────────── PLAN BANDS ─────────────────
+             One rail per group instead of one rail of everything. The rail
+             markup below is unchanged; it simply renders once per band, with
+             $plansArr rebound to that band's rows. Grouping comes from
+             PlansAndAddonsSeeder::publicPlanGroups() via the controller.    --}}
+        @foreach($planBands as $band)
+            @php
+                $plansArr = $band['rows'];
+                $planCount = $plansArr->count();
+            @endphp
+            <div class="mt-12 mb-1 flex items-baseline gap-3" data-anim="fade-up">
+                <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-gray-400">{{ $band['title'] }}</h2>
+                @if($band['blurb'])
+                    <p class="text-sm text-gray-500">{{ $band['blurb'] }}</p>
+                @endif
+                <span class="flex-1 h-px bg-white/10"></span>
+            </div>
         <h2 class="sr-only">Plans</h2>
         <div data-anim="fade-up" class="plans-rail mt-8"
              x-data="{
@@ -1028,6 +1045,29 @@
                 </div>
             @endif
         </div>
+        @endforeach
+
+        @if(!$showAllGroups && count($doorBands))
+            {{-- The door. Named by who is behind it, not by how many plans
+                 are hidden, so a solo creator never opens it and an agency
+                 finds it immediately. --}}
+            <div class="glass-panel rounded-3xl mt-10 p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8"
+                 data-anim="fade-up">
+                <div class="flex-1">
+                    <h2 class="text-lg sm:text-xl font-bold tracking-tight">
+                        Running an agency, or building on the API?
+                    </h2>
+                    <p class="text-gray-400 text-sm mt-1">
+                        {{ collect($doorBands)->pluck('blurb')->filter()->implode(' ') }}
+                    </p>
+                </div>
+                <a href="{{ request()->fullUrlWithQuery(['all' => 1]) }}#plans"
+                   class="sy-btn sy-btn-ghost whitespace-nowrap self-start sm:self-auto">
+                    See team &amp; developer plans
+                    <i class="fas fa-arrow-right sy-ico text-[11px]"></i>
+                </a>
+            </div>
+        @endif
 
         {{-- Rule 3: sections are separated by a labelled rule, not by a
              guess at a margin. --}}

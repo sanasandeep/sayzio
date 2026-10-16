@@ -606,6 +606,62 @@ class PlansAndAddonsSeeder extends Seeder
     }
 
     /**
+     * How the public plans are grouped on /pricing.
+     *
+     * Declared in code, not in each plan's metadata, on purpose. Bio Lite and
+     * Bio Plus were created straight in the admin UI, so they existed in
+     * production while every piece of code that thought it knew the lineup
+     * had never heard of them — the seeder, the test database and the live
+     * site all disagreed. A curator-editable `metadata.tier` fails the same
+     * way: add a plan, forget the tier, and it lands in the wrong band or
+     * none, silently, with nothing failing.
+     *
+     * A map here cannot drift, and PlanGroupCoverageTest fails the build when
+     * a plan is missing from it. The cost is that a brand-new plan needs a
+     * deploy before it is grouped; the controller shows ungrouped plans in a
+     * fallback band meanwhile, so the failure mode is "appears in the wrong
+     * place" rather than "silently vanishes from pricing".
+     *
+     * `on_pricing` false means the group lives behind the one door link
+     * rather than on the main rail. /pricing?all=1 shows everything.
+     *
+     * `free` leads the bio group: the free plan is one bio page, so that is
+     * where someone shopping for a bio page starts.
+     *
+     * @return array<string, array{title: string, blurb: ?string, slugs: list<string>, on_pricing: bool}>
+     */
+    public static function publicPlanGroups(): array
+    {
+        return [
+            'bio' => [
+                'title' => 'Link in bio',
+                'blurb' => 'One page, done properly.',
+                'slugs' => ['free', 'bio-lite', 'bio-plus'],
+                'on_pricing' => true,
+            ],
+            'platform' => [
+                'title' => 'The whole platform',
+                'blurb' => 'Pages, QR codes, menus, events, payments and the AI suite.',
+                'slugs' => ['creator', 'professional'],
+                'on_pricing' => true,
+            ],
+            'teams' => [
+                'title' => 'For teams',
+                'blurb' => 'Seats, shared workspaces and white-label.',
+                'slugs' => ['business', 'agency'],
+                'on_pricing' => false,
+            ],
+            'devs' => [
+                'title' => 'For developers',
+                'blurb' => 'API volume, webhooks and SLAs.',
+                'slugs' => ['developer', 'enterprise-api'],
+                'on_pricing' => false,
+            ],
+        ];
+    }
+
+
+    /**
      * Idempotently converge the default addon catalog, their plan
      * attachments, and their USD/INR prices. Split out from run() so the
      * one-time lineup data migration can skip this slower pass (it only needs
