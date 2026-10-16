@@ -85,6 +85,35 @@ class PlanVariantPricingTest extends TestCase
         }
     }
 
+    /**
+     * A rupee does not divide into halves on a pricing page. Rs 1,305.50 is
+     * arithmetic that escaped, not a price, and India is the market this
+     * catalogue is mostly read in.
+     */
+    public function test_rupee_prices_land_on_whole_rupees(): void
+    {
+        $this->artisan('plans:generate-variants')->assertSuccessful();
+
+        // Generated variants only. The internal comp plan has no category
+        // and no business being held to a pricing-page rule.
+        $generated = Plan::whereNotNull('plan_category')
+            ->where('plan_category', '!=', '')
+            ->where('is_category_default', false)
+            ->get();
+        $this->assertGreaterThan(50, $generated->count(), 'the generator barely ran, so this proves nothing');
+
+        foreach ($generated as $variant) {
+            foreach (['monthly', 'annual'] as $cycle) {
+                $minor = PricingResolver::priceForCurrency($variant, 'INR', $cycle)['amount_minor'];
+                $this->assertSame(
+                    0,
+                    $minor % 100,
+                    "{$variant->name} is priced at Rs ".number_format($minor / 100, 2)." for {$cycle}",
+                );
+            }
+        }
+    }
+
     /** @return \Illuminate\Support\Collection<int, Plan> */
     private function generated(string $category)
     {
