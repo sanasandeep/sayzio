@@ -218,6 +218,35 @@ class PublicCompanionController
             ->header('Content-Security-Policy', "frame-ancestors *");
     }
 
+    /**
+     * GET /companion/{publicId} — the full-page chat.
+     *
+     * Shares the iframe's view rather than growing a second one: the two
+     * are the same chat at different sizes, and letting them drift is how
+     * one surface ends up with a fix the other never gets.
+     *
+     * No frame-ancestors header here. The iframe route opens itself to any
+     * embedder on purpose; this page is a destination of its own and keeps
+     * the application's normal framing protection.
+     */
+    public function page(Request $request, string $publicId)
+    {
+        $companion = AiCompanion::where('public_id', $publicId)->firstOrFail();
+
+        // A URL exists exactly when the owner chose this placement. Serving
+        // every companion here would hand out a public chat page for widgets
+        // whose owner only ever meant to embed one on their own site.
+        abort_unless($companion->placement === AiCompanion::PLACEMENT_PAGE, 404);
+
+        return response()->view('public.companion-iframe', [
+            'companion'   => $companion,
+            'config'      => $companion->effectiveConfig(),
+            'postUrl'     => route('public.companion.message', ['publicId' => $publicId]),
+            'iframeToken' => null,
+            'fullPage'    => true,
+        ]);
+    }
+
     /** GET /embed/companion.js — static bundle (served by controller so we can fingerprint cache headers). */
     public function bundle(Request $request)
     {

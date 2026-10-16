@@ -162,6 +162,7 @@ class CompanionsController extends Controller
             'estimate'       => $estimate,
             'embedScriptUrl' => url('/embed/companion.js'),
             'iframeUrl'      => route('public.companion.iframe', ['publicId' => $companion->public_id]),
+            'pageUrl'        => route('public.companion.page',   ['publicId' => $companion->public_id]),
             'balance'        => $this->credits->getBalance($request->user()),
         ]);
     }

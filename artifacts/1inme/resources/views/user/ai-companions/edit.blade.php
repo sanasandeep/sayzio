@@ -100,8 +100,13 @@
                     <input name="config[launcher_label]" maxlength="60" value="{{ $config['launcher_label'] ?? 'Chat' }}" class="theme-input w-full">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold theme-text-muted mb-1">Greeting bubble</label>
+                    <label class="block text-[11px] font-semibold theme-text-muted mb-1">Launcher tooltip</label>
                     <input name="config[greeting_bubble]" maxlength="280" value="{{ $config['greeting_bubble'] ?? '' }}" placeholder="Hi! Got a question?" class="theme-input w-full">
+                    <p class="text-[10px] theme-text-dimmed mt-1">
+                        The bubble beside the closed launcher. The chat's first
+                        message is the agent's greeting &mdash; set it on
+                        <a href="{{ route('user.ai-personas.edit', $companion->persona_id) }}" class="underline">{{ $companion->persona->name ?? 'the agent' }}</a>.
+                    </p>
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold theme-text-muted mb-1">Input placeholder</label>
@@ -250,6 +255,17 @@
                     };
                 }
             </script>
+        </div>
+    @elseif($companion->placement === 'page')
+        <div x-data="snippetCopier()" class="rounded-2xl theme-border border bg-[var(--bg-card)] p-5 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="text-sm font-bold theme-text-primary">Chat page link</h2>
+                <button type="button" class="text-xs px-2.5 py-1.5 rounded-lg bg-[var(--bg-glass)] hover:bg-[var(--bg-glass-hover)] theme-text-secondary"
+                        @click="copy($refs.pageUrl)" x-text="label($refs.pageUrl)"></button>
+            </div>
+            <p class="text-[11px] theme-text-muted">Send people straight here, or link it from anywhere. The whole page is the chat &mdash; no launcher, no embedding.</p>
+            <textarea x-ref="pageUrl" readonly rows="1" class="theme-input w-full font-mono text-xs" onclick="this.select()">{{ $pageUrl }}</textarea>
+            <a href="{{ $pageUrl }}" target="_blank" rel="noopener" class="inline-block text-xs theme-text-secondary underline">Open it &rarr;</a>
         </div>
     @elseif($companion->placement === 'inbox')
         <div class="rounded-2xl theme-border border bg-[var(--bg-card)] p-5 space-y-2 text-sm theme-text-secondary">

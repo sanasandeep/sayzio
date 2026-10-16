@@ -202,6 +202,13 @@ Route::post   ('/companion/{publicId}/message', [\App\Modules\Common\Controllers
     ->name('public.companion.message');
 Route::options('/companion/{publicId}/message', [\App\Modules\Common\Controllers\PublicCompanionController::class, 'preflight'])
     ->where('publicId', 'cmp_[a-z0-9]{20}');
+// The full-page placement's actual page. PLACEMENT_PAGE has been
+// selectable in the editor since the start with nowhere to send anyone:
+// it fell through to the Link-in-Bio instructions and no route served it.
+// `companion` is already reserved against the /{handle} catch-all below.
+Route::get    ('/companion/{publicId}',                [\App\Modules\Common\Controllers\PublicCompanionController::class, 'page'])
+    ->where('publicId', 'cmp_[a-z0-9]{20}')
+    ->name('public.companion.page');
 Route::get    ('/embed/companion.js',                  [\App\Modules\Common\Controllers\PublicCompanionController::class, 'bundle'])->name('public.companion.bundle');
 Route::get    ('/embed/companion/{publicId}/iframe',   [\App\Modules\Common\Controllers\PublicCompanionController::class, 'iframe'])
     ->where('publicId', 'cmp_[a-z0-9]{20}')
