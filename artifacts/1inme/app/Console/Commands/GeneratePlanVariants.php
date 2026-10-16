@@ -44,6 +44,16 @@ class GeneratePlanVariants extends Command
 
     protected $description = 'Create the near-identical plan variants that each category competes with';
 
+    /**
+     * Smallest price increment a variant may land on, in minor units, per
+     * currency. Half a dollar; a whole rupee. A currency with no entry falls
+     * back to half a unit, which is the safer guess for a decimal currency.
+     */
+    private const ROUNDING_STEP = [
+        'USD' => 50,
+        'INR' => 100,
+    ];
+
     public function handle(): int
     {
         $pools = PlanVariantNames::pools();
@@ -205,7 +215,10 @@ class GeneratePlanVariants extends Command
      * than a recommendation, and it would have hit the bio plans hardest,
      * which is where the paying customers are.
      *
-     * So rounding happens in minor units, to the nearest half unit. $4.00
+     * So rounding happens in minor units, to a step chosen per currency.
+     * A dollar divides into halves and a rupee does not: Indian pricing is
+     * whole rupees essentially always, and Rs 1,305.50 reads as arithmetic
+     * that leaked onto the page rather than a price someone chose. $4.00
      * spreads to $3.50 / $4.00 / $4.50 and Rs 167 to Rs 147 ... Rs 192 --
      * prices a person could plausibly see on a page, in both currencies, at
      * both ends of the catalogue.
@@ -230,8 +243,9 @@ class GeneratePlanVariants extends Command
                 continue;
             }
 
-            $scaled = (int) round(($base * $multiplier) / 50) * 50;
-            $out[$price->currency.'|'.$price->billing_cycle] = max(50, $scaled);
+            $step = self::ROUNDING_STEP[$price->currency] ?? 50;
+            $scaled = (int) round(($base * $multiplier) / $step) * $step;
+            $out[$price->currency.'|'.$price->billing_cycle] = max($step, $scaled);
         }
 
         return $out;
