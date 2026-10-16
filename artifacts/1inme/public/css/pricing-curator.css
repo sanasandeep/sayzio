@@ -22,3 +22,9 @@
 @keyframes curator-deal{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
 .curator-loading strong{min-height:20px}
 @media(prefers-reduced-motion:reduce){.plans-row>.sy-card{animation:none}}
+/* Curated view: one plan from every category at once. A horizontal rail is
+   right for three cards and wrong for nine, where the ones off-screen are
+   the ones a visitor never learns exist. */
+.plans-row--grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:1rem}
+.plans-row--grid>.sy-card{flex:none!important;min-width:0!important;max-width:none!important}
+@media(max-width:640px){.plans-row--grid{grid-template-columns:1fr}}

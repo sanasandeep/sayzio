@@ -85,7 +85,7 @@
              }"
              x-init="$nextTick(() => update()); window.addEventListener('resize', () => update());">
             <div class="plans-scroll" x-ref="scroll" @scroll="update()">
-                <div class="plans-row">
+                <div class="plans-row @if(!empty($planGrid)) plans-row--grid @endif">
             @foreach($plansArr as $i => $row)
                 @php
                     $plan = $row['model'];

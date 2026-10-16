@@ -207,10 +207,15 @@ class PricingPagesController extends Controller
             ->reject(fn (array $r) => !empty($r['is_free']))
             ->keyBy(fn (array $r) => $r['model']->categoryKey());
 
-        // Only categories whose band is on the pricing page are eligible. The
-        // teams and developer bands sit behind the door on purpose, and a solo
-        // creator landing on "Enterprise API" as one of their three plans is
-        // exactly what that door exists to prevent.
+        // Before anyone presses Curate, only categories whose band is on the
+        // pricing page are eligible: a solo creator landing on "Enterprise
+        // API" as one of their first three plans is what the short page
+        // exists to prevent.
+        //
+        // Pressing Curate is the visitor asking to see more, so from roll 1
+        // every category is in play and the page opens out to one plan from
+        // each. Pressing again keeps it open and rolls the variants, so the
+        // names and prices move while the shape stays put.
         $frontCategories = $paidByCategory
             ->filter(function (array $row) use ($groupDefs) {
                 foreach ($groupDefs as $def) {
@@ -226,7 +231,9 @@ class PricingPagesController extends Controller
             ->keys()
             ->all();
 
-        $setCategories = $roller->categories($frontCategories);
+        $curated = $roller->current() > 0;
+        $eligible = $curated ? $paidByCategory->keys()->all() : $frontCategories;
+        $setCategories = $roller->categories($eligible, null, $curated ? count($eligible) : PlanSetRoller::SET_SIZE);
         // Cheapest first. The roll picks WHICH categories appear; it must not
         // decide the order they are read in, or a visitor meets $25 before $8
         // and the page stops looking like a ladder.
@@ -270,6 +277,7 @@ class PricingPagesController extends Controller
             'wallet_enabled'=> WalletService::isEnabled(),
             'recommendation'=> $recommendation,
             'anotherSetUrl' => route('site.pricing.another'),
+            'planGrid'      => $curated,
             'planRoll'      => $roller->current(),
             'planBands'     => $planBands,
             'doorBands'     => $doorBands,

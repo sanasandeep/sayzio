@@ -50,6 +50,44 @@ class PublicPricingGroupsTest extends TestCase
         $all->assertSee('Curate with Zio');
     }
 
+    /**
+     * Pressing Curate is the visitor asking to see more, so it opens the page
+     * out to one plan from every category rather than handing back another
+     * three. Pressing again keeps it open and rolls the variants.
+     */
+    public function test_curating_opens_the_page_out_to_one_plan_per_category(): void
+    {
+        $short = $this->get('/pricing')->assertOk();
+        $this->assertCount(4, $short->viewData('plans'), 'the first view is Free plus three');
+        $this->assertEmpty($short->viewData('planGrid'), 'the short view is a rail, not a grid');
+
+        $this->get('/pricing/another')->assertRedirect();
+        $curated = $this->get('/pricing')->assertOk();
+
+        $categories = $curated->viewData('plans')
+            ->map(fn (array $row) => $row['model']->categoryKey())
+            ->all();
+
+        $this->assertSame(
+            $categories,
+            array_values(array_unique($categories)),
+            'the curated grid showed two plans from the same category',
+        );
+        $this->assertGreaterThan(
+            4,
+            count($categories),
+            'curating returned no more plans than the short view did',
+        );
+        $this->assertNotEmpty($curated->viewData('planGrid'), 'the curated view should render as a grid');
+
+        $amounts = $curated->viewData('plans')
+            ->map(fn (array $row) => (int) ($row['prices']['USD']['monthly']['amount_minor'] ?? 0))
+            ->all();
+        $sorted = $amounts;
+        sort($sorted);
+        $this->assertSame($sorted, $amounts, 'the curated grid is not in ascending price order');
+    }
+
     public function test_session_matcher_only_receives_public_plan_features(): void
     {
         $response = $this->get('/pricing')->assertOk();
