@@ -14,12 +14,14 @@ class PublicPricingGroupsTest extends TestCase
     public function test_default_groups_and_expanded_groups_use_the_same_catalogue(): void
     {
         $response = $this->get('/pricing')->assertOk();
-        $this->assertSame(['bio', 'platform'], array_column($response->viewData('planBands'), 'key'));
-        $this->assertSame(['teams', 'devs'], array_column($response->viewData('doorBands'), 'key'));
-        $response->assertSee('See team &amp; developer plans', false);
+        $this->assertSame(['essentials'], array_column($response->viewData('planBands'), 'key'));
+        $this->assertSame(['free', 'bio-lite', 'creator'], $response->viewData('plans')->pluck('model.slug')->all());
+        $this->assertCount(3, $response->viewData('planModels'));
+        $this->assertCount(6, $response->viewData('doorBands')[0]['rows']);
+        $response->assertSee('See all plans', false);
         $all = $this->get('/pricing?all=1')->assertOk();
         $this->assertSame(['bio', 'platform', 'teams', 'devs'], array_column($all->viewData('planBands'), 'key'));
-        $all->assertDontSee('See team &amp; developer plans', false);
+        $all->assertDontSee('See all plans', false);
     }
 
     public function test_audit_detects_saved_admin_drift_without_modifying_it(): void

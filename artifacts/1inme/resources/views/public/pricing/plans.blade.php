@@ -305,6 +305,34 @@
         .plans-rail::before, .plans-rail::after { transition: none !important; }
         .plans-scroll { scroll-snap-type: none !important; }
     }
+
+    html:not(.light-mode) .sy-seg button.is-on{color:#15172c!important}
+    html.light-mode .sy-seg button.is-on{color:#fff!important}
+    /* Compact decision cards; the matrix below carries the full specification. */
+    .plan-band-heading{display:flex;align-items:center;gap:14px;margin:32px 0 8px;flex-wrap:wrap}
+    .plan-band-heading h2{color:var(--sy-ink);font-size:14px;letter-spacing:.07em}
+    .plan-band-heading p{font-size:13px;color:var(--sy-ink-3)}
+    .plans-row>.compact-plan{flex:1 0 258px;min-width:258px;max-width:360px;padding:22px;border-radius:22px;background:linear-gradient(150deg,rgba(105,94,255,.065),transparent 45%),var(--sy-card);border:1px solid var(--sy-rule);box-shadow:0 10px 30px -24px rgba(41,31,112,.35);transition:border-color .2s,box-shadow .2s}
+    .plans-row>.compact-plan:hover{transform:none;border-color:#9b90ed;box-shadow:0 16px 36px -26px rgba(85,61,190,.55)}
+    .plans-row>.compact-plan.sy-card--lead{transform:none;border-color:#9b90ed;background:linear-gradient(145deg,rgba(122,92,245,.13),transparent 65%),var(--sy-card)}
+    .compact-plan .sy-head{margin-bottom:0;min-height:24px;gap:8px;flex-wrap:wrap}
+    .compact-plan .sy-eyebrow{font-size:12px;letter-spacing:.09em}
+    .compact-plan .sy-flag{font-size:10px;padding:4px 8px}
+    .compact-plan .sy-figure{font-size:34px;line-height:1.15;margin-top:10px;letter-spacing:-.045em}
+    .compact-plan .sy-note{font-size:11px;line-height:1.5;min-height:50px;margin-top:8px}
+    .compact-plan .sy-blurb{font-size:12px;line-height:1.6;margin:12px 0 0;min-height:39px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .compact-plan .sy-foot--lead{margin-top:16px;padding:0;border:0}
+    .compact-plan .sy-cta{min-height:42px;padding:10px 12px;font-size:12px;border-radius:12px}
+    .compact-plan.sy-card--lead .sy-cta{background:#6246db!important;color:#fff!important;border-color:#6246db!important}
+    .plan-highlights{list-style:none;margin:18px 0 0;padding:16px 0 0;border-top:1px solid var(--sy-rule);display:grid;gap:11px}
+    .plan-highlights li{display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.4;color:var(--sy-ink-2)}
+    .plan-highlights i{width:15px;text-align:center;color:#8b79e8;font-size:12px}
+    .plan-compare-link{display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:14px;border-top:1px solid var(--sy-rule);font-size:11px;font-weight:650;color:var(--sy-ink-2)}
+    .plan-compare-link:hover{color:#8b79e8}
+    #compare-plans{scroll-margin-top:100px}
+    @media(max-width:640px){.plans-row>.compact-plan{flex-basis:276px;min-width:276px;padding:20px}.plan-band-heading{gap:6px}.plan-band-heading p{width:100%}.compact-plan .sy-figure{font-size:32px}}
+    @media(prefers-reduced-motion:reduce){.plans-row>.compact-plan{transition:none}}
+
 </style>
 @endpush
 
@@ -679,135 +707,6 @@
                 return false;
             });
 
-            // ── Feature display catalogue ──────────────────────────────
-            // Maps the plan `features` blob into Linktree-style grouped,
-            // icon-led entries (bold name + one-line description). This is
-            // presentation only — *which* features each plan has is still
-            // driven entirely by the seeded features blob; we just choose
-            // how to label and group what's already there.
-            $featureCatalog = [
-                ['key' => 'max_links',          'group' => 'Link in bio',      'icon' => 'fa-link',                       'type' => 'number',    'noun' => 'short links',        'desc' => 'Trackable short links with click analytics'],
-                ['key' => 'max_biolinks',       'group' => 'Link in bio',      'icon' => 'fa-id-badge',                   'type' => 'number',    'noun' => 'Link in Bio pages',  'desc' => 'Mini-site bio pages for your audience'],
-                ['key' => 'storage_limit_mb',   'group' => 'Link in bio',      'icon' => 'fa-database',                   'type' => 'storage',   'noun' => 'storage',            'desc' => 'Space for files, images & media'],
-                ['key' => 'max_files',          'group' => 'Link in bio',      'icon' => 'fa-folder-open',                'type' => 'number',    'noun' => 'hosted files',       'desc' => 'Upload & share downloadable files'],
-                ['key' => 'block_types_allowed','group' => 'Link in bio',      'icon' => 'fa-table-cells',                'type' => 'blocks',                                    'desc' => 'Content block types for your pages'],
-                ['key' => 'custom_domains',     'group' => 'Link in bio',      'icon' => 'fa-globe',                      'type' => 'bool',      'name' => 'Custom domains',     'desc' => 'Use your own branded domain'],
-                ['key' => 'white_label',        'group' => 'Link in bio',      'icon' => 'fa-tag',                        'type' => 'bool',      'name' => 'Remove Sayzio branding','desc' => 'White-label your public pages'],
-
-                ['key' => 'analytics',          'group' => 'Analytics & SEO',  'icon' => 'fa-chart-line',                 'type' => 'analytics'],
-                ['key' => 'pixels',             'group' => 'Analytics & SEO',  'icon' => 'fa-bullseye',                   'type' => 'bool',      'name' => 'Marketing pixels',   'desc' => 'FB, GA, TikTok, LinkedIn & more'],
-                ['key' => 'utm_params',         'group' => 'Analytics & SEO',  'icon' => 'fa-compass',                    'type' => 'bool',      'name' => 'UTM campaign tracking','desc' => 'Tag links for clean attribution'],
-                ['key' => 'seo_settings',       'group' => 'Analytics & SEO',  'icon' => 'fa-magnifying-glass',           'type' => 'bool',      'name' => 'SEO & social previews','desc' => 'Control titles, meta & OG cards'],
-
-                ['key' => 'ecommerce',          'group' => 'Make money',       'icon' => 'fa-bag-shopping',               'type' => 'bool',      'name' => 'Sell from your bio', 'desc' => 'Native product checkout'],
-                ['key' => 'leads',              'group' => 'Make money',       'icon' => 'fa-magnet',                     'type' => 'bool',      'name' => 'Lead capture & CRM', 'desc' => 'Collect and manage leads'],
-                ['key' => 'custom_forms',       'group' => 'Make money',       'icon' => 'fa-clipboard-list',             'type' => 'bool',      'name' => 'Custom forms',       'desc' => '21 field types with notifications'],
-
-                ['key' => 'contacts_max',       'group' => 'Growth tools',     'icon' => 'fa-address-book',               'type' => 'number',    'noun' => 'contacts',           'desc' => 'Address-book contacts & dialer'],
-                ['key' => 'max_forms',          'group' => 'Growth tools',     'icon' => 'fa-rectangle-list',             'type' => 'number',    'noun' => 'forms',              'desc' => 'Publishable forms'],
-                ['key' => 'max_projects',       'group' => 'Growth tools',     'icon' => 'fa-folder',                     'type' => 'number',    'noun' => 'projects',           'desc' => 'Separate project workspaces'],
-                ['key' => 'teams',              'group' => 'Growth tools',     'icon' => 'fa-people-group',               'type' => 'bool',      'name' => 'Team workspaces',    'desc' => 'Invite teammates & seats'],
-                ['key' => 'creator_profile_public','group' => 'Growth tools',  'icon' => 'fa-star',                       'type' => 'bool',      'name' => 'Public creator profile','desc' => 'A discoverable creator page'],
-                ['key' => 'verification_eligible','group' => 'Growth tools',   'icon' => 'fa-circle-check',               'type' => 'bool',      'name' => 'Verified-creator eligible','desc' => 'Apply for a verified badge'],
-                ['key' => 'calendar_sync',      'group' => 'Growth tools',     'icon' => 'fa-calendar-days',              'type' => 'bool',      'name' => 'Calendar sync',      'desc' => 'Sync events to your calendar'],
-
-                ['key' => 'link_password',      'group' => 'Pro controls',     'icon' => 'fa-lock',                       'type' => 'bool',      'name' => 'Password-protected links','desc' => 'Lock links behind a password'],
-                ['key' => 'link_expiry',        'group' => 'Pro controls',     'icon' => 'fa-hourglass-half',             'type' => 'bool',      'name' => 'Link expiry',        'desc' => 'Auto-expire links on a date'],
-                ['key' => 'link_geo_targeting', 'group' => 'Pro controls',     'icon' => 'fa-map-location-dot',           'type' => 'bool',      'name' => 'Geo targeting',      'desc' => 'Redirect by visitor location'],
-                ['key' => 'link_device_targeting','group' => 'Pro controls',   'icon' => 'fa-mobile-screen',              'type' => 'bool',      'name' => 'Device targeting',   'desc' => 'Redirect by device or OS'],
-                ['key' => 'link_deep_link',     'group' => 'Pro controls',     'icon' => 'fa-arrow-up-right-from-square', 'type' => 'bool',      'name' => 'Deep links',         'desc' => 'Open links inside native apps'],
-                ['key' => 'link_smart_rules',   'group' => 'Pro controls',     'icon' => 'fa-brain',                      'type' => 'bool',      'name' => 'Smart redirect rules','desc' => 'Rule-based link routing'],
-                ['key' => 'link_active_window', 'group' => 'Pro controls',     'icon' => 'fa-clock',                      'type' => 'bool',      'name' => 'Active-window scheduling','desc' => 'Schedule when links are live'],
-                ['key' => 'vaults',             'group' => 'Pro controls',     'icon' => 'fa-key',                        'type' => 'bool',      'name' => 'Credential vault',   'desc' => 'Store secrets securely'],
-
-                ['key' => 'api_access',         'group' => 'Developer',        'icon' => 'fa-code',                       'type' => 'api'],
-
-                // Included coin grants (features.included_coins_monthly / _yearly, 0 = hidden).
-                ['key' => 'included_coins_monthly', 'group' => 'Included coins', 'icon' => 'fa-coins', 'type' => 'number', 'noun' => 'coins / month included', 'desc' => 'Credited to your wallet every monthly billing cycle'],
-                ['key' => 'included_coins_yearly',  'group' => 'Included coins', 'icon' => 'fa-coins', 'type' => 'number', 'noun' => 'coins / year included',  'desc' => 'Credited to your wallet every yearly billing cycle'],
-            ];
-
-            // Biolink block-type slug → human-readable label resolution (and
-            // canonicalization of friendly/legacy allowlist slugs to real
-            // block types, so labels match what editor gating enforces) lives
-            // in the shared PlanBlockLabels helper so this page and the in-app
-            // /user/upgrade page stay in sync.
-
-            // Evaluate a single catalogue entry against a features blob.
-            // Returns null when the feature isn't present/enabled, or an
-            // array with a numeric weight (for delta comparison), a bold
-            // name, and a description line.
-            $evalFeature = function (array $features, array $e) {
-                $type = $e['type'];
-                $key  = $e['key'];
-
-                if ($type === 'number') {
-                    if (!isset($features[$key])) return null;
-                    $v = (int) $features[$key];
-                    if ($v === 0) return null;
-                    $name = $v === -1 ? 'Unlimited ' . $e['noun'] : number_format($v) . ' ' . $e['noun'];
-                    return ['num' => $v === -1 ? PHP_INT_MAX : $v, 'name' => $name, 'desc' => $e['desc']];
-                }
-                if ($type === 'storage') {
-                    if (!isset($features[$key])) return null;
-                    $v = (int) $features[$key];
-                    if ($v === 0) return null;
-                    if ($v === -1) { $num = PHP_INT_MAX; $name = 'Unlimited storage'; }
-                    elseif ($v >= 1024) { $num = $v; $name = rtrim(rtrim(number_format($v / 1024, 1), '0'), '.') . ' GB storage'; }
-                    else { $num = $v; $name = number_format($v) . ' MB storage'; }
-                    return ['num' => $num, 'name' => $name, 'desc' => $e['desc']];
-                }
-                if ($type === 'blocks') {
-                    $val = $features[$key] ?? null;
-                    if (\App\Modules\Common\Support\PlanBlockLabels::isAll($val)) {
-                        return ['num' => PHP_INT_MAX, 'name' => 'All Link in Bio blocks', 'desc' => $e['desc'], 'blocks' => null];
-                    }
-                    $labels = \App\Modules\Common\Support\PlanBlockLabels::labelsFor($val);
-                    if (!$labels) return null;
-                    return ['num' => count($labels), 'name' => count($labels) . ' Link in Bio blocks', 'desc' => $e['desc'], 'blocks' => $labels];
-                }
-                if ($type === 'analytics') {
-                    $val = $features[$key] ?? null;
-                    if (!$val) return null;
-                    $adv = strtolower((string) $val) === 'advanced';
-                    return [
-                        'num'  => $adv ? 2 : 1,
-                        'name' => $adv ? 'Advanced analytics' : 'Click & view analytics',
-                        'desc' => $adv ? 'Geo, device & referrer breakdowns' : 'Clicks and views over time',
-                    ];
-                }
-                if ($type === 'api') {
-                    if (empty($features[$key])) return null;
-                    $calls = (int) ($features['api_calls_monthly'] ?? 0);
-                    $callLabel = $calls === -1 ? 'Unlimited API calls / month' : number_format($calls) . ' API calls / month (coin top-up beyond)';
-                    return ['num' => 1, 'name' => 'Developer API access', 'desc' => $callLabel];
-                }
-                // bool
-                return !empty($features[$key])
-                    ? ['num' => 1, 'name' => $e['name'], 'desc' => $e['desc']]
-                    : null;
-            };
-
-            // Build the grouped feature list for a plan. When $prev is
-            // supplied we only keep the *delta* (newly enabled, or a
-            // numeric cap that went up) so each card reads as
-            // "Everything in {previous}, plus:".
-            $buildGroups = function ($plan, $prev) use ($featureCatalog, $evalFeature) {
-                if (!$plan) return [];
-                $cf = $plan->features ?? [];
-                $pf = $prev->features ?? [];
-                $groups = [];
-                foreach ($featureCatalog as $e) {
-                    $cur = $evalFeature($cf, $e);
-                    if (!$cur) continue;
-                    if ($prev) {
-                        $old = $evalFeature($pf, $e);
-                        if ($old && $cur['num'] <= $old['num']) continue;
-                    }
-                    $groups[$e['group']][] = $cur + ['icon' => $e['icon']];
-                }
-                return $groups;
-            };
         @endphp
         {{-- The plan cards are the page, and nothing named them.
 
@@ -826,12 +725,15 @@
              markup below is unchanged; it simply renders once per band, with
              $plansArr rebound to that band's rows. Grouping comes from
              PlansAndAddonsSeeder::publicPlanGroups() via the controller.    --}}
+        @if($showAllGroups)
+            <a class="plan-compare-link" style="max-width:210px" href="{{ request()->fullUrlWithQuery(['all' => null]) }}#plans">← Back to three simple plans</a>
+        @endif
         @foreach($planBands as $band)
             @php
                 $plansArr = $band['rows'];
                 $planCount = $plansArr->count();
             @endphp
-            <div class="mt-12 mb-1 flex items-baseline gap-3" data-anim="fade-up">
+            <div class="plan-band-heading" data-anim="fade-up">
                 <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-gray-400">{{ $band['title'] }}</h2>
                 @if($band['blurb'])
                     <p class="text-sm text-gray-500">{{ $band['blurb'] }}</p>
@@ -864,13 +766,26 @@
                     // Single-highlight: the recommended card takes the accent
                     // when one is shown; otherwise the "Most popular" card does.
                     // (Popular still keeps its badge either way.)
-                    $isAccent = $isRecommended || ($isPopular && !$showsRecommended);
+                    $isAccent = $isRecommended || (!$showsRecommended && ($isPopular || (!$showAllGroups && $plan->slug === 'creator' && !$isCurrent)));
                     $cmpKind = auth()->check()
                         ? \App\Services\PlanRecommender::compare($recommendation['currentPlan'] ?? null, $plan)
                         : 'guest';
                     $planJs = $row['prices']; // { USD: {monthly, annual}, INR: {monthly, annual} }
                     $prevPlan = $i > 0 ? $plansArr[$i - 1]['model'] : null;
-                    $groups = $buildGroups($plan, $prevPlan);
+                    $limitLabel = function (string $key, string $one, string $many) use ($features) {
+                        $value = (int) ($features[$key] ?? 0);
+                        return $value === -1 ? 'Unlimited '.$many : number_format($value).' '.($value === 1 ? $one : $many);
+                    };
+                    $highlights = [
+                        ['fa-id-badge', $limitLabel('max_biolinks', 'Link in Bio page', 'Link in Bio pages')],
+                        ['fa-link', $limitLabel('max_links', 'short link', 'short links')],
+                        !empty($features['custom_domains']) && (int) ($features['max_custom_domains'] ?? 0) !== 0
+                            ? ['fa-globe', $limitLabel('max_custom_domains', 'custom domain', 'custom domains')]
+                            : ['fa-chart-simple', ($features['analytics'] ?? 'basic') === 'advanced' ? 'Advanced analytics' : 'Click analytics'],
+                        (int) ($features['included_coins_monthly'] ?? 0) > 0
+                            ? ['fa-coins', number_format($features['included_coins_monthly']).' coins / month']
+                            : ['fa-user', $limitLabel('max_seats_per_workspace', 'workspace seat', 'workspace seats')],
+                    ];
                     $ctaFilled = $isAccent;
                     $borderClasses = $isCurrent
                         ? 'border-emerald-400/50'
@@ -892,7 +807,7 @@
                 @endphp
                 <div
                     x-data='{ plan: @json($planJs) }'
-                    class="sy-card {{ $isAccent ? 'sy-card--lead sy-ribbon card-lit' : '' }} {{ $isCurrent ? 'sy-card--current' : '' }} plan-card">
+                    class="sy-card compact-plan {{ $isAccent ? 'sy-card--lead sy-ribbon card-lit' : '' }} {{ $isCurrent ? 'sy-card--current' : '' }} plan-card">
 
                     <div class="sy-head">
                         <div class="sy-eyebrow">{{ $plan->name }}</div>
@@ -902,6 +817,8 @@
                             <span class="sy-flag">Recommended</span>
                         @elseif($isPopular)
                             <span class="sy-flag">Most popular</span>
+                        @elseif($isAccent)
+                            <span class="sy-flag">More room to grow</span>
                         @endif
                     </div>
 
@@ -998,41 +915,12 @@
                         @endswitch
                     </div>
 
-                    {{-- Hairline rows, not forty bordered chips with their own
-                         fills and their own ring colours. A rule between rows
-                         says "separate item" and then gets out of the way. --}}
-                    <div class="sy-cells">
-                        <div class="sy-group sy-group--first">
-                            {{ $prevPlan ? 'Everything in ' . $prevPlan->name . ', plus' : 'Key features' }}
-                        </div>
-                        @forelse($groups as $groupName => $items)
-                            <div class="sy-group">{{ $groupName }}</div>
-                            @foreach($items as $f)
-                                <div class="sy-cell">
-                                    <i class="fas {{ $f['icon'] }}" aria-hidden="true"></i>
-                                    <span class="sy-cell-body">
-                                        <b>{{ $f['name'] }}</b>
-                                        @if(!empty($f['desc']))<span class="sy-cell-sub">{{ $f['desc'] }}</span>@endif
-                                        @if(!empty($f['blocks']))
-                                            @php $blockNames = $f['blocks']; $blockPreview = array_slice($blockNames, 0, 6); $blockExtra = count($blockNames) - count($blockPreview); @endphp
-                                            <span x-data="{ open: false }" class="sy-cell-sub">
-                                                <span x-show="!open">{{ implode(', ', $blockPreview) }}@if($blockExtra > 0) &amp; {{ $blockExtra }} more @endif</span>
-                                                <span x-show="open" x-cloak>{{ implode(', ', $blockNames) }}</span>
-                                                @if($blockExtra > 0)
-                                                    <button type="button" @click="open = !open" class="sy-more">
-                                                        <span x-show="!open">Show all {{ count($blockNames) }}</span>
-                                                        <span x-show="open" x-cloak>Show fewer</span>
-                                                    </button>
-                                                @endif
-                                            </span>
-                                        @endif
-                                    </span>
-                                </div>
-                            @endforeach
-                        @empty
-                            <div class="sy-cell"><span class="sy-cell-body"><b>Everything you need to get started.</b></span></div>
-                        @endforelse
-                    </div>
+                    <ul class="plan-highlights" aria-label="{{ $plan->name }} highlights">
+                        @foreach($highlights as [$icon, $label])
+                            <li><i class="fas {{ $icon }}" aria-hidden="true"></i><span>{{ $label }}</span></li>
+                        @endforeach
+                    </ul>
+                    <a class="plan-compare-link" href="#compare-plans">Compare all features <span aria-hidden="true">↗</span></a>
 
                 </div>
             @endforeach
@@ -1055,15 +943,15 @@
                  data-anim="fade-up">
                 <div class="flex-1">
                     <h2 class="text-lg sm:text-xl font-bold tracking-tight">
-                        Running an agency, or building on the API?
+                        Need more capacity or a specialist plan?
                     </h2>
                     <p class="text-gray-400 text-sm mt-1">
-                        {{ collect($doorBands)->pluck('blurb')->filter()->implode(' ') }}
+                        Explore Bio Plus, Professional, team and developer plans.
                     </p>
                 </div>
                 <a href="{{ request()->fullUrlWithQuery(['all' => 1]) }}#plans"
                    class="sy-btn sy-btn-ghost whitespace-nowrap self-start sm:self-auto">
-                    See team &amp; developer plans
+                    See all plans
                     <i class="fas fa-arrow-right sy-ico text-[11px]"></i>
                 </a>
             </div>
@@ -1071,7 +959,7 @@
 
         {{-- Rule 3: sections are separated by a labelled rule, not by a
              guess at a margin. --}}
-        <div class="sy-divider-label"><span>Compare every plan</span></div>
+        <div id="compare-plans" class="sy-divider-label"><span>Compare every plan</span></div>
 
         {{-- ───────────────── COMPARE FEATURES AT A GLANCE ───────────────── --}}
         @php

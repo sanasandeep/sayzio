@@ -1,9 +1,9 @@
 # Public pricing configuration
 
 The approved five-plan ladder is defined by `PlansAndAddonsSeeder::publicPlanLadder()`.
-Prices are unchanged. Public plan cards are grouped into Link in Bio and the wider
-platform. Team and developer cards are available through `/pricing?all=1`; the
-comparison table continues to include all public plans. Unknown active public plans
+Prices are unchanged. The default page shows Starter, Bio Lite and Creator as compact tiles.
+The comparison table uses those same three plans. All plans, grouped by Bio,
+Platform, Teams and Developers, are available through `/pricing?all=1`. Unknown active public plans
 remain visible in a More plans group.
 
 | Plan | Bio pages | Short links | Custom domains | Seats | Monthly coins |

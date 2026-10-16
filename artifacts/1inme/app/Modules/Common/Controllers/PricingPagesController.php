@@ -184,12 +184,30 @@ class PricingPagesController extends Controller
             ];
         }
 
-        $recommendation = PlanRecommender::for($user, $plans);
+        $displayRows = $rows;
+        if (!$showAllGroups) {
+            $primarySlugs = ['free', 'bio-lite', 'creator'];
+            $primary = collect($primarySlugs)->map(fn ($slug) => $rowsBySlug->get($slug))->filter()->values();
+            $hidden = $rows->filter(fn ($row) => in_array($row['model']->slug, $groupedSlugs, true)
+                && !in_array($row['model']->slug, $primarySlugs, true))->values();
+            $planBands = $primary->isEmpty() ? [] : [[
+                'key' => 'essentials', 'title' => 'Choose your plan',
+                'blurb' => 'Start free. Build your bio. Grow your business.', 'rows' => $primary,
+            ]];
+            // Keep newly added, unclassified plans discoverable until they are grouped.
+            if ($ungrouped->isNotEmpty()) {
+                $planBands[] = ['key' => 'ungrouped', 'title' => 'More plans', 'blurb' => null, 'rows' => $ungrouped];
+            }
+            $doorBands = $hidden->isEmpty() ? [] : [['rows' => $hidden]];
+            $displayRows = $primary->concat($ungrouped)->values();
+        }
+
+        $recommendation = PlanRecommender::for($user, $displayRows->pluck('model'));
 
         return view('public.pricing.plans', [
             'seoKey'        => 'pricing',
-            'plans'         => $rows,
-            'planModels'    => $plans,
+            'plans'         => $displayRows,
+            'planModels'    => $displayRows->pluck('model'),
             'cycle'         => $cycle,
             'currency'      => $currency,
             'currencySource'=> $currencySource,
