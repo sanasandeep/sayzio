@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Support\PlanVariantNames;
 use App\Modules\Common\Support\PricingPageCache;
+use App\Services\PricingResolver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
@@ -66,7 +67,8 @@ class GeneratePlanVariants extends Command
         $skipped = 0;
 
         foreach ($pools as $category => $names) {
-            $anchor = Plan::where('plan_category', $category)
+            $anchor = Plan::with('prices')
+                ->where('plan_category', $category)
                 ->where('is_archived', false)
                 ->orderByDesc('is_category_default')
                 ->orderBy('sort_order')
@@ -90,15 +92,25 @@ class GeneratePlanVariants extends Command
                 }
 
                 $multiplier = $multipliers[$i] ?? 1.0;
-                $monthly = $this->money((float) $anchor->monthly_price, $multiplier);
-                $annual = $this->money((float) $anchor->annual_price, $multiplier);
+                $priceRows = $this->scaledPrices($anchor, $multiplier);
+
+                if (! $priceRows) {
+                    $this->warn("  ! {$name}: anchor has no price rows, skipped");
+                    continue;
+                }
+
+                $major = fn (string $cur, string $cycle) => ($priceRows[$cur.'|'.$cycle] ?? 0) / 100;
+                $monthly = $major('USD', 'monthly');
+                $annual = $major('USD', 'annual');
 
                 $this->line(sprintf(
-                    '  + %-22s %-26s %s / %s',
+                    '  + %-22s %-26s $%s / $%s  ·  Rs %s / Rs %s',
                     $name,
                     $slug,
                     number_format($monthly, 2),
                     number_format($annual, 2),
+                    number_format($major('INR', 'monthly'), 2),
+                    number_format($major('INR', 'annual'), 2),
                 ));
 
                 if ($dry) {
@@ -106,7 +118,7 @@ class GeneratePlanVariants extends Command
                     continue;
                 }
 
-                Plan::create([
+                $variant = Plan::create([
                     'name' => $name,
                     'slug' => $slug,
                     'plan_category' => $category,
@@ -114,8 +126,13 @@ class GeneratePlanVariants extends Command
                     'description' => $anchor->description,
                     'monthly_price' => $monthly,
                     'annual_price' => $annual,
-                    'monthly_price_secondary' => $this->nullableMoney($anchor->monthly_price_secondary, $multiplier),
-                    'annual_price_secondary' => $this->nullableMoney($anchor->annual_price_secondary, $multiplier),
+                    // Legacy decimal columns. They are NOT what /pricing
+                    // reads -- the polymorphic `prices` table is -- but the
+                    // admin edit form prefills from them, so they have to
+                    // agree with the rows written below or a curator opening
+                    // a variant sees one price and the public page another.
+                    'monthly_price_secondary' => $major('INR', 'monthly'),
+                    'annual_price_secondary' => $major('INR', 'annual'),
                     'trial_days' => $anchor->trial_days,
                     'features' => $anchor->features,
                     'metadata' => array_merge((array) $anchor->metadata, ['variant_of' => $anchor->slug]),
@@ -126,6 +143,17 @@ class GeneratePlanVariants extends Command
                     'is_internal' => false,
                     'sort_order' => (int) $anchor->sort_order,
                 ]);
+
+                // THE line that makes a variant cost anything. Without it
+                // the plan row exists, the admin screen looks right, and
+                // every public surface renders $0.00 / Rs 0.00, because
+                // PricingResolver reads the `prices` table and has no
+                // fallback to the decimal columns above ("missing INR row ->
+                // Rs 0.00", by design).
+                PricingResolver::upsertManyFromMinor($variant, array_map(
+                    fn (string $key) => [explode('|', $key)[0], explode('|', $key)[1], $priceRows[$key]],
+                    array_keys($priceRows),
+                ));
 
                 $created++;
             }
@@ -157,24 +185,55 @@ class GeneratePlanVariants extends Command
         return Str::slug($category.'-'.$name);
     }
 
-    /** Round to a whole currency unit: fractional variant pricing reads as a bug. */
-    private function money(float $base, float $multiplier): float
+    /**
+     * Scale EVERY price the anchor actually has, in minor units.
+     *
+     * Two things were wrong with multiplying the decimal `monthly_price`
+     * column instead.
+     *
+     * The first is that nothing public reads that column, so a variant built
+     * from it had no price at all. The prices live in the polymorphic
+     * `prices` table, one row per (currency, cycle), and that is what gets
+     * copied and scaled here -- whatever currencies the anchor carries, the
+     * variant carries.
+     *
+     * The second is rounding. The old helper rounded to a whole currency
+     * unit, which is fine for a Rs 167 plan and destroys a $4 one: every
+     * multiplier from 0.88 to 1.15 lands back on $4, so a whole category of
+     * variants came out identically priced with different names. That is the
+     * one shape this feature must never have -- it reads as a trick rather
+     * than a recommendation, and it would have hit the bio plans hardest,
+     * which is where the paying customers are.
+     *
+     * So rounding happens in minor units, to the nearest half unit. $4.00
+     * spreads to $3.50 / $4.00 / $4.50 and Rs 167 to Rs 147 ... Rs 192 --
+     * prices a person could plausibly see on a page, in both currencies, at
+     * both ends of the catalogue.
+     *
+     * @return array<string, int>  "CUR|cycle" => minor units
+     */
+    private function scaledPrices(Plan $anchor, float $multiplier): array
     {
-        if ($base <= 0.0) {
-            return 0.0;
+        $out = [];
+
+        foreach ($anchor->prices as $price) {
+            if (! $price->is_active) {
+                continue;
+            }
+
+            $base = (int) $price->amount_minor_units;
+            if ($base <= 0) {
+                // A free or unpriced row scales to itself. Multiplying zero
+                // and then flooring to a minimum would invent a price for a
+                // plan that deliberately has none.
+                $out[$price->currency.'|'.$price->billing_cycle] = 0;
+                continue;
+            }
+
+            $scaled = (int) round(($base * $multiplier) / 50) * 50;
+            $out[$price->currency.'|'.$price->billing_cycle] = max(50, $scaled);
         }
 
-        return (float) max(1, round($base * $multiplier));
-    }
-
-    private function nullableMoney(mixed $base, float $multiplier): ?float
-    {
-        if ($base === null) {
-            return null;
-        }
-
-        $value = (float) $base;
-
-        return $value <= 0.0 ? $value : (float) max(1, round($value * $multiplier));
+        return $out;
     }
 }
