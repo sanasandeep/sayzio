@@ -6,6 +6,7 @@ use App\Events\SubscriptionActivated;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PlanVariantResolver;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\Billing\WalletService;
 use App\Services\BillingCyclePreference;
@@ -32,11 +33,17 @@ class UpgradeController extends Controller
 
         // Eager-load `prices` so PricingResolver doesn't re-query per row
         // (avoids the obvious N+1 on this page).
-        $plans = Plan::where('status', 'active')
-            ->where('is_archived', false)
-            ->public()
-            ->with('prices')
-            ->ordered()->get();
+        // One plan per category, and the SAME variant this person saw on
+        // /pricing. A customer who was quoted Bio Focus at a price and then
+        // meets Bio Everyday at another on the upgrade page has caught the
+        // site pricing them two ways.
+        $plans = (new PlanVariantResolver($request))->representatives(
+            Plan::where('status', 'active')
+                ->where('is_archived', false)
+                ->public()
+                ->with('prices')
+                ->ordered()->get()
+        );
         $addons = Addon::where('status', 'active')
             ->where('is_archived', false)
             ->with('prices', 'plans')

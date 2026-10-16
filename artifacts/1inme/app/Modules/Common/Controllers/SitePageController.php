@@ -173,7 +173,12 @@ class SitePageController extends Controller
             };
             $unlockedOn = [];
             if ($featureKey) {
-                $plans = \App\Modules\Admin\Models\Plan::active()->public()->ordered()->get();
+                // One per category: "Unlocked on Bio Lite, Bio Start, Bio
+                // Focus, Bio Everyday" names four plans a reader can only
+                // buy one of, and leaks that the others exist.
+                $plans = \App\Modules\Common\Support\PlanVariantResolver::defaults(
+                    \App\Modules\Admin\Models\Plan::active()->public()->ordered()->get()
+                );
                 $map = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($plans);
                 $slugsUnlocked = $map[$featureKey] ?? [];
                 foreach ($plans as $p) {

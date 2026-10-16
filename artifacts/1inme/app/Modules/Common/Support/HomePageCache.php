@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Support;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PlanVariantResolver;
 use App\Modules\Common\Models\SitePage;
 use App\Services\PricingResolver;
 use App\Services\TaxCalculator;
@@ -258,12 +259,18 @@ class HomePageCache
         // the always-free entry plan and the curator-flagged "popular"
         // plan. The full plan grid lives at /pricing — keeping the
         // landing page focused removes choice paralysis above the fold.
-        $allPlans = Plan::where('status', 'active')
-            ->where('is_archived', false)
-            ->public()
-            ->with('prices')
-            ->ordered()
-            ->get();
+        // Reduced to one per category. Today the band is safe by accident —
+        // the generator leaves every variant is_popular = false, so the
+        // anchor still wins firstWhere() below. Safe by accident is how the
+        // ladder came to be inverted; make it safe by construction.
+        $allPlans = PlanVariantResolver::defaults(
+            Plan::where('status', 'active')
+                ->where('is_archived', false)
+                ->public()
+                ->with('prices')
+                ->ordered()
+                ->get()
+        );
 
         $isFree = fn ($p) => (int) PricingResolver::priceFor($p, $user, 'monthly')['amount_minor'] === 0;
         $freePlan = $allPlans->first($isFree);

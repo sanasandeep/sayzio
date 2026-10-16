@@ -5,6 +5,7 @@ namespace App\Modules\Api\Controllers;
 use App\Actions\Billing\ActivateSubscription;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Common\Support\PlanVariantResolver;
 use App\Modules\User\Models\Subscription;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
@@ -89,9 +90,14 @@ class BillingController extends Controller
             ->mapWithKeys(fn ($sa) => [(int) $sa->addon_id => ($sa->addon->name ?? 'Add-on #' . $sa->addon_id)])
             ->all();
 
-        $plans = Plan::active()->public()->ordered()->get()
-            ->filter(function (Plan $p) use ($current, $subCurrency, $currentMinor) {
+        // One per category, and never a sibling of the plan they hold. An
+        // API token is not a browser, so there is nothing to pin against:
+        // the category default is the stable answer.
+        $ownCategory = $current->plan?->categoryKey();
+        $plans = PlanVariantResolver::defaults(Plan::active()->public()->ordered()->get())
+            ->filter(function (Plan $p) use ($current, $ownCategory, $subCurrency, $currentMinor) {
                 if ($p->id === $current->plan_id) return false;
+                if ($p->categoryKey() === $ownCategory) return false;
                 if ($p->is_default) return false; // Free is "cancel", not "downgrade"
                 $minor = ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency);
                 return $minor > 0 && $minor < $currentMinor;
