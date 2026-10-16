@@ -73,12 +73,65 @@
     <button type="button" @click="clearAll()" class="text-white/40 hover:text-white/70 underline underline-offset-2 ak-note">Clear</button>
 </div>
 
-{{-- ── Plan cards grid ─────────────────────────────────────────────── --}}
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    @foreach($plans as $plan)
-        @include('admin.plans.partials._card', ['plan' => $plan])
-    @endforeach
-</div>
+{{-- ── Plan cards, grouped by category ──────────────────────────────
+     A category is a bucket of near-identical variants competing for one slot
+     on /pricing, so ten of them is normal and a flat grid of ninety cards is
+     not navigable. Grouping is display-only: the collection is the same one
+     the controller already loaded, so this adds no queries.
+
+     A plan with no category is its own bucket, which is how every plan
+     behaved before categories existed. Those render first, ungrouped, so the
+     common case still looks like the list this page has always been. --}}
+@php
+    $byCategory = $plans->groupBy(fn ($p) => $p->categoryKey());
+    // Single-member buckets are not categories in any useful sense; showing a
+    // heading over one card is noise.
+    $loose = $byCategory->filter(fn ($group) => $group->count() === 1)->flatten();
+    $grouped = $byCategory->filter(fn ($group) => $group->count() > 1);
+@endphp
+
+@if($loose->isNotEmpty())
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach($loose as $plan)
+            @include('admin.plans.partials._card', ['plan' => $plan])
+        @endforeach
+    </div>
+@endif
+
+@foreach($grouped as $categoryName => $variants)
+    @php
+        $default = $variants->firstWhere('is_category_default', true);
+        $subscribed = $variants->sum('users_count');
+    @endphp
+    <section class="mt-8" x-data="{ open: {{ $loop->first ? 'true' : 'false' }} }">
+        <header class="flex items-center gap-3 mb-3 pb-2 border-b border-white/10">
+            <button type="button" @click="open = !open"
+                    class="flex items-center gap-2 text-left text-white/80 hover:text-white ak-strong"
+                    :aria-expanded="open.toString()">
+                <i class="fas fa-chevron-right text-[10px] transition-transform" :class="open ? 'rotate-90' : ''"></i>
+                <span class="font-semibold">{{ $categoryName }}</span>
+            </button>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-white/50 ak-note">
+                {{ $variants->count() }} variants
+            </span>
+            @if($default)
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-200 ak-blue">
+                    shown: {{ $default->name }}
+                </span>
+            @else
+                <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-200">
+                    no default set
+                </span>
+            @endif
+            <span class="text-[11px] text-white/40 ak-note">{{ number_format($subscribed) }} on these plans</span>
+        </header>
+        <div x-show="open" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach($variants as $plan)
+                @include('admin.plans.partials._card', ['plan' => $plan])
+            @endforeach
+        </div>
+    </section>
+@endforeach
 
 {{-- ── Import upload modal ─────────────────────────────────────────── --}}
 <div x-show="importOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
