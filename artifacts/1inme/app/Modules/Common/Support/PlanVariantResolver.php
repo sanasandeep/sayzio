@@ -125,6 +125,52 @@ class PlanVariantResolver
     }
 
     /**
+     * Widen a group map's slugs to cover every sibling in the same category.
+     *
+     * publicPlanGroups() names the plans that existed when someone last wrote
+     * it down. A variant generated afterwards shares its anchor's category
+     * and belongs in exactly the same band -- but its slug appears nowhere in
+     * the map, so a raw slug check files it as ungrouped. That is what put
+     * the curated grid under a second "More plans" heading, repeating itself,
+     * and what made plans:audit-public report seventy-two missing groups.
+     *
+     * Expanding the map once, here, fixes every reader of it at the same
+     * time: the band assignment, the door, the eligible-category filter and
+     * the ungrouped catch-all all keep matching on slugs and all start
+     * agreeing about variants.
+     *
+     * Anchors stay first in each band, because array_unique keeps the first
+     * occurrence and the map's own order is the order a band renders in.
+     *
+     * @param  array<string, array{slugs: list<string>, ...}>  $groupDefs
+     * @return array<string, array{slugs: list<string>, ...}>
+     */
+    public static function expandGroups(array $groupDefs): array
+    {
+        $categoryOf = [];
+        $slugsIn = [];
+
+        foreach (Plan::query()->where('is_archived', false)->get(['slug', 'plan_category']) as $plan) {
+            $category = $plan->categoryKey();
+            $categoryOf[$plan->slug] = $category;
+            $slugsIn[$category][] = $plan->slug;
+        }
+
+        foreach ($groupDefs as $key => $def) {
+            $slugs = [];
+            foreach ($def['slugs'] as $slug) {
+                $slugs[] = $slug;
+                foreach ($slugsIn[$categoryOf[$slug] ?? ''] ?? [] as $sibling) {
+                    $slugs[] = $sibling;
+                }
+            }
+            $groupDefs[$key]['slugs'] = array_values(array_unique($slugs));
+        }
+
+        return $groupDefs;
+    }
+
+    /**
      * Reduce to one plan per category WITHOUT a visitor.
      *
      * Every surface that LISTS plans has to make this reduction, not just

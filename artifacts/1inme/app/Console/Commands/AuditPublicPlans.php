@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PlanVariantResolver;
 use Database\Seeders\PlansAndAddonsSeeder;
 use Illuminate\Console\Command;
 
@@ -28,7 +29,11 @@ class AuditPublicPlans extends Command
                 }
             }
         }
-        $grouped = collect(PlansAndAddonsSeeder::publicPlanGroups())->pluck('slugs')->flatten()->all();
+        // Category siblings count as grouped: a variant belongs to whatever
+        // band its anchor does. Checking raw slugs reported every generated
+        // variant as missing, which is noise that hides a real omission.
+        $grouped = collect(PlanVariantResolver::expandGroups(PlansAndAddonsSeeder::publicPlanGroups()))
+            ->pluck('slugs')->flatten()->all();
         foreach ($plans as $plan) {
             if (!$plan->is_internal && !$plan->is_archived && $plan->status === 'active'
                 && !in_array($plan->slug, $grouped, true)) {
