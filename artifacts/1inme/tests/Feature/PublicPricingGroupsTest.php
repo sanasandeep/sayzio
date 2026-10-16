@@ -1,0 +1,79 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Modules\Admin\Models\Plan;
+use Database\Seeders\PlansAndAddonsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class PublicPricingGroupsTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_default_groups_and_expanded_groups_use_the_same_catalogue(): void
+    {
+        $response = $this->get('/pricing')->assertOk();
+        $this->assertSame(['bio', 'platform'], array_column($response->viewData('planBands'), 'key'));
+        $this->assertSame(['teams', 'devs'], array_column($response->viewData('doorBands'), 'key'));
+        $response->assertSee('See team &amp; developer plans', false);
+        $all = $this->get('/pricing?all=1')->assertOk();
+        $this->assertSame(['bio', 'platform', 'teams', 'devs'], array_column($all->viewData('planBands'), 'key'));
+        $all->assertDontSee('See team &amp; developer plans', false);
+    }
+
+    public function test_audit_detects_saved_admin_drift_without_modifying_it(): void
+    {
+        $this->artisan('plans:audit-public')->assertSuccessful();
+        $plan = Plan::where('slug', 'professional')->firstOrFail();
+        $features = $plan->features;
+        $features['module_domains'] = false;
+        $plan->update(['features' => $features]);
+        $this->artisan('plans:audit-public')->expectsOutputToContain('module_domains')->assertFailed();
+        $this->assertFalse($plan->fresh()->features['module_domains']);
+    }
+
+    public function test_alignment_is_idempotent_and_preserves_prices_and_other_plans(): void
+    {
+        $creator = Plan::where('slug', 'creator')->firstOrFail();
+        $business = Plan::where('slug', 'business')->firstOrFail();
+        $before = $business->getAttributes();
+        $features = $creator->features;
+        $features['max_biolinks'] = 3;
+        $features['custom_key'] = 'preserved';
+        $creator->update(['features' => $features]);
+        $price = $creator->monthly_price;
+        $migration = require database_path('migrations/2029_10_16_000001_align_public_plan_ladder.php');
+        $migration->up();
+        $migration->up();
+        $creator->refresh();
+        $this->assertSame(25, $creator->features['max_biolinks']);
+        $this->assertSame('preserved', $creator->features['custom_key']);
+        $this->assertSame($price, $creator->monthly_price);
+        $this->assertSame($before, $business->fresh()->getAttributes());
+    }
+
+    public function test_new_plan_definitions_match_the_canonical_ladder(): void
+    {
+        $seeder = new PlansAndAddonsSeeder();
+        $method = new \ReflectionMethod($seeder, 'planDefinitions');
+        $definitions = collect($method->invoke($seeder))->keyBy('slug');
+        foreach (PlansAndAddonsSeeder::publicPlanLadder() as $slug => $features) {
+            foreach ($features as $key => $value) {
+                $this->assertSame($value, $definitions[$slug]['features'][$key], "$slug.$key");
+            }
+        }
+    }
+
+    public function test_description_repair_removes_legacy_claims_but_preserves_custom_copy(): void
+    {
+        $plan = Plan::where('slug', 'bio-plus')->firstOrFail();
+        $plan->update(['description' => 'A power-user Link in Bio plan with custom domains, team collaboration, and expanded AI tools — for creators in India ready to grow beyond the basics.']);
+        $migration = require database_path('migrations/2029_10_16_000002_correct_bio_plan_descriptions.php');
+        $migration->up();
+        $this->assertStringNotContainsString('team collaboration', $plan->fresh()->description);
+        $plan->update(['description' => 'Our custom plan description']);
+        $migration->up();
+        $this->assertSame('Our custom plan description', $plan->fresh()->description);
+    }
+}

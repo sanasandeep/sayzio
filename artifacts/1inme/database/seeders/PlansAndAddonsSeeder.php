@@ -471,6 +471,7 @@ class PlansAndAddonsSeeder extends Seeder
                 'max_biolinks' => 1,
                 'max_links' => 10,
                 'max_custom_domains' => 0,
+                'module_domains' => true,
                 'custom_domains' => false,
                 'remove_branding' => false,
                 'max_seats_per_workspace' => 1,
@@ -498,6 +499,7 @@ class PlansAndAddonsSeeder extends Seeder
                 'max_biolinks' => 3,
                 'max_links' => 100,
                 'max_custom_domains' => 0,
+                'module_domains' => true,
                 'custom_domains' => false,
                 'remove_branding' => true,
                 'max_seats_per_workspace' => 1,
@@ -525,6 +527,7 @@ class PlansAndAddonsSeeder extends Seeder
                 'max_biolinks' => 10,
                 'max_links' => 500,
                 'max_custom_domains' => 1,
+                'module_domains' => true,
                 'custom_domains' => true,
                 'remove_branding' => true,
                 'max_seats_per_workspace' => 1,
@@ -552,6 +555,7 @@ class PlansAndAddonsSeeder extends Seeder
                 'max_biolinks' => 25,
                 'max_links' => 2000,
                 'max_custom_domains' => 2,
+                'module_domains' => true,
                 'custom_domains' => true,
                 'remove_branding' => true,
                 'max_seats_per_workspace' => 3,
@@ -579,6 +583,7 @@ class PlansAndAddonsSeeder extends Seeder
                 'max_biolinks' => 100,
                 'max_links' => -1,
                 'max_custom_domains' => 5,
+                'module_domains' => true,
                 'custom_domains' => true,
                 'remove_branding' => true,
                 'max_seats_per_workspace' => 10,
@@ -897,14 +902,14 @@ class PlansAndAddonsSeeder extends Seeder
         $bio = [
             'bio-lite' => [
                 'name' => 'Bio Lite',
-                'description' => 'A focused, affordable Link in Bio plan: one page, done properly, without the Sayzio badge.',
+                'description' => 'A focused Link in Bio plan with three pages, 100 short links and no Sayzio badge.',
                 'monthly_price' => 4.00,
                 'annual_price' => 36.00,
                 'sort_order' => 2,
             ],
             'bio-plus' => [
                 'name' => 'Bio Plus',
-                'description' => 'A power-user Link in Bio plan: your own domain, the expanded AI tools and deeper analytics.',
+                'description' => 'Grow your Link in Bio presence with ten pages, 500 short links, a custom domain and exportable analytics.',
                 'monthly_price' => 8.00,
                 'annual_price' => 72.00,
                 'sort_order' => 3,
@@ -934,6 +939,10 @@ class PlansAndAddonsSeeder extends Seeder
         // Insert the bio family between Starter and Creator so admin ordering
         // matches the pricing page.
         $out = array_merge($defs, $derived);
+        foreach ($out as &$definition) {
+            $definition['features'] = array_merge($definition['features'], $ladder[$definition['slug']] ?? []);
+        }
+        unset($definition);
         usort($out, fn (array $a, array $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
 
         return $out;
