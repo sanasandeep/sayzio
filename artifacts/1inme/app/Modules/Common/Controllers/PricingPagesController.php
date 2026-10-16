@@ -5,6 +5,7 @@ namespace App\Modules\Common\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\CoinPackage;
 use App\Modules\Admin\Models\Plan;
+use Database\Seeders\PlansAndAddonsSeeder;
 use App\Modules\Common\Support\PricingPageCache;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\Billing\WalletService;
@@ -126,6 +127,63 @@ class PricingPagesController extends Controller
                 ];
             });
 
+        // ---- Grouping -------------------------------------------------
+        // /pricing used to be one horizontal rail of every plan, which is
+        // what "too many plans" actually looked like. The rail now renders
+        // once per group, and the groups that only a team or a developer
+        // wants sit behind a single door link rather than in front of a solo
+        // creator. ?all=1 opens them on the same page.
+        //
+        // The map is PlansAndAddonsSeeder::publicPlanGroups() — code, not
+        // plan metadata, so an admin edit cannot silently re-shuffle the page.
+        $showAllGroups = $request->boolean('all');
+        $groupDefs = PlansAndAddonsSeeder::publicPlanGroups();
+        $rowsBySlug = $rows->keyBy(fn (array $r) => $r['model']->slug);
+
+        $planBands = [];
+        $doorBands = [];
+        foreach ($groupDefs as $key => $def) {
+            $banded = collect($def['slugs'])
+                ->map(fn (string $slug) => $rowsBySlug->get($slug))
+                ->filter()
+                ->values();
+
+            if ($banded->isEmpty()) {
+                continue;
+            }
+
+            $entry = [
+                'key'   => $key,
+                'title' => $def['title'],
+                'blurb' => $def['blurb'] ?? null,
+                'rows'  => $banded,
+            ];
+
+            if (!empty($def['on_pricing']) || $showAllGroups) {
+                $planBands[] = $entry;
+            } else {
+                $doorBands[] = $entry;
+            }
+        }
+
+        // A plan that is live but missing from the map still has to be sold.
+        // Dropping it would reproduce, inverted, the exact bug the map exists
+        // to prevent (Bio Lite existed in production and no code knew it), so
+        // ungrouped plans get their own band and PlanGroupCoverageTest fails
+        // the build until someone files them properly.
+        $groupedSlugs = collect($groupDefs)->pluck('slugs')->flatten()->all();
+        $ungrouped = $rows
+            ->reject(fn (array $r) => in_array($r['model']->slug, $groupedSlugs, true))
+            ->values();
+        if ($ungrouped->isNotEmpty()) {
+            $planBands[] = [
+                'key'   => 'ungrouped',
+                'title' => 'More plans',
+                'blurb' => null,
+                'rows'  => $ungrouped,
+            ];
+        }
+
         $recommendation = PlanRecommender::for($user, $plans);
 
         return view('public.pricing.plans', [
@@ -139,6 +197,9 @@ class PricingPagesController extends Controller
             'packages'      => $packages,
             'wallet_enabled'=> WalletService::isEnabled(),
             'recommendation'=> $recommendation,
+            'planBands'     => $planBands,
+            'doorBands'     => $doorBands,
+            'showAllGroups' => $showAllGroups,
         ]);
     }
 
