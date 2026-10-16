@@ -3,6 +3,7 @@ window.sayzioPricingCurator = function (catalogue, initiallyExpanded) {
     const storageKey = 'sayzio.pricing.matcher.v1';
     return {
         expanded: initiallyExpanded, matcherOpen: false, matching: false, matches: [],
+        curating: false, curationPhase: '',
         answers: { purpose: 'bio', pages: '1', seats: '1', domain: false, payments: false, api: false },
         restoreCuration() {
             try {
@@ -55,6 +56,34 @@ window.sayzioPricingCurator = function (catalogue, initiallyExpanded) {
                 this.saveCuration(true);
                 this.$nextTick(() => this.$refs.curationResults?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }));
             } finally { this.matching = false; }
+        },
+        /**
+         * Press Curate, watch Zio for a beat, land on a different set.
+         *
+         * The phases are deliberately about what is happening on the page and
+         * nothing else. Writing "checking your history" here would be a claim
+         * about reading data that this page does not touch, and a pricing
+         * page that lies about something small is not trusted about the
+         * numbers either.
+         *
+         * The real work is a server round trip, so the pause is the whole
+         * animation: it finishes, the browser navigates, and the new set is
+         * rendered by the same code path as any other visit.
+         */
+        async startCuration(nextUrl) {
+            if (this.curating) return;
+            this.curating = true;
+
+            const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const phases = ['Reading the room', 'Lining up your options', 'Picking your set'];
+            const beat = reduced ? 120 : 620;
+
+            for (const phase of phases) {
+                this.curationPhase = phase;
+                await new Promise(resolve => setTimeout(resolve, beat));
+            }
+
+            window.location.assign(nextUrl);
         },
         showAllPlans() { this.expanded = true; this.saveCuration(this.matches.length > 0); },
         resetCuration() {

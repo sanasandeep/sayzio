@@ -34,7 +34,17 @@ class PublicPricingGroupsTest extends TestCase
         );
         $this->assertCount(4, $response->viewData('planModels'));
         $this->assertCount(5, $response->viewData('doorBands')[0]['rows']);
-        $response->assertSee('See all plans', false);
+        $response->assertDontSee('See all plans', false);
+        $response->assertDontSee('Show me another set', false);
+
+        // Cheapest first, free included, so the row always reads as a ladder
+        // whichever categories the roll chose.
+        $amounts = $response->viewData('plans')
+            ->map(fn (array $row) => (int) ($row['prices']['USD']['monthly']['amount_minor'] ?? 0))
+            ->all();
+        $sorted = $amounts;
+        sort($sorted);
+        $this->assertSame($sorted, $amounts, 'the plan cards are not in ascending price order');
         $all = $this->get('/pricing?all=1')->assertOk();
         $this->assertSame(['bio', 'platform', 'teams', 'devs'], array_column($all->viewData('allPlanBands'), 'key'));
         $all->assertSee('Curate with Zio');
