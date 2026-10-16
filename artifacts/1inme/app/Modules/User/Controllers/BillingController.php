@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Actions\Billing\ActivateSubscription;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PlanVariantResolver;
 use App\Modules\User\Models\CreditNote;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\Refund;
@@ -125,10 +126,22 @@ class BillingController extends Controller
         // user's current country/session.
         $subCurrency = (string) $current->currency;
         $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $subCurrency);
-        $plans = Plan::active()->public()->ordered()->get()->filter(function (Plan $p) use ($current, $subCurrency, $currentMinor) {
-            return $p->id !== $current->plan_id
-                && ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency) > $currentMinor;
-        });
+        // One plan per category, and the same variant this person was
+        // quoted on /pricing — the price they clicked must be the price they
+        // are offered here.
+        //
+        // Their OWN category is excluded whole. Moving between two variants
+        // of one category is not an upgrade: it is the same feature set at a
+        // slightly different price, so offering it reads as being asked to
+        // pay more for nothing.
+        $ownCategory = $current->plan?->categoryKey();
+        $plans = (new PlanVariantResolver($request))
+            ->representatives(Plan::active()->public()->ordered()->get())
+            ->filter(function (Plan $p) use ($current, $ownCategory, $subCurrency, $currentMinor) {
+                return $p->id !== $current->plan_id
+                    && $p->categoryKey() !== $ownCategory
+                    && ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency) > $currentMinor;
+            });
         return view('user.billing.upgrade', compact('current', 'plans'));
     }
 
@@ -261,9 +274,16 @@ class BillingController extends Controller
             ->mapWithKeys(fn ($sa) => [(int) $sa->addon_id => ($sa->addon->name ?? 'Add-on #' . $sa->addon_id)])
             ->all();
 
-        $plans = Plan::active()->public()->ordered()->get()
-            ->filter(function (Plan $p) use ($current, $subCurrency, $currentMinor) {
+        // Same reduction as the upgrade list. A sibling is the sharper
+        // mistake on this side: a variant 11 rupees under the one they hold,
+        // with identical features, presented as a downgrade is an invitation
+        // to move for no reason.
+        $ownCategory = $current->plan?->categoryKey();
+        $plans = (new PlanVariantResolver($request))
+            ->representatives(Plan::active()->public()->ordered()->get())
+            ->filter(function (Plan $p) use ($current, $ownCategory, $subCurrency, $currentMinor) {
                 if ($p->id === $current->plan_id) return false;
+                if ($p->categoryKey() === $ownCategory) return false;
                 if ($p->is_default) return false; // Free is "cancel", not "downgrade"
                 $minor = ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency);
                 return $minor > 0 && $minor < $currentMinor;

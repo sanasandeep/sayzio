@@ -126,7 +126,11 @@ class AiMindFeatureAdapter
     {
         $currencies = ['USD', 'INR'];
 
-        $plans = \App\Modules\Admin\Models\Plan::active()->public()->with('prices')->ordered()->get();
+        // One per category. Zio quoting a plan nobody can see on /pricing
+        // is worse than Zio not quoting one at all.
+        $plans = \App\Modules\Common\Support\PlanVariantResolver::defaults(
+            \App\Modules\Admin\Models\Plan::active()->public()->with('prices')->ordered()->get()
+        );
         $lines = ['Live Sayzio plans (current public pricing, matches the /pricing page):'];
         foreach ($plans as $plan) {
             $priceBits = [];

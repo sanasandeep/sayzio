@@ -1493,9 +1493,14 @@ class User extends Authenticatable
      */
     public function planThatUnlocks(string $key, $current = null)
     {
-        $plans = \App\Modules\Admin\Models\Plan::where('status', 'active')
-            ->public()
-            ->orderBy('monthly_price')->get();
+        // One per category: an upsell naming a variant the user has never
+        // been shown — and cannot find on /pricing — reads as a bug, and
+        // without this the cheapest SIBLING would usually win the sort.
+        $plans = \App\Modules\Common\Support\PlanVariantResolver::defaults(
+            \App\Modules\Admin\Models\Plan::where('status', 'active')
+                ->public()
+                ->orderBy('monthly_price')->get()
+        );
         $isNumeric = str_starts_with($key, 'max_') || $key === 'storage_limit_mb' || $key === 'contacts_max';
         // Compare against the user's CURRENT PLAN CAP (not the usage count)
         // so the suggested plan is the one that meaningfully raises the

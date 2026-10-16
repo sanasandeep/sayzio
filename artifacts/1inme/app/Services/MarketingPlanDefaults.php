@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PlanVariantResolver;
 use App\Modules\User\Models\User;
 
 /**
@@ -187,7 +188,9 @@ class MarketingPlanDefaults
                 return (string) $default->slug;
             }
 
-            $slug = Plan::query()->active()->public()->ordered()->value('slug');
+            $slug = PlanVariantResolver::defaults(
+                Plan::query()->active()->public()->ordered()->get()
+            )->first()?->slug;
             return $slug !== null ? (string) $slug : null;
         } catch (\Throwable) {
             return null;
@@ -203,7 +206,9 @@ class MarketingPlanDefaults
     public static function planOptions(): array
     {
         try {
-            return Plan::query()->active()->public()->ordered()->get()
+            // The calculator is a customer-facing plan selector, so it gets
+            // the same one-per-category view the pricing page does.
+            return PlanVariantResolver::defaults(Plan::query()->active()->public()->ordered()->get())
                 ->map(function (Plan $plan) {
                     $inr = PricingResolver::priceForCurrency($plan, 'INR', 'monthly');
                     $usd = PricingResolver::priceForCurrency($plan, 'USD', 'monthly');

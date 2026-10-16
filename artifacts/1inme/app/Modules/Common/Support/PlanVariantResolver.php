@@ -110,8 +110,7 @@ class PlanVariantResolver
                 // through and re-pin, rather than showing nothing.
             }
 
-            $pick = $variants->firstWhere('is_category_default', true)
-                ?? $variants->sortBy([['sort_order', 'asc'], ['id', 'asc']])->first();
+            $pick = self::pickDefault($variants);
 
             $toPin[$category] = $pick->id;
 
@@ -123,6 +122,46 @@ class PlanVariantResolver
         }
 
         return $chosen->values();
+    }
+
+    /**
+     * Reduce to one plan per category WITHOUT a visitor.
+     *
+     * Every surface that LISTS plans has to make this reduction, not just
+     * /pricing — the signed-in upgrade and downgrade pages, the REST and
+     * mobile plan lists, the "unlocked on" lines in marketing copy, and what
+     * Zio says about plans. A list that skips it shows a visitor nine
+     * near-identical plans and all the sibling prices at once, which is the
+     * one thing categories exist to prevent.
+     *
+     * Those surfaces have no cookie worth pinning against — an API token is
+     * not a browser — so they get the category default rather than a
+     * per-visitor pick. Stable is the right trade there: a mobile client
+     * caching a plan list must not disagree with the web page it was opened
+     * from.
+     *
+     * @param  Collection<int, Plan>  $plans
+     * @return Collection<int, Plan>
+     */
+    public static function defaults(Collection $plans): Collection
+    {
+        return $plans
+            ->groupBy(fn (Plan $p) => $p->categoryKey())
+            ->map(fn (Collection $variants) => self::pickDefault($variants))
+            ->values();
+    }
+
+    /**
+     * The category's own answer to "which of you is the real one": the
+     * flagged default, else the lowest sort_order. Never random, because two
+     * requests that disagree quote two prices.
+     *
+     * @param  Collection<int, Plan>  $variants
+     */
+    private static function pickDefault(Collection $variants): Plan
+    {
+        return $variants->firstWhere('is_category_default', true)
+            ?? $variants->sortBy([['sort_order', 'asc'], ['id', 'asc']])->first();
     }
 
     /**

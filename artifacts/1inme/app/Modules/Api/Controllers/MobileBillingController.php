@@ -5,6 +5,7 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Common\Support\PlanVariantResolver;
 use App\Services\PricingResolver;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -64,12 +65,16 @@ class MobileBillingController extends Controller
             ];
         };
 
-        $plans = Plan::query()
-            ->public()
-            ->where('status', 'active')
-            ->where('is_archived', false)
-            ->orderBy('sort_order')->orderBy('id')
-            ->get()
+        // The mobile plan screen is a listing like any other: one per
+        // category, or the app shows nine Bio plans a few rupees apart.
+        $plans = PlanVariantResolver::defaults(
+            Plan::query()
+                ->public()
+                ->where('status', 'active')
+                ->where('is_archived', false)
+                ->orderBy('sort_order')->orderBy('id')
+                ->get()
+        )
             ->map(function (Plan $p) use ($user, $currency, $currencies, $pricePair) {
                 $prices = [];
                 foreach ($currencies as $cur) {
@@ -125,9 +130,11 @@ class MobileBillingController extends Controller
         // Premium feature catalogue with plain-English copy is owned
         // by the API so mobile billing clients can render the canonical
         // feature descriptions without the bundle duplicating strings.
-        $planModels = Plan::query()
-            ->public()
-            ->where('status', 'active')->where('is_archived', false)->get();
+        $planModels = PlanVariantResolver::defaults(
+            Plan::query()
+                ->public()
+                ->where('status', 'active')->where('is_archived', false)->get()
+        );
         $unlocks = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($planModels);
         // Per-plan resolved cell for every feature, keyed by plan slug, so
         // mobile billing clients get the SAME number / "Unlimited" /
