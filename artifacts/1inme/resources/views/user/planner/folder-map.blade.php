@@ -112,12 +112,20 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
   var rails = data.rails || [];
   var edges = data.edges || [];
 
-  function centre(kind) {
+  function box(kind) {
     var el = grid.querySelector('[data-fnet-kind="' + kind + '"]');
     if (!el) { return null; }
     var g = grid.getBoundingClientRect();
     var r = el.getBoundingClientRect();
-    return { x: r.left - g.left + r.width / 2, y: r.top - g.top + r.height / 2 };
+    return {
+      x: r.left - g.left, y: r.top - g.top, w: r.width, h: r.height,
+      cx: r.left - g.left + r.width / 2, cy: r.top - g.top + r.height / 2
+    };
+  }
+
+  function centre(kind) {
+    var b = box(kind);
+    return b ? { x: b.cx, y: b.cy } : null;
   }
 
   function waypoint(spec) {
@@ -128,23 +136,37 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
     return { x: a.x, y: b.y };
   }
 
-  // Every corner becomes a wide arc, so no rail ever turns square.
-  function curved(points, radius) {
-    if (points.length < 2) { return ''; }
-    var d = 'M ' + points[0].x + ' ' + points[0].y;
-    for (var i = 1; i < points.length - 1; i++) {
-      var c = points[i], a = points[i - 1], b = points[i + 1];
-      var la = Math.hypot(c.x - a.x, c.y - a.y);
-      var lb = Math.hypot(b.x - c.x, b.y - c.y);
-      if (!la || !lb) { continue; }
-      var rr = Math.min(radius, la / 2, lb / 2);
-      var i1x = c.x + (a.x - c.x) / la * rr, i1y = c.y + (a.y - c.y) / la * rr;
-      var i2x = c.x + (b.x - c.x) / lb * rr, i2y = c.y + (b.y - c.y) / lb * rr;
-      d += ' L ' + i1x + ' ' + i1y + ' Q ' + c.x + ' ' + c.y + ' ' + i2x + ' ' + i2y;
-    }
-    var end = points[points.length - 1];
-    d += ' L ' + end.x + ' ' + end.y;
-    return d;
+  // Where a rail should leave a station: the point on that card's edge facing
+  // the next one, plus a small gap. Drawing centre-to-centre ran the line
+  // under every card, and an unused card is see-through, so the rail showed
+  // straight across it.
+  function edgeToward(kind, target, pad) {
+    var b = box(kind);
+    if (!b || !target) { return null; }
+    var dx = target.x - b.cx;
+    var dy = target.y - b.cy;
+    if (!dx && !dy) { return { x: b.cx, y: b.cy }; }
+    var halfW = b.w / 2 + pad;
+    var halfH = b.h / 2 + pad;
+    // Scale the direction until it lands on the padded border.
+    var sx = dx ? halfW / Math.abs(dx) : Infinity;
+    var sy = dy ? halfH / Math.abs(dy) : Infinity;
+    var s = Math.min(sx, sy);
+    return { x: b.cx + dx * s, y: b.cy + dy * s };
+  }
+
+  // A gentle bow, so the rail reads as a flowing line rather than a ruled one.
+  function bowed(a, b, lift) {
+    var mx = (a.x + b.x) / 2;
+    var my = (a.y + b.y) / 2;
+    var dx = b.x - a.x;
+    var dy = b.y - a.y;
+    var len = Math.hypot(dx, dy);
+    if (!len) { return ''; }
+    var nx = -dy / len;
+    var ny = dx / len;
+    var k = Math.min(lift, len / 5);
+    return 'M ' + a.x + ' ' + a.y + ' Q ' + (mx + nx * k) + ' ' + (my + ny * k) + ' ' + b.x + ' ' + b.y;
   }
 
   function esc(s) {
@@ -152,44 +174,52 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
   }
 
   function draw() {
-    var box = grid.getBoundingClientRect();
-    if (!box.width) { return; }
-    svg.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
-    svg.setAttribute('width', box.width);
-    svg.setAttribute('height', box.height);
+    var gbox = grid.getBoundingClientRect();
+    if (!gbox.width) { return; }
+    svg.setAttribute('viewBox', '0 0 ' + gbox.width + ' ' + gbox.height);
+    svg.setAttribute('width', gbox.width);
+    svg.setAttribute('height', gbox.height);
 
     var out = '';
 
     for (var r = 0; r < rails.length; r++) {
-      var pts = [];
-      for (var p = 0; p < rails[r].points.length; p++) {
-        var w = waypoint(rails[r].points[p]);
-        if (w) { pts.push(w); }
+      var pts = rails[r].points;
+      var stroke = 'var(--fnet-' + esc(rails[r].stage) + ')';
+      for (var i = 0; i < pts.length - 1; i++) {
+        var fromSpec = pts[i], toSpec = pts[i + 1];
+        var from = waypoint(fromSpec), to = waypoint(toSpec);
+        if (!from || !to) { continue; }
+        // Start and end on the card's border, never at its centre.
+        var a = (typeof fromSpec === 'string') ? edgeToward(fromSpec, to, 7) : from;
+        var b = (typeof toSpec === 'string') ? edgeToward(toSpec, from, 7) : to;
+        if (!a || !b) { continue; }
+        var d = bowed(a, b, 16);
+        if (!d) { continue; }
+        out += '<path class="fnet-rail" d="' + d + '" fill="none" stroke="' + stroke + '"'
+            +  ' stroke-width="3.5" stroke-linecap="round" opacity=".5" stroke-dasharray="9 8"/>';
       }
-      if (pts.length < 2) { continue; }
-      out += '<path class="fnet-rail" d="' + curved(pts, 34) + '" fill="none"'
-          +  ' stroke="var(--fnet-' + esc(rails[r].stage) + ')" stroke-width="3.5"'
-          +  ' stroke-linecap="round" stroke-linejoin="round" opacity=".42" stroke-dasharray="9 8"/>';
     }
 
     for (var e = 0; e < edges.length; e++) {
       var edge = edges[e];
-      var a = centre(edge.from);
-      var b = centre(edge.to);
-      if (!a || !b) { continue; }
       if (edge.from === edge.to) { continue; }
-      var dx = b.x - a.x, dy = b.y - a.y;
+      var ca = centre(edge.from), cb = centre(edge.to);
+      if (!ca || !cb) { continue; }
+      var pa = edgeToward(edge.from, cb, 7);
+      var pb = edgeToward(edge.to, ca, 7);
+      if (!pa || !pb) { continue; }
+      var dx = pb.x - pa.x, dy = pb.y - pa.y;
       var sideways = Math.abs(dx) > Math.abs(dy);
-      var c1x = sideways ? a.x + dx * 0.55 : a.x;
-      var c1y = sideways ? a.y : a.y + dy * 0.55;
-      var c2x = sideways ? b.x - dx * 0.55 : b.x;
-      var c2y = sideways ? b.y : b.y - dy * 0.55;
+      var c1x = sideways ? pa.x + dx * 0.55 : pa.x;
+      var c1y = sideways ? pa.y : pa.y + dy * 0.55;
+      var c2x = sideways ? pb.x - dx * 0.55 : pb.x;
+      var c2y = sideways ? pb.y : pb.y - dy * 0.55;
       var width = Math.min(2.5 + edge.count, 7);
-      out += '<path class="fnet-join" d="M ' + a.x + ' ' + a.y + ' C ' + c1x + ' ' + c1y
-          +  ', ' + c2x + ' ' + c2y + ', ' + b.x + ' ' + b.y + '" fill="none"'
-          +  ' stroke="var(--fnet-join)" stroke-width="' + width + '" stroke-linecap="round" opacity=".85"/>';
-      var mx = (a.x + c1x * 3 + c2x * 3 + b.x) / 8;
-      var my = (a.y + c1y * 3 + c2y * 3 + b.y) / 8;
+      out += '<path class="fnet-join" d="M ' + pa.x + ' ' + pa.y + ' C ' + c1x + ' ' + c1y
+          +  ', ' + c2x + ' ' + c2y + ', ' + pb.x + ' ' + pb.y + '" fill="none"'
+          +  ' stroke="var(--fnet-join)" stroke-width="' + width + '" stroke-linecap="round" opacity=".9"/>';
+      var mx = (pa.x + c1x * 3 + c2x * 3 + pb.x) / 8;
+      var my = (pa.y + c1y * 3 + c2y * 3 + pb.y) / 8;
       out += '<circle cx="' + mx + '" cy="' + my + '" r="10" fill="var(--fnet-card)"'
           +  ' stroke="var(--fnet-join)" stroke-width="1.7"/>';
       out += '<text x="' + mx + '" y="' + (my + 3.6) + '" text-anchor="middle" font-size="10.5"'
@@ -202,9 +232,6 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
   if (window.ResizeObserver) { new ResizeObserver(draw).observe(grid); }
   window.addEventListener('resize', draw);
   requestAnimationFrame(draw);
-  // The tab starts hidden behind x-show, so it has no size until Flow is
-  // picked. Redraw on the first click of the view switch rather than leaving
-  // an empty SVG behind the stations.
   document.addEventListener('click', function (ev) {
     if (ev.target && ev.target.closest && ev.target.closest('.folder-view-switch')) {
       setTimeout(draw, 60);
