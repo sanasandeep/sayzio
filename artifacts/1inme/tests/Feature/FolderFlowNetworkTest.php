@@ -168,4 +168,38 @@ class FolderFlowNetworkTest extends TestCase
         $this->assertSame(1, FolderFlowNetwork::undrawableCount($edges),
             'a connection pointing at a kind with no station must be reported, not silently omitted');
     }
+
+    /**
+     * Every AI kind is a real kind, and the agreed list is the one drawn.
+     *
+     * This is a stated product classification, not something derivable from
+     * the code -- five of the eight have Ai* model classes and three do not.
+     * So the only thing a test can protect is that the list names real kinds
+     * and that the map actually uses it. A typo here would silently draw a
+     * station as plain.
+     */
+    public function test_the_ai_kinds_are_real_kinds_and_reach_the_map(): void
+    {
+        foreach (FolderFlowNetwork::AI_KINDS as $kind) {
+            $this->assertArrayHasKey($kind, PlannerResources::TYPES,
+                "'{$kind}' is marked as an AI kind but is not a resource kind at all");
+            $this->assertArrayHasKey($kind, FolderFlowNetwork::stations(),
+                "'{$kind}' is marked as an AI kind but has no station to draw");
+        }
+
+        $map = FolderFlowNetwork::map([], [], FolderFlowMeasures::all([]));
+        $drawnAsAi = [];
+        foreach ($map['stations'] as $station) {
+            if ($station['ai']) {
+                $drawnAsAi[] = $station['kind'];
+            }
+        }
+
+        sort($drawnAsAi);
+        $expected = FolderFlowNetwork::AI_KINDS;
+        sort($expected);
+
+        $this->assertSame($expected, $drawnAsAi, 'the map must draw exactly the kinds named as AI');
+        $this->assertCount(8, $drawnAsAi, 'eight AI kinds were agreed; a change here should be deliberate');
+    }
 }
