@@ -76,6 +76,7 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 @else
 <span class="fnet-no">not counted here</span>
 @endif
+<span class="fnet-stage-chip">{{ $fnetStages[$fnetStation['stage']]['eyebrow'] ?? '' }}</span>
 @if($fnetActivity['counted'])
 <span class="fnet-who">
 @foreach(array_slice($fnetStation['people'], 0, $fnetFaces) as $fnetWho)
@@ -201,6 +202,9 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
   }
 
   function draw() {
+    // Hidden below the mobile breakpoint, where the grid is a plain list and
+    // a rail between two stacked cards would say something untrue.
+    if (window.getComputedStyle(svg).display === 'none') { svg.innerHTML = ''; return; }
     var gbox = grid.getBoundingClientRect();
     if (!gbox.width) { return; }
     svg.setAttribute('viewBox', '0 0 ' + gbox.width + ' ' + gbox.height);
