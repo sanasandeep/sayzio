@@ -42,8 +42,16 @@ class DashboardFolderOverviewTest extends TestCase
         $this->actingAs($user)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
         $this->get(route('user.dashboard'))->assertOk()
             ->assertSee('--ov-color: #d946ef', false)->assertSee('ov-folder-art', false);
+        // The folder page carried the saved colour as a hardcoded
+        // `border-left:4px solid <hex>` on `.links-head` (e8ff504f8). 36468b29a
+        // replaced that header with the folder shell, which sets the colour as
+        // a custom property instead -- `.folder-colored-header .page-hero`
+        // tints its gradient and border from it and `.hero-emblem` takes it as
+        // its colour. Same feature, different mechanism; this asserted the old
+        // one and had been red since the day after it was written.
         $this->get(route('user.links.index', ['project_id' => $folder->id]))->assertOk()
-            ->assertSee('border-left:4px solid #d946ef', false);
+            ->assertSee('--folder-color:#d946ef', false)
+            ->assertSee('folder-colored-header', false);
     }
 
     public function test_default_dashboard_shows_usage_and_folders_without_traffic_charts(): void
