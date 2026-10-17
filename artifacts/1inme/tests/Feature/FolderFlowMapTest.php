@@ -75,8 +75,9 @@ class FolderFlowMapTest extends TestCase
      */
     public function test_unplaced_kinds_are_real_kinds(): void
     {
-        foreach (FolderFlowStages::UNPLACED as $kind) {
-            $this->assertArrayHasKey($kind, PlannerResources::TYPES, "'{$kind}' is excluded from the Flow stages but is not a resource kind at all");
-        }
+        $notAKind = array_values(array_diff(FolderFlowStages::UNPLACED, array_keys(PlannerResources::TYPES)));
+
+        sort($notAKind);
+        $this->assertSame([], $notAKind, 'these kinds are excluded from the Flow stages but are not resource kinds at all, so the exclusion hides nothing and the comment beside it is wrong: '.implode(', ', $notAKind));
     }
 }
