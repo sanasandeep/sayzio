@@ -159,4 +159,32 @@ class FolderFlowEdgesTest extends TestCase
             'a kind a folder can hold must map to a stage, or its connections silently stop being counted');
         $this->assertSame(count($relations), $edges['recorded']);
     }
+
+    /**
+     * No Blade directive in the planner views is glued to a word character.
+     *
+     * Blade matches directives with a regex that begins `\B@`, so an `@if`
+     * written immediately after `@endif` is NOT compiled -- it is emitted as
+     * literal text, while its own `@endif` IS compiled, and the view dies with
+     * "syntax error, unexpected token endif". This PR shipped exactly that and
+     * three FolderProjectHubTest cases caught it only at render time.
+     *
+     * The views here are deliberately dense one-liners, so the adjacency is
+     * easy to reintroduce and invisible on review. This is cheaper than
+     * reading for it.
+     */
+    public function test_no_blade_directive_is_glued_to_a_word_character(): void
+    {
+        $pattern = '/[A-Za-z0-9_]@(?:if|endif|foreach|endforeach|php|endphp|forelse|endforelse|else|elseif)\b/';
+
+        $offenders = [];
+        foreach (glob(resource_path('views/user/planner/*.blade.php')) as $view) {
+            if (preg_match_all($pattern, (string) file_get_contents($view), $m)) {
+                $offenders[] = basename($view).': '.implode(', ', $m[0]);
+            }
+        }
+
+        $this->assertSame([], $offenders,
+            'Blade will not compile these as directives because a word character precedes the @: '.implode(' | ', $offenders));
+    }
 }
