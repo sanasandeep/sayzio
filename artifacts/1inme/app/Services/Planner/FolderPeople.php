@@ -10,7 +10,14 @@ use App\Modules\User\Services\WorkspaceRoleDirectory;
 /** Recorded work over the caller's visible resources; never infers live presence. */
 class FolderPeople
 {
-    public function data($project, $resources): array
+    /**
+     * @param array $kindActivity FolderKindActivity::data(), so a person's
+     *   card can say how much they changed across ALL nineteen kinds, not
+     *   just task cards. Kept as a SEPARATE number from 'actions' rather than
+     *   added to it: TaskActivity and the workspace ledger both record task
+     *   work, independently, so summing them would count it twice.
+     */
+    public function data($project, $resources, array $kindActivity = []): array
     {
         $ws = Workspace::findOrFail($project->workspace_id);
         $names = WorkspaceRoleDirectory::names($ws);
@@ -29,10 +36,21 @@ class FolderPeople
                 $roster->push(['user' => $member->user, 'role' => $names[$member->role] ?? $member->role]);
             }
         }
+        // The ledger excludes the owner from the per-station faces on purpose,
+        // so their own total comes from owner_changes instead -- they are left
+        // off the map, not idle, and their card should not read zero.
+        $changesByPerson = [];
+        foreach (($kindActivity['people'] ?? []) as $ledgerPerson) {
+            $changesByPerson[(int) $ledgerPerson['id']] = (int) $ledgerPerson['changes'];
+        }
+        $ownerChanges = (int) ($kindActivity['owner_changes'] ?? 0);
+        $ownerId = (int) ($ws->owner_user_id ?? 0);
+        $haveLedger = $kindActivity !== [];
+
         $tasks = collect($resources)->where('kind', 'task')->pluck('row');
         $actions = TaskActivity::whereIn('card_id', $tasks->pluck('id'))->where('created_at', '>=', now()->subDays(30))->get();
         $time = TaskTimeEntry::whereIn('card_id', $tasks->pluck('id'))->where(fn ($q) => $q->where('source', '!=', 'timer')->orWhereNotNull('ended_at'))->get();
-        $people = $roster->map(function ($entry) use ($tasks, $actions, $time) {
+        $people = $roster->map(function ($entry) use ($tasks, $actions, $time, $changesByPerson, $ownerChanges, $ownerId, $haveLedger) {
             $user = $entry['user'];
             $assigned = $tasks->filter(fn ($task) => $task->assignees->contains('id', $user->id));
             $completed = $assigned->filter(fn ($task) => $task->completed_at);
@@ -40,9 +58,9 @@ class FolderPeople
             $onTime = $dated->filter(fn ($task) => $task->completed_at->lte($task->due_date->copy()->endOfDay()))->count();
             $events = $actions->where('user_id', $user->id);
 
-            return ['id' => $user->id, 'name' => $user->name, 'avatar_url' => $user->resolveAvatarUrl(), 'role' => $entry['role'], 'assigned' => $assigned->count(), 'completed' => $completed->count(), 'open' => $assigned->count() - $completed->count(), 'overdue' => $assigned->filter(fn ($task) => ! $task->completed_at && $task->due_date?->isBefore(today()))->count(), 'on_time' => $onTime, 'dated_completed' => $dated->count(), 'minutes' => (int) $time->where('user_id', $user->id)->sum('minutes'), 'actions' => $events->count(), 'last_action' => $events->max('created_at'), 'tasks' => $assigned->map(fn ($task) => ['title' => $task->title, 'completed' => (bool) $task->completed_at, 'due' => $task->due_date?->format('d M')])->values()->all()];
+            return ['id' => $user->id, 'name' => $user->name, 'avatar_url' => $user->resolveAvatarUrl(), 'role' => $entry['role'], 'assigned' => $assigned->count(), 'completed' => $completed->count(), 'open' => $assigned->count() - $completed->count(), 'overdue' => $assigned->filter(fn ($task) => ! $task->completed_at && $task->due_date?->isBefore(today()))->count(), 'on_time' => $onTime, 'dated_completed' => $dated->count(), 'minutes' => (int) $time->where('user_id', $user->id)->sum('minutes'), 'actions' => $events->count(), 'changes' => $haveLedger ? ((int) $user->id === $ownerId ? $ownerChanges : ($changesByPerson[$user->id] ?? 0)) : null, 'last_action' => $events->max('created_at'), 'tasks' => $assigned->map(fn ($task) => ['title' => $task->title, 'completed' => (bool) $task->completed_at, 'due' => $task->due_date?->format('d M')])->values()->all()];
         })->values()->all();
 
-        return ['people' => $people, 'unassigned' => $tasks->filter(fn ($task) => $task->assignees->isEmpty())->count(), 'unscheduled' => $tasks->filter(fn ($task) => ! $task->completed_at && ! $task->due_date)->count(), 'logged_minutes' => (int) $time->sum('minutes'), 'actions_30d' => $actions->count()];
+        return ['people' => $people, 'unassigned' => $tasks->filter(fn ($task) => $task->assignees->isEmpty())->count(), 'unscheduled' => $tasks->filter(fn ($task) => ! $task->completed_at && ! $task->due_date)->count(), 'logged_minutes' => (int) $time->sum('minutes'), 'actions_30d' => $actions->count(), 'changes_30d' => $haveLedger ? (int) ($kindActivity['counted'] ?? 0) + $ownerChanges : null];
     }
 }

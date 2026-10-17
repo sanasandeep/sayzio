@@ -53,8 +53,13 @@ class FolderWorkspace
             ? (int) DB::table('ai_companion_conversations')->whereIn('companion_id', $companionIds)->count()
             : 0;
 
-        $peopleData = app(FolderPeople::class)->data($project, $resources);
+        // Computed once here, read twice: the Flow map puts faces on each
+        // station, the People panel puts a number on each person. The Flow
+        // view was calling this service itself on every folder render, so
+        // this costs nothing extra and stops the two panels disagreeing.
+        $kindActivity = app(FolderKindActivity::class)->data($project, $resources);
+        $peopleData = app(FolderPeople::class)->data($project, $resources, $kindActivity);
 
-        return compact('peopleData', 'resources', 'notes', 'runs', 'relations', 'attention', 'unassignedNotes', 'companionConversations') + ['timeline' => $timeline->sortByDesc('date')->take(30)->values(), 'choices' => app(PlannerResources::class)->choices($user), 'boards' => app(PlannerResources::class)->query('board', $user)->whereNull('archived_at')->get(), 'members' => app('current_workspace')->members()->whereNull('suspended_at')->whereIn('user_id', array_column($peopleData['people'], 'id'))->with('user')->get(), 'destinations' => Project::where('user_id', workspace_owner_id())->where('id', '!=', $project->id)->get()];
+        return compact('peopleData', 'kindActivity', 'resources', 'notes', 'runs', 'relations', 'attention', 'unassignedNotes', 'companionConversations') + ['timeline' => $timeline->sortByDesc('date')->take(30)->values(), 'choices' => app(PlannerResources::class)->choices($user), 'boards' => app(PlannerResources::class)->query('board', $user)->whereNull('archived_at')->get(), 'members' => app('current_workspace')->members()->whereNull('suspended_at')->whereIn('user_id', array_column($peopleData['people'], 'id'))->with('user')->get(), 'destinations' => Project::where('user_id', workspace_owner_id())->where('id', '!=', $project->id)->get()];
     }
 }

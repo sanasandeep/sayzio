@@ -6,6 +6,7 @@ use App\Modules\User\Models\Project;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Services\Planner\FolderKindActivity;
+use App\Services\Planner\FolderPeople;
 use App\Services\Planner\PlannerResources;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -172,6 +173,57 @@ class FolderKindActivityTest extends TestCase
         $this->recordChange($ws, $owner, 'form', 1);
         $this->assertNotNull((new FolderKindActivity)->data($project, [])['first_recorded_at'],
             'once something is recorded the view must be able to date the coverage');
+    }
+
+    /**
+     * The People panel used to count task-card events only, and said so
+     * nowhere. Once the map started showing faces from the ledger, a member
+     * could be on four stations and read "0 actions" on the same page. The
+     * two numbers are now separate and separately named -- never summed,
+     * because TaskActivity and the ledger both record task work and adding
+     * them would count it twice.
+     */
+    public function test_a_card_counts_task_actions_and_ledger_changes_separately(): void
+    {
+        $owner = User::factory()->create();
+        $ws = $this->workspaceFor($owner);
+
+        $form = new \App\Modules\User\Models\Form(['title' => 'Owner edits this']);
+        $form->user_id = $owner->id;
+        $form->save();
+
+        DB::table('workspace_activity_events')->delete();
+        $this->recordChange($ws, $owner, 'form', (int) $form->id);
+        $this->recordChange($ws, $owner, 'form', (int) $form->id);
+
+        [$project, $resources] = $this->folderHolding($owner, 'form', [$form]);
+        $activity = (new FolderKindActivity)->data($project, $resources);
+        $people = (new FolderPeople)->data($project, $resources, $activity)['people'];
+
+        $card = collect($people)->firstWhere('id', $owner->id);
+        $this->assertNotNull($card, 'the owner is always on the roster');
+
+        // The owner is kept off the stations on purpose. Their card must not
+        // inherit that exclusion and read zero -- they are not idle.
+        $this->assertSame(2, $card['changes'],
+            "the owner's own changes should show on their card even though they are left off the map");
+        $this->assertSame(0, $card['actions'],
+            'task actions are a different count from ledger changes, not the same one');
+    }
+
+    /** With no ledger to read, a card says nothing rather than claiming zero. */
+    public function test_a_card_shows_no_change_count_when_there_is_no_ledger_to_read(): void
+    {
+        $owner = User::factory()->create();
+        $this->workspaceFor($owner);
+        $project = \App\Modules\User\Models\Project::create(['user_id' => $owner->id, 'name' => 'No ledger']);
+
+        $people = (new FolderPeople)->data($project, [])['people'];
+        $card = collect($people)->firstWhere('id', $owner->id);
+
+        $this->assertNotNull($card);
+        $this->assertNull($card['changes'],
+            'without the ledger the card must not assert that nobody changed anything');
     }
 
     /**
