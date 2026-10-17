@@ -12,7 +12,7 @@ $mapGroups=[
 $mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#365ce9';
 $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor);
 @endphp
-<section id="project-map" class="notes-card folder-map visual-folder-map" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports))" @keydown.escape.window="closePanel()">
+<section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports))" @keydown.escape.window="closePanel()">
 <div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='hub'" :aria-pressed="mode==='hub'">Hub</button><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button></div></div>
 <div class="notes-actions folder-export-actions"><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
 <div x-show="mode==='hub'" class="folder-hub visual-hub">
@@ -53,22 +53,165 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 @endforeach
 </aside></div>
 <div x-show="mode==='flow'" x-cloak>
-@php $flowStages=\App\Services\Planner\FolderFlowStages::all(); $flowKeys=array_keys($flowStages); $flowEdges=\App\Services\Planner\FolderFlowEdges::from($relations); $flowItems=collect($resources); $flowOffRail=\App\Services\Planner\FolderFlowEdges::offRailCount($flowEdges); $flowMeasures=\App\Services\Planner\FolderFlowMeasures::all($resources,$companionConversations??0); $flowLabels=\App\Services\Planner\PlannerResources::typeLabels(); @endphp
-<div class="folder-flow">
-@foreach($flowStages as $stageKey => $stage)@php $nextStage=$flowKeys[$loop->index+1]??null; $recorded=$nextStage?\App\Services\Planner\FolderFlowEdges::recordedBetween($flowEdges,$stageKey,$nextStage):0; $insideCount=$flowEdges['inside'][$stageKey]??0; @endphp<a href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$stage['tab']]) }}" class="folder-flow-node"><span class="folder-eyebrow">{{ $stage['eyebrow'] }}</span><strong>{{ $stage['title'] }}</strong><span class="folder-flow-count">{{ $flowItems->whereIn('kind',$stage['kinds'])->count() }} assigned items</span>@if($insideCount)<span class="folder-flow-inside">{{ $insideCount }} connected to each other here</span>@endif
-@php $measure=$flowMeasures[$stageKey]??null; @endphp
-@if($measure)<span class="folder-flow-measure"><strong>{{ number_format($measure['value']) }}@if($measure['of']!==null) of {{ number_format($measure['of']) }}@endif</strong> {{ $measure['suffix'] }}</span>@if($measure['uncounted'])<span class="folder-flow-uncounted">Not in this number: {{ collect($measure['uncounted'])->map(fn($k)=>$flowLabels[$k]??$k)->implode(', ') }}</span>@endif
+@php
+$fnetMeasures = \App\Services\Planner\FolderFlowMeasures::all($resources, $companionConversations ?? 0);
+$fnet = \App\Services\Planner\FolderFlowNetwork::map($resources, $relations, $fnetMeasures);
+$fnetLabels = \App\Services\Planner\PlannerResources::typeLabels();
+$fnetStages = \App\Services\Planner\FolderFlowStages::all();
+$fnetDrawn = \App\Services\Planner\FolderFlowNetwork::drawnCount($fnet['edges']);
+$fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['edges']);
+@endphp
+<div class="fnet-board">
+<div class="fnet-canvas">
+<svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
+<div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $fnet['cols'] }}">
+@foreach($fnet['stations'] as $fnetStation)
+<a class="fnet-stn{{ $fnetStation['in_use'] ? '' : ' is-off' }}" data-fnet-kind="{{ $fnetStation['kind'] }}" style="--c:{{ $fnetStation['col'] }};--r:{{ $fnetStation['row'] }};--ln:var(--fnet-{{ $fnetStation['stage'] }})" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$fnetStation['tab']]) }}">
+<span class="fnet-top"><span class="fnet-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $fnetStation['icon'] !!}</svg></span><span class="fnet-nm">{{ $fnetLabels[$fnetStation['kind']] ?? $fnetStation['kind'] }}</span></span>
+<span class="fnet-ct">{{ number_format($fnetStation['count']) }}</span>
+@if($fnetStation['figure'])
+<span class="fnet-fg"><b>{{ $fnetStation['figure']['of'] !== null ? number_format($fnetStation['figure']['value']).' of '.number_format($fnetStation['figure']['of']) : number_format($fnetStation['figure']['value']) }}</b> {{ $fnetStation['figure']['suffix'] }}</span>
 @else
-<span class="folder-flow-uncounted">Nothing in this stage is measured</span>
+<span class="fnet-no">not counted here</span>
 @endif
+@if($fnetStation['in_use'])
+<span class="fnet-live" aria-hidden="true"></span>
+@endif
+</a>
+@endforeach
+</div>
+</div>
+</div>
+<script type="application/json" data-fnet-json>@json(['rails' => $fnet['rails'], 'edges' => array_values(array_filter($fnet['edges'], fn ($e) => $e['from'] !== null))])</script>
+<div class="fnet-key">
+@foreach($fnetStages as $fnetKey => $fnetStage)
+<span style="--ln:var(--fnet-{{ $fnetKey }})"><i></i>{{ $fnetStage['eyebrow'] }}</span>
+@endforeach
+<span><i class="is-join"></i>Saved connection</span>
+<span><i class="is-unused"></i>Not used in this folder</span>
+</div>
+<p class="notes-hint mt-4"><span class="folder-suggestion-badge">Suggested order</span> The rails are a possible process, not measured attribution. A junction is real: that many item-to-item connections were saved between those two kinds under Resources. A station shows a figure only where its stage measures that kind.</p>
+@if($fnetDrawn)
+<p class="notes-hint mt-2">{{ number_format($fnetDrawn) }} saved connection{{ $fnetDrawn === 1 ? '' : 's' }} drawn as junctions. Manage them under Resources.</p>
+@else
+<p class="notes-hint mt-2">Nothing connected in this folder yet, so every rail is dashed and no junction is drawn. That means none were saved, not that nothing happened.</p>
+@endif
+@if($fnetMissed)
+<p class="notes-hint mt-2">{{ number_format($fnetMissed) }} saved connection{{ $fnetMissed === 1 ? '' : 's' }} point at an item kind with no station, so they are counted but not drawn.</p>
+@endif
+</div>
+<script>
+(function () {
+  var grid = document.querySelector('[data-fnet-grid]');
+  var svg = document.querySelector('[data-fnet-wires]');
+  var json = document.querySelector('[data-fnet-json]');
+  if (!grid || !svg || !json) { return; }
 
-@if($nextStage)<svg class="folder-flow-arrow {{ $recorded ? 'is-recorded' : 'is-suggested' }}" viewBox="0 0 100 16" height="16" aria-hidden="true"><path d="M0 8 H90 M84 2 L92 8 L84 14" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="folder-flow-edge-label">{{ $recorded ? $recorded.' recorded connection'.($recorded===1?'':'s').' to '.$flowStages[$nextStage]['eyebrow'] : 'Nothing recorded into '.$flowStages[$nextStage]['eyebrow'] }}</span>@endif</a>@endforeach
-</div>
-<div class="folder-connection-summary"><span><span class="map-legend-solid"></span> Saved item-to-item connections</span><span><span class="map-legend-dashed"></span> Suggested order only</span></div>
-<p class="notes-hint mt-4"><span class="folder-suggestion-badge">Suggested order</span> The stages are a possible process, not measured attribution. A solid connector is real: that many item-to-item connections were saved between those two stages under Resources. A dashed one means none were saved there — not that nothing happened.</p>
-@if($flowOffRail)<p class="notes-hint mt-2">{{ $flowOffRail }} saved connection{{ $flowOffRail===1?'':'s' }} run between stages this rail does not join ({{ collect($flowEdges['offRail'])->take(3)->map(fn($e)=>$flowStages[$e['from']]['eyebrow'].' → '.$flowStages[$e['to']]['eyebrow'].' ×'.$e['count'])->implode(', ') }}). They are counted here but not drawn above; manage them under Resources.</p>@endif
-@if($flowEdges['unplaced'])<p class="notes-hint mt-2">{{ $flowEdges['unplaced'] }} saved connection{{ $flowEdges['unplaced']===1?'':'s' }} point at an item kind that no longer has a stage, so they are counted but not drawn.</p>@endif
-</div>
+  var data;
+  try { data = JSON.parse(json.textContent); } catch (e) { return; }
+  var rails = data.rails || [];
+  var edges = data.edges || [];
+
+  function centre(kind) {
+    var el = grid.querySelector('[data-fnet-kind="' + kind + '"]');
+    if (!el) { return null; }
+    var g = grid.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    return { x: r.left - g.left + r.width / 2, y: r.top - g.top + r.height / 2 };
+  }
+
+  function waypoint(spec) {
+    if (typeof spec === 'string') { return centre(spec); }
+    var a = centre(spec.x);
+    var b = centre(spec.y);
+    if (!a || !b) { return null; }
+    return { x: a.x, y: b.y };
+  }
+
+  // Every corner becomes a wide arc, so no rail ever turns square.
+  function curved(points, radius) {
+    if (points.length < 2) { return ''; }
+    var d = 'M ' + points[0].x + ' ' + points[0].y;
+    for (var i = 1; i < points.length - 1; i++) {
+      var c = points[i], a = points[i - 1], b = points[i + 1];
+      var la = Math.hypot(c.x - a.x, c.y - a.y);
+      var lb = Math.hypot(b.x - c.x, b.y - c.y);
+      if (!la || !lb) { continue; }
+      var rr = Math.min(radius, la / 2, lb / 2);
+      var i1x = c.x + (a.x - c.x) / la * rr, i1y = c.y + (a.y - c.y) / la * rr;
+      var i2x = c.x + (b.x - c.x) / lb * rr, i2y = c.y + (b.y - c.y) / lb * rr;
+      d += ' L ' + i1x + ' ' + i1y + ' Q ' + c.x + ' ' + c.y + ' ' + i2x + ' ' + i2y;
+    }
+    var end = points[points.length - 1];
+    d += ' L ' + end.x + ' ' + end.y;
+    return d;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function draw() {
+    var box = grid.getBoundingClientRect();
+    if (!box.width) { return; }
+    svg.setAttribute('viewBox', '0 0 ' + box.width + ' ' + box.height);
+    svg.setAttribute('width', box.width);
+    svg.setAttribute('height', box.height);
+
+    var out = '';
+
+    for (var r = 0; r < rails.length; r++) {
+      var pts = [];
+      for (var p = 0; p < rails[r].points.length; p++) {
+        var w = waypoint(rails[r].points[p]);
+        if (w) { pts.push(w); }
+      }
+      if (pts.length < 2) { continue; }
+      out += '<path class="fnet-rail" d="' + curved(pts, 34) + '" fill="none"'
+          +  ' stroke="var(--fnet-' + esc(rails[r].stage) + ')" stroke-width="3.5"'
+          +  ' stroke-linecap="round" stroke-linejoin="round" opacity=".42" stroke-dasharray="9 8"/>';
+    }
+
+    for (var e = 0; e < edges.length; e++) {
+      var edge = edges[e];
+      var a = centre(edge.from);
+      var b = centre(edge.to);
+      if (!a || !b) { continue; }
+      if (edge.from === edge.to) { continue; }
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var sideways = Math.abs(dx) > Math.abs(dy);
+      var c1x = sideways ? a.x + dx * 0.55 : a.x;
+      var c1y = sideways ? a.y : a.y + dy * 0.55;
+      var c2x = sideways ? b.x - dx * 0.55 : b.x;
+      var c2y = sideways ? b.y : b.y - dy * 0.55;
+      var width = Math.min(2.5 + edge.count, 7);
+      out += '<path class="fnet-join" d="M ' + a.x + ' ' + a.y + ' C ' + c1x + ' ' + c1y
+          +  ', ' + c2x + ' ' + c2y + ', ' + b.x + ' ' + b.y + '" fill="none"'
+          +  ' stroke="var(--fnet-join)" stroke-width="' + width + '" stroke-linecap="round" opacity=".85"/>';
+      var mx = (a.x + c1x * 3 + c2x * 3 + b.x) / 8;
+      var my = (a.y + c1y * 3 + c2y * 3 + b.y) / 8;
+      out += '<circle cx="' + mx + '" cy="' + my + '" r="10" fill="var(--fnet-card)"'
+          +  ' stroke="var(--fnet-join)" stroke-width="1.7"/>';
+      out += '<text x="' + mx + '" y="' + (my + 3.6) + '" text-anchor="middle" font-size="10.5"'
+          +  ' font-weight="600" fill="var(--fnet-ink)">' + esc(edge.count) + '</text>';
+    }
+
+    svg.innerHTML = out;
+  }
+
+  if (window.ResizeObserver) { new ResizeObserver(draw).observe(grid); }
+  window.addEventListener('resize', draw);
+  requestAnimationFrame(draw);
+  // The tab starts hidden behind x-show, so it has no size until Flow is
+  // picked. Redraw on the first click of the view switch rather than leaving
+  // an empty SVG behind the stations.
+  document.addEventListener('click', function (ev) {
+    if (ev.target && ev.target.closest && ev.target.closest('.folder-view-switch')) {
+      setTimeout(draw, 60);
+    }
+  });
+})();
+</script>
 <div x-show="mode==='people'" x-cloak>
     <p class="notes-hint mb-4">Who has access, what they are assigned, and their recorded task activity. Shared tasks count for every assignee; this view does not indicate live presence.</p>
     <div class="folder-card-grid">@foreach($peopleData['people'] as $person)<article class="folder-person-card"><div class="folder-person-heading"><span class="folder-person-avatar" x-data="{photoFailed:false}"><span x-show="photoFailed" x-cloak>{{ mb_substr($person['name'],0,1) }}</span><img src="{{ $person['avatar_url'] }}" alt="{{ $person['name'] }}" loading="lazy" x-show="!photoFailed" x-on:error="photoFailed=true" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></span><div><strong>{{ $person['name'] }}</strong><small>{{ $person['role'] }}</small></div></div><div class="folder-person-stats"><span><strong>{{ $person['open'] }}</strong>Open tasks</span><span><strong>{{ $person['completed'] }}</strong>Completed</span><span><strong>{{ $person['actions'] }}</strong>Actions · 30d</span></div><div class="folder-person-process"><span>Assigned {{ $person['assigned'] }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span>Open {{ $person['open'] }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span>Done {{ $person['completed'] }}</span></div>@forelse(array_slice($person['tasks'],0,4) as $personTask)<div class="folder-mini-row"><i class="fas {{ $personTask['completed']?'fa-circle-check':'fa-circle' }}" aria-hidden="true"></i><span>{{ $personTask['title'] }}</span><small>{{ $personTask['completed']?'Done':($personTask['due']??'No due date') }}</small></div>@empty<p class="notes-hint mt-3">No visible task assignments yet.</p>@endforelse</article>@endforeach</div>
