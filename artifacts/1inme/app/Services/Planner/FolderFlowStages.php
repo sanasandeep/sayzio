@@ -38,6 +38,7 @@ class FolderFlowStages
     {
         return [
             'prepare' => [
+                'color'   => '#8b5cf6',
                 'eyebrow' => 'Prepare',
                 'title'   => 'Knowledge & plans',
                 'kinds'   => ['file', 'mind', 'plan', 'budget', 'brand'],
@@ -45,6 +46,7 @@ class FolderFlowStages
                 'note'    => null,
             ],
             'create' => [
+                'color'   => '#3b82f6',
                 'eyebrow' => 'Create',
                 'title'   => 'Content & pages',
                 // Calendars sit here rather than in Act: a booking calendar is
@@ -54,6 +56,7 @@ class FolderFlowStages
                 'note'    => null,
             ],
             'serve' => [
+                'color'   => '#0d9488',
                 'eyebrow' => 'Serve',
                 'title'   => 'Agents & channels',
                 // These four were in no stage. They are not content and they
@@ -65,6 +68,7 @@ class FolderFlowStages
                 'note'    => null,
             ],
             'reach' => [
+                'color'   => '#f59e0b',
                 'eyebrow' => 'Reach',
                 'title'   => 'Marketing & audience',
                 'kinds'   => ['campaign', 'studio', 'buzz', 'strategy'],
@@ -72,6 +76,7 @@ class FolderFlowStages
                 'note'    => null,
             ],
             'act' => [
+                'color'   => '#e0457b',
                 'eyebrow' => 'Act',
                 'title'   => 'Tasks & outcomes',
                 // A board belongs with the tasks it holds. Its tasks already

@@ -10,7 +10,7 @@ $mapGroups=[
  ['label'=>'Resources','kinds'=>['form','qr','file','calendar','board'],'tab'=>'resources','icon'=>'fa-layer-group','art'=>'folders'],
 ];
 $mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#365ce9';
-$chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor);
+$chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor,$relations);
 @endphp
 <section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports))" @keydown.escape.window="closePanel()">
 <div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='hub'" :aria-pressed="mode==='hub'">Hub</button><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button></div></div>

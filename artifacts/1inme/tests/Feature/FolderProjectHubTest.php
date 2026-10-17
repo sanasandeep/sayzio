@@ -51,7 +51,7 @@ class FolderProjectHubTest extends TestCase
         app(PlannerResources::class)->attach($p, 'buzz', $buzz->id, $u);
         PlannerNote::create(['user_id' => $u->id, 'workspace_id' => $p->workspace_id, 'project_id' => $p->id, 'body' => 'Ready for launch', 'completed_at' => now()]);
         foreach (['overview', 'work', 'team', 'marketing', 'resources', 'tasks', 'remember', 'activity'] as $tab) {
-            $page = $this->get('/user/projects/'.$p->id.'?tab='.$tab)->assertOk()->assertSee('Project section')->assertSee('Suggested workflow')->assertSee('Launch knowledge')->assertSee('Launch proof')->assertSee('Ready for launch')->assertSee('--folder-color:#22c55e', false)->assertSee('Map view · explore connections')->assertDontSee('Your project workspace');
+            $page = $this->get('/user/projects/'.$p->id.'?tab='.$tab)->assertOk()->assertSee('Project section')->assertSee('Suggested order')->assertSee('Launch knowledge')->assertSee('Launch proof')->assertSee('Ready for launch')->assertSee('--folder-color:#22c55e', false)->assertSee('Map view · explore connections')->assertDontSee('Your project workspace');
             if ($tab === 'resources') {
                 $page->assertSee('Select visible')->assertDontSee("@include('user.planner.chooser", false);
             }
