@@ -23,7 +23,7 @@ $mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#
 $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor,$relations);
 @endphp
 <section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports),@js($fnetMeta))" @keydown.escape.window="closePanel()">
-<div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='hub'" :aria-pressed="mode==='hub'">Hub</button><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button></div></div>
+<div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='hub'" :aria-pressed="mode==='hub'">Hub</button><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button><button @click="mode='guide'" :aria-pressed="mode==='guide'">How it works</button></div></div>
 <div class="notes-actions folder-export-actions"><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
 <div x-show="mode==='hub'" class="folder-hub visual-hub">
 <svg class="folder-map-lines" viewBox="0 0 1000 480" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8">@foreach([125,375,625,875] as $x)<path d="M500 240 Q{{ $x }} 240 {{ $x }} 90"/><path d="M500 240 Q{{ $x }} 240 {{ $x }} 390"/>@endforeach</g><circle cx="500" cy="240" r="55" fill="none" stroke="currentColor" stroke-dasharray="3 9"/></svg>
@@ -129,29 +129,8 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
 <div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $fnet['cols'] }}">
 @foreach($fnet['stations'] as $fnetStation)
-<button type="button" class="fnet-stn{{ $fnetStation['in_use'] ? '' : ' is-off' }}{{ $fnetStation['ai'] ? ' is-ai' : '' }}" data-fnet-kind="{{ $fnetStation['kind'] }}" x-show="fnetVisible('{{ $fnetStation['kind'] }}')" style="--c:{{ $fnetStation['col'] }};--r:{{ $fnetStation['row'] }};--ln:var(--fnet-{{ $fnetStation['stage'] }})" @click="openPanel('flow:{{ $fnetStation['kind'] }}',$event.currentTarget)" :aria-expanded="selected==='flow:{{ $fnetStation['kind'] }}'" aria-controls="folder-map-panel">
-<span class="fnet-top"><span class="fnet-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $fnetStation['icon'] !!}</svg></span><span class="fnet-nm">{{ $fnetLabels[$fnetStation['kind']] ?? $fnetStation['kind'] }}</span></span>
-<span class="fnet-ct">{{ number_format($fnetStation['count']) }}</span>
-@if($fnetStation['figure'])
-<span class="fnet-fg"><b>{{ $fnetStation['figure']['of'] !== null ? number_format($fnetStation['figure']['value']).' of '.number_format($fnetStation['figure']['of']) : number_format($fnetStation['figure']['value']) }}</b> {{ $fnetStation['figure']['suffix'] }}</span>
-@else
-<span class="fnet-no">not counted here</span>
-@endif
-<span class="fnet-stage-chip">{{ $fnetStages[$fnetStation['stage']]['eyebrow'] ?? '' }}</span>
-@if($fnetActivity['counted'])
-<span class="fnet-who">
-@foreach(array_slice($fnetStation['people'], 0, $fnetFaces) as $fnetWho)
-<img class="fnet-av" src="{{ $fnetWho['avatar_url'] }}" alt="{{ $fnetWho['name'] }}" title="{{ $fnetWho['name'] }} — {{ number_format($fnetWho['changes']) }} change{{ $fnetWho['changes'] === 1 ? '' : 's' }}" loading="lazy">
-@endforeach
-@if(count($fnetStation['people']) > $fnetFaces)
-<i class="fnet-av fnet-more">+{{ count($fnetStation['people']) - $fnetFaces }}</i>
-@endif
-</span>
-@endif
-@if($fnetStation['in_use'])
-<span class="fnet-live" aria-hidden="true"></span>
-@endif
-</button>
+@include('user.planner.fnet-station',['station'=>$fnetStation,'stages'=>$fnetStages,'labels'=>$fnetLabels,'faces'=>$fnetFaces,'activity'=>$fnetActivity,'interactive'=>true])
+
 @endforeach
 </div>
 </div>
@@ -167,22 +146,21 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 <span><i class="is-unused"></i>Not used in this folder</span>
 </div>
 @if($fnetActivity['first_recorded_at'] === null)
-<p class="notes-hint mt-4">No changes to these kinds have been recorded in this workspace yet, so no station shows a face. That means recording has only just started, not that nobody has worked here.</p>
+<p class="notes-hint mt-4">No changes recorded in this workspace yet, so no station shows a face &mdash; recording has only just started.</p>
 @else
-<p class="notes-hint mt-4">Faces are who changed something in that station in the last {{ $fnetActivity['window_days'] }} days. Only changes recorded since {{ \Illuminate\Support\Carbon::parse($fnetActivity['first_recorded_at'])->format('j M Y') }} are counted; work done before then left no record, so an empty station means nobody since that date, not nobody ever.
+<p class="notes-hint mt-4">Faces cover changes recorded since {{ \Illuminate\Support\Carbon::parse($fnetActivity['first_recorded_at'])->format('j M Y') }}; an empty station means nobody since then, not nobody ever.
 @if($fnetActivity['owner_changes'])
-{{ number_format($fnetActivity['owner_changes']) }} change{{ $fnetActivity['owner_changes'] === 1 ? '' : 's' }} by {{ $fnetActivity['owner_name'] ?? 'the owner' }} {{ $fnetActivity['owner_changes'] === 1 ? 'is' : 'are' }} counted but not shown, because the owner is in every folder.
+{{ number_format($fnetActivity['owner_changes']) }} change{{ $fnetActivity['owner_changes'] === 1 ? '' : 's' }} by {{ $fnetActivity['owner_name'] ?? 'the owner' }} counted but not shown.
 @endif
 @if($fnetActivity['unattributed'])
-{{ number_format($fnetActivity['unattributed']) }} recorded change{{ $fnetActivity['unattributed'] === 1 ? '' : 's' }} cannot say who made {{ $fnetActivity['unattributed'] === 1 ? 'it' : 'them' }}.
+{{ number_format($fnetActivity['unattributed']) }} cannot say who made {{ $fnetActivity['unattributed'] === 1 ? 'it' : 'them' }}.
+@endif</p>
 @endif
-</p>
-@endif
-<p class="notes-hint mt-4"><span class="folder-suggestion-badge">Suggested order</span> The rails are a possible process, not measured attribution. A junction is real: that many item-to-item connections were saved between those two kinds under Resources. A station shows a figure only where its stage measures that kind.</p>
+<p class="notes-hint mt-4"><span class="folder-suggestion-badge">Suggested order</span> Rails are a possible process, not measured attribution. <button type="button" class="fnet-guide-link" @click="mode='guide'">What the map shows &rarr;</button></p>
 @if($fnetDrawn)
 <p class="notes-hint mt-2">{{ number_format($fnetDrawn) }} saved connection{{ $fnetDrawn === 1 ? '' : 's' }} drawn as junctions. Manage them under Resources.</p>
 @else
-<p class="notes-hint mt-2">Nothing connected in this folder yet, so every rail is dashed and no junction is drawn. That means none were saved, not that nothing happened.</p>
+<p class="notes-hint mt-2">Nothing connected in this folder yet, so no junction is drawn &mdash; none were saved, not nothing happened.</p>
 @endif
 @if($fnetMissed)
 <p class="notes-hint mt-2">{{ number_format($fnetMissed) }} saved connection{{ $fnetMissed === 1 ? '' : 's' }} point at an item kind with no station, so they are counted but not drawn.</p>
@@ -190,9 +168,14 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 </div>
 <script>
 (function () {
-  var grid = document.querySelector('[data-fnet-grid]');
-  var svg = document.querySelector('[data-fnet-wires]');
-  var json = document.querySelector('[data-fnet-json]');
+  // Booted once per board: the real map, and the worked example on the
+  // How-it-works view. Same drawing code, so the example cannot drift into
+  // looking like a different map.
+  var draws = [];
+  function boot(board) {
+  var grid = board.querySelector('[data-fnet-grid]');
+  var svg = board.querySelector('[data-fnet-wires]');
+  var json = board.parentNode.querySelector('[data-fnet-json]');
   if (!grid || !svg || !json) { return; }
 
   var data;
@@ -325,18 +308,56 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
   }
 
   if (window.ResizeObserver) { new ResizeObserver(draw).observe(grid); }
-  window.addEventListener('resize', draw);
+  draws.push(draw);
+  requestAnimationFrame(draw);
+  }
+  document.querySelectorAll('.fnet-board').forEach(boot);
+  function drawAll() { draws.forEach(function (d) { d(); }); }
+  window.addEventListener('resize', drawAll);
   // Hiding a card does not change the grid's size, so the ResizeObserver will
   // not fire. The filters say when to redraw.
-  window.addEventListener('fnet:redraw', draw);
-  requestAnimationFrame(draw);
+  window.addEventListener('fnet:redraw', drawAll);
   document.addEventListener('click', function (ev) {
+    // Switching views reveals a board that was display:none, so it has to be
+    // measured again before its rails mean anything.
     if (ev.target && ev.target.closest && ev.target.closest('.folder-view-switch')) {
-      setTimeout(draw, 60);
+      setTimeout(drawAll, 60);
     }
   });
 })();
 </script>
+<div x-show="mode==='guide'" x-cloak>
+@php
+$guide = \App\Services\Planner\FolderFlowDemo::map();
+$guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
+@endphp
+<div class="fnet-sample-band" role="note"><strong>Worked example</strong><span>Every number below is invented &mdash; a fictional folder for {{ \App\Services\Planner\FolderFlowDemo::COMPANY }}, busy mid-launch. Nothing here comes from {{ $project->name }}.</span></div>
+<div class="fnet-board is-sample">
+<div class="fnet-canvas">
+<svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
+<div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $guide['cols'] }}">
+@foreach($guide['stations'] as $guideStation)
+@include('user.planner.fnet-station',['station'=>$guideStation,'stages'=>$fnetStages,'labels'=>$fnetLabels,'faces'=>$fnetFaces,'activity'=>$guideActivity,'interactive'=>false])
+@endforeach
+</div>
+</div>
+</div>
+<script type="application/json" data-fnet-json>@json(['rails' => $guide['rails'], 'edges' => $guide['edges']])</script>
+<div class="fnet-key">
+@foreach($fnetStages as $fnetGk => $fnetGs)
+<span style="--ln:var(--fnet-{{ $fnetGk }})"><i></i>{{ $fnetGs['eyebrow'] }}</span>
+@endforeach
+<span><i class="is-join"></i>Saved connection</span>
+<span><i class="is-ai"></i>Runs on AI</span>
+<span><i class="is-unused"></i>Not used in this folder</span>
+</div>
+<div class="fnet-guide-grid">
+@foreach(\App\Services\Planner\FolderFlowDemo::legend() as $guideNote)
+<article class="fnet-guide-card"><h3>{{ $guideNote['title'] }}</h3><p>{{ $guideNote['body'] }}</p></article>
+@endforeach
+</div>
+<p class="notes-hint mt-4">Your own folder starts empty and fills as you use it. <button type="button" class="fnet-guide-link" @click="mode='flow'">Back to {{ $project->name }} &rarr;</button></p>
+</div>
 <div x-show="mode==='people'" x-cloak>
     <p class="notes-hint mb-4">Who has access, what they are assigned, and their recorded task activity. Shared tasks count for every assignee; this view does not indicate live presence.</p>
     <div class="folder-card-grid">@foreach($peopleData['people'] as $person)<article class="folder-person-card"><div class="folder-person-heading"><span class="folder-person-avatar" x-data="{photoFailed:false}"><span x-show="photoFailed" x-cloak>{{ mb_substr($person['name'],0,1) }}</span><img src="{{ $person['avatar_url'] }}" alt="{{ $person['name'] }}" loading="lazy" x-show="!photoFailed" x-on:error="photoFailed=true" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></span><div><strong>{{ $person['name'] }}</strong><small>{{ $person['role'] }}</small></div></div><div class="folder-person-stats"><span><strong>{{ $person['open'] }}</strong>Open tasks</span><span><strong>{{ $person['completed'] }}</strong>Completed</span><span><strong>{{ $person['actions'] }}</strong>Task actions · 30d</span><span><strong>{{ $person['changes'] === null ? '—' : number_format($person['changes']) }}</strong>Changes · 30d</span></div><div class="folder-person-process"><span>Assigned {{ $person['assigned'] }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span>Open {{ $person['open'] }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span>Done {{ $person['completed'] }}</span></div>@forelse(array_slice($person['tasks'],0,4) as $personTask)<div class="folder-mini-row"><i class="fas {{ $personTask['completed']?'fa-circle-check':'fa-circle' }}" aria-hidden="true"></i><span>{{ $personTask['title'] }}</span><small>{{ $personTask['completed']?'Done':($personTask['due']??'No due date') }}</small></div>@empty<p class="notes-hint mt-3">No visible task assignments yet.</p>@endforelse</article>@endforeach</div>
