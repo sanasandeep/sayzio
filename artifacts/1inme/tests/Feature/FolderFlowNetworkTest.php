@@ -236,4 +236,33 @@ class FolderFlowNetworkTest extends TestCase
         $this->assertCount(count(FolderFlowStages::all()), $runs,
             'every stage should appear as exactly one unbroken run of stations');
     }
+
+    /**
+     * The filters look a station up by kind and show it when they cannot find
+     * it, which is the right default for a map but makes an omission silent:
+     * a station missing from filterMeta() survives every filter and looks like
+     * it simply matched. So the list has to cover all of them.
+     */
+    public function test_filter_metadata_covers_every_station(): void
+    {
+        $stations = FolderFlowNetwork::map([], [], [])['stations'];
+        $meta = FolderFlowNetwork::filterMeta($stations);
+
+        $this->assertSame(
+            array_column($stations, 'kind'),
+            array_column($meta, 'kind'),
+            'a station is missing from the filter metadata, so no filter can ever hide it',
+        );
+
+        foreach ($meta as $row) {
+            $this->assertSame(FolderFlowNetwork::isAi($row['kind']), $row['ai'],
+                "the AI filter would mis-sort {$row['kind']}");
+            $this->assertSame(FolderFlowNetwork::lineFor($row['kind']), $row['stage'],
+                "the stage filter would mis-sort {$row['kind']}");
+            $this->assertIsArray($row['people']);
+            foreach ($row['people'] as $id) {
+                $this->assertIsInt($id, 'the person filter compares numbers; a string id would never match');
+            }
+        }
+    }
 }

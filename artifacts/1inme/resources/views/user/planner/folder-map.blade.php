@@ -18,10 +18,11 @@ $fnetStages = \App\Services\Planner\FolderFlowStages::all();
 $fnetDrawn = \App\Services\Planner\FolderFlowNetwork::drawnCount($fnet['edges']);
 $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['edges']);
 $fnetItems = collect($resources)->groupBy('kind');
+$fnetMeta = \App\Services\Planner\FolderFlowNetwork::filterMeta($fnet['stations']);
 $mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#365ce9';
 $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor,$relations);
 @endphp
-<section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports))" @keydown.escape.window="closePanel()">
+<section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports),@js($fnetMeta))" @keydown.escape.window="closePanel()">
 <div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='hub'" :aria-pressed="mode==='hub'">Hub</button><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button></div></div>
 <div class="notes-actions folder-export-actions"><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
 <div x-show="mode==='hub'" class="folder-hub visual-hub">
@@ -102,12 +103,33 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 @endforeach
 </aside></div>
 <div x-show="mode==='flow'" x-cloak>
+<div class="fnet-filters" role="group" aria-label="Filter stations">
+<button type="button" class="fnet-fchip" :class="{'is-on':fnetHideUnused}" :aria-pressed="fnetHideUnused" @click="fnetHideUnused=!fnetHideUnused;fnetRedraw()">Only what is used</button>
+<span class="fnet-fsep" aria-hidden="true"></span>
+@foreach($fnetStages as $fnetFk => $fnetFs)
+<button type="button" class="fnet-fchip is-line" style="--ln:var(--fnet-{{ $fnetFk }})" :class="{'is-on':fnetStageIsOn('{{ $fnetFk }}')}" :aria-pressed="fnetStageIsOn('{{ $fnetFk }}')" @click="fnetToggleStage('{{ $fnetFk }}')">{{ $fnetFs['eyebrow'] }}</button>
+@endforeach
+<span class="fnet-fsep" aria-hidden="true"></span>
+<button type="button" class="fnet-fchip" :class="{'is-on':fnetAi==='ai'}" :aria-pressed="fnetAi==='ai'" @click="fnetAi=fnetAi==='ai'?'all':'ai';fnetRedraw()">Runs on AI</button>
+<button type="button" class="fnet-fchip" :class="{'is-on':fnetAi==='plain'}" :aria-pressed="fnetAi==='plain'" @click="fnetAi=fnetAi==='plain'?'all':'plain';fnetRedraw()">Not AI</button>
+@if($fnetActivity['people'])
+<span class="fnet-fsep" aria-hidden="true"></span>
+<label class="fnet-fperson"><span class="sr-only">Show only stations a person worked in</span>
+<select x-model="fnetPerson" @change="fnetRedraw()"><option value="">Anyone</option>
+@foreach($fnetActivity['people'] as $fnetFp)
+<option value="{{ $fnetFp['id'] }}">{{ $fnetFp['name'] }}</option>
+@endforeach
+</select></label>
+@endif
+<button type="button" class="fnet-fchip is-clear" x-show="fnetFiltered()" x-cloak @click="fnetClear()">Clear</button>
+<span class="fnet-fcount" x-show="fnetFiltered()" x-cloak x-text="fnetHidden() + ' of {{ count($fnet['stations']) }} stations hidden'"></span>
+</div>
 <div class="fnet-board">
 <div class="fnet-canvas">
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
 <div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $fnet['cols'] }}">
 @foreach($fnet['stations'] as $fnetStation)
-<button type="button" class="fnet-stn{{ $fnetStation['in_use'] ? '' : ' is-off' }}{{ $fnetStation['ai'] ? ' is-ai' : '' }}" data-fnet-kind="{{ $fnetStation['kind'] }}" style="--c:{{ $fnetStation['col'] }};--r:{{ $fnetStation['row'] }};--ln:var(--fnet-{{ $fnetStation['stage'] }})" @click="openPanel('flow:{{ $fnetStation['kind'] }}',$event.currentTarget)" :aria-expanded="selected==='flow:{{ $fnetStation['kind'] }}'" aria-controls="folder-map-panel">
+<button type="button" class="fnet-stn{{ $fnetStation['in_use'] ? '' : ' is-off' }}{{ $fnetStation['ai'] ? ' is-ai' : '' }}" data-fnet-kind="{{ $fnetStation['kind'] }}" x-show="fnetVisible('{{ $fnetStation['kind'] }}')" style="--c:{{ $fnetStation['col'] }};--r:{{ $fnetStation['row'] }};--ln:var(--fnet-{{ $fnetStation['stage'] }})" @click="openPanel('flow:{{ $fnetStation['kind'] }}',$event.currentTarget)" :aria-expanded="selected==='flow:{{ $fnetStation['kind'] }}'" aria-controls="folder-map-panel">
 <span class="fnet-top"><span class="fnet-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $fnetStation['icon'] !!}</svg></span><span class="fnet-nm">{{ $fnetLabels[$fnetStation['kind']] ?? $fnetStation['kind'] }}</span></span>
 <span class="fnet-ct">{{ number_format($fnetStation['count']) }}</span>
 @if($fnetStation['figure'])
@@ -180,7 +202,10 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 
   function box(kind) {
     var el = grid.querySelector('[data-fnet-kind="' + kind + '"]');
-    if (!el) { return null; }
+    // A station the filters hid is not on the map. Returning null here drops
+    // every rail segment that touched it, leaving an honest gap rather than a
+    // line running to somewhere nothing is drawn.
+    if (!el || window.getComputedStyle(el).display === 'none') { return null; }
     var g = grid.getBoundingClientRect();
     var r = el.getBoundingClientRect();
     return {
@@ -301,6 +326,9 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 
   if (window.ResizeObserver) { new ResizeObserver(draw).observe(grid); }
   window.addEventListener('resize', draw);
+  // Hiding a card does not change the grid's size, so the ResizeObserver will
+  // not fire. The filters say when to redraw.
+  window.addEventListener('fnet:redraw', draw);
   requestAnimationFrame(draw);
   document.addEventListener('click', function (ev) {
     if (ev.target && ev.target.closest && ev.target.closest('.folder-view-switch')) {
@@ -326,8 +354,27 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 </section>
 
 <script>
-function folderChart(exports) {
-    return { mode:'hub', selected:null, trigger:null, openPanel(index,trigger){this.selected=index;this.trigger=trigger;this.previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';this.$nextTick(()=>this.$refs.panel.focus())}, closePanel(){if(this.selected===null)return;this.selected=null;document.body.style.overflow=this.previousOverflow||'';this.trigger?.focus()}, trapTab(event){const items=[...this.$refs.panel.querySelectorAll('a,button,[tabindex]')].filter(el=>el.getClientRects().length&&!el.disabled);const first=items[0],last=items.at(-1);if(!first){event.preventDefault();return}if(event.shiftKey&&(document.activeElement===first||document.activeElement===this.$refs.panel)){event.preventDefault();last.focus()}else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===this.$refs.panel)){event.preventDefault();first.focus()}}, exporting:false, exportError:'', async download(format) {
+function folderChart(exports, stations) {
+    return { mode:'hub', selected:null, trigger:null,
+      stations: stations || [],
+      fnetHideUnused:false, fnetStageOn:{}, fnetAi:'all', fnetPerson:'',
+      fnetShow(s) {
+        if (this.fnetHideUnused && !s.used) { return false; }
+        if (this.fnetStageOn[s.stage] === false) { return false; }
+        if (this.fnetAi === 'ai' && !s.ai) { return false; }
+        if (this.fnetAi === 'plain' && s.ai) { return false; }
+        if (this.fnetPerson !== '' && !s.people.includes(Number(this.fnetPerson))) { return false; }
+        return true;
+      },
+      fnetVisible(kind) { const s = this.stations.find(x => x.kind === kind); return s ? this.fnetShow(s) : true; },
+      fnetShown() { return this.stations.filter(s => this.fnetShow(s)).length; },
+      fnetHidden() { return this.stations.length - this.fnetShown(); },
+      fnetFiltered() { return this.fnetHidden() > 0; },
+      fnetClear() { this.fnetHideUnused=false; this.fnetStageOn={}; this.fnetAi='all'; this.fnetPerson=''; this.fnetRedraw(); },
+      // The rails have to follow: a segment to a hidden station must go.
+      fnetRedraw() { this.$nextTick(() => window.dispatchEvent(new Event('fnet:redraw'))); },
+      fnetToggleStage(key) { this.fnetStageOn[key] = this.fnetStageOn[key] === false; this.fnetRedraw(); },
+      fnetStageIsOn(key) { return this.fnetStageOn[key] !== false; }, openPanel(index,trigger){this.selected=index;this.trigger=trigger;this.previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';this.$nextTick(()=>this.$refs.panel.focus())}, closePanel(){if(this.selected===null)return;this.selected=null;document.body.style.overflow=this.previousOverflow||'';this.trigger?.focus()}, trapTab(event){const items=[...this.$refs.panel.querySelectorAll('a,button,[tabindex]')].filter(el=>el.getClientRects().length&&!el.disabled);const first=items[0],last=items.at(-1);if(!first){event.preventDefault();return}if(event.shiftKey&&(document.activeElement===first||document.activeElement===this.$refs.panel)){event.preventDefault();last.focus()}else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===this.$refs.panel)){event.preventDefault();first.focus()}}, exporting:false, exportError:'', async download(format) {
         this.exporting=true; this.exportError=''; let sourceUrl;
         try {
             const svg=exports[this.mode]; let blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
