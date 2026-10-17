@@ -28,7 +28,14 @@ class DashboardFolderOverviewTest extends TestCase
         $this->actingAs($user)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
         $response = $this->get(route('user.links.index', ['project_id' => $folder->id, 'view' => 'reports']));
         $response->assertOk()->assertViewHas('summary', fn ($summary) => $summary['total'] === 1 && (int) $summary['clicks'] === 12)
-            ->assertViewHas('report', fn ($report) => $report['total'] === 1)
+            // 12465cd0d ("Turn the Reports tab into a combined project
+            // report", 12 Oct) replaced the flat report array with one whose
+            // figures sit under 'totals'. The old 'total' was
+            // (clone $clicks)->count() -- clicks in scope -- so that is what
+            // this checks, and it checks the link count beside it: both are 1
+            // here, and asserting only one of them would pass for the wrong
+            // reason if scoping broke on the other axis.
+            ->assertViewHas('report', fn ($report) => $report['totals']['clicks'] === 1 && $report['totals']['links'] === 1)
             ->assertSee('chosen.example')->assertDontSee('excluded.example')->assertDontSee('foreign.example');
         $this->get(route('user.links.index', ['project_id' => $folder->id, 'view' => 'reports', 'export' => 'daily']))
             ->assertOk()->assertDownload('link-report-daily.csv');
