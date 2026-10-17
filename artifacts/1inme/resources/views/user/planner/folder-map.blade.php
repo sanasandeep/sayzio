@@ -76,6 +76,7 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 @else
 <span class="fnet-no">not counted here</span>
 @endif
+@if($fnetActivity['counted'])
 <span class="fnet-who">
 @foreach(array_slice($fnetStation['people'], 0, $fnetFaces) as $fnetWho)
 <img class="fnet-av" src="{{ $fnetWho['avatar_url'] }}" alt="{{ $fnetWho['name'] }}" title="{{ $fnetWho['name'] }} — {{ number_format($fnetWho['changes']) }} change{{ $fnetWho['changes'] === 1 ? '' : 's' }}" loading="lazy">
@@ -84,6 +85,7 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 <i class="fnet-av fnet-more">+{{ count($fnetStation['people']) - $fnetFaces }}</i>
 @endif
 </span>
+@endif
 @if($fnetStation['in_use'])
 <span class="fnet-live" aria-hidden="true"></span>
 @endif
