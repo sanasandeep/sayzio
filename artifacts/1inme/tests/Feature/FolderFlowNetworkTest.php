@@ -202,4 +202,38 @@ class FolderFlowNetworkTest extends TestCase
         $this->assertSame($expected, $drawnAsAi, 'the map must draw exactly the kinds named as AI');
         $this->assertCount(8, $drawnAsAi, 'eight AI kinds were agreed; a change here should be deliberate');
     }
+
+    /**
+     * The mobile layout leans on this. Below 760px the grid coordinates are
+     * dropped and the stations fall into a plain two-column list in DOM
+     * order, with a chip naming each one's stage. That reads as grouped only
+     * because stations() happens to list them stage by stage.
+     *
+     * Nothing in stations() says so -- it is a side effect of how the table
+     * was written -- so reordering it for a layout reason would scramble the
+     * phone view while every other test stayed green.
+     */
+    public function test_stations_are_listed_in_contiguous_stage_order(): void
+    {
+        $kindToStage = [];
+        foreach (FolderFlowStages::all() as $key => $stage) {
+            foreach ($stage['kinds'] as $kind) {
+                $kindToStage[$kind] = $key;
+            }
+        }
+
+        $runs = [];
+        foreach (array_keys(FolderFlowNetwork::stations()) as $kind) {
+            $stage = $kindToStage[$kind] ?? null;
+            $this->assertNotNull($stage, "{$kind} is a station on no stage");
+            if (end($runs) !== $stage) {
+                $runs[] = $stage;
+            }
+        }
+
+        $this->assertSame(array_unique($runs), $runs,
+            'a stage is split across the station list, so the phone layout will interleave two lines');
+        $this->assertCount(count(FolderFlowStages::all()), $runs,
+            'every stage should appear as exactly one unbroken run of stations');
+    }
 }
