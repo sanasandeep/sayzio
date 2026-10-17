@@ -45,8 +45,16 @@ class FolderWorkspace
             $attention[] = ['label' => 'Inactive content: '.$i['label'], 'url' => $i['url']];
         }
 
+        // One aggregate for the Flow tab's Serve figure. Counting per
+        // companion row would be a query each; this is a query once, and the
+        // Flow tab is rendered on every folder page.
+        $companionIds = $items->where('kind', 'companion')->pluck('row.id')->filter()->all();
+        $companionConversations = $companionIds
+            ? (int) DB::table('ai_companion_conversations')->whereIn('companion_id', $companionIds)->count()
+            : 0;
+
         $peopleData = app(FolderPeople::class)->data($project, $resources);
 
-        return compact('peopleData', 'resources', 'notes', 'runs', 'relations', 'attention', 'unassignedNotes') + ['timeline' => $timeline->sortByDesc('date')->take(30)->values(), 'choices' => app(PlannerResources::class)->choices($user), 'boards' => app(PlannerResources::class)->query('board', $user)->whereNull('archived_at')->get(), 'members' => app('current_workspace')->members()->whereNull('suspended_at')->whereIn('user_id', array_column($peopleData['people'], 'id'))->with('user')->get(), 'destinations' => Project::where('user_id', workspace_owner_id())->where('id', '!=', $project->id)->get()];
+        return compact('peopleData', 'resources', 'notes', 'runs', 'relations', 'attention', 'unassignedNotes', 'companionConversations') + ['timeline' => $timeline->sortByDesc('date')->take(30)->values(), 'choices' => app(PlannerResources::class)->choices($user), 'boards' => app(PlannerResources::class)->query('board', $user)->whereNull('archived_at')->get(), 'members' => app('current_workspace')->members()->whereNull('suspended_at')->whereIn('user_id', array_column($peopleData['people'], 'id'))->with('user')->get(), 'destinations' => Project::where('user_id', workspace_owner_id())->where('id', '!=', $project->id)->get()];
     }
 }
