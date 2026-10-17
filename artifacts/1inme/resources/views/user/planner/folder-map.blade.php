@@ -66,7 +66,7 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
 <div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $fnet['cols'] }}">
 @foreach($fnet['stations'] as $fnetStation)
-<a class="fnet-stn{{ $fnetStation['in_use'] ? '' : ' is-off' }}" data-fnet-kind="{{ $fnetStation['kind'] }}" style="--c:{{ $fnetStation['col'] }};--r:{{ $fnetStation['row'] }};--ln:var(--fnet-{{ $fnetStation['stage'] }})" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$fnetStation['tab']]) }}">
+<a class="fnet-stn{{ $fnetStation['in_use'] ? '' : ' is-off' }}{{ $fnetStation['ai'] ? ' is-ai' : '' }}" data-fnet-kind="{{ $fnetStation['kind'] }}" style="--c:{{ $fnetStation['col'] }};--r:{{ $fnetStation['row'] }};--ln:var(--fnet-{{ $fnetStation['stage'] }})" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$fnetStation['tab']]) }}">
 <span class="fnet-top"><span class="fnet-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $fnetStation['icon'] !!}</svg></span><span class="fnet-nm">{{ $fnetLabels[$fnetStation['kind']] ?? $fnetStation['kind'] }}</span></span>
 <span class="fnet-ct">{{ number_format($fnetStation['count']) }}</span>
 @if($fnetStation['figure'])
@@ -88,6 +88,8 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 <span style="--ln:var(--fnet-{{ $fnetKey }})"><i></i>{{ $fnetStage['eyebrow'] }}</span>
 @endforeach
 <span><i class="is-join"></i>Saved connection</span>
+<span><i class="is-ai"></i>Runs on AI</span>
+<span><i class="is-plain"></i>Not AI</span>
 <span><i class="is-unused"></i>Not used in this folder</span>
 </div>
 <p class="notes-hint mt-4"><span class="folder-suggestion-badge">Suggested order</span> The rails are a possible process, not measured attribution. A junction is real: that many item-to-item connections were saved between those two kinds under Resources. A station shows a figure only where its stage measures that kind.</p>
@@ -165,6 +167,7 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
     if (!len) { return ''; }
     var nx = -dy / len;
     var ny = dx / len;
+    if (len < 110) { return 'M ' + a.x + ' ' + a.y + ' L ' + b.x + ' ' + b.y; }
     var k = Math.min(lift, len / 5);
     return 'M ' + a.x + ' ' + a.y + ' Q ' + (mx + nx * k) + ' ' + (my + ny * k) + ' ' + b.x + ' ' + b.y;
   }
@@ -190,8 +193,8 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
         var from = waypoint(fromSpec), to = waypoint(toSpec);
         if (!from || !to) { continue; }
         // Start and end on the card's border, never at its centre.
-        var a = (typeof fromSpec === 'string') ? edgeToward(fromSpec, to, 7) : from;
-        var b = (typeof toSpec === 'string') ? edgeToward(toSpec, from, 7) : to;
+        var a = (typeof fromSpec === 'string') ? edgeToward(fromSpec, to, 3) : from;
+        var b = (typeof toSpec === 'string') ? edgeToward(toSpec, from, 3) : to;
         if (!a || !b) { continue; }
         var d = bowed(a, b, 16);
         if (!d) { continue; }
@@ -205,8 +208,8 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
       if (edge.from === edge.to) { continue; }
       var ca = centre(edge.from), cb = centre(edge.to);
       if (!ca || !cb) { continue; }
-      var pa = edgeToward(edge.from, cb, 7);
-      var pb = edgeToward(edge.to, ca, 7);
+      var pa = edgeToward(edge.from, cb, 3);
+      var pb = edgeToward(edge.to, ca, 3);
       if (!pa || !pb) { continue; }
       var dx = pb.x - pa.x, dy = pb.y - pa.y;
       var sideways = Math.abs(dx) > Math.abs(dy);

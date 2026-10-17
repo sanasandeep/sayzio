@@ -28,6 +28,31 @@ namespace App\Services\Planner;
  */
 class FolderFlowNetwork
 {
+    /**
+     * The kinds Sayzio builds on AI, chosen by Sana on 2026-10-17.
+     *
+     * Five of these have Ai* model classes; the other three are driven by AI
+     * services under ordinary class names -- Planner plans by the action-plan
+     * builder, Studio materials by the brand studio, Strategies by
+     * MarketingStrategistService. Deriving this from class names alone would
+     * have called those three plain, which is why it is a stated list rather
+     * than a rule: the product decides, not the namespace.
+     *
+     * Kinds not named here are drawn as plain stations. A kind with no entry
+     * either way is plain by default, and the test below holds every name
+     * here to a real kind so a rename cannot leave a station silently
+     * reclassified.
+     *
+     * @var list<string>
+     */
+    public const AI_KINDS = ['mind', 'persona', 'staff', 'agent', 'companion', 'plan', 'studio', 'strategy'];
+
+    /** Whether this kind is one Sayzio runs on AI. */
+    public static function isAi(string $kind): bool
+    {
+        return in_array($kind, self::AI_KINDS, true);
+    }
+
     /** Grid the coordinates below are expressed in. */
     public const COLS = 8;
     public const ROWS = 5;
@@ -96,7 +121,6 @@ class FolderFlowNetwork
             ['stage' => 'serve',   'points' => ['qr', ['x' => 'qr', 'y' => 'agent']]],
             ['stage' => 'act',     'points' => ['calendar', ['x' => 'task', 'y' => 'calendar'], 'task']],
             ['stage' => 'act',     'points' => ['calendar', ['x' => 'board', 'y' => 'calendar'], 'board']],
-            ['stage' => 'act',     'points' => ['task', 'board']],
         ];
     }
 
@@ -154,6 +178,7 @@ class FolderFlowNetwork
                 'count'  => $count,
                 'in_use' => $count > 0,
                 'figure' => $figureFor[$kind] ?? null,
+                'ai'     => self::isAi($kind),
                 'tab'    => $stage ? (FolderFlowStages::all()[$stage]['tab'] ?? 'resources') : 'resources',
             ];
         }
