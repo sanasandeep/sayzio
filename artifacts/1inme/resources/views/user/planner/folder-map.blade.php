@@ -9,6 +9,15 @@ $mapGroups=[
  ['label'=>'AI Minds & team','kinds'=>['mind','persona','agent','staff','companion'],'tab'=>'team','icon'=>'fa-brain','art'=>'bot'],
  ['label'=>'Resources','kinds'=>['form','qr','file','calendar','board'],'tab'=>'resources','icon'=>'fa-layer-group','art'=>'folders'],
 ];
+$fnetMeasures = \App\Services\Planner\FolderFlowMeasures::all($resources, $companionConversations ?? 0);
+$fnetActivity = $kindActivity ?? app(\App\Services\Planner\FolderKindActivity::class)->data($project, $resources);
+$fnetFaces = \App\Services\Planner\FolderKindActivity::FACES;
+$fnet = \App\Services\Planner\FolderFlowNetwork::map($resources, $relations, $fnetMeasures, $fnetActivity);
+$fnetLabels = \App\Services\Planner\PlannerResources::typeLabels();
+$fnetStages = \App\Services\Planner\FolderFlowStages::all();
+$fnetDrawn = \App\Services\Planner\FolderFlowNetwork::drawnCount($fnet['edges']);
+$fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['edges']);
+$fnetItems = collect($resources)->groupBy('kind');
 $mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#365ce9';
 $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor,$relations);
 @endphp
@@ -51,24 +60,54 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 @endforeach
 </footer></div>
 @endforeach
+@foreach($fnet['stations'] as $fnetPanel)
+@php $fnetPanelItems = $fnetItems->get($fnetPanel['kind'], collect()); @endphp
+<div class="map-panel-section fnet-panel" style="--ln:var(--fnet-{{ $fnetPanel['stage'] }})" x-show="selected==='flow:{{ $fnetPanel['kind'] }}'">
+<header class="map-panel-header"><span class="map-panel-emblem fnet-panel-emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $fnetPanel['icon'] !!}</svg></span><div class="map-panel-heading"><h2>{{ $fnetLabels[$fnetPanel['kind']] ?? $fnetPanel['kind'] }}</h2><p>{{ number_format($fnetPanelItems->count()) }} in this folder &middot; {{ $fnetStages[$fnetPanel['stage']]['eyebrow'] ?? '' }}@if($fnetPanel['ai']) &middot; runs on AI @endif</p></div><button class="map-panel-close" type="button" @click="closePanel()" aria-label="Close station details"><i class="fas fa-xmark" aria-hidden="true"></i></button></header>
+@if($fnetPanel['kind'] === 'task' && $fnetPanelItems->isNotEmpty())
+@php $fnetDone = $fnetPanelItems->filter(fn($v) => $v['row']->completed_at)->count(); @endphp
+<p class="notes-hint fnet-panel-note"><span class="folder-progress"><span style="width:{{ round($fnetDone / $fnetPanelItems->count() * 100) }}%"></span></span>{{ $fnetDone }} of {{ $fnetPanelItems->count() }} done</p>
+@endif
+<div class="map-panel-body">
+@forelse($fnetPanelItems as $fnetItem)
+<a class="map-item-card" href="{{ $fnetItem['url'] }}"><span class="map-item-icon fnet-panel-emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $fnetPanel['icon'] !!}</svg></span><span class="map-item-copy"><strong>{{ $fnetItem['label'] }}</strong><small>
+@if($fnetPanel['kind'] === 'brand')
+@foreach(collect($fnetItem['row']->palette())->only(['primary','secondary','accent']) as $fnetSwatch)
+@if(preg_match('/^#[0-9a-f]{3,8}$/i', (string) $fnetSwatch))<i class="fnet-swatch" style="background:{{ $fnetSwatch }}"></i>@endif
+@endforeach
+@elseif($fnetPanel['kind'] === 'task')
+{{ $fnetItem['row']->completed_at ? 'Done' : ($fnetItem['row']->due_date?->format('d M') ?? 'No due date') }}
+@elseif($fnetPanel['kind'] === 'link')
+{{ $fnetItem['row']->is_active ? 'Active' : 'Inactive' }}
+@else
+{{ $fnetLabels[$fnetPanel['kind']] ?? $fnetPanel['kind'] }}
+@endif
+</small></span><span class="map-item-open">Open <i class="fas fa-arrow-right" aria-hidden="true"></i></span></a>
+@empty
+<div class="map-panel-empty"><strong>Nothing of this kind in {{ $project->name }} yet.</strong><p>Assign something that already exists, or make one from its own tab.</p></div>
+@endforelse
+</div>
+@if($fnetPanel['people'])
+<div class="fnet-panel-people"><h3>Worked here in the last {{ $fnetActivity['window_days'] }} days</h3>
+@foreach($fnetPanel['people'] as $fnetPerson)
+<span class="fnet-panel-person"><img src="{{ $fnetPerson['avatar_url'] }}" alt="" loading="lazy"><b>{{ $fnetPerson['name'] }}</b><small>{{ number_format($fnetPerson['changes']) }} change{{ $fnetPerson['changes'] === 1 ? '' : 's' }}</small></span>
+@endforeach
+<p class="notes-hint">{{ $fnetActivity['owner_name'] ?? 'The owner' }} is left out on purpose: they are in every folder, so counting them says nothing about who else is.</p>
+</div>
+@elseif($fnetActivity['first_recorded_at'] === null)
+<p class="notes-hint fnet-panel-note">No changes recorded yet in this workspace, so nobody is shown here. That means recording has just started, not that nobody has worked on it.</p>
+@endif
+<footer class="map-panel-footer"><a class="form-chip" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$fnetPanel['tab']]) }}">View all &rarr;</a><a class="form-chip" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>'resources']) }}#assign-resources">+ Assign existing</a></footer>
+</div>
+@endforeach
 </aside></div>
 <div x-show="mode==='flow'" x-cloak>
-@php
-$fnetMeasures = \App\Services\Planner\FolderFlowMeasures::all($resources, $companionConversations ?? 0);
-$fnetActivity = $kindActivity ?? app(\App\Services\Planner\FolderKindActivity::class)->data($project, $resources);
-$fnetFaces = \App\Services\Planner\FolderKindActivity::FACES;
-$fnet = \App\Services\Planner\FolderFlowNetwork::map($resources, $relations, $fnetMeasures, $fnetActivity);
-$fnetLabels = \App\Services\Planner\PlannerResources::typeLabels();
-$fnetStages = \App\Services\Planner\FolderFlowStages::all();
-$fnetDrawn = \App\Services\Planner\FolderFlowNetwork::drawnCount($fnet['edges']);
-$fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['edges']);
-@endphp
 <div class="fnet-board">
 <div class="fnet-canvas">
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
 <div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $fnet['cols'] }}">
 @foreach($fnet['stations'] as $fnetStation)
-<a class="fnet-stn{{ $fnetStation['in_use'] ? '' : ' is-off' }}{{ $fnetStation['ai'] ? ' is-ai' : '' }}" data-fnet-kind="{{ $fnetStation['kind'] }}" style="--c:{{ $fnetStation['col'] }};--r:{{ $fnetStation['row'] }};--ln:var(--fnet-{{ $fnetStation['stage'] }})" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$fnetStation['tab']]) }}">
+<button type="button" class="fnet-stn{{ $fnetStation['in_use'] ? '' : ' is-off' }}{{ $fnetStation['ai'] ? ' is-ai' : '' }}" data-fnet-kind="{{ $fnetStation['kind'] }}" style="--c:{{ $fnetStation['col'] }};--r:{{ $fnetStation['row'] }};--ln:var(--fnet-{{ $fnetStation['stage'] }})" @click="openPanel('flow:{{ $fnetStation['kind'] }}',$event.currentTarget)" :aria-expanded="selected==='flow:{{ $fnetStation['kind'] }}'" aria-controls="folder-map-panel">
 <span class="fnet-top"><span class="fnet-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $fnetStation['icon'] !!}</svg></span><span class="fnet-nm">{{ $fnetLabels[$fnetStation['kind']] ?? $fnetStation['kind'] }}</span></span>
 <span class="fnet-ct">{{ number_format($fnetStation['count']) }}</span>
 @if($fnetStation['figure'])
@@ -90,7 +129,7 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 @if($fnetStation['in_use'])
 <span class="fnet-live" aria-hidden="true"></span>
 @endif
-</a>
+</button>
 @endforeach
 </div>
 </div>
