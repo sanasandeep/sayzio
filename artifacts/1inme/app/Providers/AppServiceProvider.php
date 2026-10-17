@@ -60,6 +60,15 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Who changed what, for every kind a folder can hold. Bound to the
+        // models rather than written into controllers so a new route cannot
+        // bypass it -- see PlannerResourceActivity for why.
+        foreach (\App\Modules\User\Observers\PlannerResourceActivity::kindByModel() as $model => $kind) {
+            if (class_exists($model)) {
+                $model::observe(\App\Modules\User\Observers\PlannerResourceActivity::class);
+            }
+        }
+
         // Behind Replit's TLS-terminating proxy the app receives plain HTTP
         // internally (the public request is HTTPS). Without this, Laravel's
         // url()/asset()/@vite generate absolute `http://` URLs on an `https://`
