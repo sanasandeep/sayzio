@@ -37,8 +37,23 @@ class DashboardFolderOverviewTest extends TestCase
             // reason if scoping broke on the other axis.
             ->assertViewHas('report', fn ($report) => $report['totals']['clicks'] === 1 && $report['totals']['links'] === 1)
             ->assertSee('chosen.example')->assertDontSee('excluded.example')->assertDontSee('foreign.example');
-        $this->get(route('user.links.index', ['project_id' => $folder->id, 'view' => 'reports', 'export' => 'daily']))
-            ->assertOk()->assertDownload('link-report-daily.csv');
+        // Same commit as above gave the export its range: the name is
+        // 'link-report-<section>-<from>_<to>.csv'. This asserted the old flat
+        // name, and never ran -- the undefined-key error above aborted the
+        // test before reaching it.
+        //
+        // The dates come from the plan's retention window against today, so
+        // they move daily. Matching the shape rather than the value keeps this
+        // from going red overnight, and says more than the old assertion did:
+        // the export is named for its section AND the range it covers.
+        $export = $this->get(route('user.links.index', ['project_id' => $folder->id, 'view' => 'reports', 'export' => 'daily']))
+            ->assertOk()->assertDownload();
+
+        $this->assertMatchesRegularExpression(
+            '/filename="?link-report-daily-\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv"?/',
+            (string) $export->headers->get('content-disposition'),
+            'the daily export must be named for its section and the range it covers'
+        );
     }
 
     public function test_saved_custom_folder_color_is_used_on_dashboard_and_folder_header(): void
