@@ -138,7 +138,14 @@ class FolderFlowNetwork
      * @param  array<string,mixed>  $measures  FolderFlowMeasures::all(...)
      * @return array{stations:list<array>, edges:list<array>, rails:list<array>, cols:int, rows:int}
      */
-    public static function map(array $resources, iterable $relations, array $measures): array
+    /**
+     * @param array $activity FolderKindActivity::data() -- optional, so the
+     *                        map still draws for a caller that has no ledger
+     *                        to hand it. An absent list is "nobody recorded",
+     *                        which the view says in words rather than leaving
+     *                        the station looking deserted.
+     */
+    public static function map(array $resources, iterable $relations, array $measures, array $activity = []): array
     {
         $counts = [];
         foreach ($resources as $item) {
@@ -180,6 +187,8 @@ class FolderFlowNetwork
                 'figure' => $figureFor[$kind] ?? null,
                 'ai'     => self::isAi($kind),
                 'tab'    => $stage ? (FolderFlowStages::all()[$stage]['tab'] ?? 'resources') : 'resources',
+                'people' => $activity['byKind'][$kind]['people'] ?? [],
+                'changes' => $activity['byKind'][$kind]['changes'] ?? 0,
             ];
         }
 

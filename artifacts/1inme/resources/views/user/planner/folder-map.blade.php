@@ -55,7 +55,9 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 <div x-show="mode==='flow'" x-cloak>
 @php
 $fnetMeasures = \App\Services\Planner\FolderFlowMeasures::all($resources, $companionConversations ?? 0);
-$fnet = \App\Services\Planner\FolderFlowNetwork::map($resources, $relations, $fnetMeasures);
+$fnetActivity = app(\App\Services\Planner\FolderKindActivity::class)->data($project, $resources);
+$fnetFaces = \App\Services\Planner\FolderKindActivity::FACES;
+$fnet = \App\Services\Planner\FolderFlowNetwork::map($resources, $relations, $fnetMeasures, $fnetActivity);
 $fnetLabels = \App\Services\Planner\PlannerResources::typeLabels();
 $fnetStages = \App\Services\Planner\FolderFlowStages::all();
 $fnetDrawn = \App\Services\Planner\FolderFlowNetwork::drawnCount($fnet['edges']);
@@ -74,6 +76,14 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 @else
 <span class="fnet-no">not counted here</span>
 @endif
+<span class="fnet-who">
+@foreach(array_slice($fnetStation['people'], 0, $fnetFaces) as $fnetWho)
+<img class="fnet-av" src="{{ $fnetWho['avatar_url'] }}" alt="{{ $fnetWho['name'] }}" title="{{ $fnetWho['name'] }} — {{ number_format($fnetWho['changes']) }} change{{ $fnetWho['changes'] === 1 ? '' : 's' }}" loading="lazy">
+@endforeach
+@if(count($fnetStation['people']) > $fnetFaces)
+<i class="fnet-av fnet-more">+{{ count($fnetStation['people']) - $fnetFaces }}</i>
+@endif
+</span>
 @if($fnetStation['in_use'])
 <span class="fnet-live" aria-hidden="true"></span>
 @endif
@@ -92,6 +102,18 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 <span><i class="is-plain"></i>Not AI</span>
 <span><i class="is-unused"></i>Not used in this folder</span>
 </div>
+@if($fnetActivity['first_recorded_at'] === null)
+<p class="notes-hint mt-4">No changes to these kinds have been recorded in this workspace yet, so no station shows a face. That means recording has only just started, not that nobody has worked here.</p>
+@else
+<p class="notes-hint mt-4">Faces are who changed something in that station in the last {{ $fnetActivity['window_days'] }} days. Only changes recorded since {{ \Illuminate\Support\Carbon::parse($fnetActivity['first_recorded_at'])->format('j M Y') }} are counted; work done before then left no record, so an empty station means nobody since that date, not nobody ever.
+@if($fnetActivity['owner_changes'])
+{{ number_format($fnetActivity['owner_changes']) }} change{{ $fnetActivity['owner_changes'] === 1 ? '' : 's' }} by {{ $fnetActivity['owner_name'] ?? 'the owner' }} {{ $fnetActivity['owner_changes'] === 1 ? 'is' : 'are' }} counted but not shown, because the owner is in every folder.
+@endif
+@if($fnetActivity['unattributed'])
+{{ number_format($fnetActivity['unattributed']) }} recorded change{{ $fnetActivity['unattributed'] === 1 ? '' : 's' }} cannot say who made {{ $fnetActivity['unattributed'] === 1 ? 'it' : 'them' }}.
+@endif
+</p>
+@endif
 <p class="notes-hint mt-4"><span class="folder-suggestion-badge">Suggested order</span> The rails are a possible process, not measured attribution. A junction is real: that many item-to-item connections were saved between those two kinds under Resources. A station shows a figure only where its stage measures that kind.</p>
 @if($fnetDrawn)
 <p class="notes-hint mt-2">{{ number_format($fnetDrawn) }} saved connection{{ $fnetDrawn === 1 ? '' : 's' }} drawn as junctions. Manage them under Resources.</p>
