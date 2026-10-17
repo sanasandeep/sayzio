@@ -202,6 +202,29 @@ class FolderFlowNetwork
     }
 
     /**
+     * What the Flow filters need to know about each station, and nothing else.
+     *
+     * Lived in the view as an array_map until the filters arrived. It belongs
+     * here because the failure mode is silent: fnetVisible() returns true for
+     * a kind it cannot find, so a station missing from this list stays on the
+     * map through every filter and looks like it simply matched. A test holds
+     * it to covering every station.
+     *
+     * @param  list<array>  $stations  from map()['stations']
+     * @return list<array{kind:string,stage:?string,ai:bool,used:bool,people:list<int>}>
+     */
+    public static function filterMeta(array $stations): array
+    {
+        return array_map(fn ($station) => [
+            'kind'   => $station['kind'],
+            'stage'  => $station['stage'],
+            'ai'     => $station['ai'],
+            'used'   => $station['in_use'],
+            'people' => array_values(array_map('intval', array_column($station['people'] ?? [], 'id'))),
+        ], $stations);
+    }
+
+    /**
      * Saved connections aggregated kind-to-kind — the junctions.
      *
      * FolderFlowEdges aggregates the same rows to STAGE level for the figures.
