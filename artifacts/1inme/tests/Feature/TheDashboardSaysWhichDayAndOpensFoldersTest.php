@@ -142,9 +142,16 @@ class TheDashboardSaysWhichDayAndOpensFoldersTest extends TestCase
         $this->assertStringContainsString('Partners', $html, 'the tile names the folder');
         $this->assertStringContainsString('2 links', $html, "the tile states the folder's size");
 
-        // And the link actually lands on that folder.
+        // And the link actually lands on that folder's own page.
+        //
+        // The test this replaced asserted a redirect here. That was true when
+        // /user/projects/{project} bounced to the dashboard panel; commit
+        // 36468b29a built the folder hub at that route, so it answers 200 and
+        // renders the folder. I carried the old assertion over without
+        // rechecking it, and the run caught it.
         $this->actingAs($this->user)->get('/user/projects/'.$partners->id)
-            ->assertRedirect();
+            ->assertOk()
+            ->assertSee('Partners');
     }
 
     /** Every folder is reachable: this panel is the folders page. */
