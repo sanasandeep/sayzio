@@ -101,6 +101,35 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 <footer class="map-panel-footer"><a class="form-chip" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$fnetPanel['tab']]) }}">View all &rarr;</a><a class="form-chip" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>'resources']) }}#assign-resources">+ Assign existing</a></footer>
 </div>
 @endforeach
+@php $guidePanel = \App\Services\Planner\FolderFlowDemo::map(); $guidePanelActivity = \App\Services\Planner\FolderFlowDemo::activity(); @endphp
+@foreach($guidePanel['stations'] as $gp)
+<div class="map-panel-section fnet-panel" style="--ln:var(--fnet-{{ $gp['stage'] }})" x-show="selected==='guide:{{ $gp['kind'] }}'">
+<header class="map-panel-header"><span class="map-panel-emblem fnet-panel-emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $gp['icon'] !!}</svg></span><div class="map-panel-heading"><h2>{{ $fnetLabels[$gp['kind']] ?? $gp['kind'] }}</h2><p>{{ number_format($gp['count']) }} in this folder &middot; {{ $fnetStages[$gp['stage']]['eyebrow'] ?? '' }}@if($gp['ai']) &middot; runs on AI @endif</p></div><button class="map-panel-close" type="button" @click="closePanel()" aria-label="Close station details"><i class="fas fa-xmark" aria-hidden="true"></i></button></header>
+<p class="notes-hint fnet-panel-note fnet-sample-note">Worked example &mdash; invented items for {{ \App\Services\Planner\FolderFlowDemo::COMPANY }}.</p>
+@if($gp['kind'] === 'task' && $gp['count'])
+<p class="notes-hint fnet-panel-note"><span class="folder-progress"><span style="width:68%"></span></span>26 of 38 done</p>
+@endif
+<div class="map-panel-body">
+@forelse(\App\Services\Planner\FolderFlowDemo::items($gp['kind']) as $gi)
+<span class="map-item-card is-static"><span class="map-item-icon fnet-panel-emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $gp['icon'] !!}</svg></span><span class="map-item-copy"><strong>{{ $gi['label'] }}</strong><small>{{ $gi['detail'] }}</small></span></span>
+@empty
+<div class="map-panel-empty"><strong>Nothing of this kind yet.</strong><p>This is what an unused station looks like: dashed on the map, and offering to assign something that already exists or make one from its own tab.</p></div>
+@endforelse
+@if($gp['count'] > count(\App\Services\Planner\FolderFlowDemo::items($gp['kind'])) && $gp['count'])
+<p class="notes-hint">&hellip; and {{ number_format($gp['count'] - count(\App\Services\Planner\FolderFlowDemo::items($gp['kind']))) }} more. The count on the station is the whole folder; the panel lists them.</p>
+@endif
+</div>
+@if($gp['people'])
+<div class="fnet-panel-people"><h3>Worked here in the last {{ $guidePanelActivity['window_days'] }} days</h3>
+@foreach($gp['people'] as $gperson)
+<span class="fnet-panel-person"><i class="fnet-av fnet-initial">{{ mb_substr($gperson['name'], 0, 1) }}</i><b>{{ $gperson['name'] }}</b><small>{{ number_format($gperson['changes']) }} changes</small></span>
+@endforeach
+<p class="notes-hint">The owner is left out on purpose: they are in every folder, so counting them says nothing about who else is.</p>
+</div>
+@endif
+<footer class="map-panel-footer"><span class="form-chip is-disabled" aria-disabled="true">View all &rarr;</span><span class="form-chip is-disabled" aria-disabled="true">+ Assign existing</span><span class="notes-hint">Both work on your own map.</span></footer>
+</div>
+@endforeach
 </aside></div>
 <div x-show="mode==='flow'" x-cloak>
 <div class="fnet-filters" role="group" aria-label="Filter stations">
@@ -129,7 +158,7 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
 <div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $fnet['cols'] }}">
 @foreach($fnet['stations'] as $fnetStation)
-@include('user.planner.fnet-station',['station'=>$fnetStation,'stages'=>$fnetStages,'labels'=>$fnetLabels,'faces'=>$fnetFaces,'activity'=>$fnetActivity,'interactive'=>true])
+@include('user.planner.fnet-station',['station'=>$fnetStation,'stages'=>$fnetStages,'labels'=>$fnetLabels,'faces'=>$fnetFaces,'activity'=>$fnetActivity,'interactive'=>true,'panelKey'=>'flow'])
 
 @endforeach
 </div>
@@ -308,6 +337,14 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
   }
 
   if (window.ResizeObserver) { new ResizeObserver(draw).observe(grid); }
+  // A board inside a hidden view measures zero at boot, so its rails are
+  // never drawn. This catches the moment it is revealed, whatever revealed
+  // it -- the view switch, a link in the prose, or a deep link.
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) {
+      if (entries.some(function (e) { return e.isIntersecting; })) { draw(); }
+    }).observe(grid);
+  }
   draws.push(draw);
   requestAnimationFrame(draw);
   }
@@ -320,7 +357,7 @@ $chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$c
   document.addEventListener('click', function (ev) {
     // Switching views reveals a board that was display:none, so it has to be
     // measured again before its rails mean anything.
-    if (ev.target && ev.target.closest && ev.target.closest('.folder-view-switch')) {
+    if (ev.target && ev.target.closest && ev.target.closest('.folder-view-switch,.fnet-guide-link')) {
       setTimeout(drawAll, 60);
     }
   });
@@ -337,7 +374,7 @@ $guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
 <div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $guide['cols'] }}">
 @foreach($guide['stations'] as $guideStation)
-@include('user.planner.fnet-station',['station'=>$guideStation,'stages'=>$fnetStages,'labels'=>$fnetLabels,'faces'=>$fnetFaces,'activity'=>$guideActivity,'interactive'=>false])
+@include('user.planner.fnet-station',['station'=>$guideStation,'stages'=>$fnetStages,'labels'=>$fnetLabels,'faces'=>$fnetFaces,'activity'=>$guideActivity,'interactive'=>true,'panelKey'=>'guide'])
 @endforeach
 </div>
 </div>

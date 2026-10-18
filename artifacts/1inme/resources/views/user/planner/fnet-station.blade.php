@@ -1,11 +1,13 @@
-{{-- One station. Rendered by both the real map and the How-it-works example,
+{{-- One station, rendered by both the real map and the How-it-works example,
      so the example cannot drift into looking like a different product.
-     $interactive is false for the example: its stations open nothing, because
-     there is nothing real behind them. --}}
-@php $fnetTag = $interactive ? 'button' : 'div'; @endphp
+
+     $panelKey decides which set of panel sections a click opens -- 'flow' for
+     the real folder, 'guide' for the example -- and only the real map is
+     filterable, because the example is there to show all nineteen. --}}
+@php $fnetTag = $interactive ? 'button' : 'div'; $fnetKey = ($panelKey ?? 'flow').':'.$station['kind']; $fnetFiltered = ($panelKey ?? 'flow') === 'flow'; @endphp
 <{{ $fnetTag }}
 @if($interactive)
-type="button" x-show="fnetVisible('{{ $station['kind'] }}')" @click="openPanel('flow:{{ $station['kind'] }}',$event.currentTarget)" :aria-expanded="selected==='flow:{{ $station['kind'] }}'" aria-controls="folder-map-panel"
+type="button" @if($fnetFiltered)x-show="fnetVisible('{{ $station['kind'] }}')"@endif @click="openPanel('{{ $fnetKey }}',$event.currentTarget)" :aria-expanded="selected==='{{ $fnetKey }}'" aria-controls="folder-map-panel"
 @endif
 class="fnet-stn{{ $station['in_use'] ? '' : ' is-off' }}{{ $station['ai'] ? ' is-ai' : '' }}{{ $interactive ? '' : ' is-static' }}" data-fnet-kind="{{ $station['kind'] }}" style="--c:{{ $station['col'] }};--r:{{ $station['row'] }};--ln:var(--fnet-{{ $station['stage'] }})">
 <span class="fnet-top"><span class="fnet-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $station['icon'] !!}</svg></span><span class="fnet-nm">{{ $labels[$station['kind']] ?? $station['kind'] }}</span></span>
