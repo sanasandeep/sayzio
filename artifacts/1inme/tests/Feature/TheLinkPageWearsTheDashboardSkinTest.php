@@ -125,15 +125,6 @@ class TheLinkPageWearsTheDashboardSkinTest extends TestCase
         }
     }
 
-    public function test_severity_colour_survives_because_it_carries_meaning(): void
-    {
-        $html = $this->page();
-
-        // Quieting the coach must not flatten critical/warning/tip/win into one
-        // grey. The colour moved onto the icon; it did not go away.
-        $this->assertStringContainsString('pc-insight-icon', $html);
-    }
-
     public function test_the_page_hero_carries_the_ribbon_and_casts_no_shadow(): void
     {
         $html = $this->page();

@@ -2037,37 +2037,6 @@ class LinkController extends Controller
             }
         }
 
-        // 30-day score history for the sparkline rendered in the coach card.
-        // Rows are produced by the `coach:snapshot-scores` nightly command.
-        $performanceHistory = \App\Modules\User\Models\LinkPerformanceSnapshot::where('link_id', $link->id)
-            ->where('date', '>=', now()->subDays(30)->toDateString())
-            ->orderBy('date')
-            ->get(['date', 'score', 'components_json'])
-            ->map(fn ($r) => [
-                'date'       => $r->date instanceof \Carbon\Carbon ? $r->date->toDateString() : (string) $r->date,
-                'score'      => (int) $r->score,
-                'components' => is_array($r->components_json) ? $r->components_json : null,
-            ])
-            ->values()
-            ->all();
-
-        $performance = \App\Modules\User\Services\LinkPerformanceCoach::build([
-            'link'               => $link,
-            'totalInRange'       => $totalInRange,
-            'uniqueInRange'      => $uniqueInRange,
-            'blockClicksInRange' => $blockClicksInRange,
-            'pageVisitsInRange'  => $pageVisitsInRange,
-            'totalSessions'      => $totalSessions,
-            'avgSessionSeconds'  => $avgSessionSeconds,
-            'bounceRate'         => $bounceRate,
-            'blockStats'         => $blockStats,
-            'topReferrers'       => $topReferrers,
-            'totalInRangePrev'   => $totalInRangePrev,
-            'aliasFilter'        => $aliasFilter,
-            'period'             => $period,
-            'blockInventory'     => $blockInventory,
-        ]);
-
         $businessPerformance = \App\Modules\User\Services\IndustryPerformanceReport::build($link, $startDate, $endDate, ['visits'=>$pageVisitsInRange,'interactions'=>$blockClicksInRange]);
 
         // Full block inventory (every block on the biolink, including
@@ -2095,7 +2064,6 @@ class LinkController extends Controller
             'browserFilter', 'osFilter', 'languageFilter', 'baseLanguageFilter',
             'channelFilter',
             'audienceTypeStats',
-            'performance', 'performanceHistory'
         ));
     }
 

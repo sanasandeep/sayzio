@@ -240,12 +240,19 @@ class BrandKitPageTemplates
         $logos = self::normalizeLinkList($in['logos'] ?? [], self::MAX_LOGOS, true);
         $socials = self::normalizeLinkList($in['socials'] ?? [], self::MAX_SOCIALS, false);
 
+        // An unticked checkbox is not submitted at all, so a key missing from a
+        // sections array that WAS submitted means off, not "unspecified".
+        // Falling back to the defaults there (every one of which is true) made
+        // the toggles one-way: untick a section in the editor, save, and it came
+        // straight back. The defaults apply only when no sections array was
+        // supplied at all -- template seeding and prefill of an existing config.
         $sections = [];
-        $inSections = is_array($in['sections'] ?? null) ? $in['sections'] : [];
+        $submitted = is_array($in['sections'] ?? null);
+        $inSections = $submitted ? $in['sections'] : [];
         foreach (self::SECTION_DEFAULTS as $key => $default) {
             $sections[$key] = array_key_exists($key, $inSections)
                 ? filter_var($inSections[$key], FILTER_VALIDATE_BOOLEAN)
-                : (bool) $default;
+                : ($submitted ? false : (bool) $default);
         }
 
         $email = trim((string) ($in['contact_email'] ?? ''));
