@@ -735,6 +735,14 @@
         "education": {
             "label": "Education & Training",
             "docs": true
+        },
+        "community_club": {
+            "label": "Communities & Clubs",
+            "docs": true
+        },
+        "nonprofit_campaign": {
+            "label": "Nonprofits & Campaigns",
+            "docs": true
         }
     }
 }
