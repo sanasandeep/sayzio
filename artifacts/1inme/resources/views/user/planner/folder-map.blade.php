@@ -119,12 +119,22 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
 </div>
 </div>
 </div>
-<script type="application/json" data-fnet-json>@json(['rails' => $fnet['rails'], 'edges' => array_values(array_filter($fnet['edges'], fn ($e) => $e['from'] !== null))])</script>
+@php
+$fnetWire = [
+    'labels' => $fnetLabels,
+    'stages' => array_map(fn ($st) => $st['eyebrow'], $fnetStages),
+    'mesh'   => \App\Services\Planner\FolderFlowMesh::reach(),
+    'rails'  => $fnet['rails'],
+    'edges'  => array_values(array_filter($fnet['edges'], fn ($e) => $e['from'] !== null)),
+];
+@endphp
+<script type="application/json" data-fnet-json>@json($fnetWire)</script>
 <div class="fnet-key">
 @foreach($fnetStages as $fnetKey => $fnetStage)
 <span style="--ln:var(--fnet-{{ $fnetKey }})"><i></i>{{ $fnetStage['eyebrow'] }}</span>
 @endforeach
 <span><i class="is-join"></i>Saved connection</span>
+<span><i class="is-mesh"></i>Can connect &mdash; hover a station</span>
 <span><i class="is-ai"></i>Runs on AI</span>
 <span><i class="is-plain"></i>Not AI</span>
 <span><i class="is-unused"></i>Not used in this folder</span>
@@ -163,6 +173,7 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
   if (!grid || !svg || !json) { return; }
 
   var data;
+  var baseMarkup = '';
   try { data = JSON.parse(json.textContent); } catch (e) { return; }
   var rails = data.rails || [];
   var edges = data.edges || [];
@@ -232,6 +243,44 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  var labels = data.labels || {};
+  var stageNames = data.stages || {};
+  var mesh = data.mesh || {};
+
+  function label(kind) { return labels[kind] || kind; }
+
+  // A rail is a whole chain, not a segment, so the tooltip names the chain.
+  function railTitle(rail) {
+    var names = [];
+    for (var i = 0; i < rail.points.length; i++) {
+      if (typeof rail.points[i] === 'string') { names.push(label(rail.points[i])); }
+    }
+    return (stageNames[rail.stage] || rail.stage) + ': ' + names.join(' \u2192 ')
+      + ' \u2014 a suggested order. Drawn whether or not you work this way, and counting nothing.';
+  }
+
+  // The third kind of line: what the product allows, rather than what this
+  // folder has. Drawn only while a station is hovered or focused, because
+  // sixty-three of them at rest is a hairball, not a map.
+  function meshMarkup(kind) {
+    var targets = mesh[kind] || [];
+    var m = '';
+    for (var i = 0; i < targets.length; i++) {
+      var other = targets[i];
+      var ca = centre(kind), cb = centre(other);
+      if (!ca || !cb) { continue; }
+      var pa = edgeToward(kind, cb, 3), pb = edgeToward(other, ca, 3);
+      if (!pa || !pb) { continue; }
+      var t = label(kind) + ' can connect to ' + label(other)
+        + ' \u2014 something the product allows in every folder. Counts nothing.';
+      m += '<path class="fnet-mesh" d="M ' + pa.x + ' ' + pa.y + ' L ' + pb.x + ' ' + pb.y + '"'
+        +  ' fill="none" stroke="var(--fnet-ink)" stroke-width="1.3" stroke-linecap="round"'
+        +  ' opacity=".26" stroke-dasharray="1.5 5">'
+        +  '<title>' + esc(t) + '</title></path>';
+    }
+    return m;
+  }
+
   function draw() {
     // Hidden below the mobile breakpoint, where the grid is a plain list and
     // a rail between two stacked cards would say something untrue.
@@ -255,10 +304,12 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
         var a = (typeof fromSpec === 'string') ? edgeToward(fromSpec, to, 3) : from;
         var b = (typeof toSpec === 'string') ? edgeToward(toSpec, from, 3) : to;
         if (!a || !b) { continue; }
-        var d = bowed(a, b, 16);
-        if (!d) { continue; }
+        // Straight. A bowed dashed line read as though it were tracing
+        // something; a ruled one reads as the diagram it is.
+        var d = 'M ' + a.x + ' ' + a.y + ' L ' + b.x + ' ' + b.y;
         out += '<path class="fnet-rail" d="' + d + '" fill="none" stroke="' + stroke + '"'
-            +  ' stroke-width="3.5" stroke-linecap="round" opacity=".5" stroke-dasharray="9 8"/>';
+            +  ' stroke-width="3.5" stroke-linecap="round" opacity=".5" stroke-dasharray="9 8">'
+            +  '<title>' + esc(railTitle(rails[r])) + '</title></path>';
       }
     }
 
@@ -277,19 +328,36 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
       var c2x = sideways ? pb.x - dx * 0.55 : pb.x;
       var c2y = sideways ? pb.y : pb.y - dy * 0.55;
       var width = Math.min(2.5 + edge.count, 7);
+      var joinTitle = edge.count + ' saved connection' + (edge.count === 1 ? '' : 's')
+          + ' between ' + label(edge.from) + ' and ' + label(edge.to)
+          + ' \u2014 item to item, saved under Resources. Not a suggestion: these exist.';
       out += '<path class="fnet-join" d="M ' + pa.x + ' ' + pa.y + ' C ' + c1x + ' ' + c1y
           +  ', ' + c2x + ' ' + c2y + ', ' + pb.x + ' ' + pb.y + '" fill="none"'
-          +  ' stroke="var(--fnet-join)" stroke-width="' + width + '" stroke-linecap="round" opacity=".9"/>';
+          +  ' stroke="var(--fnet-join)" stroke-width="' + width + '" stroke-linecap="round" opacity=".9">'
+          +  '<title>' + esc(joinTitle) + '</title></path>';
       var mx = (pa.x + c1x * 3 + c2x * 3 + pb.x) / 8;
       var my = (pa.y + c1y * 3 + c2y * 3 + pb.y) / 8;
       out += '<circle cx="' + mx + '" cy="' + my + '" r="10" fill="var(--fnet-card)"'
-          +  ' stroke="var(--fnet-join)" stroke-width="1.7"/>';
+          +  ' stroke="var(--fnet-join)" stroke-width="1.7">'
+          +  '<title>' + esc(joinTitle) + '</title></circle>';
       out += '<text x="' + mx + '" y="' + (my + 3.6) + '" text-anchor="middle" font-size="10.5"'
           +  ' font-weight="600" fill="var(--fnet-ink)">' + esc(edge.count) + '</text>';
     }
 
+    baseMarkup = out;
     svg.innerHTML = out;
   }
+
+  function showMesh(kind) { svg.innerHTML = baseMarkup + meshMarkup(kind); }
+  function clearMesh() { if (baseMarkup) { svg.innerHTML = baseMarkup; } }
+  function meshFrom(ev) {
+    var stn = (ev.target && ev.target.closest) ? ev.target.closest('[data-fnet-kind]') : null;
+    if (stn) { showMesh(stn.getAttribute('data-fnet-kind')); }
+  }
+  grid.addEventListener('mouseover', meshFrom);
+  grid.addEventListener('focusin', meshFrom);
+  grid.addEventListener('mouseleave', clearMesh);
+  grid.addEventListener('focusout', clearMesh);
 
   if (window.ResizeObserver) { new ResizeObserver(draw).observe(grid); }
   // A board inside a hidden view measures zero at boot, so its rails are
@@ -339,12 +407,22 @@ $guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
 </div>
 </div>
 </div>
-<script type="application/json" data-fnet-json>@json(['rails' => $guide['rails'], 'edges' => $guide['edges']])</script>
+@php
+$guideWire = [
+    'labels' => $fnetLabels,
+    'stages' => array_map(fn ($st) => $st['eyebrow'], $fnetStages),
+    'mesh'   => \App\Services\Planner\FolderFlowMesh::reach(),
+    'rails'  => $guide['rails'],
+    'edges'  => $guide['edges'],
+];
+@endphp
+<script type="application/json" data-fnet-json>@json($guideWire)</script>
 <div class="fnet-key">
 @foreach($fnetStages as $fnetGk => $fnetGs)
 <span style="--ln:var(--fnet-{{ $fnetGk }})"><i></i>{{ $fnetGs['eyebrow'] }}</span>
 @endforeach
 <span><i class="is-join"></i>Saved connection</span>
+<span><i class="is-mesh"></i>Can connect &mdash; hover a station</span>
 <span><i class="is-ai"></i>Runs on AI</span>
 <span><i class="is-unused"></i>Not used in this folder</span>
 </div>
