@@ -27,7 +27,7 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
 @endif
 <div class="map-panel-body">
 @forelse($fnetPanelItems as $fnetItem)
-<a class="map-item-card" href="{{ $fnetItem['url'] }}"><span class="map-item-icon fnet-panel-emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $fnetPanel['icon'] !!}</svg></span><span class="map-item-copy"><strong>{{ $fnetItem['label'] }}</strong><small>
+<a class="map-item-card" href="{{ $fnetItem['url'] }}"><span class="map-item-copy"><strong>{{ $fnetItem['label'] }}</strong><small>
 @if($fnetPanel['kind'] === 'brand')
 @foreach(collect($fnetItem['row']->palette())->only(['primary','secondary','accent']) as $fnetSwatch)
 @if(preg_match('/^#[0-9a-f]{3,8}$/i', (string) $fnetSwatch))<i class="fnet-swatch" style="background:{{ $fnetSwatch }}"></i>@endif
@@ -67,7 +67,7 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
 @endif
 <div class="map-panel-body">
 @forelse(\App\Services\Planner\FolderFlowDemo::items($gp['kind']) as $gi)
-<span class="map-item-card is-static"><span class="map-item-icon fnet-panel-emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $gp['icon'] !!}</svg></span><span class="map-item-copy"><strong>{{ $gi['label'] }}</strong><small>{{ $gi['detail'] }}</small></span></span>
+<span class="map-item-card is-static"><span class="map-item-copy"><strong>{{ $gi['label'] }}</strong><small>{{ $gi['detail'] }}</small></span></span>
 @empty
 <div class="map-panel-empty"><strong>Nothing of this kind yet.</strong><p>This is what an unused station looks like: dashed on the map, and offering to assign something that already exists or make one from its own tab.</p></div>
 @endforelse
@@ -80,10 +80,9 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
 @foreach($gp['people'] as $gperson)
 <span class="fnet-panel-person"><i class="fnet-av fnet-initial">{{ mb_substr($gperson['name'], 0, 1) }}</i><b>{{ $gperson['name'] }}</b><small>{{ number_format($gperson['changes']) }} changes</small></span>
 @endforeach
-<p class="notes-hint">The owner is left out on purpose: they are in every folder, so counting them says nothing about who else is.</p>
 </div>
 @endif
-<footer class="map-panel-footer"><span class="form-chip is-disabled" aria-disabled="true">View all &rarr;</span><span class="form-chip is-disabled" aria-disabled="true">+ Assign existing</span><span class="notes-hint">Both work on your own map.</span></footer>
+<footer class="map-panel-footer is-stacked"><span class="map-panel-footer-row"><span class="form-chip is-disabled" aria-disabled="true">View all &rarr;</span><span class="form-chip is-disabled" aria-disabled="true">+ Assign existing</span></span><span class="notes-hint">Both work on your own map.</span></footer>
 </div>
 @endforeach
 </aside></div>
@@ -304,7 +303,12 @@ $chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $char
   draws.push(draw);
   requestAnimationFrame(draw);
   }
-  document.querySelectorAll('.fnet-board').forEach(boot);
+  // The How-it-works board is declared further down this file, so booting
+  // mid-parse only ever found the first one -- which is why the example
+  // never drew a rail. Wait for the document before looking.
+  function bootAll() { document.querySelectorAll('.fnet-board').forEach(boot); }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', bootAll); }
+  else { bootAll(); }
   function drawAll() { draws.forEach(function (d) { d(); }); }
   window.addEventListener('resize', drawAll);
   // Hiding a card does not change the grid's size, so the ResizeObserver will

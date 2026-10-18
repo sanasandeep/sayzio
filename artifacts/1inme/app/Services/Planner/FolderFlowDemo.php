@@ -101,6 +101,32 @@ class FolderFlowDemo
         'board'     => ['Launch', 'Wholesale', 'Events'],
     ];
 
+    /**
+     * The second line of each item row. It used to fall back to the kind's own
+     * label, so every row under "Brand kits" said "Brand kits" beneath a header
+     * that already said it -- three identical lines saying nothing. Invented,
+     * like everything else here, but invented to carry something.
+     *
+     * @var array<string, list<string>>
+     */
+    private const DETAILS = [
+        'form'      => ['214 responses', '38 responses', '96 responses'],
+        'qr'        => ['612 scans', '144 scans', '301 scans'],
+        'file'      => ['2.4 MB · PDF', '18 images', '96 KB · XLSX'],
+        'plan'      => ['8 of 14 done', '3 of 9 done', 'Starts 2 Nov'],
+        'mind'      => ['Trained 4 days ago', 'Trained last week', 'Draft'],
+        'budget'    => ['76% committed', 'Draft'],
+        'brand'     => ['6 assets', '4 assets', '11 assets'],
+        'campaign'  => ['Sending Tuesday', 'Scheduled', 'Draft'],
+        'studio'    => ['12 renders', '3 renders', 'Rendering'],
+        'buzz'      => ['Live', 'Live'],
+        'strategy'  => ['Approved', 'In review'],
+        'companion' => ['148 conversations', '64 conversations'],
+        'staff'     => ['Answers billing', 'Answers wholesale', 'Books tastings'],
+        'persona'   => ['41% of visitors', '36% of visitors', '23% of visitors'],
+        'board'     => ['12 cards', '9 cards', '17 cards'],
+    ];
+
     private const JUNCTIONS = [
         ['from' => 'link', 'to' => 'form', 'count' => 6],
         ['from' => 'link', 'to' => 'qr', 'count' => 4],
@@ -155,7 +181,7 @@ class FolderFlowDemo
             $out[] = ['label' => $label, 'detail' => match ($kind) {
                 'task'  => [0 => 'Done', 1 => '24 Oct', 2 => 'Done', 3 => 'No due date'][$i] ?? 'No due date',
                 'link'  => $i === 3 ? 'Inactive' : 'Active',
-                default => PlannerResources::typeLabels()[$kind] ?? $kind,
+                default => self::DETAILS[$kind][$i] ?? 'Updated recently',
             }];
         }
 
