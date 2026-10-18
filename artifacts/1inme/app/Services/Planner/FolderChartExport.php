@@ -15,6 +15,18 @@ class FolderChartExport
      */
     public const MODES = ['flow', 'people'];
 
+    /**
+     * What an export can be a picture OF. 'map' is the diagram; 'tree' is the
+     * same content as an outline, which survives being pasted into a document
+     * and is readable when the map is too wide for the page.
+     *
+     * Sana, 2026-10-18: "2 exports options 1 with full image another with
+     * tree type".
+     *
+     * @var list<string>
+     */
+    public const SHAPES = ['map', 'tree'];
+
     public static function render(string $mode, string $name, array $resources, array $people, string $color = '#365ce9', iterable $relations = []): string
     {
         $color = preg_match('/^#[0-9a-f]{6}$/i', $color) ? $color : '#365ce9';
@@ -70,8 +82,21 @@ class FolderChartExport
      */
     private static function flowNetwork(string $name, array $resources, string $color, iterable $relations): string
     {
+        return self::stationPicture($name, FolderFlowNetwork::map($resources, $relations, []), 'Flow');
+    }
+
+    /**
+     * Draw a station map. Shared by the real Flow export and the How-it-works
+     * one, so the example cannot drift into being a picture of a different
+     * product -- the same reason the two boards share fnet-station.blade.php.
+     *
+     * $band, when given, is drawn into the image. A downloaded picture travels
+     * without the page around it.
+     */
+    private static function stationPicture(string $name, array $map, string $subtitle, string $band = ''): string
+    {
         $esc = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
-        $map = FolderFlowNetwork::map($resources, $relations, []);
+        $color = '#365ce9';
         $stages = FolderFlowStages::all();
         $labels = PlannerResources::typeLabels();
 
@@ -92,8 +117,10 @@ class FolderChartExport
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'.$width.'" height="'.$height.'" viewBox="0 0 '.$width.' '.$height.'">'
             .'<rect width="'.$width.'" height="'.$height.'" fill="#f8faff"/>'
             .'<g font-family="Arial,sans-serif" fill="#17213b">'
-            .'<text x="48" y="54" font-size="28" font-weight="700">'.$esc($name).' · Flow</text>'
-            .'<text x="48" y="85" font-size="14" fill="#65718b">Visible project records · '.now()->format('d M Y').'</text>';
+            .'<text x="48" y="54" font-size="28" font-weight="700">'.$esc($name).' · '.$esc($subtitle).'</text>'
+            .'<text x="48" y="85" font-size="14" fill="#65718b">Visible project records · '.now()->format('d M Y').'</text>'
+            .($band ? '<rect x="48" y="98" width="'.($width - 96).'" height="28" rx="8" fill="#eef2ff" stroke="#c7d2fe"/>'
+                .'<text x="62" y="117" font-size="12" fill="#4338ca">'.$esc($band).'</text>' : '');
 
         // Rails first, so the opaque cards sit over them exactly as on screen.
         foreach (FolderFlowNetwork::rails() as $rail) {
@@ -162,6 +189,109 @@ class FolderChartExport
         $svg .= '<text x="48" y="'.($height - 28).'" font-size="12.5" fill="#65718b">'
             .'Every resource kind this folder can hold is shown, used or not. Rails are a suggested order, not measured attribution; '
             .'a numbered junction is a count of saved item-to-item connections. Counts reflect what the exporting user can see.'
+            .'</text></g></svg>';
+
+        return $svg;
+    }
+
+    /**
+     * The How-it-works example as a picture.
+     *
+     * The export button on that tab has never worked: folderChart() reads
+     * exports[mode], the view built that array from MODES, and MODES has no
+     * 'guide' -- so the lookup was undefined and the download wrote a file
+     * containing the word "undefined".
+     *
+     * The band is drawn INTO the image rather than left on the page. A
+     * downloaded picture travels without the page around it, and a picture of
+     * nineteen busy stations with no caption is indistinguishable from a real
+     * folder's.
+     */
+    public static function renderGuide(): string
+    {
+        $esc  = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $map  = FolderFlowDemo::map();
+        $band = 'Worked example - every number invented, a fictional folder for '
+            .FolderFlowDemo::COMPANY.'. Nothing here comes from a real folder.';
+
+        return self::stationPicture(
+            FolderFlowDemo::COMPANY.' · '.FolderFlowDemo::FOLDER,
+            $map,
+            'How it works',
+            $band,
+        );
+    }
+
+    /**
+     * The same content as an outline: stage, then each kind with its count and
+     * whatever its stage measures. Wraps nothing and fits a page.
+     */
+    public static function renderTree(string $mode, string $name, array $resources, array $people, string $color = '#365ce9', iterable $relations = []): string
+    {
+        $esc    = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $stages = FolderFlowStages::all();
+        $labels = PlannerResources::typeLabels();
+        $band   = '';
+
+        if ($mode === 'guide') {
+            $map  = FolderFlowDemo::map();
+            $name = FolderFlowDemo::COMPANY.' · '.FolderFlowDemo::FOLDER;
+            $band = 'Worked example - every number invented. Nothing here comes from a real folder.';
+        } else {
+            $map = FolderFlowNetwork::map($resources, $relations, []);
+        }
+
+        // Group by stage, keeping the stage order the map draws.
+        $byStage = array_fill_keys(array_keys($stages), []);
+        foreach ($map['stations'] as $station) {
+            $byStage[$station['stage']][] = $station;
+        }
+
+        $rows = 0;
+        foreach ($byStage as $stations) {
+            $rows += count($stations) + 1;
+        }
+
+        $width  = 760;
+        $height = 150 + $rows * 26 + ($band ? 34 : 0) + 56;
+        $y      = 112 + ($band ? 34 : 0);
+
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'.$width.'" height="'.$height.'" viewBox="0 0 '.$width.' '.$height.'">'
+            .'<rect width="'.$width.'" height="'.$height.'" fill="#f8faff"/>'
+            .'<g font-family="Arial,sans-serif" fill="#17213b">'
+            .'<text x="40" y="52" font-size="23" font-weight="700">'.$esc($name).' · outline</text>'
+            .'<text x="40" y="79" font-size="13" fill="#65718b">Visible project records · '.now()->format('d M Y').'</text>';
+
+        if ($band) {
+            $svg .= '<rect x="40" y="94" width="'.($width - 80).'" height="26" rx="7" fill="#eef2ff" stroke="#c7d2fe"/>'
+                .'<text x="52" y="111" font-size="11.5" fill="#4338ca">'.$esc($band).'</text>';
+        }
+
+        foreach ($byStage as $stageKey => $stations) {
+            $stage = $stages[$stageKey] ?? ['eyebrow' => $stageKey, 'color' => $color];
+            $svg .= '<rect x="40" y="'.($y - 11).'" width="4" height="14" rx="2" fill="'.$stage['color'].'"/>'
+                .'<text x="54" y="'.$y.'" font-size="11.5" font-weight="700" letter-spacing="1.4" fill="'
+                .$stage['color'].'">'.$esc(mb_strtoupper($stage['eyebrow'])).'</text>';
+            $y += 26;
+
+            foreach ($stations as $station) {
+                $figure = $station['figure']
+                    ? ($station['figure']['of'] !== null
+                        ? number_format($station['figure']['value']).' of '.number_format($station['figure']['of'])
+                        : number_format($station['figure']['value'])).' '.$station['figure']['suffix']
+                    : 'not counted here';
+                $tone = $station['in_use'] ? '#17213b' : '#9aa5bd';
+                $svg .= '<text x="70" y="'.$y.'" font-size="13" fill="'.$tone.'">'
+                    .$esc($labels[$station['kind']] ?? $station['kind']).($station['ai'] ? ' · runs on AI' : '').'</text>'
+                    .'<text x="430" y="'.$y.'" font-size="13" font-weight="700" text-anchor="end" fill="'.$tone.'">'
+                    .$esc(number_format($station['count'])).'</text>'
+                    .'<text x="450" y="'.$y.'" font-size="11.5" fill="#78839b">'.$esc($figure).'</text>';
+                $y += 26;
+            }
+        }
+
+        $svg .= '<text x="40" y="'.($height - 24).'" font-size="11.5" fill="#65718b">'
+            .'Every resource kind this folder can hold is listed, used or not. Counts reflect what the exporting user can see.'
             .'</text></g></svg>';
 
         return $svg;
