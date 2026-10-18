@@ -41,16 +41,57 @@ class FolderFlowDemoTest extends TestCase
     }
 
     /**
-     * The reason this view exists: a new folder is empty, and an empty map
-     * teaches nothing about what a full one would tell you.
+     * Sana, on seeing the first version: "kep 1-2 options empty also". He is
+     * right -- a reader who only ever sees a full map never learns what the
+     * dashed station means or where "+ Assign" lives, which is the state
+     * their own folder is actually in.
+     *
+     * So this is no longer "nothing is empty". It is: exactly the kinds named
+     * as deliberately empty are, everything else carries something, and at
+     * least one is empty so the state gets demonstrated at all.
      */
-    public function test_no_station_in_the_example_is_empty(): void
+    public function test_exactly_the_kinds_meant_to_be_empty_are_empty(): void
+    {
+        $empty = [];
+        foreach (FolderFlowDemo::map()['stations'] as $station) {
+            if ($station['count'] < 1) {
+                $empty[] = $station['kind'];
+                $this->assertFalse($station['in_use'], "{$station['kind']} is empty but would not draw dashed");
+                $this->assertNull($station['figure'],
+                    "{$station['kind']} is empty but still shows a measured figure, which no real empty station does");
+            } else {
+                $this->assertTrue($station['in_use']);
+            }
+        }
+
+        sort($empty);
+        $expected = FolderFlowDemo::DELIBERATELY_EMPTY;
+        sort($expected);
+        $this->assertSame($expected, $empty,
+            'a station is empty that was not meant to be, or the example stopped showing the empty state');
+        $this->assertNotEmpty($empty,
+            'with nothing empty, the example never shows what an unused station looks like');
+        $this->assertLessThan(4, count($empty),
+            'too many empty stations and the example stops looking like a folder in use');
+    }
+
+    /** A station the panel opens needs something inside it, or it teaches nothing. */
+    public function test_every_used_station_has_sample_items(): void
     {
         foreach (FolderFlowDemo::map()['stations'] as $station) {
-            $this->assertGreaterThan(0, $station['count'],
-                "{$station['kind']} is empty in the example, which is the one thing the example exists to avoid");
-            $this->assertTrue($station['in_use'],
-                "{$station['kind']} would draw dashed, so the example would show a half-used folder");
+            $items = FolderFlowDemo::items($station['kind']);
+            if ($station['count'] > 0) {
+                $this->assertNotEmpty($items, "{$station['kind']} opens an empty panel in the example");
+                $this->assertLessThanOrEqual($station['count'], count($items),
+                    "{$station['kind']} lists more items than the station claims to hold");
+                foreach ($items as $item) {
+                    $this->assertNotSame('', trim($item['label']));
+                    $this->assertNotSame('', trim($item['detail']));
+                }
+            } else {
+                $this->assertSame([], $items,
+                    "{$station['kind']} is meant to be empty but its panel lists items");
+            }
         }
     }
 
