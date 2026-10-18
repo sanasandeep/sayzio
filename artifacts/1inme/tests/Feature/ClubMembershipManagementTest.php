@@ -254,7 +254,12 @@ class ClubMembershipManagementTest extends TestCase {
         $this->get(route('user.links.memberships.pass',['link'=>$link,'member'=>$member->id]))->assertForbidden();
         $this->get($url.'&extra=1')->assertForbidden();
         $this->get(route('user.links.memberships.scanner',$link))->assertOk()->assertSee('Start camera');
-        $other=User::factory()->create();$this->actingAs($other);$this->get($url)->assertForbidden();
+        // 404, not 403: Link uses BelongsToWorkspace, whose `workspace` global
+        // scope filters every read to the active workspace. Another user's
+        // route-model binding never finds this link, so the request dies at
+        // binding rather than at the signature or the ownership check. That is
+        // the stronger answer -- it does not confirm the link exists.
+        $other=User::factory()->create();$this->actingAs($other);$this->get($url)->assertNotFound();
     }
     public function test_brand_kit_apply_is_owned_and_preserves_membership_settings(): void {
         $link=$this->club();$link->update(['settings'=>['membership'=>['approval'=>'manual','duration'=>'fixed']]]);
