@@ -48,7 +48,7 @@ class FolderPeopleTest extends TestCase
         $this->assertSame('https://example.com/reviewer.png',$active['avatar_url']);
         $this->assertSame(1, $active['open']);
         $this->assertSame(45, $active['minutes']);
-        foreach (['hub', 'flow', 'people'] as $mode) {
+        foreach (FolderChartExport::MODES as $mode) {
             $svg = FolderChartExport::render($mode, $project->name, $data['resources'], $people->all());
             $xml = simplexml_load_string($svg);
             $this->assertNotFalse($xml);

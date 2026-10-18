@@ -1,14 +1,4 @@
 @php
-$mapGroups=[
- ['label'=>'Links & pages','kinds'=>['link'],'tab'=>'links','icon'=>'fa-link','art'=>'links'],
- ['label'=>'Campaigns','kinds'=>['campaign','strategy','studio','buzz'],'tab'=>'marketing','icon'=>'fa-bullhorn','art'=>'pages'],
- ['label'=>'Budget & Forecast','kinds'=>['budget'],'tab'=>'budget','icon'=>'fa-wallet','art'=>'coins'],
- ['label'=>'Brand Kits','kinds'=>['brand'],'tab'=>'brands','icon'=>'fa-palette','art'=>'folders'],
- ['label'=>'Planner plans','kinds'=>['plan'],'tab'=>'plans','icon'=>'fa-wand-magic-sparkles','art'=>'pages'],
- ['label'=>'Tasks','kinds'=>['task'],'tab'=>'tasks','icon'=>'fa-check-double','art'=>'pages'],
- ['label'=>'AI Minds & team','kinds'=>['mind','persona','agent','staff','companion'],'tab'=>'team','icon'=>'fa-brain','art'=>'bot'],
- ['label'=>'Resources','kinds'=>['form','qr','file','calendar','board'],'tab'=>'resources','icon'=>'fa-layer-group','art'=>'folders'],
-];
 $fnetMeasures = \App\Services\Planner\FolderFlowMeasures::all($resources, $companionConversations ?? 0);
 $fnetActivity = $kindActivity ?? app(\App\Services\Planner\FolderKindActivity::class)->data($project, $resources);
 $fnetFaces = \App\Services\Planner\FolderKindActivity::FACES;
@@ -20,47 +10,13 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 $fnetItems = collect($resources)->groupBy('kind');
 $fnetMeta = \App\Services\Planner\FolderFlowNetwork::filterMeta($fnet['stations']);
 $mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#365ce9';
-$chartExports=[];foreach(['hub','flow','people'] as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor,$relations);
+$chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor,$relations);
 @endphp
 <section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports),@js($fnetMeta))" @keydown.escape.window="closePanel()">
-<div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='hub'" :aria-pressed="mode==='hub'">Hub</button><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button><button @click="mode='guide'" :aria-pressed="mode==='guide'">How it works</button></div></div>
+<div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button><button @click="mode='guide'" :aria-pressed="mode==='guide'">How it works</button></div></div>
 <div class="notes-actions folder-export-actions"><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
-<div x-show="mode==='hub'" class="folder-hub visual-hub">
-<svg class="folder-map-lines" viewBox="0 0 1000 480" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8">@foreach([125,375,625,875] as $x)<path d="M500 240 Q{{ $x }} 240 {{ $x }} 90"/><path d="M500 240 Q{{ $x }} 240 {{ $x }} 390"/>@endforeach</g><circle cx="500" cy="240" r="55" fill="none" stroke="currentColor" stroke-dasharray="3 9"/></svg>
-@foreach($mapGroups as $i=>$group)
-@php $nodeItems=collect($resources)->whereIn('kind',$group['kinds']); @endphp
-<button type="button" class="folder-map-node map-node-{{ $i }} visual-map-node {{ $nodeItems->isEmpty()?'is-empty':'' }}" @click="openPanel({{ $i }},$event.currentTarget)" :aria-expanded="selected==={{ $i }}" aria-controls="folder-map-panel">
-<span class="map-node-art">@include('user.partials.count-card-art',['kind'=>$group['art'],'artId'=>'map-art-'.$i])</span><span class="map-node-copy"><strong>{{ $group['label'] }}</strong><small>{{ $nodeItems->count() }} assigned</small>
-@if($nodeItems->isEmpty())<span class="map-node-add">+ Assign</span>@else<span class="map-node-preview">{{ \Illuminate\Support\Str::limit($nodeItems->first()['label'],27) }}</span>@endif
-@if($group['tab']==='tasks' && $nodeItems->isNotEmpty())<span class="folder-progress"><span style="width:{{ round($nodeItems->filter(fn($v)=>$v['row']->completed_at)->count()/$nodeItems->count()*100) }}%"></span></span>@endif
-@if($group['tab']==='brands' && $nodeItems->isNotEmpty())<span class="map-brand-swatches">@foreach(collect($nodeItems->first()['row']->palette())->only(['primary','secondary','accent']) as $swatch)@if(is_string($swatch) && preg_match('/^#[0-9a-f]{6}$/i',$swatch))<i style="background:{{ $swatch }}"></i>@endif
-@endforeach</span>@endif
-@if($group['tab']==='links' && $nodeItems->isNotEmpty())@foreach($nodeItems->take(3) as $preview)@if(\Illuminate\Support\Str::startsWith((string)$preview['row']->favicon,['https://','http://','/']))<img class="map-node-thumb" src="{{ $preview['row']->favicon }}" alt="" loading="lazy">@endif
-@endforeach
-@endif
-</span></button>
-@endforeach
-<div class="folder-map-center"><i class="fas fa-folder-open" aria-hidden="true"></i><strong>{{ $project->name }}</strong><small>{{ count($resources) }} connected resources</small></div>
-</div>
 <div class="map-panel-backdrop" x-show="selected!==null" x-cloak @click.self="closePanel()">
 <aside id="folder-map-panel" class="map-detail-panel notes-card" role="dialog" aria-modal="true" aria-label="Assigned folder items" tabindex="-1" x-ref="panel" @keydown.tab="trapTab($event)">
-@foreach($mapGroups as $i=>$group)
-@php $panelItems=collect($resources)->whereIn('kind',$group['kinds']); @endphp
-<div class="map-panel-section" x-show="selected==={{ $i }}">
-<header class="map-panel-header"><span class="map-panel-emblem"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i></span><div class="map-panel-heading"><h2>{{ $group['label'] }}</h2><p>{{ $panelItems->count() }} assigned · {{ $project->name }}</p></div><button class="map-panel-close" type="button" @click="closePanel()" aria-label="Close assigned items"><i class="fas fa-xmark" aria-hidden="true"></i></button></header>
-<div class="map-panel-body">
-@forelse($panelItems as $item)
-<a class="map-item-card" href="{{ $item['url'] }}"><span class="map-item-icon"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i></span><span class="map-item-copy"><strong>{{ $item['label'] }}</strong><small>{{ \App\Services\Planner\PlannerResources::typeLabels()[$item['kind']] }}</small></span><span class="map-item-open">Open <i class="fas fa-arrow-right" aria-hidden="true"></i></span></a>
-@empty<div class="map-panel-empty"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i><strong>Nothing assigned here yet.</strong><p>Choose an existing item or create something new for this folder.</p></div>
-@endforelse
-</div>
-<footer class="map-panel-footer"><a class="form-chip" href="{{ route('user.projects.show',[$project,'tab'=>$group['tab']]) }}">View all →</a><a class="form-chip" href="{{ route('user.projects.show',[$project,'tab'=>'resources']) }}#assign-resources">Assign existing</a>
-@php $createLabel=match($group['tab']){'marketing'=>'Create campaign','budget'=>'Create forecast','plans'=>'Create Planner plan','links'=>'Create link','brands'=>'Create Brand Kit',default=>null}; @endphp
-@foreach($folderActions??[] as $action)
-@if($action['label']===$createLabel)<a class="form-chip map-panel-primary" href="{{ $action['url'] }}">{{ $createLabel }}</a>@endif
-@endforeach
-</footer></div>
-@endforeach
 @foreach($fnet['stations'] as $fnetPanel)
 @php $fnetPanelItems = $fnetItems->get($fnetPanel['kind'], collect()); @endphp
 <div class="map-panel-section fnet-panel" style="--ln:var(--fnet-{{ $fnetPanel['stage'] }})" x-show="selected==='flow:{{ $fnetPanel['kind'] }}'">
@@ -413,7 +369,7 @@ $guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
 
 <script>
 function folderChart(exports, stations) {
-    return { mode:'hub', selected:null, trigger:null,
+    return { mode:'flow', selected:null, trigger:null,
       stations: stations || [],
       fnetHideUnused:false, fnetStageOn:{}, fnetAi:'all', fnetPerson:'',
       fnetShow(s) {

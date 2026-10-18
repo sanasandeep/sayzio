@@ -5,6 +5,16 @@ namespace App\Services\Planner;
 /** Self-contained SVGs: no remote assets, and all labels are XML escaped. */
 class FolderChartExport
 {
+    /**
+     * The views that can be exported. Hub is gone, so its export is too -- a
+     * picture of a screen nobody can open is one more thing to keep in step
+     * with nothing. The folder page loops over this rather than repeating
+     * the list, so the two cannot disagree about what exists.
+     *
+     * @var list<string>
+     */
+    public const MODES = ['flow', 'people'];
+
     public static function render(string $mode, string $name, array $resources, array $people, string $color = '#365ce9', iterable $relations = []): string
     {
         $color = preg_match('/^#[0-9a-f]{6}$/i', $color) ? $color : '#365ce9';
@@ -18,32 +28,21 @@ class FolderChartExport
         }
 
         $esc = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
-        $items = collect($resources);
-        $labels = match ($mode) {
-            'hub' => collect(['Links & pages'=>['link'],'Campaigns'=>['campaign','strategy','studio','buzz'],'Budget & Forecast'=>['budget'],'Brand Kits'=>['brand'],'Planner plans'=>['plan'],'Tasks'=>['task'],'AI Minds & team'=>['mind','persona','agent','staff','companion'],'Resources'=>['form','qr','file','calendar','board']])->map(fn ($kinds, $label) => [$label, $items->whereIn('kind', $kinds)->count().' assigned'])->values()->all(),
-            default => array_map(fn ($person) => [$person['name'].' · '.$person['role'], $person['open'].' open · '.$person['completed'].' complete · '.$person['actions'].' recorded actions (30d)'], $people),
-        };
+        // Only 'people' reaches here: 'flow' returned above, and Hub is gone.
+        $labels = array_map(fn ($person) => [$person['name'].' · '.$person['role'], $person['open'].' open · '.$person['completed'].' complete · '.$person['actions'].' recorded actions (30d)'], $people);
         if (! $labels) {
             $labels = [['No people with access', 'Add workspace members to begin']];
         }
-        $height = $mode === 'people' ? max(450, 200 + count($labels) * 94) : 630;
+        $height = max(450, 200 + count($labels) * 94);
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="'.$height.'" viewBox="0 0 1200 '.$height.'"><rect width="1200" height="'.$height.'" fill="#f8faff"/><g font-family="Arial,sans-serif" fill="#17213b"><text x="44" y="54" font-size="28" font-weight="700">'.$esc($name).' · '.$esc(ucfirst($mode)).'</text><text x="44" y="85" font-size="14" fill="#65718b">Visible project records · '.now()->format('d M Y').'</text>';
         foreach ($labels as $index => [$label,$detail]) {
-            if ($mode === 'hub') {
-                $x = 44 + ($index % 4) * 283;
-                $y = $index < 4 ? 130 : 430;
-                $svg .= '<path d="M600 310 L'.($x + 130).' '.($index < 4 ? $y + 90 : $y).'" stroke="'.$color.'" stroke-width="2"/>';
-            } else {
                 $x = 44;
                 $y = 120 + $index * 94;
-            }
-            $width = $mode === 'people' ? 1110 : 260;
-            $svg .= '<rect x="'.$x.'" y="'.$y.'" width="'.$width.'" height="78" rx="16" fill="white" stroke="#dbe1ef"/><text x="'.($x + 18).'" y="'.($y + 30).'" font-size="16" font-weight="700">'.$esc(mb_strimwidth($label, 0, $mode === 'people' ? 95 : 25, '…')).'</text><text x="'.($x + 18).'" y="'.($y + 56).'" font-size="13" fill="#65718b">'.$esc($detail).'</text>';
+
+            $width = 1110;
+            $svg .= '<rect x="'.$x.'" y="'.$y.'" width="'.$width.'" height="78" rx="16" fill="white" stroke="#dbe1ef"/><text x="'.($x + 18).'" y="'.($y + 30).'" font-size="16" font-weight="700">'.$esc(mb_strimwidth($label, 0, 95, '…')).'</text><text x="'.($x + 18).'" y="'.($y + 56).'" font-size="13" fill="#65718b">'.$esc($detail).'</text>';
         }
-        if ($mode === 'hub') {
-            $svg .= '<rect x="490" y="270" width="220" height="80" rx="20" fill="#eaf0ff" stroke="'.$color.'"/><text x="600" y="315" text-anchor="middle" font-size="18" font-weight="700">Project hub</text>';
-        }
-        $svg .= '<text x="44" y="'.($height - 30).'" font-size="13" fill="#65718b">'.$esc($mode === 'people' ? 'Current assignments; actions from visible tasks in the last 30 days. Shared tasks count for each assignee.' : 'Counts reflect the resources visible to the exporting user.').'</text></g></svg>';
+        $svg .= '<text x="44" y="'.($height - 30).'" font-size="13" fill="#65718b">'.$esc('Current assignments; actions from visible tasks in the last 30 days. Shared tasks count for each assignee.').'</text></g></svg>';
 
         return $svg;
     }
