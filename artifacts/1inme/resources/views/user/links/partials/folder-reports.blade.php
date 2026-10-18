@@ -104,7 +104,7 @@
         <div class="section-title"><div class="section-icon"><i class="fas fa-chart-line"></i></div> Clicks Over Time <span class="text-xs font-normal" style="color: var(--text-muted);">({{ ucfirst($r['groupBy']) }})</span></div>
         <div class="flex items-center gap-2 flex-wrap">
             <span class="section-pill">{{ $chartFooter }}</span>
-            @include('user.links.partials.chart-actions', ['target' => 'folderClicksChart', 'title' => 'Clicks Over Time — '.$scopeName, 'slug' => 'clicks-over-time', 'footer' => $chartFooter])
+            @include('user.links.partials.chart-actions', ['target' => 'folderClicksChart', 'title' => 'Clicks Over Time: '.$scopeName, 'slug' => 'clicks-over-time', 'footer' => $chartFooter])
             <a class="pill" href="{{ $exportUrl('daily') }}">CSV</a>
         </div>
     </div>
@@ -127,7 +127,7 @@
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-clock"></i></div> When People Click <span class="text-xs font-normal" style="color: var(--text-muted);">(2-hour blocks)</span></div>
         <div class="flex items-center gap-2 flex-wrap">
-            @include('user.links.partials.chart-actions', ['target' => 'folder-heat-grid', 'title' => 'When People Click — '.$scopeName, 'slug' => 'when-people-click', 'footer' => $chartFooter])
+            @include('user.links.partials.chart-actions', ['target' => 'folder-heat-grid', 'title' => 'When People Click: '.$scopeName, 'slug' => 'when-people-click', 'footer' => $chartFooter])
             <a class="pill" href="{{ $exportUrl('heatmap') }}">CSV</a>
         </div>
     </div>

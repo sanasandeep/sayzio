@@ -43,9 +43,9 @@ class="fnet-stn{{ $station['in_use'] ? '' : ' is-off' }}{{ $station['ai'] ? ' is
 <span class="fnet-who">
 @foreach(array_slice($station['people'], 0, $faces) as $fnetWho)
 @if(!empty($fnetWho['avatar_url']))
-<img class="fnet-av" src="{{ $fnetWho['avatar_url'] }}" alt="{{ $fnetWho['name'] }}" title="{{ $fnetWho['name'] }} — {{ number_format($fnetWho['changes']) }} change{{ $fnetWho['changes'] === 1 ? '' : 's' }}" loading="lazy">
+<img class="fnet-av" src="{{ $fnetWho['avatar_url'] }}" alt="{{ $fnetWho['name'] }}" title="{{ $fnetWho['name'] }} · {{ number_format($fnetWho['changes']) }} change{{ $fnetWho['changes'] === 1 ? '' : 's' }}" loading="lazy">
 @else
-<i class="fnet-av fnet-initial" title="{{ $fnetWho['name'] }} — {{ number_format($fnetWho['changes']) }} change{{ $fnetWho['changes'] === 1 ? '' : 's' }}">{{ mb_substr($fnetWho['name'], 0, 1) }}</i>
+<i class="fnet-av fnet-initial" title="{{ $fnetWho['name'] }} · {{ number_format($fnetWho['changes']) }} change{{ $fnetWho['changes'] === 1 ? '' : 's' }}">{{ mb_substr($fnetWho['name'], 0, 1) }}</i>
 @endif
 @endforeach
 @if(count($station['people']) > $faces)

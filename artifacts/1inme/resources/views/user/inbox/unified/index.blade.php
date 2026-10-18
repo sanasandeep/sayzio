@@ -5,7 +5,7 @@
 <div class="unified-inbox max-w-[1400px] 2xl:max-w-[1720px] mx-auto" x-data="{ selected: [], filtersOpen: false }">
     @include('user.partials.page-hero', [
         'title' => 'Inbox 2.0',
-        'subtitle' => 'Forms, messages and enquiries — organised by channel, priority and response deadline',
+        'subtitle' => 'Forms, messages and enquiries, organised by channel, priority and response deadline',
         'icon' => 'fa-inbox',
         'chips' => array_values(array_filter([
             ['icon' => 'fa-envelope text-blue-400', 'text' => number_format($counts['unread']) . ' unread'],
