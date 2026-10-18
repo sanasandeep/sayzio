@@ -19,7 +19,8 @@
 @php
     $fnetTag = $interactive ? 'button' : 'div';
     $fnetKey = ($panelKey ?? 'flow').':'.$station['kind'];
-    $fnetFiltered = ($panelKey ?? 'flow') === 'flow';
+    // Both boards filter now -- the example teaches the control by having it.
+    $fnetFiltered = true;
     $fnetName = $labels[$station['kind']] ?? $station['kind'];
     $fnetStage = $stages[$station['stage']]['eyebrow'] ?? '';
 @endphp
