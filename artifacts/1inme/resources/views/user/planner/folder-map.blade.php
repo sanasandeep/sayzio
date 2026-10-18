@@ -10,11 +10,25 @@ $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['ed
 $fnetItems = collect($resources)->groupBy('kind');
 $fnetMeta = \App\Services\Planner\FolderFlowNetwork::filterMeta($fnet['stations']);
 $mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#365ce9';
-$chartExports=[];foreach(\App\Services\Planner\FolderChartExport::MODES as $chartMode) $chartExports[$chartMode]=\App\Services\Planner\FolderChartExport::render($chartMode,$project->name,$resources,$peopleData['people'],$mapColor,$relations);
+// Two shapes per view: the diagram, and the same content as an outline.
+// 'guide' is built by hand because it is not one of MODES -- the exporter
+// has no folder to render it from, and the view used to look it up anyway,
+// which is why that tab's export downloaded a file saying "undefined".
+$chartExports = [];
+foreach (\App\Services\Planner\FolderChartExport::MODES as $chartMode) {
+    $chartExports[$chartMode] = [
+        'map'  => \App\Services\Planner\FolderChartExport::render($chartMode, $project->name, $resources, $peopleData['people'], $mapColor, $relations),
+        'tree' => \App\Services\Planner\FolderChartExport::renderTree($chartMode, $project->name, $resources, $peopleData['people'], $mapColor, $relations),
+    ];
+}
+$chartExports['guide'] = [
+    'map'  => \App\Services\Planner\FolderChartExport::renderGuide(),
+    'tree' => \App\Services\Planner\FolderChartExport::renderTree('guide', $project->name, [], []),
+];
 @endphp
 <section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports),@js($fnetMeta))" @keydown.escape.window="closePanel()">
 <div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button><button @click="mode='guide'" :aria-pressed="mode==='guide'">How it works</button></div></div>
-<div class="notes-actions folder-export-actions"><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
+<div class="notes-actions folder-export-actions"><span class="fnet-shape" role="group" aria-label="What to export"><button class="form-chip" type="button" @click="shape='map'" :aria-pressed="shape==='map'" :class="shape==='map'?'is-on':''">Map</button><button class="form-chip" type="button" @click="shape='tree'" :aria-pressed="shape==='tree'" :class="shape==='tree'?'is-on':''">Outline</button></span><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
 <div class="map-panel-backdrop" x-show="selected!==null" x-cloak @click.self="closePanel()">
 <aside id="folder-map-panel" class="map-detail-panel notes-card" role="dialog" aria-modal="true" aria-label="Assigned folder items" tabindex="-1" x-ref="panel" @keydown.tab="trapTab($event)">
 @foreach($fnet['stations'] as $fnetPanel)
@@ -451,7 +465,7 @@ $guideWire = [
 
 <script>
 function folderChart(exports, stations) {
-    return { mode:'flow', selected:null, trigger:null,
+    return { mode:'flow', shape:'map', selected:null, trigger:null,
       stations: stations || [],
       fnetHideUnused:false, fnetStageOn:{}, fnetAi:'all', fnetPerson:'',
       fnetShow(s) {
@@ -473,7 +487,12 @@ function folderChart(exports, stations) {
       fnetStageIsOn(key) { return this.fnetStageOn[key] !== false; }, openPanel(index,trigger){this.selected=index;this.trigger=trigger;this.previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';this.$nextTick(()=>this.$refs.panel.focus())}, closePanel(){if(this.selected===null)return;this.selected=null;document.body.style.overflow=this.previousOverflow||'';this.trigger?.focus()}, trapTab(event){const items=[...this.$refs.panel.querySelectorAll('a,button,[tabindex]')].filter(el=>el.getClientRects().length&&!el.disabled);const first=items[0],last=items.at(-1);if(!first){event.preventDefault();return}if(event.shiftKey&&(document.activeElement===first||document.activeElement===this.$refs.panel)){event.preventDefault();last.focus()}else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===this.$refs.panel)){event.preventDefault();first.focus()}}, exporting:false, exportError:'', async download(format) {
         this.exporting=true; this.exportError=''; let sourceUrl;
         try {
-            const svg=exports[this.mode]; let blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
+            const svg=(exports[this.mode]||{})[this.shape];
+            // Downloading undefined writes a file containing the word
+            // "undefined", which is what this tab did for every export
+            // it has ever had. Say so instead.
+            if(!svg) throw new Error('No export for this view');
+            let blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
             if(format==='png') {
                 sourceUrl=URL.createObjectURL(blob); const img=new Image();
                 await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=sourceUrl;});
@@ -482,7 +501,7 @@ function folderChart(exports, stations) {
                 blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
                 if(!blob) throw new Error('Export failed');
             }
-            const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url;a.download='project-'+this.mode+'.'+format;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+            const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url;a.download='project-'+this.mode+'-'+this.shape+'.'+format;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
         } catch(error) {this.exportError='Image export failed. Try the SVG download.';} finally {if(sourceUrl)URL.revokeObjectURL(sourceUrl);this.exporting=false;}
     }};
 }
