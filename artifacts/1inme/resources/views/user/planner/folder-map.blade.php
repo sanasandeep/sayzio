@@ -9,6 +9,7 @@ $fnetDrawn = \App\Services\Planner\FolderFlowNetwork::drawnCount($fnet['edges'])
 $fnetMissed = \App\Services\Planner\FolderFlowNetwork::undrawableCount($fnet['edges']);
 $fnetItems = collect($resources)->groupBy('kind');
 $fnetMeta = \App\Services\Planner\FolderFlowNetwork::filterMeta($fnet['stations']);
+$guideMeta = \App\Services\Planner\FolderFlowNetwork::filterMeta(\App\Services\Planner\FolderFlowDemo::map()['stations']);
 $mapColor=preg_match('/^#[0-9a-f]{6}$/i',$project->color??'')?$project->color:'#365ce9';
 // Two shapes per view: the diagram, and the same content as an outline.
 // 'guide' is built by hand because it is not one of MODES -- the exporter
@@ -26,7 +27,7 @@ $chartExports['guide'] = [
     'tree' => \App\Services\Planner\FolderChartExport::renderTree('guide', $project->name, [], []),
 ];
 @endphp
-<section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports),@js($fnetMeta))" @keydown.escape.window="closePanel()">
+<section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports),@js($fnetMeta),@js($guideMeta))" @keydown.escape.window="closePanel()">
 <div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button><button @click="mode='guide'" :aria-pressed="mode==='guide'">How it works</button></div></div>
 <div class="notes-actions folder-export-actions"><span class="fnet-shape" role="group" aria-label="What to export"><button class="form-chip" type="button" @click="shape='map'" :aria-pressed="shape==='map'" :class="shape==='map'?'is-on':''">Map</button><button class="form-chip" type="button" @click="shape='tree'" :aria-pressed="shape==='tree'" :class="shape==='tree'?'is-on':''">Outline</button></span><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
 <div class="map-panel-backdrop" x-show="selected!==null" x-cloak @click.self="closePanel()">
@@ -101,27 +102,7 @@ $chartExports['guide'] = [
 @endforeach
 </aside></div>
 <div x-show="mode==='flow'" x-cloak>
-<div class="fnet-filters" role="group" aria-label="Filter stations">
-<button type="button" class="fnet-fchip" :class="{'is-on':fnetHideUnused}" :aria-pressed="fnetHideUnused" @click="fnetHideUnused=!fnetHideUnused;fnetRedraw()">Only what is used</button>
-<span class="fnet-fsep" aria-hidden="true"></span>
-@foreach($fnetStages as $fnetFk => $fnetFs)
-<button type="button" class="fnet-fchip is-line" style="--ln:var(--fnet-{{ $fnetFk }})" :class="{'is-on':fnetStageIsOn('{{ $fnetFk }}')}" :aria-pressed="fnetStageIsOn('{{ $fnetFk }}')" @click="fnetToggleStage('{{ $fnetFk }}')">{{ $fnetFs['eyebrow'] }}</button>
-@endforeach
-<span class="fnet-fsep" aria-hidden="true"></span>
-<button type="button" class="fnet-fchip" :class="{'is-on':fnetAi==='ai'}" :aria-pressed="fnetAi==='ai'" @click="fnetAi=fnetAi==='ai'?'all':'ai';fnetRedraw()">Runs on AI</button>
-<button type="button" class="fnet-fchip" :class="{'is-on':fnetAi==='plain'}" :aria-pressed="fnetAi==='plain'" @click="fnetAi=fnetAi==='plain'?'all':'plain';fnetRedraw()">Not AI</button>
-@if($fnetActivity['people'])
-<span class="fnet-fsep" aria-hidden="true"></span>
-<label class="fnet-fperson"><span class="sr-only">Show only stations a person worked in</span>
-<select x-model="fnetPerson" @change="fnetRedraw()"><option value="">Anyone</option>
-@foreach($fnetActivity['people'] as $fnetFp)
-<option value="{{ $fnetFp['id'] }}">{{ $fnetFp['name'] }}</option>
-@endforeach
-</select></label>
-@endif
-<button type="button" class="fnet-fchip is-clear" x-show="fnetFiltered()" x-cloak @click="fnetClear()">Clear</button>
-<span class="fnet-fcount" x-show="fnetFiltered()" x-cloak x-text="fnetHidden() + ' of {{ count($fnet['stations']) }} stations hidden'"></span>
-</div>
+@include('user.planner.fnet-filters',['stages'=>$fnetStages,'filterPeople'=>$fnetActivity['people']])
 <div class="fnet-board">
 <div class="fnet-canvas">
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
@@ -131,6 +112,7 @@ $chartExports['guide'] = [
 
 @endforeach
 </div>
+@include('user.planner.fnet-tree',['stations'=>$fnet['stations'],'stages'=>$fnetStages,'labels'=>$fnetLabels,'panelKey'=>'flow'])
 </div>
 </div>
 @php
@@ -411,6 +393,7 @@ $guide = \App\Services\Planner\FolderFlowDemo::map();
 $guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
 @endphp
 <div class="fnet-sample-band" role="note"><strong>Worked example</strong><span>Every number below is invented &mdash; a fictional folder for {{ \App\Services\Planner\FolderFlowDemo::COMPANY }}, busy mid-launch. Nothing here comes from {{ $project->name }}.</span></div>
+@include('user.planner.fnet-filters',['stages'=>$fnetStages,'filterPeople'=>$guideActivity['people']])
 <div class="fnet-board is-sample">
 <div class="fnet-canvas">
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
@@ -419,6 +402,7 @@ $guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
 @include('user.planner.fnet-station',['station'=>$guideStation,'stages'=>$fnetStages,'labels'=>$fnetLabels,'faces'=>$fnetFaces,'activity'=>$guideActivity,'interactive'=>true,'panelKey'=>'guide'])
 @endforeach
 </div>
+@include('user.planner.fnet-tree',['stations'=>$guide['stations'],'stages'=>$fnetStages,'labels'=>$fnetLabels,'panelKey'=>'guide'])
 </div>
 </div>
 @php
@@ -464,9 +448,10 @@ $guideWire = [
 </section>
 
 <script>
-function folderChart(exports, stations) {
+function folderChart(exports, stations, guideStations) {
     return { mode:'flow', shape:'map', selected:null, trigger:null,
       stations: stations || [],
+      guideStations: guideStations || [],
       fnetHideUnused:false, fnetStageOn:{}, fnetAi:'all', fnetPerson:'',
       fnetShow(s) {
         if (this.fnetHideUnused && !s.used) { return false; }
@@ -476,9 +461,13 @@ function folderChart(exports, stations) {
         if (this.fnetPerson !== '' && !s.people.includes(Number(this.fnetPerson))) { return false; }
         return true;
       },
-      fnetVisible(kind) { const s = this.stations.find(x => x.kind === kind); return s ? this.fnetShow(s) : true; },
-      fnetShown() { return this.stations.filter(s => this.fnetShow(s)).length; },
-      fnetHidden() { return this.stations.length - this.fnetShown(); },
+      // One set of filter state, two boards. Whichever is on screen is the
+      // one the chips are describing, so a filter set while reading the
+      // example is still set when you look at your own map.
+      fnetMetaFor() { return this.mode === 'guide' ? this.guideStations : this.stations; },
+      fnetVisible(kind) { const s = this.fnetMetaFor().find(x => x.kind === kind); return s ? this.fnetShow(s) : true; },
+      fnetShown() { return this.fnetMetaFor().filter(s => this.fnetShow(s)).length; },
+      fnetHidden() { return this.fnetMetaFor().length - this.fnetShown(); },
       fnetFiltered() { return this.fnetHidden() > 0; },
       fnetClear() { this.fnetHideUnused=false; this.fnetStageOn={}; this.fnetAi='all'; this.fnetPerson=''; this.fnetRedraw(); },
       // The rails have to follow: a segment to a hidden station must go.
