@@ -118,6 +118,7 @@ $chartExports['guide'] = [
 @php
 $fnetWire = [
     'labels' => $fnetLabels,
+    'kindStage' => array_column($fnet['stations'], 'stage', 'kind'),
     'stages' => array_map(fn ($st) => $st['eyebrow'], $fnetStages),
     'mesh'   => \App\Services\Planner\FolderFlowMesh::reach(),
     'rails'  => $fnet['rails'],
@@ -170,6 +171,18 @@ $fnetWire = [
 
   var data;
   var baseMarkup = '';
+  var tip = document.createElement('div');
+  tip.className = 'fnet-tip';
+  tip.hidden = true;
+  board.appendChild(tip);
+  function showTip(text, ev) {
+    var box = board.getBoundingClientRect();
+    tip.textContent = text;
+    tip.hidden = false;
+    tip.style.left = (ev.clientX - box.left) + 'px';
+    tip.style.top = (ev.clientY - box.top) + 'px';
+  }
+  function hideTip() { tip.hidden = true; }
   try { data = JSON.parse(json.textContent); } catch (e) { return; }
   var rails = data.rails || [];
   var edges = data.edges || [];
@@ -242,6 +255,7 @@ $fnetWire = [
   var labels = data.labels || {};
   var stageNames = data.stages || {};
   var mesh = data.mesh || {};
+  var stageOf = data.kindStage || {};
 
   function label(kind) { return labels[kind] || kind; }
 
@@ -260,6 +274,8 @@ $fnetWire = [
   // sixty-three of them at rest is a hairball, not a map.
   function meshMarkup(kind) {
     var targets = mesh[kind] || [];
+    var stage = stageOf[kind];
+    var stroke = stage ? 'var(--fnet-' + esc(stage) + ')' : 'var(--fnet-ink)';
     var m = '';
     for (var i = 0; i < targets.length; i++) {
       var other = targets[i];
@@ -269,10 +285,13 @@ $fnetWire = [
       if (!pa || !pb) { continue; }
       var t = label(kind) + ' can connect to ' + label(other)
         + ' \u2014 something the product allows in every folder. Counts nothing.';
-      m += '<path class="fnet-mesh" d="M ' + pa.x + ' ' + pa.y + ' L ' + pb.x + ' ' + pb.y + '"'
-        +  ' fill="none" stroke="var(--fnet-ink)" stroke-width="1.3" stroke-linecap="round"'
-        +  ' opacity=".26" stroke-dasharray="1.5 5">'
-        +  '<title>' + esc(t) + '</title></path>';
+      var d = 'M ' + pa.x + ' ' + pa.y + ' L ' + pb.x + ' ' + pb.y;
+      // Fat transparent copy first: a 1.5px line is almost impossible to
+      // hover on purpose, so this is what the pointer actually hits.
+      m += '<path class="fnet-hit" d="' + d + '" fill="none" stroke="transparent"'
+        +  ' stroke-width="16" data-tip="' + esc(t) + '"/>'
+        +  '<path class="fnet-mesh" d="' + d + '" fill="none" stroke="' + stroke + '"'
+        +  ' stroke-width="1.8" stroke-linecap="round" opacity=".75" stroke-dasharray="2 5"/>';
     }
     return m;
   }
@@ -303,9 +322,10 @@ $fnetWire = [
         // Straight. A bowed dashed line read as though it were tracing
         // something; a ruled one reads as the diagram it is.
         var d = 'M ' + a.x + ' ' + a.y + ' L ' + b.x + ' ' + b.y;
-        out += '<path class="fnet-rail" d="' + d + '" fill="none" stroke="' + stroke + '"'
-            +  ' stroke-width="3.5" stroke-linecap="round" opacity=".5" stroke-dasharray="9 8">'
-            +  '<title>' + esc(railTitle(rails[r])) + '</title></path>';
+        out += '<path class="fnet-hit" d="' + d + '" fill="none" stroke="transparent"'
+            +  ' stroke-width="16" data-tip="' + esc(railTitle(rails[r])) + '"/>'
+            +  '<path class="fnet-rail" d="' + d + '" fill="none" stroke="' + stroke + '"'
+            +  ' stroke-width="3.5" stroke-linecap="round" opacity=".5" stroke-dasharray="9 8"/>';
       }
     }
 
@@ -327,15 +347,18 @@ $fnetWire = [
       var joinTitle = edge.count + ' saved connection' + (edge.count === 1 ? '' : 's')
           + ' between ' + label(edge.from) + ' and ' + label(edge.to)
           + ' \u2014 item to item, saved under Resources. Not a suggestion: these exist.';
-      out += '<path class="fnet-join" d="M ' + pa.x + ' ' + pa.y + ' C ' + c1x + ' ' + c1y
-          +  ', ' + c2x + ' ' + c2y + ', ' + pb.x + ' ' + pb.y + '" fill="none"'
-          +  ' stroke="var(--fnet-join)" stroke-width="' + width + '" stroke-linecap="round" opacity=".9">'
-          +  '<title>' + esc(joinTitle) + '</title></path>';
+      var jd = 'M ' + pa.x + ' ' + pa.y + ' C ' + c1x + ' ' + c1y
+          +  ', ' + c2x + ' ' + c2y + ', ' + pb.x + ' ' + pb.y;
+      out += '<path class="fnet-hit" d="' + jd + '" fill="none" stroke="transparent"'
+          +  ' stroke-width="18" data-tip="' + esc(joinTitle) + '"/>'
+          +  '<path class="fnet-join" d="' + jd + '" fill="none"'
+          +  ' stroke="var(--fnet-join)" stroke-width="' + width + '" stroke-linecap="round" opacity=".9"/>';
       var mx = (pa.x + c1x * 3 + c2x * 3 + pb.x) / 8;
       var my = (pa.y + c1y * 3 + c2y * 3 + pb.y) / 8;
-      out += '<circle cx="' + mx + '" cy="' + my + '" r="10" fill="var(--fnet-card)"'
-          +  ' stroke="var(--fnet-join)" stroke-width="1.7">'
-          +  '<title>' + esc(joinTitle) + '</title></circle>';
+      out += '<circle class="fnet-hit" cx="' + mx + '" cy="' + my + '" r="13" fill="transparent"'
+          +  ' data-tip="' + esc(joinTitle) + '"/>'
+          +  '<circle cx="' + mx + '" cy="' + my + '" r="10" fill="var(--fnet-card)"'
+          +  ' stroke="var(--fnet-join)" stroke-width="1.7"/>';
       out += '<text x="' + mx + '" y="' + (my + 3.6) + '" text-anchor="middle" font-size="10.5"'
           +  ' font-weight="600" fill="var(--fnet-ink)">' + esc(edge.count) + '</text>';
     }
@@ -344,16 +367,49 @@ $fnetWire = [
     svg.innerHTML = out;
   }
 
-  function showMesh(kind) { svg.innerHTML = baseMarkup + meshMarkup(kind); }
-  function clearMesh() { if (baseMarkup) { svg.innerHTML = baseMarkup; } }
+  // Drawing the lines was not enough: a fan of lines does not say WHICH
+  // stations are on the other end. So the reachable ones light up and the
+  // rest fade, and the readout says how many.
+  function showMesh(kind, ev) {
+    svg.innerHTML = baseMarkup + meshMarkup(kind);
+    var targets = mesh[kind] || [];
+    grid.classList.add('is-focusing');
+    var all = grid.querySelectorAll('[data-fnet-kind]');
+    for (var i = 0; i < all.length; i++) {
+      var k = all[i].getAttribute('data-fnet-kind');
+      all[i].classList.toggle('is-linked', targets.indexOf(k) > -1);
+      all[i].classList.toggle('is-hot', k === kind);
+    }
+    if (ev) {
+      showTip(label(kind) + ' can connect to ' + targets.length + ' other kind'
+        + (targets.length === 1 ? '' : 's') + ' \u2014 the ones lit up. Hover a line for what it means.', ev);
+    }
+  }
+  function clearMesh() {
+    if (baseMarkup) { svg.innerHTML = baseMarkup; }
+    grid.classList.remove('is-focusing');
+    var marked = grid.querySelectorAll('.is-linked,.is-hot');
+    for (var i = 0; i < marked.length; i++) {
+      marked[i].classList.remove('is-linked');
+      marked[i].classList.remove('is-hot');
+    }
+    hideTip();
+  }
   function meshFrom(ev) {
     var stn = (ev.target && ev.target.closest) ? ev.target.closest('[data-fnet-kind]') : null;
-    if (stn) { showMesh(stn.getAttribute('data-fnet-kind')); }
+    if (stn) { showMesh(stn.getAttribute('data-fnet-kind'), ev); }
   }
   grid.addEventListener('mouseover', meshFrom);
+  grid.addEventListener('mousemove', meshFrom);
   grid.addEventListener('focusin', meshFrom);
   grid.addEventListener('mouseleave', clearMesh);
   grid.addEventListener('focusout', clearMesh);
+  // Rails and junctions answer for themselves too, which they did not before.
+  svg.addEventListener('mousemove', function (ev) {
+    var t = (ev.target && ev.target.getAttribute) ? ev.target.getAttribute('data-tip') : null;
+    if (t) { showTip(t, ev); } else { hideTip(); }
+  });
+  svg.addEventListener('mouseleave', hideTip);
 
   if (window.ResizeObserver) { new ResizeObserver(draw).observe(grid); }
   // A board inside a hidden view measures zero at boot, so its rails are
@@ -408,6 +464,7 @@ $guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
 @php
 $guideWire = [
     'labels' => $fnetLabels,
+    'kindStage' => array_column($guide['stations'], 'stage', 'kind'),
     'stages' => array_map(fn ($st) => $st['eyebrow'], $fnetStages),
     'mesh'   => \App\Services\Planner\FolderFlowMesh::reach(),
     'rails'  => $guide['rails'],
