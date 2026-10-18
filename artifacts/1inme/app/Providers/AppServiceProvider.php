@@ -14,6 +14,7 @@ use App\Services\PlanRecommender;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -60,6 +61,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Blade's own @json splits its argument on every comma, not on argument
+        // boundaries, so any expression containing one loses the four escaping
+        // flags the directive means to apply -- 87 of the 526 uses in this
+        // codebase, 86 of them inside a <script>. A custom directive wins over
+        // the built-in (BladeCompiler::compileStatement checks customDirectives
+        // first), so one override fixes every call site at once. See the class.
+        Blade::directive('json', fn ($expression) => \App\Support\View\JsonDirective::compile($expression));
+
         // Who changed what, for every kind a folder can hold. Bound to the
         // models rather than written into controllers so a new route cannot
         // bypass it -- see PlannerResourceActivity for why.
