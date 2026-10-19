@@ -29,7 +29,7 @@ $chartExports['guide'] = [
 @endphp
 <section id="project-map" class="notes-card folder-map visual-folder-map folder-flow-net" style="--folder-color:{{ $mapColor }};--ov-tone:{{ $mapColor }}" x-data="folderChart(@js($chartExports),@js($fnetMeta),@js($guideMeta))" @keydown.escape.window="closePanel()">
 <div class="folder-panel-head"><div><h2>Map view · explore connections</h2><p class="notes-hint">Select a node to explore its items, assign resources or create something new.</p></div><div class="folder-view-switch"><button @click="mode='flow'" :aria-pressed="mode==='flow'">Flow</button><button @click="mode='people'" :aria-pressed="mode==='people'">People / Process</button><button @click="mode='guide'" :aria-pressed="mode==='guide'">How it works</button></div></div>
-<div class="notes-actions folder-export-actions"><span class="fnet-shape" role="group" aria-label="What to export"><button class="form-chip" type="button" @click="shape='map'" :aria-pressed="shape==='map'" :class="shape==='map'?'is-on':''">Map</button><button class="form-chip" type="button" @click="shape='tree'" :aria-pressed="shape==='tree'" :class="shape==='tree'?'is-on':''">Outline</button></span><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
+<div class="notes-actions folder-export-actions" x-show="mode!=='guide'" x-cloak><span class="fnet-shape" role="group" aria-label="What to export"><button class="form-chip" type="button" @click="shape='map'" :aria-pressed="shape==='map'" :class="shape==='map'?'is-on':''">Map</button><button class="form-chip" type="button" @click="shape='tree'" :aria-pressed="shape==='tree'" :class="shape==='tree'?'is-on':''">Outline</button></span><button class="form-chip" type="button" @click="download('png')" :disabled="exporting">Export PNG</button><button class="form-chip" type="button" @click="download('svg')" :disabled="exporting">Export SVG</button><span class="notes-hint" role="status" x-text="exportError"></span></div>
 <div class="map-panel-backdrop" x-show="selected!==null" x-cloak @click.self="closePanel()">
 <aside id="folder-map-panel" class="map-detail-panel notes-card" role="dialog" aria-modal="true" aria-label="Assigned folder items" tabindex="-1" x-ref="panel" @keydown.tab="trapTab($event)">
 @foreach($fnet['stations'] as $fnetPanel)
@@ -70,34 +70,6 @@ $chartExports['guide'] = [
 <p class="notes-hint fnet-panel-note">No changes recorded yet in this workspace, so nobody is shown here. That means recording has just started, not that nobody has worked on it.</p>
 @endif
 <footer class="map-panel-footer"><a class="form-chip" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>$fnetPanel['tab']]) }}">View all &rarr;</a><a class="form-chip" href="{{ route('user.projects.show',['project'=>$project->id,'tab'=>'resources']) }}#assign-resources">+ Assign existing</a></footer>
-</div>
-@endforeach
-@php $guidePanel = \App\Services\Planner\FolderFlowDemo::map(); $guidePanelActivity = \App\Services\Planner\FolderFlowDemo::activity(); @endphp
-@foreach($guidePanel['stations'] as $gp)
-<div class="map-panel-section fnet-panel" style="--ln:var(--fnet-{{ $gp['stage'] }})" x-show="selected==='guide:{{ $gp['kind'] }}'">
-<header class="map-panel-header"><span class="map-panel-emblem fnet-panel-emblem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $gp['icon'] !!}</svg></span><div class="map-panel-heading"><h2>{{ $fnetLabels[$gp['kind']] ?? $gp['kind'] }}</h2><p>{{ number_format($gp['count']) }} in this folder &middot; {{ $fnetStages[$gp['stage']]['eyebrow'] ?? '' }}@if($gp['ai']) &middot; runs on AI @endif</p></div><button class="map-panel-close" type="button" @click="closePanel()" aria-label="Close station details"><i class="fas fa-xmark" aria-hidden="true"></i></button></header>
-<p class="notes-hint fnet-panel-note fnet-sample-note">Worked example &mdash; invented items for {{ \App\Services\Planner\FolderFlowDemo::COMPANY }}.</p>
-@if($gp['kind'] === 'task' && $gp['count'])
-<p class="notes-hint fnet-panel-note"><span class="folder-progress"><span style="width:68%"></span></span>26 of 38 done</p>
-@endif
-<div class="map-panel-body">
-@forelse(\App\Services\Planner\FolderFlowDemo::items($gp['kind']) as $gi)
-<span class="map-item-card is-static"><span class="map-item-copy"><strong>{{ $gi['label'] }}</strong><small>{{ $gi['detail'] }}</small></span></span>
-@empty
-<div class="map-panel-empty"><strong>Nothing of this kind yet.</strong><p>This is what an unused station looks like: dashed on the map, and offering to assign something that already exists or make one from its own tab.</p></div>
-@endforelse
-@if($gp['count'] > count(\App\Services\Planner\FolderFlowDemo::items($gp['kind'])) && $gp['count'])
-<p class="notes-hint">&hellip; and {{ number_format($gp['count'] - count(\App\Services\Planner\FolderFlowDemo::items($gp['kind']))) }} more. The count on the station is the whole folder; the panel lists them.</p>
-@endif
-</div>
-@if($gp['people'])
-<div class="fnet-panel-people"><h3>Worked here in the last {{ $guidePanelActivity['window_days'] }} days</h3>
-@foreach($gp['people'] as $gperson)
-<span class="fnet-panel-person"><i class="fnet-av fnet-initial">{{ mb_substr($gperson['name'], 0, 1) }}</i><b>{{ $gperson['name'] }}</b><small>{{ number_format($gperson['changes']) }} changes</small></span>
-@endforeach
-</div>
-@endif
-<footer class="map-panel-footer is-stacked"><span class="map-panel-footer-row"><span class="form-chip is-disabled" aria-disabled="true">View all &rarr;</span><span class="form-chip is-disabled" aria-disabled="true">+ Assign existing</span></span><span class="notes-hint">Both work on your own map.</span></footer>
 </div>
 @endforeach
 </aside></div>
@@ -455,39 +427,6 @@ $fnetWire = [
 })();
 </script>
 <div x-show="mode==='guide'" x-cloak>
-@php
-$guide = \App\Services\Planner\FolderFlowDemo::map();
-$guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
-@endphp
-<div class="fnet-sample-band" role="note"><strong>Worked example</strong><span>Every number below is invented &mdash; a fictional folder for {{ \App\Services\Planner\FolderFlowDemo::COMPANY }}, busy mid-launch. Nothing here comes from {{ $project->name }}.</span></div>
-@include('user.planner.fnet-filters',['stages'=>$fnetStages,'filterPeople'=>$guideActivity['people']])
-<div class="fnet-stage" data-fnet-stage>
-@include('user.planner.fnet-zoom')
-<div class="fnet-board is-sample" data-fnet-view>
-<div class="fnet-sizer" data-fnet-sizer>
-<div class="fnet-canvas" data-fnet-zoom>
-<svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
-<div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $guide['cols'] }}">
-@foreach($guide['stations'] as $guideStation)
-@include('user.planner.fnet-station',['station'=>$guideStation,'stages'=>$fnetStages,'labels'=>$fnetLabels,'faces'=>$fnetFaces,'activity'=>$guideActivity,'interactive'=>true,'panelKey'=>'guide'])
-@endforeach
-</div>
-@include('user.planner.fnet-tree',['stations'=>$guide['stations'],'stages'=>$fnetStages,'labels'=>$fnetLabels,'panelKey'=>'guide'])
-</div>
-</div>
-</div>
-</div>
-@php
-$guideWire = [
-    'labels' => $fnetLabels,
-    'kindStage' => array_column($guide['stations'], 'stage', 'kind'),
-    'stages' => array_map(fn ($st) => $st['eyebrow'], $fnetStages),
-    'mesh'   => \App\Services\Planner\FolderFlowMesh::reach(),
-    'rails'  => $guide['rails'],
-    'edges'  => $guide['edges'],
-];
-@endphp
-<script type="application/json" data-fnet-json>@json($guideWire)</script>
 <div class="fnet-key">
 @foreach($fnetStages as $fnetGk => $fnetGs)
 <span style="--ln:var(--fnet-{{ $fnetGk }})"><i></i>{{ $fnetGs['eyebrow'] }}</span>
@@ -537,6 +476,47 @@ $guideWire = [
 </article>
 @endforeach
 </div>
+{{-- What connecting actually buys you. The same four stations twice: once
+     with nothing saved between them, once with the junctions in place. The
+     numbers are deliberately absent -- this is about what the folder can
+     answer, not about any folder's figures. --}}
+<section class="fnet-why">
+<h3>What you get for connecting things</h3>
+<p class="notes-hint">A folder works with nothing connected. Saving a connection under Resources is what lets one station answer a question about another.</p>
+<div class="fnet-why-pair">
+<article class="fnet-why-side">
+<span class="fnet-why-tag">Nothing connected</span>
+<svg viewBox="0 0 260 104" role="img" aria-label="Four separate stations with no lines between them">
+<rect x="6" y="10" width="54" height="34" rx="9" fill="color-mix(in srgb,var(--fnet-create) 16%,#fff)" stroke="color-mix(in srgb,var(--fnet-create) 40%,transparent)"/><text x="33" y="31" text-anchor="middle" font-size="9" font-weight="700" fill="color-mix(in srgb,var(--fnet-create) 80%,#222)">Links</text>
+<rect x="88" y="10" width="54" height="34" rx="9" fill="color-mix(in srgb,var(--fnet-create) 16%,#fff)" stroke="color-mix(in srgb,var(--fnet-create) 40%,transparent)"/><text x="115" y="31" text-anchor="middle" font-size="9" font-weight="700" fill="color-mix(in srgb,var(--fnet-create) 80%,#222)">Forms</text>
+<rect x="6" y="60" width="54" height="34" rx="9" fill="color-mix(in srgb,var(--fnet-reach) 16%,#fff)" stroke="color-mix(in srgb,var(--fnet-reach) 40%,transparent)"/><text x="33" y="81" text-anchor="middle" font-size="9" font-weight="700" fill="color-mix(in srgb,var(--fnet-reach) 85%,#222)">Campaign</text>
+<rect x="88" y="60" width="54" height="34" rx="9" fill="color-mix(in srgb,var(--fnet-act) 16%,#fff)" stroke="color-mix(in srgb,var(--fnet-act) 40%,transparent)"/><text x="115" y="81" text-anchor="middle" font-size="9" font-weight="700" fill="color-mix(in srgb,var(--fnet-act) 80%,#222)">Tasks</text>
+</svg>
+<p>Each station counts its own items and stops there. Open Tasks and it cannot say which campaign the work was for; open a campaign and it cannot say which links carried it.</p>
+</article>
+<article class="fnet-why-side is-on">
+<span class="fnet-why-tag is-on">Connected under Resources</span>
+<svg viewBox="0 0 260 104" role="img" aria-label="The same four stations joined by lines meeting at junctions">
+<path d="M60 27h28" stroke="var(--fnet-join)" stroke-width="2.4" stroke-linecap="round"/>
+<path d="M33 44v16" stroke="var(--fnet-join)" stroke-width="2.4" stroke-linecap="round"/>
+<path d="M115 44v16" stroke="var(--fnet-join)" stroke-width="2.4" stroke-linecap="round"/>
+<circle cx="74" cy="27" r="7" fill="#fff" stroke="var(--fnet-join)" stroke-width="2"/>
+<circle cx="33" cy="52" r="7" fill="#fff" stroke="var(--fnet-join)" stroke-width="2"/>
+<circle cx="115" cy="52" r="7" fill="#fff" stroke="var(--fnet-join)" stroke-width="2"/>
+<rect x="6" y="10" width="54" height="34" rx="9" fill="color-mix(in srgb,var(--fnet-create) 16%,#fff)" stroke="color-mix(in srgb,var(--fnet-create) 55%,transparent)"/><text x="33" y="31" text-anchor="middle" font-size="9" font-weight="700" fill="color-mix(in srgb,var(--fnet-create) 80%,#222)">Links</text>
+<rect x="88" y="10" width="54" height="34" rx="9" fill="color-mix(in srgb,var(--fnet-create) 16%,#fff)" stroke="color-mix(in srgb,var(--fnet-create) 55%,transparent)"/><text x="115" y="31" text-anchor="middle" font-size="9" font-weight="700" fill="color-mix(in srgb,var(--fnet-create) 80%,#222)">Forms</text>
+<rect x="6" y="60" width="54" height="34" rx="9" fill="color-mix(in srgb,var(--fnet-reach) 16%,#fff)" stroke="color-mix(in srgb,var(--fnet-reach) 55%,transparent)"/><text x="33" y="81" text-anchor="middle" font-size="9" font-weight="700" fill="color-mix(in srgb,var(--fnet-reach) 85%,#222)">Campaign</text>
+<rect x="88" y="60" width="54" height="34" rx="9" fill="color-mix(in srgb,var(--fnet-act) 16%,#fff)" stroke="color-mix(in srgb,var(--fnet-act) 55%,transparent)"/><text x="115" y="81" text-anchor="middle" font-size="9" font-weight="700" fill="color-mix(in srgb,var(--fnet-act) 80%,#222)">Tasks</text>
+</svg>
+<p>The junctions are a record of what belongs together. Open Tasks and the campaign it served is there; open the campaign and the links and forms it used come with it. The same connections are what the reports read.</p>
+</article>
+</div>
+<ul class="fnet-why-list">
+<li><b>Links to forms</b><span>A click can be followed to the form it led to, instead of two separate counts.</span></li>
+<li><b>Tasks to a campaign</b><span>Work is attributed to the thing it was for, so a campaign's cost is not guesswork.</span></li>
+<li><b>Plans to the content they produced</b><span>A plan stops being a document and becomes the index of what came out of it.</span></li>
+</ul>
+</section>
 <p class="notes-hint mt-4">Your own folder starts empty and fills as you use it. <button type="button" class="fnet-guide-link" @click="mode='flow'">Back to {{ $project->name }} &rarr;</button></p>
 </div>
 <div x-show="mode==='people'" x-cloak>
