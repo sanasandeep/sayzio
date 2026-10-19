@@ -2,14 +2,46 @@
     use App\Modules\Common\Support\SitePagesContent;
     use App\Modules\Admin\Models\AppSetting;
     $heroCopy=SitePagesContent::normalizeHeroCopy((array)AppSetting::get('marketing_hero_copy',[]));
-    $journey=[
-      ['Your business','Identity & knowledge','fa-store','Northstar Studio','Brand Kit · Services · AI Minds','Start with your services, brand identity and business knowledge.','#5865ef'],
-      ['Pages & marketing','Get discovered','fa-window-maximize','Your services, online','Business page · Campaign · QR','Create your pages and marketing materials, then share them with your audience.','#8b5cf6'],
-      ['Enquiry','A visitor gets in touch','fa-comment-dots','Alex: “I need a new logo.”','New enquiry · Design services','Capture enquiries through forms, chat and booking pages.','#0ea5b7'],
-      ['CRM','Keep the conversation moving','fa-address-card','Alex Morgan','Contact · Requirements · Follow-up','Organize customer details and conversations so you know what to do next.','#3672df'],
-      ['Sale','Agree the work','fa-file-invoice-dollar','Brand identity package','Invoice · Paid','Manage the sale, invoice and payment information for the agreed work.','#159b82'],
-      ['Delivery & support','Turn a promise into progress','fa-list-check','Alex’s brand project','Design ✓ · Review · Delivery','Keep client projects, tasks, delivery and customer communication organized.','#b16bd7'],
-      ['Repeat customer','Build a lasting relationship','fa-arrows-rotate','Alex: “Let’s do our website.”','Customer · Next opportunity','Continue the relationship through support, follow-ups and future work.','#db8d27'],
+    /*
+     * The hero scene.
+     *
+     * This replaced a seven-row journey panel. Sana, of that panel and of two
+     * attempts to enrich it: "concept seems to be good but design looks too
+     * old", "i neee cdless of text.. more graphics and animations", and then
+     * of a style reference: illustrated scenes, with the real product in them.
+     *
+     * So the argument is made by a picture rather than a list. Three surfaces
+     * from the actual product float over a soft ground -- a fragment of the
+     * folder map, a biolink page on a phone, and one customer record -- and
+     * the folder map's own dashed rails run BETWEEN them, carrying a
+     * travelling dot. Connectedness is shown as motion between real screens
+     * instead of asserted in a paragraph.
+     *
+     * The surfaces are built in CSS, not screenshotted: they stay sharp at
+     * any size, they animate, they never go stale when the UI ships, and no
+     * customer data is ever baked into a public page.
+     *
+     * Chip order matches the story left to right: what you already had, where
+     * he came from, what he asked, who he is, what he paid, what is running,
+     * what is next. The last two stay dashed -- the record is deliberately
+     * unfinished, because that is what a live one looks like.
+     */
+    $chips=[
+      ['Design services','fa-store','#5865ef',false],
+      ['QR flyer','fa-window-maximize','#8b5cf6',false],
+      ['“new logo”','fa-comment-dots','#0ea5b7',false],
+      ['Alex Morgan','fa-address-card','#3672df',false],
+      ['Paid','fa-file-invoice-dollar','#159b82',false],
+      ['In review','fa-list-check','#b16bd7',true],
+      ['Next job','fa-arrows-rotate','#db8d27',true],
+    ];
+
+    /* Stations on the folder-map fragment. The dimmed one is a real state:
+     * an unused station is dashed on the map and asks to be filled. */
+    $stations=[
+      ['Links','3','fa-link','#5865ef',false],
+      ['Campaign','1','fa-bullhorn','#8b5cf6',false],
+      ['Tasks','0','fa-list-check','#159b82',true],
     ];
 @endphp
 <section id="hero" class="sj-hero sec-first" aria-labelledby="hero-h">
@@ -29,15 +61,66 @@
 </div>
 
 </div>
-<div id="sayzio-journey" class="sj-board" aria-label="Illustrative customer journey">
-<div class="sj-board-head"><span><i class="fas fa-route" aria-hidden="true"></i>One connected customer journey</span><span class="sj-demo-label">Illustrative journey</span></div>
-<ol class="sj-stages">
-@foreach($journey as $i=>[$label,$caption,$icon,$example,$meta,$description,$color])
-<li class="sj-stage {{ $i===0?'is-active':'' }}" style="--stage-color:{{ $color }}"><button type="button" class="sj-stage-button" data-journey-step="{{ $i }}" aria-pressed="{{ $i===0?'true':'false' }}" aria-describedby="sj-description-{{ $i }}"><span class="sj-step-number">{{ $i+1 }}</span><span class="sj-stage-icon"><i class="fas {{ $icon }}" aria-hidden="true"></i></span><span class="sj-stage-copy"><strong>{{ $label }}</strong><small>{{ $caption }}</small></span><span class="sj-mini-card"><b>{{ $example }}</b><small>{{ $meta }}</small></span></button><span id="sj-description-{{ $i }}" class="sr-only">{{ $description }}</span></li>
-@endforeach
-</ol>
-<div class="sj-explanation" aria-live="off">@foreach($journey as $i=>$stage)<p data-journey-description="{{ $i }}" @if($i!==0) hidden @endif>{{ $stage[5] }}</p>@endforeach</div>
-<div class="sj-board-foot"><div class="sj-zio">@include('home.partials.zio-face',['mouth'=>true,'alt'=>'Zio, your AI helper','size'=>'110px'])<span><strong>AI helps along the way</strong><small>Create, plan, answer and assist.</small></span></div><button class="sj-playback" type="button" data-journey-toggle aria-label="Pause journey animation"><i class="fas fa-pause" aria-hidden="true"></i></button></div>
+<div id="sayzio-journey" class="sj-board sj-board--scene" aria-label="Illustrative picture of a connected business">
+<div class="sj-board-head"><span><i class="fas fa-circle-nodes" aria-hidden="true"></i>One business. Everything connected.</span><span class="sj-demo-label">Illustrative journey</span></div>
+
+<div class="sj-scene">
+  <span class="sj-blob b1" aria-hidden="true"></span><span class="sj-blob b2" aria-hidden="true"></span><span class="sj-blob b3" aria-hidden="true"></span>
+  <span class="sj-dots" aria-hidden="true"></span>
+
+  {{-- The rails are the folder map's own language, now running between the
+       screens. Fixed viewBox on a fixed-ratio stage, and every surface is
+       placed in percentages of that same stage, so one unit is one unit and
+       nothing is measured at runtime. --}}
+  <svg class="sj-rails" viewBox="0 0 600 520" aria-hidden="true" focusable="false">
+    <path id="sj-rail-0" d="M441 321 C431 379, 411 358, 363 410" stroke="#0ea5b7"/>
+    <path id="sj-rail-1" d="M51 406 C35 330, 40 265, 50 187" stroke="#5865ef"/>
+    <path id="sj-rail-2" d="M389 459 C413 459, 472 458, 500 462" stroke="#db8d27"/>
+    @foreach([['0','#0ea5b7','3s','0s'],['1','#5865ef','3.5s','0.9s'],['2','#db8d27','4s','1.8s']] as [$rid,$rc,$rdur,$rdelay])
+      <circle r="4" fill="{{ $rc }}" opacity="0">
+        <animateMotion dur="{{ $rdur }}" begin="{{ $rdelay }}" repeatCount="indefinite" calcMode="linear"><mpath href="#sj-rail-{{ $rid }}"/></animateMotion>
+        <animate attributeName="opacity" values="0;1;1;0" dur="{{ $rdur }}" begin="{{ $rdelay }}" repeatCount="indefinite"/>
+      </circle>
+    @endforeach
+  </svg>
+
+  <div class="sj-surface sj-map">
+    <div class="mh"><i class="fas fa-diagram-project" aria-hidden="true"></i>Folder &middot; flow</div>
+    @foreach($stations as [$sLabel,$sCount,$sIcon,$sColor,$sDim])
+      <div class="stn {{ $sDim ? 'dim' : '' }}"><span><b>{{ $sLabel }}</b><s>{{ $sCount }}</s></span><i class="fas {{ $sIcon }}" style="background:{{ $sColor }}" aria-hidden="true"></i></div>
+    @endforeach
+  </div>
+
+  <div class="sj-surface sj-phone" aria-hidden="true"><div class="scr">
+    <span class="av"></span><span class="nm"></span><span class="bi"></span>
+    <span class="btn"></span><span class="btn"></span><span class="btn g"></span><span class="btn g"></span>
+  </div></div>
+
+  <div class="sj-mini sj-toast"><span class="tk"><i class="fas fa-check" aria-hidden="true"></i></span><span><b>Invoice paid</b><small>Brand identity package</small></span></div>
+
+  <div class="sj-mini sj-anal"><span class="lb">Clicks this week</span>
+    <span class="sj-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+
+  <p class="sj-bubble">&ldquo;I need a new logo.&rdquo;</p>
+
+  <div class="sj-surface sj-rec2">
+    <div class="rh"><span class="ava">AM</span><span><span class="rn">Alex Morgan</span><span class="rs">One customer record</span></span><span class="cnt"><b>5</b>of 7</span></div>
+    <div class="chips">
+      @foreach($chips as $ci => [$cLabel,$cIcon,$cColor,$cPend])
+        <span data-chip="{{ $ci }}" class="{{ $cPend ? 'pend' : '' }}"><i class="fas {{ $cIcon }}" @if(! $cPend) style="background:{{ $cColor }}" @endif aria-hidden="true"></i>{{ $cLabel }}</span>
+      @endforeach
+    </div>
+  </div>
+
+  <p class="sj-zbub">I know this one &mdash; it&rsquo;s Alex.</p>
+
+  <div class="sj-zio-stage">
+    @include('home.partials.zio-face',['mouth'=>true,'alt'=>'Zio, your AI helper','size'=>'110px'])
+    <span class="sj-zio-spark" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.7 6.4 4.9 10.6 12 12-7.1 1.4-11.3 5.6-12 12-.7-6.4-4.9-10.6-12-12C7.1 10.6 11.3 6.4 12 0z"/></svg></span>
+  </div>
+</div>
+
+<div class="sj-board-foot"><button class="sj-playback" type="button" data-journey-toggle aria-label="Pause the animation"><i class="fas fa-pause" aria-hidden="true"></i></button></div>
 <p class="sj-demo-note">Example only. Connect tools and review actions as needed.</p>
 </div>
 </div>

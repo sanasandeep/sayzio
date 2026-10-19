@@ -44,3 +44,161 @@
 @media(max-width:850px){.sj-layout{max-width:700px;padding:0 30px 64px;gap:30px}}
 @media(max-width:480px){.sj-layout{padding:0 24px 52px}.sj-copy h1{font-size:36px}}
 </style>
+
+<style>
+/* ===================== The hero scene =====================
+ * A picture instead of a panel: three surfaces from the real product,
+ * floating over soft colour, wired together by the folder map's own
+ * dashed rails. Nothing here is a screenshot -- the surfaces are CSS, so
+ * they stay sharp, animate, and never drift out of date.
+ *
+ * Geometry rule for the whole scene: the stage has a fixed 600x520 ratio,
+ * every surface is positioned in PERCENTAGES of that stage, and the rails
+ * are drawn in a viewBox of exactly 600x520. One unit is one unit, so
+ * nothing is measured at runtime and nothing can drift -- the mistake that
+ * put the folder map's own wires up to 39px off their cards.
+ */
+#sayzio-journey.sj-board--scene{background:transparent;border:0;box-shadow:none;overflow:visible}
+#sayzio-journey.sj-board--scene .sj-board-head{border-bottom:0;padding:4px 2px 10px}
+#sayzio-journey.sj-board--scene .sj-board-foot{padding:6px 2px 0;justify-content:flex-end}
+#sayzio-journey.sj-board--scene .sj-demo-note{text-align:right;padding:4px 2px 0;opacity:.75}
+#sayzio-journey.sj-board--scene .sj-playback{opacity:.6}
+
+.sj-scene{position:relative;width:100%;aspect-ratio:600/520;isolation:isolate;overflow:visible}
+.sj-scene *{box-sizing:border-box}
+
+.sj-blob{position:absolute;border-radius:50%;filter:blur(46px);opacity:.34;pointer-events:none;z-index:0}
+.sj-blob.b1{left:-8%;top:2%;width:52%;height:48%;background:radial-gradient(circle,#6a7bff,transparent 68%);animation:sj-drift1 17s ease-in-out infinite}
+.sj-blob.b2{right:-10%;top:18%;width:56%;height:52%;background:radial-gradient(circle,#b06ae0,transparent 68%);animation:sj-drift2 21s ease-in-out infinite}
+.sj-blob.b3{left:18%;bottom:-6%;width:54%;height:46%;background:radial-gradient(circle,#2fc3b4,transparent 68%);animation:sj-drift1 24s ease-in-out infinite reverse}
+@keyframes sj-drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(5%,-4%) scale(1.07)}}
+@keyframes sj-drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-5%,5%) scale(1.05)}}
+.sj-dots{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.34;
+  background-image:radial-gradient(circle,color-mix(in srgb,var(--sj-ink) 14%,transparent) 1px,transparent 1px);background-size:19px 19px;
+  mask-image:radial-gradient(ellipse at 50% 45%,#000 35%,transparent 72%)}
+
+.sj-rails{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:visible}
+.sj-rails path{fill:none;stroke-width:1.9;stroke-linecap:round;stroke-dasharray:4.5 7;opacity:.75;animation:sj-flowline 2.4s linear infinite}
+@keyframes sj-flowline{to{stroke-dashoffset:-23}}
+
+.sj-surface,.sj-mini{position:absolute;z-index:3;background:#fff;box-shadow:0 20px 44px #1b225c17,0 0 0 1px #1b225c0c;
+  animation:sj-float 7s ease-in-out infinite}
+.sj-surface{border-radius:16px}
+.sj-mini{border-radius:13px;padding:9px 10px}
+@keyframes sj-float{0%,100%{translate:0 0}50%{translate:0 -7px}}
+
+/* --- folder map fragment --- */
+.sj-map{left:1%;top:4%;width:47%;padding:11px;transform:rotate(-1.6deg);animation-delay:-1.2s}
+.sj-map .mh{font-size:7.5px;font-weight:700;color:#8b94ad;letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:4px}
+.sj-map .stn{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;border:1px solid #e7eaf3;border-radius:9px;padding:6px 7px;margin-bottom:5px;background:#fff}
+.sj-map .stn.dim{border-style:dashed;animation:sj-stn-breathe 4.4s ease-in-out infinite}
+@keyframes sj-stn-breathe{0%,100%{opacity:.42}50%{opacity:.68}}
+.sj-map .stn b{display:block;font-size:7px;font-weight:700;color:#5a6480;letter-spacing:.05em;text-transform:uppercase}
+.sj-map .stn s{display:block;font-size:13px;font-weight:800;color:#1b2342;text-decoration:none;line-height:1.1;margin-top:1px}
+.sj-map .stn i{width:19px;height:19px;border-radius:6px;display:grid;place-items:center;font-size:8px;color:#fff}
+
+/* --- biolink page on a phone --- */
+.sj-phone{left:72%;top:0;width:26%;aspect-ratio:150/310;padding:7px;border-radius:26px;transform:rotate(1.8deg);
+  background:linear-gradient(160deg,#20264a,#121733);box-shadow:0 24px 50px #141a3a33,0 0 0 1px #ffffff14 inset;animation-delay:-3.4s}
+.sj-phone .scr{display:block;width:100%;height:100%;border-radius:20px;overflow:hidden;position:relative;
+  background:linear-gradient(170deg,#5a63e8,#8a52d8 52%,#2fb4a8)}
+.sj-phone .scr:after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 38%,#ffffff38 48%,transparent 58%);transform:translateX(-120%);
+  animation:sj-sheen 7s ease-in-out infinite}
+@keyframes sj-sheen{0%,62%{transform:translateX(-120%)}80%,100%{transform:translateX(120%)}}
+.sj-phone .av{display:block;width:30%;aspect-ratio:1;border-radius:50%;background:#ffffff33;border:1.5px solid #ffffff6b;margin:16% auto 0}
+.sj-phone .nm{display:block;height:5px;width:46%;margin:8px auto 0;border-radius:3px;background:#ffffffd4}
+.sj-phone .bi{display:block;height:3.5px;width:62%;margin:5px auto 0;border-radius:3px;background:#ffffff7a}
+.sj-phone .btn{display:block;height:13px;margin:7px 11% 0;border-radius:7px;background:#ffffffe8;box-shadow:0 2px 6px #0000001f}
+.sj-phone .btn.g{background:#ffffff4d}
+
+/* --- the paid moment, and the week's clicks --- */
+.sj-toast{left:49%;top:1%;width:21%;display:flex;align-items:center;gap:7px;transform:rotate(-1deg);
+  animation:sj-float 7.6s ease-in-out infinite,sj-toast-land 12s ease-in-out infinite;animation-delay:-1.1s,0s}
+@keyframes sj-toast-land{0%,4%{opacity:0;transform:translateY(-10px) rotate(-1deg) scale(.95)}
+  10%,74%{opacity:1;transform:translateY(0) rotate(-1deg) scale(1)}82%,100%{opacity:0;transform:translateY(-6px) rotate(-1deg)}}
+.sj-toast .tk{width:17px;height:17px;border-radius:50%;background:#159b82;color:#fff;display:grid;place-items:center;font-size:7px;flex:none;box-shadow:0 0 0 4px #159b8222}
+.sj-toast b{font-size:8.5px;font-weight:720;color:#1b2342;display:block;line-height:1.25}
+.sj-toast small{font-size:7px;color:#99a1b8;display:block}
+.sj-anal{left:45%;top:41%;width:24%;transform:rotate(1deg);animation-delay:-2.6s}
+.sj-anal .lb{font-size:6.5px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:#99a1b8;display:block}
+.sj-bars{display:flex;align-items:flex-end;gap:3px;height:34px;margin-top:7px}
+.sj-bars i{flex:1;min-width:4px;border-radius:3px 3px 1px 1px;background:linear-gradient(#6a7bff,#9a6ae8);transform-origin:bottom;animation:sj-bar 3.2s ease-in-out infinite}
+.sj-bars i:nth-child(1){height:52%}.sj-bars i:nth-child(2){height:74%;animation-delay:.25s}
+.sj-bars i:nth-child(3){height:46%;animation-delay:.5s}.sj-bars i:nth-child(4){height:88%;animation-delay:.75s}
+.sj-bars i:nth-child(5){height:66%;animation-delay:1s}
+.sj-bars i:nth-child(6){height:100%;animation-delay:1.25s;background:linear-gradient(#2fc3b4,#59d6b2)}
+@keyframes sj-bar{0%,100%{transform:scaleY(.82)}50%{transform:scaleY(1)}}
+
+/* --- the customer record --- */
+.sj-rec2{left:4%;bottom:1%;width:60%;padding:12px 13px;transform:rotate(-.8deg);animation-delay:-5.1s}
+.sj-rec2 .rh{display:flex;align-items:center;gap:8px}
+.sj-rec2 .ava{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#4358ef,#7740dd);color:#fff;display:grid;place-items:center;font-size:9px;font-weight:800;flex:none;box-shadow:0 4px 11px #4358ef3d}
+.sj-rec2 .rn{font-size:12px;font-weight:760;color:#1b2342;letter-spacing:-.01em;display:block}
+.sj-rec2 .rs{font-size:8px;color:#8b94ad;display:block;margin-top:1px}
+.sj-rec2 .cnt{margin-left:auto;font-size:7.5px;font-weight:700;color:#8b94ad;text-align:right;letter-spacing:.04em}
+.sj-rec2 .cnt b{display:block;font-size:15px;color:#4358ef;line-height:1}
+.sj-rec2 .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
+.sj-rec2 .chips span{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:650;color:#2a3252;border:1px solid #dfe3f0;border-radius:99px;padding:3px 7px 3px 4px;background:#fbfcff}
+.sj-rec2 .chips span i{width:12px;height:12px;border-radius:4px;display:grid;place-items:center;font-size:5.5px;color:#fff}
+.sj-rec2 .chips span.pend{border-style:dashed;color:#aeb5c9;background:transparent}
+.sj-rec2 .chips span.pend i{background:#e6e9f2;color:#aeb5c9}
+.sj-rec2 .chips span:nth-child(5){animation:sj-chip-pulse 12s ease-in-out infinite}
+@keyframes sj-chip-pulse{0%,54%{box-shadow:0 0 0 0 #159b8200}60%{box-shadow:0 0 0 5px #159b8224}68%,100%{box-shadow:0 0 0 0 #159b8200}}
+
+/* --- the two of them talking --- */
+.sj-bubble,.sj-zbub{position:absolute;z-index:4;margin:0;font-weight:650;box-shadow:0 12px 26px #141a3a30}
+.sj-bubble{left:60%;top:62%;background:#1b2342;color:#fff;border-radius:13px 13px 13px 4px;padding:7px 11px;font-size:9px;
+  transform:rotate(-1deg);animation:sj-float 8.4s ease-in-out infinite,sj-say 9s ease-in-out infinite;animation-delay:-3s,0s}
+.sj-zbub{right:15%;bottom:25%;background:#fff;color:#2a3252;border-radius:11px 11px 4px 11px;padding:6px 9px;font-size:8px;
+  box-shadow:0 10px 24px #1b225c22,0 0 0 1px #1b225c0e;animation:sj-say 9s ease-in-out infinite;animation-delay:4.5s}
+@keyframes sj-say{0%,8%{opacity:0;transform:translateY(8px) scale(.94)}14%,72%{opacity:1;transform:none}80%,100%{opacity:0;transform:translateY(-6px) scale(.98)}}
+
+/* ===================== Zio's 12s performance =====================
+ * Every beat shares one 12s clock so they land in a deliberate order:
+ * idle, double-blink, antennae perk when the record's pulse reaches him,
+ * then the tongue. The lids clip downward -- inset(0) is shut.
+ */
+.sj-zio-stage{position:absolute;right:-1%;bottom:-2%;width:19%;z-index:4}
+.sj-zio-stage .zio-face{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;aspect-ratio:1;
+  animation:sj-zio-idle 12s ease-in-out infinite!important;transform-origin:50% 88%}
+.sj-zio-stage .zio-lid{animation:sj-zio-blinks 12s linear infinite!important}
+.sj-zio-stage .zio-lid--r{animation-delay:.05s!important}
+.sj-zio-stage .zio-ant--l{animation:sj-zio-ant-l 12s ease-in-out infinite!important;transform-origin:70% 100%}
+.sj-zio-stage .zio-ant--r{animation:sj-zio-ant-r 12s ease-in-out infinite!important;transform-origin:30% 100%}
+.sj-zio-stage .zio-mouth-gate{left:39%;top:40.7%;width:11%;height:4%;animation:sj-zio-mouth 12s ease-in-out infinite!important}
+.sj-zio-stage .zio-mouth{height:140%;animation:none!important;background:#2a1046}
+.sj-zio-stage .zio-tongue{background:linear-gradient(#ff719b,#ef456f);height:72%;bottom:-10%;border-radius:40% 40% 55% 55%;
+  animation:sj-zio-tongue 12s ease-in-out infinite!important}
+@keyframes sj-zio-idle{0%,100%{translate:0 0;rotate:-1.5deg}18%{translate:0 -5px;rotate:1deg}
+  40%{translate:0 -2px;rotate:-3deg}52%{translate:0 -7px;rotate:2.5deg}70%{translate:0 -3px;rotate:-1deg}86%{translate:0 -6px;rotate:1.5deg}}
+@keyframes sj-zio-blinks{0%,20%,23.5%,26%,29.5%,61%,64.5%,100%{clip-path:inset(0 0 100% 0)}21%,23%,27%,29%,62%,64%{clip-path:inset(0)}}
+@keyframes sj-zio-ant-l{0%,100%{rotate:-4deg}30%{rotate:3deg}40%{rotate:-14deg}45%{rotate:5deg}50%{rotate:-6deg}72%{rotate:2deg}}
+@keyframes sj-zio-ant-r{0%,100%{rotate:4deg}28%{rotate:-3deg}41%{rotate:13deg}46%{rotate:-5deg}51%{rotate:6deg}74%{rotate:-2deg}}
+@keyframes sj-zio-mouth{0%,62%{opacity:0}66%,80%{opacity:1}84%,100%{opacity:0}}
+@keyframes sj-zio-tongue{0%,63%{transform:translateY(88%) rotate(0)}69%,76%{transform:translateY(0) rotate(-3deg)}80%{transform:translateY(28%)}85%,100%{transform:translateY(88%)}}
+.sj-zio-spark{position:absolute;right:8%;bottom:34%;z-index:6;color:#ffb44d;pointer-events:none;line-height:0;
+  animation:sj-zio-spark 12s ease-in-out infinite}
+@keyframes sj-zio-spark{0%,34%{opacity:0;transform:scale(.3) rotate(0)}40%,46%{opacity:1;transform:scale(1) rotate(30deg)}52%,100%{opacity:0;transform:scale(.4) rotate(60deg)}}
+
+/* the pause button stops the whole scene, not just one layer */
+#sayzio-journey.sj-board--scene:not([data-playing]) .sj-scene *,
+#sayzio-journey.sj-board--scene:not([data-playing]) .sj-scene{animation-play-state:paused!important}
+
+@media(max-width:850px){.sj-scene{aspect-ratio:600/560}.sj-map{width:52%}.sj-rec2{width:66%}}
+@media(max-width:560px){
+  .sj-scene{aspect-ratio:600/620}
+  .sj-map{left:0;width:56%;padding:9px}.sj-phone{left:70%;width:29%}
+  .sj-rec2{left:1%;width:76%;padding:10px}
+  .sj-anal{left:41%;top:38%;width:29%}.sj-toast{left:46%;width:27%}
+  .sj-bubble{left:52%;top:58%;font-size:8px}.sj-zbub{right:8%;bottom:22%;font-size:7.5px}
+  .sj-zio-stage{width:23%}
+  .sj-rec2 .chips span{font-size:7.5px}}
+@media(prefers-reduced-motion:reduce){
+  .sj-scene *,.sj-scene{animation:none!important;transition:none!important;transform:none!important}
+  .sj-blob{opacity:.22}
+  .sj-bubble,.sj-zbub,.sj-toast{opacity:1!important}
+  .sj-zio-stage .zio-lid{clip-path:inset(0 0 100% 0)!important}
+  .sj-zio-stage .zio-mouth-gate{opacity:0!important}
+  .sj-zio-spark{opacity:0!important}}
+</style>
