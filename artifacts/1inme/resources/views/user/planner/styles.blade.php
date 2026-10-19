@@ -121,3 +121,20 @@
   .fnet-spec-stn{width:62px;min-height:50px;padding:7px}
 }
 </style>
+<style>
+/* How it works: the before/after that shows what connecting buys you. */
+.fnet-why{margin-top:20px;padding:18px;border:1px solid var(--border-glass);border-radius:16px;background:var(--bg-card,#fff)}
+.fnet-why h3{font-size:14px;font-weight:720;margin:0 0 4px;letter-spacing:-.01em}
+.fnet-why-pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(286px,1fr));gap:14px;margin-top:14px}
+.fnet-why-side{display:flex;flex-direction:column;gap:9px;padding:14px;border:1px solid var(--border-glass);border-radius:13px;background:var(--bg-glass-light,#f7f9fd)}
+.fnet-why-side.is-on{border-color:color-mix(in srgb,var(--fnet-join) 40%,transparent);background:color-mix(in srgb,var(--fnet-join) 6%,#fff)}
+.fnet-why-side svg{width:100%;height:auto;max-width:280px;display:block}
+.fnet-why-side p{margin:0;font-size:11.5px;line-height:1.55;color:var(--text-secondary)}
+.fnet-why-tag{align-self:flex-start;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--bg-muted,#eef1f6);color:var(--text-muted)}
+.fnet-why-tag.is-on{background:color-mix(in srgb,var(--fnet-join) 15%,#fff);color:color-mix(in srgb,var(--fnet-join) 78%,#222)}
+.fnet-why-list{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:10px}
+.fnet-why-list li{display:flex;flex-direction:column;gap:3px;padding:11px 13px;border-left:2.5px solid var(--fnet-join);border-radius:0 9px 9px 0;background:var(--bg-glass-light,#f7f9fd)}
+.fnet-why-list b{font-size:11.5px;font-weight:700}
+.fnet-why-list span{font-size:11px;line-height:1.5;color:var(--text-secondary)}
+@media (max-width:640px){.fnet-why{padding:14px}.fnet-why-pair{grid-template-columns:1fr}}
+</style>
