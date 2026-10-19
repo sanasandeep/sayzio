@@ -51,8 +51,14 @@ class HomePageCache
      * consequence if it is not bumped: a v2 payload has no annual figure, so
      * the teaser would keep showing the wrong currency on the annual tab for
      * the rest of its TTL, which is exactly the bug being fixed.
+     *
+     * v4 adds `features` to `cheapestPaid`, for the plan limits the teaser
+     * now lists. Bumped for the reason this comment keeps restating: a v3
+     * payload has no features, so without the bump the paid tile would keep
+     * rendering an empty list beside its price for the rest of its TTL --
+     * which is the bug, served from cache.
      */
-    public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:v3:';
+    public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:v4:';
 
     /** Featured blog-post carousel rows (plain attribute arrays). */
     public const FEATURED_CACHE_KEY = 'home:featured_blog_posts';
@@ -441,6 +447,13 @@ class HomePageCache
             $cheapestMinor = $minor;
             $cheapestPaid = [
                 'name'    => $p->name,
+                // The landing teaser lists each tile's limits from this, the
+                // same way the /pricing cards do. The free tile gets them
+                // because it comes from $plans above, which carries
+                // `features`; this array did not, so the paid tile rendered
+                // its price with an empty list beside it -- half a change,
+                // and asymmetric against the free tile next to it.
+                'features' => $p->features ?? [],
                 'monthly' => $monthly,
                 'prices'  => $pricesByCur,
             ];
