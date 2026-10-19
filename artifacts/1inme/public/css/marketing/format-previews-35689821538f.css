@@ -717,6 +717,45 @@
         background: color-mix(in srgb, var(--a) 10%, #fff);
         border-color: color-mix(in srgb, var(--a) 45%, #fff) }
 
+
+    /* ── ambient: the scene keeps a pulse after it has landed ──
+       Every entrance here is a `both`-filled one-shot, so a scene froze the
+       instant it finished drawing and then sat perfectly still until you
+       picked another format. These are the two places where something in a
+       real page would still be moving: the primary action catching the light,
+       and whatever is currently chosen breathing.
+
+       Deliberately NOT !important and deliberately low-specificity. The kill
+       switches are `.sf-paused *` and the reduced-motion block, both (0,1,0)
+       and both !important, and an important declaration beats a normal one
+       whatever the specificity -- so writing these plainly is exactly what
+       lets the pause button and a reduced-motion setting stop them. Both of
+       those switches already name ::before and ::after, so the sheen below is
+       covered too. */
+    .lts-btn.lts-solid { position: relative; overflow: hidden }
+    .lts-btn.lts-solid::after {
+        content: ''; position: absolute; inset: 0; pointer-events: none;
+        background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,.26) 48%, transparent 58%);
+        transform: translateX(-120%);
+        animation: lts-ready 6.5s 1.6s ease-in-out infinite }
+    @keyframes lts-ready { 0%, 70% { transform: translateX(-120%) }
+                           88%, 100% { transform: translateX(120%) } }
+
+    /* The pulse rides a pseudo-element rather than the element itself. Every
+       one of these already carries `lts-pop` for its entrance, and an
+       `animation` on the element would REPLACE that rather than join it --
+       which is what happened the first time I wrote this: `.lts-pop` is
+       declared further down the file, so at equal specificity it won and the
+       pulse never ran at all. A ::after has no entrance of its own, so the
+       two coexist: pop in, then breathe. */
+    .lts-chip-on, .lts-day-on, .lts-cart { position: relative }
+    .lts-chip-on::after, .lts-day-on::after, .lts-cart::after {
+        content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+        animation: lts-chosen 3.4s ease-in-out infinite }
+    @keyframes lts-chosen {
+        0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--a) 38%, transparent) }
+        55%      { box-shadow: 0 0 0 5px transparent } }
+
     /* ── motion ── */
     .lts-rise { animation: lts-rise .5s var(--d, 0s) cubic-bezier(.2,.7,.3,1) both }
     .lts-pop  { animation: lts-pop  .45s var(--d, 0s) cubic-bezier(.2,.9,.3,1.2) both }
@@ -740,6 +779,8 @@
         .lts-slide { animation: none; opacity: 0 }
         .lts-slide-0 { opacity: 1 }
         .lts-dot { animation: none } .lts-dot-0 { background: var(--a); width: 14px }
+        .lts-chip-on::after, .lts-day-on::after, .lts-cart::after { animation: none; box-shadow: none }
+        .lts-btn.lts-solid::after { animation: none; transform: translateX(-120%) }
     }
 
     .xc-loading { display: grid; place-items: center; min-height: 220px; font-size: 14px; opacity: .6; }
