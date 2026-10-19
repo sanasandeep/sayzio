@@ -154,8 +154,19 @@
 .ch-rail-art{display:none}
 .ch-stop{font-size:11px;gap:6px}
 .ch-stop-dot{font-size:12px}
+/* .ch-panel collapses to one column at this width, but .ch-converge .ch-panel
+   (0,2,0) re-declares two columns OUTSIDE any media query and beat the bare
+   .ch-panel rule (0,1,0) that does the collapsing. The result shipped: a
+   115px copy column inside a 374px phone, 15px type at ~15 characters a
+   line, nine lines for one sentence. Specificity wins over the media query,
+   so the collapse has to be re-stated at the same specificity, after it. */
+.ch-converge .ch-panel{grid-template-columns:1fr}
 .ch-converge .ch-merge{grid-template-columns:1fr;gap:12px}
-.ch-merge-art{width:100%;height:46px;transform:rotate(90deg);justify-self:center}
+/* The converging Y is a two-column drawing. Rotated upright in a single
+   column it crossed the second feed card; un-rotated it is a 46px band of
+   nothing. On a phone the stacked order already says two inputs, one output,
+   so it goes -- the same call .ch-rail-art makes one section above. */
+.ch-converge .ch-merge-art{display:none}
 .ch-feeds{gap:10px}}
 
 @media(prefers-reduced-motion:reduce){.ch-panel{animation:none}
