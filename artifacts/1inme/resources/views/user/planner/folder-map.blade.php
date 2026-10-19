@@ -497,9 +497,44 @@ $guideWire = [
 <span><i class="is-ai"></i>Runs on AI</span>
 <span><i class="is-unused"></i>Not used in this folder</span>
 </div>
+{{-- Each note draws the thing it is describing, at the size it appears on
+     the map. Eight paragraphs in eight equal boxes was a wall of text you had
+     to read to use; a specimen beside each one can be matched to the board by
+     eye. The specimens are built from the same classes as the real stations,
+     so they cannot drift away from what the map actually draws. --}}
 <div class="fnet-guide-grid">
 @foreach(\App\Services\Planner\FolderFlowDemo::legend() as $guideNote)
-<article class="fnet-guide-card"><h3>{{ $guideNote['title'] }}</h3><p>{{ $guideNote['body'] }}</p></article>
+<article class="fnet-guide-card">
+<span class="fnet-spec" aria-hidden="true">
+@switch($guideNote['key'] ?? '')
+@case('station')
+<span class="fnet-spec-stn" style="--ln:var(--fnet-create)"><b>12</b><i>LINKS</i></span>
+@break
+@case('dashed')
+<span class="fnet-spec-stn is-off"><b>0</b><i>CALENDARS</i></span>
+@break
+@case('figure')
+<span class="fnet-spec-stn" style="--ln:var(--fnet-reach)"><b>4</b><i>BUZZ</i><u>9,640 impressions</u></span>
+@break
+@case('rails')
+<svg viewBox="0 0 96 46"><path d="M6 12h84" stroke="var(--fnet-prepare)" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 7"/><path d="M6 24h84" stroke="var(--fnet-reach)" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 7"/><path d="M6 36h84" stroke="var(--fnet-act)" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 7"/></svg>
+@break
+@case('junction')
+<svg viewBox="0 0 96 46"><path d="M6 23h30M60 23h30" stroke="var(--fnet-join)" stroke-width="3" stroke-linecap="round"/><circle cx="48" cy="23" r="12" fill="var(--bg-card,#fff)" stroke="var(--fnet-join)" stroke-width="2.4"/><text x="48" y="27.5" text-anchor="middle" font-size="12" font-weight="700" fill="var(--fnet-join)">6</text></svg>
+@break
+@case('ai')
+<span class="fnet-spec-stn is-ai" style="--ln:var(--fnet-prepare)"><b>7</b><i>AI MINDS</i></span>
+@break
+@case('faces')
+<span class="fnet-spec-faces"><i>A</i><i>N</i><i>S</i><u>+2</u></span>
+@break
+@case('filters')
+<span class="fnet-spec-chips"><i class="is-on">Reach</i><i>Not AI</i></span>
+@break
+@endswitch
+</span>
+<span class="fnet-spec-copy"><h3>{{ $guideNote['title'] }}</h3><p>{{ $guideNote['body'] }}</p></span>
+</article>
 @endforeach
 </div>
 <p class="notes-hint mt-4">Your own folder starts empty and fills as you use it. <button type="button" class="fnet-guide-link" @click="mode='flow'">Back to {{ $project->name }} &rarr;</button></p>
@@ -595,6 +630,7 @@ function folderChart(exports, stations, guideStations) {
     var fullText = stage.querySelector('[data-fnet-fulltext]');
     var z = 1;
     var nat = { w: 1, h: 1 };
+    var measured = false;
 
     // The canvas is positioned inside the sizer, and the sizer is given the
     // scaled size -- so asking the canvas how big it is while it is scaled
@@ -603,19 +639,29 @@ function folderChart(exports, stations, guideStations) {
     // the window changes size. Without the pin the board creeps wider every
     // time you zoom in and back out.
     function measure() {
+      // Two of the three boards are inside an x-show that is display:none when
+      // this runs, so they have no size yet. Measuring then pinned the canvas
+      // to 1px and the board arrived collapsed -- stations gone, people cards
+      // gone -- the moment its tab was opened. A board is measured the first
+      // time it actually has a size, not on a timer.
+      if (!view.clientWidth) { return; }
       var keep = canvas.style.transform;
       canvas.style.transform = '';
       canvas.style.width = '';
       sizer.style.width = '';
       sizer.style.height = '';
-      nat = { w: canvas.offsetWidth || 1, h: canvas.offsetHeight || 1 };
-      canvas.style.width = nat.w + 'px';
+      var w = canvas.offsetWidth, h = canvas.offsetHeight;
       canvas.style.transform = keep;
+      if (!w || !h) { return; }
+      nat = { w: w, h: h };
+      canvas.style.width = w + 'px';
+      measured = true;
     }
 
     function natural() { return nat; }
 
     function paint() {
+      if (!measured) { return; }
       var n = natural();
       canvas.style.transform = z === 1 ? '' : 'scale(' + z + ')';
       sizer.style.width = Math.round(n.w * z) + 'px';
@@ -639,6 +685,8 @@ function folderChart(exports, stations, guideStations) {
     }
 
     function fit() {
+      if (!measured) { measure(); }
+      if (!measured) { return; }
       var n = natural();
       var pad = 24;
       var wide = (view.clientWidth - pad) / n.w;
@@ -732,6 +780,15 @@ function folderChart(exports, stations, guideStations) {
     // A filter that hides half the board changes what "fit" means.
     window.addEventListener('fnet:redraw', function () { measure(); paint(); });
     window.addEventListener('resize', function () { measure(); paint(); });
+
+    // Switching tabs is what gives a hidden board its size. A ResizeObserver
+    // fires on that transition, which is the first honest moment to measure.
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () {
+        if (!measured) { measure(); paint(); }
+      }).observe(view);
+    }
+
     measure();
     paint();
   }
