@@ -2,26 +2,122 @@
 @section('title', 'Create Link')
 
 @section('content')
-@if(Route::has('user.marketing-studio.create'))<div class="flex justify-end mb-4"><a class="btn-ghost" href="{{ route('user.marketing-studio.create',['output'=>'biolink']) }}">✨ Create with AI</a></div>@endif
 @php
     $aliasLimits = $aliasLimits ?? ['min' => 3, 'max' => 50];
     $domainHost  = $domainHost ?? request()->getHost();
 @endphp
 <div class="max-w-3xl mx-auto create-premium">
-    <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.index') }}" class="cl-back transition-colors"><i class="fas fa-arrow-left"></i></a>
-        <div><div class="create-progress" aria-label="Step 1 of 2"><span class="active"><span class="step-dot">1</span>Choose</span><span class="progress-line" aria-hidden="true"></span><span><span class="step-dot">2</span>Set up</span></div><h1 class="text-2xl font-bold" style="color: var(--text-primary);">What would you like to create?</h1><p class="cl-subtitle">Choose a type. You’ll add the details next.</p></div>
+    @php
+        // The catalogue is read here rather than further down because the hero
+        // chips count it. Both numbers are counted from the catalogue itself --
+        // nothing on this header is a figure typed in by hand.
+        $linkCategories = \App\Modules\User\Support\LinkTypeCategories::categories();
+        $clTypeCount    = array_sum(array_map(fn ($c) => count($c['types']), $linkCategories));
+        $clHeroActions  = [];
+        if (Route::has('user.marketing-studio.create')) {
+            // Was a lone ghost button floating above the page with nothing to
+            // align to. It is a page action, so it belongs with the others.
+            $clHeroActions[] = [
+                'label' => 'Create with AI',
+                'url'   => route('user.marketing-studio.create', ['output' => 'biolink']),
+                'icon'  => 'fa-wand-magic-sparkles',
+                'class' => 'btn-ghost',
+            ];
+        }
+        $clHeroActions[] = [
+            'label' => 'Help me choose',
+            'url'   => route('user.links.wizard'),
+            'icon'  => 'fa-compass',
+            'class' => 'btn-ghost',
+        ];
+    @endphp
+    @include('user.partials.page-hero', [
+        'title'    => 'Create Link',
+        'subtitle' => 'Choose a type. You’ll add the details next.',
+        'icon'     => 'fa-plus',
+        'emblemIcon' => 'fa-plus',
+        'back'     => route('user.links.index'),
+        'actions'  => $clHeroActions,
+        'chips'    => [
+            // Two chips, not three: a 'Step 1 of 2' chip wrapped the row onto a
+            // second line at this page's narrower column and said the same
+            // thing as the step indicator directly beneath it.
+            ['text' => $clTypeCount . ' link types', 'icon' => 'fa-shapes'],
+            ['text' => count($linkCategories) . ' categories', 'icon' => 'fa-layer-group'],
+        ],
+    ])
+    <div class="cl-steps">
+        <h2 class="cl-ask">What would you like to create?</h2>
+        <div class="create-progress" aria-label="Step 1 of 2"><span class="active"><span class="step-dot">1</span>Choose</span><span class="progress-line" aria-hidden="true"></span><span><span class="step-dot">2</span>Set up</span></div>
     </div>
 
     <style>
 [x-cloak]{display:none!important}.cl-scope{--cl-brand:linear-gradient(135deg,#3E3AE0,#3D6BFF)}.cl-back,.cl-step{color:var(--text-faint)}.cl-step{font-size:12px;margin-bottom:6px}.cl-subtitle{font-size:14px;color:var(--text-dimmed);margin-top:8px}.cl-card{background:var(--bg-card);border:1px solid var(--border-glass);border-radius:20px}.cl-primary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.cl-primary{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:20px;border:1px solid var(--border-glass);border-radius:14px;gap:8px;color:var(--text-primary);background:transparent}.cl-primary strong{font-size:16px;margin-top:8px}.cl-primary>span:last-child{font-size:13px;line-height:1.5;color:var(--text-dimmed)}.cl-primary:hover,.cl-tile:hover{background:var(--bg-glass-hover)}.cl-primary:focus-visible,.cl-tile:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.cl-ico{display:grid;place-items:center;flex:none;background:var(--bg-glass-hover);color:var(--text-dimmed);border-radius:10px}.cl-ico-lg{width:40px;height:40px}.cl-ico-md{width:34px;height:34px}.cl-ico-sm{width:30px;height:30px}.cl-ico--on,.cl-tile:hover .cl-ico{background:var(--cl-brand);color:white}.cl-tile--on{border-color:var(--accent)!important;background:color-mix(in srgb,var(--accent) 7%,transparent)}.cl-options{margin-top:24px;padding-top:24px;border-top:1px solid var(--border-glass)}.cl-options-title{font-size:16px;font-weight:650;color:var(--text-primary);margin-bottom:16px}.cl-field{border:1px solid var(--border-glass);border-radius:10px}.cl-input{background:transparent;color:var(--text-primary);outline:none}.cl-input::placeholder{color:var(--text-faint)}.cl-field:focus-within{border-color:var(--accent)}.cl-tile{display:flex;gap:10px;padding:12px;border:1px solid transparent;border-radius:12px;min-height:76px}.cl-tile-name{font-size:14px;font-weight:600;color:var(--text-primary)}.cl-tile-desc{font-size:12px;color:var(--text-dimmed);line-height:1.5}.cl-radio{width:16px;height:16px;border:1px solid var(--border-glass);border-radius:50%;display:grid;place-items:center;flex:none}.cl-radio--on{background:var(--accent);border-color:var(--accent)}.cl-eyebrow{font-size:11px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase}.cl-bar{border-top:1px solid var(--border-glass)}.cl-continue{background:var(--accent);color:white;border-radius:10px;font-size:14px;font-weight:600}.cl-continue:disabled{background:var(--bg-glass-hover);color:var(--text-faint);cursor:not-allowed}.cl-cancel{color:var(--text-dimmed)}.cl-help{text-align:center;font-size:13px;color:var(--text-dimmed);margin-top:20px}.cl-help a{color:var(--accent);font-weight:600}.cl-bulk summary{cursor:pointer;font-size:13px;color:var(--text-dimmed);margin-bottom:16px}.cl-pick{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--border-glass);border-radius:12px}.cl-go{color:var(--text-faint)}@media(max-width:480px){.cl-primary{padding:14px}.cl-primary strong{font-size:14px}.cl-primary>span:last-child{font-size:12px}.cl-bar .cl-cancel{display:none}}
     </style>
 
+    <style>
+/* The page header is the shared page-hero now, so the old inline title block
+   is gone. What is left here is the step line under it, and the bulk-tools
+   card, which used to be flat rows on the bare page background.
+
+   EVERY rule below is scoped under .create-premium, and that is not decoration.
+   create-premium-style.blade.php already carries, at (0,2,0):
+
+       .create-premium .cl-card { border:0; background:transparent; padding:0 }
+       .create-premium .cl-bulk { border-top:1px solid ...; padding-top:20px }
+       .create-premium .cl-bulk summary::before { content:'+' }   (0,2,2)
+
+   Written as bare `.cl-bulk` (0,1,0) this lost all three: no border, no
+   surface, a stray top divider and a glyph in front of the icon. It read as a
+   card in the markup and rendered as a rule. Scoped, it wins on specificity
+   rather than on source order. Checked in the browser, not assumed. */
+
+.create-premium .cl-steps{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:-6px 0 18px}
+.create-premium .cl-steps .create-progress{margin-bottom:0}
+.create-premium .cl-ask{font-size:17px;font-weight:700;letter-spacing:-.02em;color:var(--text-primary);margin:0}
+
+.create-premium .cl-bulk{border:1px solid var(--border-glass);background:var(--bg-card);border-radius:20px;padding:0;margin-top:32px;overflow:hidden}
+.create-premium .cl-bulk summary.cl-bulk-head{display:flex;align-items:center;gap:13px;list-style:none;cursor:pointer;margin:0;padding:18px 20px;font-size:inherit;color:var(--text-primary);transition:background .18s ease}
+.create-premium .cl-bulk summary.cl-bulk-head::before{content:none}
+.create-premium .cl-bulk summary.cl-bulk-head::-webkit-details-marker{display:none}
+.create-premium .cl-bulk summary.cl-bulk-head:hover{background:var(--bg-glass-hover)}
+.create-premium .cl-bulk summary.cl-bulk-head:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.create-premium .cl-bulk-copy{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.create-premium .cl-bulk-title{font-size:15px;font-weight:650;letter-spacing:-.01em;color:var(--text-primary)}
+.create-premium .cl-bulk-note{font-size:12.5px;color:var(--text-dimmed)}
+.create-premium .cl-bulk-caret{flex:none;font-size:11px;color:var(--text-faint);transition:transform .22s ease}
+.create-premium .cl-bulk[open] .cl-bulk-caret{transform:rotate(180deg)}
+.create-premium .cl-bulk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:12px;padding:0 20px 20px}
+/* Three tiles in a two-column grid left the last one alone beside a hole. It
+   takes the full row instead, which is also where its longer description wants
+   to be. */
+.create-premium .cl-bulk-grid > :last-child:nth-child(odd){grid-column:1/-1}
+.create-premium .cl-bulk-grid .cl-pick{padding:15px;border:1px solid var(--border-glass);border-radius:14px;background:var(--bg-card);transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.create-premium .cl-bulk-grid .cl-pick:hover{border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 5%,var(--bg-card));transform:translateY(-2px)}
+.create-premium .cl-bulk-grid .cl-pick:hover .cl-ico{background:var(--cl-brand);color:#fff}
+.create-premium .cl-bulk-grid .cl-go{transition:transform .18s ease,color .18s ease}
+.create-premium .cl-bulk-grid .cl-pick:hover .cl-go{transform:translateX(3px);color:var(--accent)}
+
+@media(max-width:520px){
+  .create-premium .cl-bulk summary.cl-bulk-head{padding:15px 16px;gap:11px}
+  .create-premium .cl-bulk-grid{padding:0 16px 16px;grid-template-columns:1fr}
+  .create-premium .cl-steps{gap:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .create-premium .cl-bulk summary.cl-bulk-head,
+  .create-premium .cl-bulk-caret,
+  .create-premium .cl-bulk-grid .cl-pick,
+  .create-premium .cl-bulk-grid .cl-go{transition:none}
+  .create-premium .cl-bulk-grid .cl-pick:hover,
+  .create-premium .cl-bulk-grid .cl-pick:hover .cl-go{transform:none}
+}
+    </style>
+
     @include('user.links.partials.create-premium-style')
     <div class="cl-scope">
 
     @php
-        $linkCategories = \App\Modules\User\Support\LinkTypeCategories::categories();
+        // $linkCategories is already resolved above for the hero chips.
         $linkFilterCats = [];
         $linkTypeMeta   = [];
         foreach ($linkCategories as $catIdx => $cat) {
@@ -155,8 +251,20 @@
     </form>
 
     <p class="cl-help">Not sure where to start? <a href="{{ route('user.links.wizard') }}">Help me choose</a></p>
-    <details class="mt-8 cl-bulk"><summary>Bulk tools &amp; advanced</summary>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    {{-- Bulk tools sat on the bare page background in flat bordered rows, under
+         a card that carries a border, a radius and a surface. Expanded, it read
+         as something left over rather than part of the page. It is a card now,
+         with the same tile language as the picker above it. --}}
+    <details class="cl-card cl-bulk mt-8">
+        <summary class="cl-bulk-head">
+            <span class="cl-ico cl-ico-md"><i class="fas fa-layer-group" aria-hidden="true"></i></span>
+            <span class="cl-bulk-copy">
+                <span class="cl-bulk-title">Bulk tools &amp; advanced</span>
+                <span class="cl-bulk-note">Create many at once, or take apart a competitor's page.</span>
+            </span>
+            <i class="fas fa-chevron-down cl-bulk-caret" aria-hidden="true"></i>
+        </summary>
+        <div class="cl-bulk-grid">
             <a href="{{ route('user.links.url.bulk') }}" class="cl-pick group">
                 <span class="cl-ico cl-ico-md"><i class="fas fa-layer-group"></i></span>
                 <span class="flex-1 min-w-0">
