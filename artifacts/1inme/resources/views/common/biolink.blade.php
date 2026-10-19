@@ -970,7 +970,12 @@
             // shown that as though it were the owner's page, so until the
             // owner edits at least one block this renders as the same
             // "being set up" page an empty one always did.
-            if ($blocks->isNotEmpty() && $link->isUntouchedStarterPage()) {
+            // ...but the editor's own preview iframe is not a visitor. It is
+            // signed, owner-only, and its whole job is to show the blocks being
+            // edited -- blanking it there left a brand new page looking empty on
+            // the right while five blocks sat in the list on the left.
+            if (! \App\Modules\Common\Support\OwnerPreview::is()
+                && $blocks->isNotEmpty() && $link->isUntouchedStarterPage()) {
                 $blocks = collect();
             }
             $pageTitle = $bs['biolink_title'] ?? $link->title ?: 'Link in Bio';
