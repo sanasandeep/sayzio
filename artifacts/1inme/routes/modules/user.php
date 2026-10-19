@@ -294,6 +294,11 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('security.logins.revoke-from-list');
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['onboarding.gate', 'contacts.sync-on-open'])->name('dashboard');
 
+        // The "how your Sayzio fits together" panel, served on its own so the
+        // dashboard can paint before its nineteen COUNT(*) queries resolve.
+        // Same onboarding gate as the dashboard it belongs to.
+        Route::get('dashboard/flow', [\App\Modules\User\Controllers\DashboardFlowController::class, 'show'])->middleware('onboarding.gate')->name('dashboard.flow');
+
         // Task #3525 — "Customize dashboard": preset picker + AI designer.
         Route::post('dashboard/layout/preset', [\App\Modules\User\Controllers\DashboardLayoutController::class, 'applyPreset'])->name('dashboard.layout.preset');
         Route::post('dashboard/ai/estimate', [\App\Modules\User\Controllers\DashboardLayoutController::class, 'estimate'])->middleware('throttle:30,1')->name('dashboard.ai.estimate');

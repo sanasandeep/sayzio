@@ -2,6 +2,7 @@
 @section('title', 'Dashboard')
 @push('styles')
 @include('user.partials.overview-styles')
+@include('user.partials.dashboard-flow-styles')
 @endpush
 @section('content')
 @php
@@ -24,6 +25,20 @@
         </article>
         @endforeach
     </div>
+    {{-- The flow panel sits BELOW the workspace cards on purpose. The dashboard
+         is a working surface people open every day; an orientation panel above
+         the numbers would be a wall between them and the thing they signed in
+         to do, every time, forever. Below the cards it is found when wanted and
+         scrolled past when not.
+
+         It is fetched rather than rendered inline because its counts are
+         nineteen COUNT(*) queries on a cold cache. First paint stays exactly as
+         fast as it is today. --}}
+    <section class="ov-panel dflow-skeleton" id="dashboard-flow" data-flow-url="{{ route('user.dashboard.flow') }}" aria-busy="true" aria-live="polite">
+        <p class="ov-muted">Working out which parts of Sayzio you are using&hellip;</p>
+        <span class="dflow-skeleton-bar" aria-hidden="true"></span>
+        <span class="dflow-skeleton-bar" aria-hidden="true"></span>
+    </section>
     <div class="ov-columns">
         <section class="ov-panel">
             <div class="ov-line"><h2>Plan &amp; usage</h2><span class="ov-muted">{{ $user->plan->name ?? 'Free' }}</span></div>
@@ -111,4 +126,64 @@
         @endforelse
     </section>
 </div>
+@push('scripts')
+<script>
+(function () {
+    var host = document.getElementById('dashboard-flow');
+    if (!host) return;
+
+    function stops(root) { return Array.prototype.slice.call(root.querySelectorAll('.dflow-stop')); }
+
+    function select(root, stop) {
+        stops(root).forEach(function (s) {
+            var on = s === stop;
+            s.setAttribute('aria-selected', on ? 'true' : 'false');
+            s.setAttribute('tabindex', on ? '0' : '-1');
+            var panel = document.getElementById(s.getAttribute('aria-controls'));
+            if (panel) { panel.hidden = !on; }
+        });
+    }
+
+    function wire(root) {
+        root.addEventListener('click', function (e) {
+            var stop = e.target.closest ? e.target.closest('.dflow-stop') : null;
+            if (stop) { select(root, stop); }
+        });
+        // Roving tabindex, the standard tablist keyboard contract. Without it
+        // the rail is a row of buttons that a keyboard user has to tab through
+        // one at a time, and the aria-selected state is a decoration.
+        root.addEventListener('keydown', function (e) {
+            var stop = e.target.closest ? e.target.closest('.dflow-stop') : null;
+            if (!stop) return;
+            var all = stops(root), i = all.indexOf(stop), next = null;
+            if (e.key === 'ArrowRight') next = all[(i + 1) % all.length];
+            if (e.key === 'ArrowLeft') next = all[(i - 1 + all.length) % all.length];
+            if (e.key === 'Home') next = all[0];
+            if (e.key === 'End') next = all[all.length - 1];
+            if (!next) return;
+            e.preventDefault();
+            select(root, next);
+            next.focus();
+        });
+    }
+
+    fetch(host.dataset.flowUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(function (html) {
+            var slot = document.createElement('div');
+            slot.innerHTML = html;
+            var panel = slot.firstElementChild;
+            if (!panel) { host.remove(); return; }
+            host.replaceWith(panel);
+            wire(panel);
+        })
+        .catch(function () {
+            // The dashboard is complete without this panel, so a failure takes
+            // the placeholder away rather than leaving a stuck spinner or an
+            // error the reader can do nothing about.
+            host.remove();
+        });
+})();
+</script>
+@endpush
 @endsection
