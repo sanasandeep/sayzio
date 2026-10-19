@@ -88,3 +88,36 @@
 .pcard-empty{margin:10px 0 2px;padding:14px;border:1px dashed var(--border-glass);border-radius:12px;text-align:center;font-size:12.5px;color:var(--text-muted)}
 @media (max-width:640px){.pcard-grid{grid-template-columns:1fr;gap:14px}.pcard-stats{grid-template-columns:repeat(2,1fr)}.fnet-board[data-fnet-view]{max-height:64vh}.fnet-zrange{flex-basis:100%;max-width:none;order:5}}
 </style>
+<style>
+/* How it works: a specimen beside each note, drawn from the same classes the
+   real stations use so the key cannot drift from the board. */
+.fnet-guide-grid{grid-template-columns:repeat(auto-fit,minmax(372px,1fr));gap:14px}
+.fnet-guide-card{display:flex;align-items:flex-start;gap:14px;padding:15px 16px;border-radius:14px}
+.fnet-spec{flex:0 0 auto;display:grid;place-items:center;width:96px;min-height:72px;border-radius:11px;background:var(--bg-glass-light,#f6f8fd);border:1px solid var(--border-glass);padding:8px}
+.fnet-spec svg{width:96px;height:46px;display:block;overflow:visible}
+.fnet-spec-copy{min-width:0}
+.fnet-spec-copy h3{font-size:12.5px;font-weight:700;margin:0 0 5px;letter-spacing:-.01em}
+.fnet-spec-copy p{font-size:11.5px;line-height:1.55;color:var(--text-secondary);margin:0}
+.fnet-spec-stn{display:flex;flex-direction:column;justify-content:center;gap:1px;width:78px;min-height:58px;padding:8px 9px;border-radius:11px;color:#fff;border:1.2px solid transparent;background:linear-gradient(145deg,color-mix(in srgb,var(--ln) 92%,#fff),color-mix(in srgb,var(--ln) 60%,#242a5e))}
+.fnet-spec-stn b{font-size:17px;font-weight:780;line-height:1}
+.fnet-spec-stn i{font-style:normal;font-size:7.5px;font-weight:700;letter-spacing:.07em}
+.fnet-spec-stn u{text-decoration:none;font-size:6.5px;font-weight:600;opacity:.82;margin-top:2px}
+.fnet-spec-stn.is-off{background:var(--bg-card,#fff);border:1.2px dashed var(--border-strong,#cfd6e6);color:var(--text-muted)}
+.fnet-spec-stn.is-ai{border-radius:19px}
+.fnet-spec-faces{display:flex;align-items:center}
+.fnet-spec-faces i{display:grid;place-items:center;width:25px;height:25px;margin-left:-7px;border-radius:50%;background:var(--fnet-create,#3b82f6);color:#fff;border:2px solid var(--bg-card,#fff);font-style:normal;font-size:10px;font-weight:700}
+.fnet-spec-faces i:first-child{margin-left:0}
+.fnet-spec-faces i:nth-child(2){background:var(--fnet-serve,#0d9488)}
+.fnet-spec-faces i:nth-child(3){background:var(--fnet-act,#e0457b)}
+.fnet-spec-faces u{text-decoration:none;margin-left:5px;font-size:10.5px;font-weight:700;color:var(--text-muted)}
+.fnet-spec-chips{display:flex;flex-direction:column;gap:5px}
+.fnet-spec-chips i{font-style:normal;padding:3px 10px;border-radius:999px;border:1px solid var(--border-glass);background:var(--bg-card,#fff);color:var(--text-muted);font-size:9.5px;font-weight:650;text-align:center}
+.fnet-spec-chips i.is-on{border-color:color-mix(in srgb,var(--fnet-reach) 55%,transparent);background:color-mix(in srgb,var(--fnet-reach) 13%,#fff);color:color-mix(in srgb,var(--fnet-reach) 72%,#333)}
+@media (max-width:640px){
+  .fnet-guide-grid{grid-template-columns:1fr}
+  .fnet-guide-card{gap:11px;padding:13px}
+  .fnet-spec{width:76px;min-height:62px}
+  .fnet-spec svg{width:72px;height:40px}
+  .fnet-spec-stn{width:62px;min-height:50px;padding:7px}
+}
+</style>

@@ -222,34 +222,42 @@ class FolderFlowDemo
     {
         return [
             [
+                'key'   => 'station',
                 'title' => 'A station is a kind of thing',
                 'body'  => 'Every kind a folder can hold has a station, whether or not this folder uses it. The big number is how many it holds. Open one to see what is inside it.',
             ],
             [
+                'key'   => 'dashed',
                 'title' => 'A dashed station is empty, not missing',
                 'body'  => 'Calendars and Agents are empty here on purpose. An unused station stays on the map, dashed and grey, so you can see what is available rather than only what you already started — and opening it offers to assign something.',
             ],
             [
+                'key'   => 'figure',
                 'title' => 'The small figure is measured',
                 'body'  => 'Under the count, a station may show a figure its stage actually measures — clicks for content, impressions for Buzz, conversations for channels, completion for tasks. A station whose stage measures nothing says "not counted here" rather than showing a zero that would read as a result.',
             ],
             [
+                'key'   => 'rails',
                 'title' => 'Dashed lines are a suggested order',
                 'body'  => 'The coloured dashed rails are one sensible way work moves through a folder: prepare, create, reach, serve the people that brings in, and act on what comes back. They are a suggestion, drawn whether or not you work that way. Nothing on the map claims the work happened in that order.',
             ],
             [
+                'key'   => 'junction',
                 'title' => 'Solid lines with a number are real',
                 'body'  => 'A solid line meeting at a numbered circle is a junction: that many item-to-item connections somebody actually saved between those two kinds, under Resources. Unlike the rails, a junction is a record of something that exists — here, six links tied to forms and five campaigns tied to studio material.',
             ],
             [
+                'key'   => 'ai',
                 'title' => 'A rounder station runs on AI',
                 'body'  => 'Eight of the nineteen kinds are built on AI. They are drawn with rounder corners and a round icon, so you can see at a glance how much of a folder leans on it.',
             ],
             [
+                'key'   => 'faces',
                 'title' => 'Faces are who changed something',
                 'body'  => 'Up to three people who changed anything of that kind in this folder recently, most active first, with the rest as a +n. The workspace owner is left out on purpose — they are in every folder, so counting them says nothing about who else is involved.',
             ],
             [
+                'key'   => 'filters',
                 'title' => 'The filters narrow the question',
                 'body'  => 'On your own map you can hide what is unused, switch whole lines off, separate AI from the rest, or show only what one person has touched. Hidden stations leave their space empty and their rails disappear, so the map never redraws itself into a different shape.',
             ],
