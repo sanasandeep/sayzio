@@ -58,6 +58,21 @@
 [x-cloak]{display:none!important}.cl-scope{--cl-brand:linear-gradient(135deg,#3E3AE0,#3D6BFF)}.cl-back,.cl-step{color:var(--text-faint)}.cl-step{font-size:12px;margin-bottom:6px}.cl-subtitle{font-size:14px;color:var(--text-dimmed);margin-top:8px}.cl-card{background:var(--bg-card);border:1px solid var(--border-glass);border-radius:20px}.cl-primary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.cl-primary{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:20px;border:1px solid var(--border-glass);border-radius:14px;gap:8px;color:var(--text-primary);background:transparent}.cl-primary strong{font-size:16px;margin-top:8px}.cl-primary>span:last-child{font-size:13px;line-height:1.5;color:var(--text-dimmed)}.cl-primary:hover,.cl-tile:hover{background:var(--bg-glass-hover)}.cl-primary:focus-visible,.cl-tile:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.cl-ico{display:grid;place-items:center;flex:none;background:var(--bg-glass-hover);color:var(--text-dimmed);border-radius:10px}.cl-ico-lg{width:40px;height:40px}.cl-ico-md{width:34px;height:34px}.cl-ico-sm{width:30px;height:30px}.cl-ico--on,.cl-tile:hover .cl-ico{background:var(--cl-brand);color:white}.cl-tile--on{border-color:var(--accent)!important;background:color-mix(in srgb,var(--accent) 7%,transparent)}.cl-options{margin-top:24px;padding-top:24px;border-top:1px solid var(--border-glass)}.cl-options-title{font-size:16px;font-weight:650;color:var(--text-primary);margin-bottom:16px}.cl-field{border:1px solid var(--border-glass);border-radius:10px}.cl-input{background:transparent;color:var(--text-primary);outline:none}.cl-input::placeholder{color:var(--text-faint)}.cl-field:focus-within{border-color:var(--accent)}.cl-tile{display:flex;gap:10px;padding:12px;border:1px solid transparent;border-radius:12px;min-height:76px}.cl-tile-name{font-size:14px;font-weight:600;color:var(--text-primary)}.cl-tile-desc{font-size:12px;color:var(--text-dimmed);line-height:1.5}.cl-radio{width:16px;height:16px;border:1px solid var(--border-glass);border-radius:50%;display:grid;place-items:center;flex:none}.cl-radio--on{background:var(--accent);border-color:var(--accent)}.cl-eyebrow{font-size:11px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase}.cl-bar{border-top:1px solid var(--border-glass)}.cl-continue{background:var(--accent);color:white;border-radius:10px;font-size:14px;font-weight:600}.cl-continue:disabled{background:var(--bg-glass-hover);color:var(--text-faint);cursor:not-allowed}.cl-cancel{color:var(--text-dimmed)}.cl-help{text-align:center;font-size:13px;color:var(--text-dimmed);margin-top:20px}.cl-help a{color:var(--accent);font-weight:600}.cl-bulk summary{cursor:pointer;font-size:13px;color:var(--text-dimmed);margin-bottom:16px}.cl-pick{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--border-glass);border-radius:12px}.cl-go{color:var(--text-faint)}@media(max-width:480px){.cl-primary{padding:14px}.cl-primary strong{font-size:14px}.cl-primary>span:last-child{font-size:12px}.cl-bar .cl-cancel{display:none}}
     </style>
 
+
+    @include('user.links.partials.create-premium-style')
+
+    {{-- This block sits AFTER the include on purpose, and moving it back above
+         would silently undo most of it. create-premium-style carries
+         .create-premium .cl-bulk{border-top;padding-top} and
+         .create-premium .cl-card{border:0;background:transparent} at (0,2,0) --
+         the same specificity as the rules here. At equal specificity the later
+         declaration wins, so above the include these lost and the bulk card
+         rendered as a bare divider in production.
+
+         It was checked in a browser first and looked right, because the check
+         appended a style element to document.body -- after everything. The
+         was right and the document order was not. CreateLinkPageHeaderTest now
+         asserts this block comes after the include. --}}
     <style>
 /* The page header is the shared page-hero now, so the old inline title block
    is gone. What is left here is the step line under it, and the bulk-tools
@@ -105,11 +120,18 @@
 .create-premium .cl-bulk-note{font-size:12.5px;color:var(--text-dimmed)}
 .create-premium .cl-bulk-caret{flex:none;font-size:11px;color:var(--text-faint);transition:transform .22s ease}
 .create-premium .cl-bulk[open] .cl-bulk-caret{transform:rotate(180deg)}
-.create-premium .cl-bulk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:12px;padding:0 20px 20px}
-/* Three tiles in a two-column grid left the last one alone beside a hole. It
-   takes the full row instead, which is also where its longer description wants
-   to be. */
-.create-premium .cl-bulk-grid > :last-child:nth-child(odd){grid-column:1/-1}
+/* Three tiles, so three columns -- stated rather than left to auto-fit. With
+   auto-fit the full-width page made four tracks, put two tiles in the first
+   two and spanned the third across all four, which is how it looked on
+   production: two narrow cards and a long one under them.
+
+   The two-column case still needs the span, or the third tile sits alone
+   beside a hole; the one-column case has to undo it again. */
+.create-premium .cl-bulk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0 20px 20px}
+@media(max-width:1100px){
+  .create-premium .cl-bulk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .create-premium .cl-bulk-grid > :last-child:nth-child(odd){grid-column:1/-1}
+}
 .create-premium .cl-bulk-grid .cl-pick{padding:15px;border:1px solid var(--border-glass);border-radius:14px;background:var(--bg-card);transition:border-color .18s ease,background .18s ease,transform .18s ease}
 .create-premium .cl-bulk-grid .cl-pick:hover{border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 5%,var(--bg-card));transform:translateY(-2px)}
 .create-premium .cl-bulk-grid .cl-pick:hover .cl-ico{background:var(--cl-brand);color:#fff}
@@ -119,6 +141,7 @@
 @media(max-width:520px){
   .create-premium .cl-bulk summary.cl-bulk-head{padding:15px 16px;gap:11px}
   .create-premium .cl-bulk-grid{padding:0 16px 16px;grid-template-columns:1fr}
+  .create-premium .cl-bulk-grid > :last-child:nth-child(odd){grid-column:auto}
   .create-premium .cl-steps{gap:10px}
 }
 @media(prefers-reduced-motion:reduce){
@@ -130,8 +153,6 @@
   .create-premium .cl-bulk-grid .cl-pick:hover .cl-go{transform:none}
 }
     </style>
-
-    @include('user.links.partials.create-premium-style')
     <div class="cl-scope">
 
     @php
