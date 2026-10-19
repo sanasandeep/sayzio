@@ -3,8 +3,20 @@
 
 @section('content')
 <div class="max-w-3xl">
-    <h1 class="text-2xl font-bold text-white mb-2">Linked identifiers</h1>
-    <p class="text-sm text-white/60 mb-6">Every email, phone number, and social account that can sign in to this Sayzio account.</p>
+    @include('user.partials.page-hero', [
+        'title'      => 'Linked identifiers',
+        'subtitle'   => 'Every email, phone number, and social account that can sign in to this Sayzio account.',
+        'emblemIcon' => 'fa-fingerprint',
+        'back'       => route('user.profile.edit'),
+        'chips'      => array_values(array_filter([
+            ['text' => \App\Modules\User\Support\HeroCount::label($identifiers ?? null, 'linked'), 'icon' => 'fa-link'],
+            // Only shown when there is something pending; a permanent "0 waiting"
+            // chip is noise on a page most people open once.
+            \App\Modules\User\Support\HeroCount::of($pending ?? null) > 0
+                ? ['text' => \App\Modules\User\Support\HeroCount::of($pending) . ' awaiting verification', 'icon' => 'fa-hourglass-half']
+                : null,
+        ])),
+    ])
 
     @if (empty($user->email))
         <div class="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-200 text-sm">

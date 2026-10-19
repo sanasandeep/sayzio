@@ -3,15 +3,18 @@
 
 @section('content')
 @include('user.partials._plan_lock', ['feature' => 'buzz_popups', 'kind' => 'flag', 'label' => 'Social-proof buzz popups'])
-<div class="flex items-center justify-between mb-6">
-    <div>
-        <h1 class="text-2xl font-bold text-white">Buzz</h1>
-        <p class="text-white/40 text-sm mt-1">Build trust with notification widgets you can embed anywhere, including your Link in Bio pages.</p>
-    </div>
-    <a href="{{ route('user.social-proofs.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-        <i class="fas fa-plus"></i> New Notification
-    </a>
-</div>
+@include('user.partials.page-hero', [
+    'title'      => 'Buzz',
+    'subtitle'   => 'Build trust with notification widgets you can embed anywhere, including your Link in Bio pages.',
+    'emblemIcon' => 'fa-bullhorn',
+    'back'       => route('user.dashboard'),
+    'chips'      => [
+        ['text' => \App\Modules\User\Support\HeroCount::label($proofs ?? null, 'notification'), 'icon' => 'fa-bell'],
+    ],
+    'actions'    => [
+        ['label' => 'New Notification', 'url' => route('user.social-proofs.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary'],
+    ],
+])
 
 @isset($buzzUsage)
 <div class="glass rounded-2xl p-4 mb-5">
