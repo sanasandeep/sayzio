@@ -64,9 +64,48 @@
             <a class="ov-muted" href="{{ route('user.stats.index') }}">Open account analytics →</a>
         </section>
     </div>
-    <section class="ov-panel"><h2>Recently updated</h2><p class="ov-muted">Continue working on your latest links.</p>
+    <section class="ov-panel"><div class="ov-line"><h2>Recently updated</h2><a href="{{ route('user.links.index') }}" class="ov-allbtn">All links <span aria-hidden="true">&rarr;</span></a></div><p class="ov-muted">Continue working on your latest links.</p>
         @forelse($recentLinks as $link)
-        <div class="ov-recent"><div><a href="{{ route('user.links.show', $link) }}">{{ $link->title ?: $link->alias }}</a><p class="ov-muted">{{ $link->project?->name ?? 'Unfiled' }} · {{ $link->is_active ? 'Active' : 'Inactive' }}</p></div><span class="ov-muted">{{ $link->updated_at->diffForHumans() }}</span></div>
+        @php
+            // Same resolver the My Links rows use, so a link wears the same
+            // type colour, label and favicon in both places. A dashboard that
+            // calls a page "Restaurant Menu" and the list that calls it
+            // something else is how people stop trusting either one.
+            $ovTs = \App\Modules\User\Support\LinkTileStyle::for($link);
+            $ovIcon = $link->favicon ?: ($link->settings['biolink']['favicons']['icon_512'] ?? $link->settings['biolink']['favicons']['apple_touch_icon'] ?? null);
+            if (! $ovIcon && $link->long_url) {
+                $ovHost = parse_url($link->long_url, PHP_URL_HOST);
+                if ($ovHost) { $ovIcon = 'https://www.google.com/s2/favicons?sz=64&domain='.urlencode($ovHost); }
+            }
+            $ovIcon = \App\Support\PublicStorageUrl::resolve($ovIcon);
+            if ($ovIcon && ! preg_match('~^(https?://|/(?!/))~i', $ovIcon)) { $ovIcon = null; }
+            $ovFallback = url('/favicon-96x96.png');
+            $ovClicks = (int) ($link->total_clicks ?? 0);
+        @endphp
+        <div class="ov-link" style="--lt:{{ $ovTs['color'] }};--ltbg:{{ $ovTs['bg'] }};--ltbd:{{ $ovTs['border'] }}">
+            <span class="ov-link-icon"><img src="{{ $ovIcon ?: $ovFallback }}" data-fallback="{{ $ovFallback }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(this.src!==this.dataset.fallback){this.src=this.dataset.fallback;}"></span>
+            <div class="ov-link-main">
+                <div class="ov-link-head">
+                    <a href="{{ route('user.links.show', $link) }}">{{ $link->title ?: $link->alias }}</a>
+                    <span class="ov-type">{{ $ovTs['label'] }}</span>
+                    @if($link->is_active)<span class="ov-on"><i class="fas fa-circle" aria-hidden="true"></i>Active</span>@else<span class="ov-off">Inactive</span>@endif
+                </div>
+                <div class="ov-link-meta" x-data="{ copied: false }">
+                    <span class="ov-url" title="{{ $link->getShortUrl() }}">{{ $link->getShortUrl() }}</span>
+                    <button type="button" class="ov-copy" :aria-label="copied ? 'Link copied' : 'Copy link'"
+                            @click="navigator.clipboard.writeText(@js($link->getShortUrl())).then(() => { copied = true; setTimeout(() => copied = false, 2000); }).catch(() => { copied = false; })">
+                        <i x-show="!copied" class="fas fa-copy" aria-hidden="true"></i>
+                        <i x-show="copied" x-cloak class="fas fa-check" aria-hidden="true"></i>
+                        <span x-text="copied ? 'Copied' : 'Copy'"></span>
+                    </button>
+                    <span class="ov-sep" aria-hidden="true">&middot;</span>
+                    <span class="ov-where">{{ $link->project?->name ?? 'No folder' }}</span>
+                    <span class="ov-sep" aria-hidden="true">&middot;</span>
+                    <span class="ov-age">{{ $link->updated_at->diffForHumans() }}</span>
+                </div>
+            </div>
+            <div class="ov-link-clicks"><b>{{ number_format($ovClicks) }}</b><small>{{ $ovClicks === 1 ? 'click' : 'clicks' }}</small></div>
+        </div>
         @empty
         <p class="ov-empty">Your first link starts here. Choose Create Link to get started.</p>
         @endforelse

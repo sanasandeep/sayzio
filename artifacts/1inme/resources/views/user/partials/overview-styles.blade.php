@@ -13,3 +13,49 @@
 .ov-folder{position:relative;border-left:1px solid var(--border-glass);padding:14px 18px 18px;background:linear-gradient(155deg,color-mix(in srgb,var(--ov-color) 7%,var(--bg-card)),var(--bg-card));overflow:hidden}.ov-folder-art{display:block;width:150px;max-width:100%;height:auto;margin:0 auto 8px;color:var(--ov-color);filter:drop-shadow(0 6px 8px color-mix(in srgb,var(--ov-color) 15%,transparent))}.ov-folder-caption{display:flex;flex-direction:column;gap:3px;padding-right:18px}.ov-folder-caption strong{overflow-wrap:anywhere;font-size:15px}.ov-folder-arrow{position:absolute;bottom:25px;right:18px;color:var(--ov-color);font-size:20px}.ov-folder-paper,.ov-folder-cover{transition:transform .3s cubic-bezier(.2,.8,.2,1);transform-box:fill-box;transform-origin:center bottom}.ov-folder:is(:hover,:focus-visible) .ov-folder-paper-back{transform:translateY(-12px) rotate(-6deg)}.ov-folder:is(:hover,:focus-visible) .ov-folder-paper-front{transform:translateY(-7px) rotate(3deg)}.ov-folder:is(:hover,:focus-visible) .ov-folder-cover{transform:scaleY(.92) skewX(-2deg)}
 @media(prefers-reduced-motion:reduce){.ov-count,.ov-count-art,.ov-folder-paper,.ov-folder-cover{transition:none}.ov-count:hover,.ov-count:hover .ov-count-art,.ov-folder:is(:hover,:focus-visible) .ov-folder-paper,.ov-folder:is(:hover,:focus-visible) .ov-folder-cover{transform:none}}
 </style>
+<style>
+/* Recently updated rows: the My Links row, sized for the dashboard panel.
+   Same type colour, label and favicon resolver as the list page, so a link
+   does not change identity between the two screens. */
+.ov-allbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border:1px solid var(--border-glass);border-radius:999px;background:var(--bg-glass-light,#f5f7fd);color:var(--text-secondary);font-size:12.5px;font-weight:650;white-space:nowrap;text-decoration:none;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.ov-allbtn:hover{background:#eaf0ff;border-color:#c6d4ff;color:#2f49c6}
+.ov-link{--lt:#3b82f6;--ltbg:#eff5ff;--ltbd:#d8e4ff;display:flex;align-items:center;gap:13px;padding:13px 2px;border-bottom:1px solid var(--border-glass);min-width:0}
+.ov-link:last-child{border-bottom:0}
+.ov-link-icon{flex:0 0 auto;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:var(--ltbg);border:1px solid var(--ltbd);overflow:hidden}
+.ov-link-icon img{width:19px;height:19px;object-fit:contain;display:block}
+.ov-link-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px}
+.ov-link-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.ov-link-head a{color:var(--text-primary);font-weight:650;font-size:13.5px;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.ov-link-head a:hover{color:var(--lt)}
+.ov-type{flex:0 0 auto;padding:2px 9px;border-radius:999px;background:var(--ltbg);color:var(--lt);border:1px solid var(--ltbd);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.ov-on,.ov-off{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
+.ov-on{color:#10b981}
+.ov-on i{font-size:6px}
+.ov-off{padding:2px 8px;border-radius:999px;background:#fdeaea;color:#d4504f;border:1px solid #f6d3d3}
+.ov-link-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);min-width:0}
+.ov-url{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:min(100%,290px);font-variant-numeric:tabular-nums}
+.ov-copy{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--border-glass);border-radius:8px;background:var(--bg-card,#fff);color:var(--text-secondary);font:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.ov-copy:hover{background:var(--ltbg);border-color:var(--ltbd);color:var(--lt)}
+.ov-copy i{font-size:10px}
+.ov-copy .fa-check{color:#10b981}
+.ov-sep{color:var(--border-strong,#cfd6e6)}
+.ov-link-clicks{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;line-height:1.1;padding-left:6px}
+.ov-link-clicks b{font-size:17px;font-weight:750;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.ov-link-clicks small{font-size:9.5px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted)}
+@media (max-width:640px){
+  /* Three columns rather than a flex row: the icon and the click count stay
+     pinned beside the title instead of drifting to the middle of a block that
+     wraps to four lines. Separators go -- a dot left dangling at the end of a
+     wrapped line reads as a typo. */
+  .ov-link{display:grid;grid-template-columns:34px minmax(0,1fr) auto;column-gap:11px;row-gap:4px;align-items:start;padding:12px 0}
+  .ov-link-icon{width:34px;height:34px;border-radius:10px;grid-column:1;grid-row:1 / span 2}
+  .ov-link-main{grid-column:2;grid-row:1 / span 2}
+  .ov-link-clicks{grid-column:3;grid-row:1;align-self:start;padding-left:0}
+  .ov-link-clicks b{font-size:15px}
+  /* The URL takes a line of its own so the row below it reads as one tidy
+     line -- Copy, folder, age -- instead of each item wrapping separately and
+     stranding a separator at the end of a line. */
+  .ov-link-meta{column-gap:8px;row-gap:5px}
+  .ov-url{flex-basis:100%;max-width:100%}
+}
+</style>
