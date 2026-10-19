@@ -29,6 +29,7 @@ class ConvertedViewsAreWellFormedTest extends TestCase
     private const CONVERTED = [
         'views/user/links/create.blade.php',
         'views/user/links/teardown/create.blade.php',
+        'views/user/links/teardown/show.blade.php',
         'views/user/social-proofs/index.blade.php',
         'views/user/pixels/index.blade.php',
         'views/user/followers/index.blade.php',

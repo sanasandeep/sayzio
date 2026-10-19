@@ -2,16 +2,70 @@
 @section('title', 'Competitor Biolink Teardown')
 
 @section('content')
-<div class="max-w-3xl mx-auto" x-data="teardownBuild()">
-    <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.teardown.create') }}" class="text-white/30 hover:text-white transition-colors" title="Run another teardown"><i class="fas fa-arrow-left"></i></a>
-        <div class="min-w-0">
-            <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fas fa-magnifying-glass-chart text-blue-400"></i> Teardown Results
-            </h1>
-            <p class="text-xs text-white/40 mt-0.5 truncate">{{ $teardown->competitor_url }}</p>
-        </div>
-    </div>
+<style>
+/* Scores and meters only. Everything else is the shared glass/rounded idiom. */
+.td-gauge{position:relative;width:104px;height:104px;flex:0 0 auto}
+.td-gauge svg{transform:rotate(-90deg);display:block}
+.td-gauge-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.td-gauge-num{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.td-gauge-of{font-size:10px;opacity:.45;margin-top:3px}
+
+/* One card per finding group. The grid gives three across on a wide screen and
+   collapses on its own -- the page is full width now, and two 600px columns of
+   six-word bullets read worse than three. */
+.td-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+@media(max-width:1100px){.td-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.td-groups{grid-template-columns:1fr}}
+
+.td-list{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.td-list li{display:flex;gap:10px;font-size:13px;line-height:1.55}
+.td-dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%;margin-top:7px}
+
+.td-meter{height:8px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.08)}
+html.light-mode .td-meter{background:rgba(15,23,42,.08)}
+.td-meter-fill{height:100%;border-radius:999px}
+
+.td-count{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08)}
+html.light-mode .td-count{background:rgba(15,23,42,.06)}
+</style>
+<div class="teardown-show" x-data="teardownBuild()">
+    @php
+        $score    = (int) ($analysis['overall_score'] ?? 0);
+        $ctaScore = (int) ($analysis['cta']['quality_score'] ?? 0);
+        // One scale, used by the gauge, the meter and the chip, so a number
+        // never wears two different colours on the same page.
+        $band = static fn (int $n): array => $n >= 70
+            ? ['#34d399', 'text-emerald-300', 'fa-circle-check']
+            : ($n >= 40 ? ['#fbbf24', 'text-amber-300', 'fa-circle-exclamation']
+                        : ['#f87171', 'text-red-300', 'fa-circle-xmark']);
+        [$scoreHex, $scoreText, $scoreIcon] = $band($score);
+        [$ctaHex]                           = $band($ctaScore);
+
+        $strengths = array_values(array_filter((array) ($analysis['strengths'] ?? [])));
+        $weak      = array_values(array_filter((array) ($analysis['weaknesses'] ?? [])));
+        $missing   = array_values(array_filter((array) ($analysis['missing_elements'] ?? [])));
+        $recs      = array_values(array_filter((array) ($analysis['recommendations'] ?? [])));
+
+        $done = $teardown->status === 'completed';
+    @endphp
+
+    @include('user.partials.page-hero', [
+        'title'      => 'Teardown Results',
+        'emblemIcon' => 'fa-magnifying-glass-chart',
+        'url'        => $teardown->competitor_url,
+        'back'       => route('user.links.teardown.create'),
+        'chips'      => array_values(array_filter([
+            // Only the numbers the analysis actually returned.
+            $done ? ['text' => $score . '/100 overall', 'icon' => $scoreIcon] : null,
+            $done ? ['text' => $ctaScore . '/100 CTA', 'icon' => 'fa-bullseye'] : null,
+            $teardown->status === 'processing' ? ['text' => 'Analysing', 'icon' => 'fa-spinner fa-spin'] : null,
+            $teardown->status === 'failed' ? ['text' => 'Failed', 'icon' => 'fa-triangle-exclamation'] : null,
+            $teardown->built_link_id ? ['text' => 'Better version built', 'icon' => 'fa-wand-magic-sparkles'] : null,
+        ])),
+        'actions'    => [
+            ['label' => 'Run another teardown', 'url' => route('user.links.teardown.create'), 'icon' => 'fa-rotate-right', 'class' => 'btn-ghost'],
+        ],
+    ])
 
     @if(session('error'))
         <div class="glass rounded-xl p-4 mb-5 border border-red-500/20 text-sm text-red-300">{{ session('error') }}</div>
@@ -32,78 +86,111 @@
             <a href="{{ route('user.links.teardown.create') }}" class="inline-block mt-4 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all">Try another URL</a>
         </div>
     @else
-        {{-- Overall score --}}
-        <div class="glass rounded-2xl p-6 mb-5 flex items-center gap-6">
-            <div class="shrink-0 w-20 h-20 rounded-full flex items-center justify-center border-4"
-                 style="border-color: {{ ($analysis['overall_score'] ?? 0) >= 70 ? 'rgba(52,211,153,0.5)' : (($analysis['overall_score'] ?? 0) >= 40 ? 'rgba(251,191,36,0.5)' : 'rgba(248,113,113,0.5)') }}">
-                <span class="text-2xl font-bold text-white">{{ $analysis['overall_score'] ?? 0 }}</span>
-            </div>
-            <div>
-                <p class="text-sm text-white/40 mb-1">Overall effectiveness</p>
-                <p class="text-white/80 text-sm">{{ $analysis['summary'] ?? '' }}</p>
+        {{-- The verdict band: the two scores the analysis produced, side by
+             side, so the headline number and the CTA number are read together
+             rather than one at the top of the page and one two screens down. --}}
+        <div class="glass rounded-2xl p-6 mb-5">
+            <div class="flex items-start gap-6 flex-wrap">
+                <div class="td-gauge">
+                    <svg width="104" height="104" viewBox="0 0 104 104" aria-hidden="true">
+                        <circle cx="52" cy="52" r="46" fill="none" stroke="currentColor" stroke-opacity=".12" stroke-width="9"/>
+                        <circle cx="52" cy="52" r="46" fill="none" stroke="{{ $scoreHex }}" stroke-width="9" stroke-linecap="round"
+                                stroke-dasharray="{{ round(2 * M_PI * 46, 2) }}"
+                                stroke-dashoffset="{{ round(2 * M_PI * 46 * (1 - min(100, max(0, $score)) / 100), 2) }}"/>
+                    </svg>
+                    <div class="td-gauge-val">
+                        <span class="td-gauge-num" style="color:{{ $scoreHex }}">{{ $score }}</span>
+                        <span class="td-gauge-of">out of 100</span>
+                    </div>
+                </div>
+
+                <div class="min-w-0 flex-1" style="min-width:260px">
+                    <p class="text-sm text-white/40 mb-1">Overall effectiveness</p>
+                    <p class="text-white/80 text-sm mb-4">{{ $analysis['summary'] ?? '' }}</p>
+
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs text-white/50"><i class="fas fa-bullseye mr-1.5"></i>Call-to-action quality</span>
+                        <span class="text-xs font-semibold text-white">{{ $ctaScore }}/100</span>
+                    </div>
+                    <div class="td-meter mb-2">
+                        <div class="td-meter-fill" style="width:{{ min(100, max(0, $ctaScore)) }}%;background:{{ $ctaHex }}"></div>
+                    </div>
+                    <p class="text-xs text-white/50">
+                        {{ ($analysis['cta']['present'] ?? false) ? '' : 'No clear CTA detected. ' }}{{ $analysis['cta']['feedback'] ?? '' }}
+                    </p>
+                </div>
             </div>
         </div>
 
-        <div class="grid sm:grid-cols-2 gap-5 mb-5">
-            {{-- Strengths --}}
+        {{-- The three finding groups, one card each, counted in the heading so
+             the shape of the verdict is readable before any bullet is. --}}
+        <div class="td-groups mb-5">
             <div class="glass rounded-2xl p-5">
-                <h3 class="text-sm font-semibold text-emerald-300 mb-3"><i class="fas fa-circle-check mr-1.5"></i> Strengths</h3>
-                @forelse($analysis['strengths'] ?? [] as $item)
-                    <p class="text-xs text-white/60 mb-2 flex gap-2"><span class="text-emerald-400/60">•</span> {{ $item }}</p>
-                @empty
-                    <p class="text-xs text-white/30">None identified.</p>
-                @endforelse
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-emerald-300"><i class="fas fa-circle-check mr-1.5"></i>What works</h3>
+                    <span class="td-count text-emerald-300">{{ count($strengths) }}</span>
+                </div>
+                <ul class="td-list">
+                    @forelse($strengths as $item)
+                        <li><span class="td-dot" style="background:#34d399"></span><span class="text-white/70">{{ $item }}</span></li>
+                    @empty
+                        <li><span class="text-xs text-white/30">None identified.</span></li>
+                    @endforelse
+                </ul>
             </div>
 
-            {{-- Weaknesses --}}
             <div class="glass rounded-2xl p-5">
-                <h3 class="text-sm font-semibold text-red-300 mb-3"><i class="fas fa-circle-xmark mr-1.5"></i> Weaknesses</h3>
-                @forelse($analysis['weaknesses'] ?? [] as $item)
-                    <p class="text-xs text-white/60 mb-2 flex gap-2"><span class="text-red-400/60">•</span> {{ $item }}</p>
-                @empty
-                    <p class="text-xs text-white/30">None identified.</p>
-                @endforelse
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-red-300"><i class="fas fa-circle-xmark mr-1.5"></i>What doesn't</h3>
+                    <span class="td-count text-red-300">{{ count($weak) }}</span>
+                </div>
+                <ul class="td-list">
+                    @forelse($weak as $item)
+                        <li><span class="td-dot" style="background:#f87171"></span><span class="text-white/70">{{ $item }}</span></li>
+                    @empty
+                        <li><span class="text-xs text-white/30">None identified.</span></li>
+                    @endforelse
+                </ul>
+            </div>
+
+            <div class="glass rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-amber-300"><i class="fas fa-list-check mr-1.5"></i>What's missing</h3>
+                    <span class="td-count text-amber-300">{{ count($missing) }}</span>
+                </div>
+                <ul class="td-list">
+                    @forelse($missing as $item)
+                        <li><span class="td-dot" style="background:#fbbf24"></span><span class="text-white/70">{{ $item }}</span></li>
+                    @empty
+                        <li><span class="text-xs text-white/30">Nothing obviously missing.</span></li>
+                    @endforelse
+                </ul>
             </div>
         </div>
 
-        {{-- Missing elements --}}
-        <div class="glass rounded-2xl p-5 mb-5">
-            <h3 class="text-sm font-semibold text-amber-300 mb-3"><i class="fas fa-list-check mr-1.5"></i> Missing Elements</h3>
-            @forelse($analysis['missing_elements'] ?? [] as $item)
-                <p class="text-xs text-white/60 mb-2 flex gap-2"><span class="text-amber-400/60">•</span> {{ $item }}</p>
-            @empty
-                <p class="text-xs text-white/30">Nothing obviously missing.</p>
-            @endforelse
-        </div>
-
-        {{-- CTA quality --}}
-        <div class="glass rounded-2xl p-5 mb-5">
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-sm font-semibold text-white/80"><i class="fas fa-bullseye text-blue-300 mr-1.5"></i> Call-to-Action Quality</h3>
-                <span class="text-sm font-semibold text-white">{{ $analysis['cta']['quality_score'] ?? 0 }}/100</span>
-            </div>
-            <p class="text-xs text-white/50">
-                {{ ($analysis['cta']['present'] ?? false) ? '' : 'No clear CTA detected. ' }}{{ $analysis['cta']['feedback'] ?? '' }}
-            </p>
-        </div>
-
-        {{-- Recommendations --}}
-        @if(!empty($analysis['recommendations']))
-        <div class="glass rounded-2xl p-5 mb-5">
-            <h3 class="text-sm font-semibold text-blue-300 mb-3"><i class="fas fa-lightbulb mr-1.5"></i> Recommendations</h3>
-            <ol class="space-y-2">
-                @foreach($analysis['recommendations'] as $i => $item)
-                    <li class="text-xs text-white/60 flex gap-2"><span class="text-blue-400/70 font-medium">{{ $i + 1 }}.</span> {{ $item }}</li>
+        {{-- Recommendations last, because they are the thing you act on, and
+             they sit directly above the button that acts on them. --}}
+        @if(!empty($recs))
+        <div class="glass rounded-2xl p-6 mb-5">
+            <h3 class="text-sm font-semibold text-blue-300 mb-4"><i class="fas fa-lightbulb mr-1.5"></i>What to do about it</h3>
+            <ol class="td-list">
+                @foreach($recs as $i => $item)
+                    <li>
+                        <span class="shrink-0 text-xs font-semibold text-blue-300/80" style="min-width:1.4em">{{ $i + 1 }}.</span>
+                        <span class="text-white/70">{{ $item }}</span>
+                    </li>
                 @endforeach
             </ol>
         </div>
         @endif
 
-        {{-- Build a better version --}}
-        <div class="glass rounded-2xl p-6 flex items-center justify-between gap-4">
-            <div>
-                <p class="text-sm text-white font-medium"><i class="fas fa-wand-magic-sparkles text-blue-400 mr-1.5"></i> Ready to beat this page?</p>
-                <p class="text-xs text-white/40 mt-1">Coin balance: <span class="text-white/70">{{ $balance }}</span></p>
+        <div class="glass rounded-2xl p-6 flex items-center justify-between gap-4 flex-wrap">
+            <div class="min-w-0">
+                <p class="text-sm text-white font-medium"><i class="fas fa-wand-magic-sparkles text-blue-400 mr-1.5"></i>Ready to beat this page?</p>
+                <p class="text-xs text-white/40 mt-1">
+                    Builds a new biolink from these findings.
+                    Coin balance: <span class="text-white/70">{{ $balance }}</span>
+                </p>
             </div>
             <form method="POST" action="{{ route('user.links.teardown.build', $teardown) }}" @submit="building = true">
                 @csrf
