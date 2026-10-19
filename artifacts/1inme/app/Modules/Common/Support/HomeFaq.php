@@ -36,6 +36,18 @@ class HomeFaq
         ['q' => 'Can I use Sayzio with my existing workflow?', 'a' => 'Start with the tools you need, then connect your pages, contacts, plans and project resources as your workflow grows. Available integrations and limits depend on the feature and your plan.'],
         ['q' => 'Do I have to use AI?', 'a' => 'No. You can enter and edit content yourself. When you choose AI generation, review the coin estimate before you continue and review the result before using it.'],
         ['q' => 'What happens after a customer gets in touch?', 'a' => 'Keep the enquiry and customer details organized, manage the agreed sale, and connect the delivery work to a project. You choose the records and actions to connect; the example above illustrates the flow.'],
+
+        /*
+         * The three below are the questions a visitor actually has before
+         * signing up, and the four above answered none of them. The answers
+         * are taken verbatim from /faqs rather than rewritten, so the home
+         * page and the FAQ page cannot drift into saying different things
+         * about the same promise -- and so nothing here is a claim about
+         * the product that was not already published.
+         */
+        ['q' => 'Is there really a free plan?', 'a' => 'Yes, the Free plan is free forever. No trial countdown, no surprise paywall, no credit card required to use it.'],
+        ['q' => 'Can I use my own domain for short links?', 'a' => 'Yes, on paid plans. Add a CNAME record and your links read https://yourbrand.co/launch instead of the default host.'],
+        ['q' => 'Can I import my existing Linktree or Beacons page?', 'a' => 'Yes, paste your existing page URL into the importer and we will pull the blocks, icons and links into a starter page you can edit.'],
     ];
 
     /** Questions by home design key, for designs whose copy lives here. */
