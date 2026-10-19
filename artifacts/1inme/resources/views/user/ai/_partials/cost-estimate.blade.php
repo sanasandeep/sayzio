@@ -131,7 +131,7 @@ window.aiCostEstimate = function (cfg) {
         'balanceField' => $cost['balanceField'] ?? 'balance',
         'lowField'     => $cost['lowField'] ?? 'low',
         'extra'        => $cost['extra'] ?? (object) [],
-     ])"
+     ]))"
      x-init="costInit()" x-cloak>
     <span x-show="costCoins !== null">
         <i class="fas fa-coins"></i>
