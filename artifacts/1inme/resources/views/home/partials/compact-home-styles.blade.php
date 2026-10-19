@@ -84,7 +84,89 @@
 .ch-product-top small{font-size:9px}
 .ch-heading{margin-bottom:24px}
 .ch-final{padding-bottom:48px}}
+
+/* ===== The journey rail (#customer-workflow) =====================
+   The tablist is the route. Stops sit on one dashed line with a pulse
+   running it left to right, so the row reads as a journey rather than a
+   button bar -- which is what the section is actually describing. Keeps
+   full tablist semantics; only the paint changed. */
+.ch-journey .ch-rail{--rail-pad:22px;--stop-dot:38px;position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:var(--rail-pad) 18px 18px;border-bottom:1px solid var(--ch-border);background:var(--ch-soft)}
+/* The line has to pass through the middle of the stops. Derived from the
+   rail's own padding and dot size rather than a magic top: hardcoding it
+   put the line 5px under the dots, and the breakpoint below changes both
+   numbers -- so a constant would have been wrong twice. */
+.ch-rail-art{position:absolute;left:8%;right:8%;top:calc(var(--rail-pad) + var(--stop-dot)/2 - 12px);width:84%;height:24px;overflow:visible;pointer-events:none}
+.ch-rail-base{stroke:var(--ch-border);stroke-width:2;stroke-linecap:round}
+.ch-rail-flow{stroke:var(--ch-accent);stroke-width:2;stroke-linecap:round;opacity:.3;stroke-dasharray:6 10;animation:ch-rail-flow 1.4s linear infinite}
+@keyframes ch-rail-flow{to{stroke-dashoffset:-16}}
+.ch-rail-pulse{fill:var(--ch-accent);opacity:.9;animation:ch-rail-pulse 5.5s ease-in-out infinite}
+@keyframes ch-rail-pulse{0%{transform:translateX(8px);opacity:0}8%{opacity:.9}92%{opacity:.9}100%{transform:translateX(992px);opacity:0}}
+.ch-stop{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:9px;background:transparent;border:0;padding:0;cursor:pointer;color:var(--ch-muted);font-size:13px;font-weight:650}
+.ch-stop-dot{width:var(--stop-dot);height:var(--stop-dot);border-radius:50%;display:grid;place-items:center;font-size:14px;background:var(--ch-panel);border:2px solid var(--ch-border);color:var(--ch-muted);transition:border-color .25s,color .25s,transform .25s,box-shadow .25s}
+.ch-stop-label{transition:color .25s}
+.ch-stop:hover .ch-stop-dot{border-color:var(--ch-accent);color:var(--ch-accent)}
+.ch-stop[aria-selected=true] .ch-stop-dot{border-color:var(--ch-accent);background:var(--ch-accent);color:#fff;transform:scale(1.1);box-shadow:0 0 0 6px color-mix(in srgb,var(--ch-accent) 14%,transparent)}
+.ch-stop[aria-selected=true] .ch-stop-label{color:var(--ch-accent)}
+.ch-stop:focus-visible{outline:3px solid var(--ch-accent);outline-offset:4px;border-radius:12px}
+
+/* What the record is carrying by this stage. Earlier stages stay on the
+   card, ticked, so the history accumulates instead of swapping. */
+.ch-trail{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.ch-trail-chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:650;padding:4px 9px;border-radius:9999px;border:1px solid var(--ch-border);color:var(--ch-muted)}
+.ch-trail-chip i{font-size:8px;color:#19aa86}
+.ch-trail-chip.is-now{border-color:var(--ch-accent);color:var(--ch-accent);background:color-mix(in srgb,var(--ch-accent) 10%,transparent)}
+
+/* ===== The converging diagram (#connected-ai) ====================
+   Two inputs, two curves, one answer -- a Y, because the rail above is a
+   line and two identical rectangles back to back was half of why this
+   page read flat. */
+/* The merge needs more room than the default 1fr/1.1fr panel split gives
+   it -- three columns inside one of them. */
+.ch-converge .ch-panel{grid-template-columns:.88fr 1.32fr;gap:36px}
+.ch-converge .ch-merge{display:grid;grid-template-columns:1fr 92px 1.15fr;align-items:center;gap:0}
+.ch-feeds{display:grid;gap:16px}
+.ch-feed{background:var(--ch-panel);border:1px solid var(--ch-border);border-radius:14px;padding:13px 15px;display:grid;gap:5px;box-shadow:0 10px 24px #20185409}
+.ch-feed-name{font-size:12.5px;font-weight:700;color:var(--ch-text)}
+.ch-feed-detail{font-size:11px;color:var(--ch-muted)}
+.ch-sw-row{display:flex;align-items:center;gap:5px;margin-top:4px}
+.ch-sw-row i{width:15px;height:15px;border-radius:5px;flex:none}
+.ch-sw-row b{font-size:12px;font-weight:800;color:var(--ch-text);margin-left:3px}
+.ch-sw-row--sm i{width:11px;height:11px;border-radius:4px}
+.ch-feed-chips{display:flex;gap:5px;margin-top:4px}
+.ch-feed-chips i{height:9px;border-radius:5px;background:color-mix(in srgb,var(--ch-accent) 28%,transparent)}
+.ch-feed-chips i:nth-child(1){width:38%}.ch-feed-chips i:nth-child(2){width:26%}.ch-feed-chips i:nth-child(3){width:18%}
+.ch-feed-lines{display:grid;gap:5px;margin-top:5px}
+.ch-feed-lines i{height:6px;border-radius:3px;background:var(--ch-border)}
+.ch-feed-lines i:nth-child(1){width:80%}.ch-feed-lines i:nth-child(2){width:55%}
+.ch-merge-art{width:92px;height:190px;overflow:visible}
+.ch-wire{fill:none;stroke:var(--ch-border);stroke-width:2}
+.ch-wire-run{stroke:var(--ch-accent);stroke-width:2;stroke-linecap:round;stroke-dasharray:14 240;animation:ch-wire-run 3.2s ease-in-out infinite}
+.ch-wire-run--b{animation-delay:1.6s}
+@keyframes ch-wire-run{0%{stroke-dashoffset:254;opacity:0}10%{opacity:1}85%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+.ch-out{background:var(--ch-panel);border:1px solid var(--ch-border);border-radius:16px;padding:20px;display:grid;gap:9px;box-shadow:0 16px 36px #2018540f}
+.ch-out-top{display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;color:var(--ch-text);line-height:1.3}
+.ch-out p{font-size:12px}
+.ch-out .ch-status{justify-self:start;margin-top:3px}
+.ch-spark{color:var(--ch-accent);font-size:15px;flex:none}
+
+@media(max-width:760px){
+.ch-journey .ch-rail{--rail-pad:16px;--stop-dot:30px;padding:var(--rail-pad) 10px 12px;gap:2px}
+.ch-rail-art{display:none}
+.ch-stop{font-size:11px;gap:6px}
+.ch-stop-dot{font-size:12px}
+.ch-converge .ch-merge{grid-template-columns:1fr;gap:12px}
+.ch-merge-art{width:100%;height:46px;transform:rotate(90deg);justify-self:center}
+.ch-feeds{gap:10px}}
+
 @media(prefers-reduced-motion:reduce){.ch-panel{animation:none}
 .ch-tabs button,.ch-button{transition:none}
-.ch-button:hover{transform:none}}
+.ch-button:hover{transform:none}
+/* Every moving part added for the rail and the converging wires. These are
+   plain CSS animations with no !important and no deep selectors precisely
+   so this block can switch them off; the wires use CSS rather than SMIL
+   for the same reason -- an <animateMotion> would have kept running here. */
+.ch-rail-flow,.ch-rail-pulse,.ch-wire-run{animation:none}
+.ch-rail-pulse{opacity:0}
+.ch-wire-run{stroke-dashoffset:0;stroke-dasharray:none;opacity:.55}
+.ch-stop-dot,.ch-stop-label{transition:none}}
 </style>
