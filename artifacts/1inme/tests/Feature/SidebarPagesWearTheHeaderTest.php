@@ -29,6 +29,9 @@ class SidebarPagesWearTheHeaderTest extends TestCase
         'views/user/pixels/index.blade.php',
         'views/user/followers/index.blade.php',
         'views/user/identifiers/index.blade.php',
+        'views/user/notifications/index.blade.php',
+        'views/user/posts/index.blade.php',
+        'views/user/referrals/index.blade.php',
         // Create Link is on its own branch with its own guard
         // (CreateLinkPageHeaderTest). Listing it here would make this test fail
         // until that one merges, which is a dependency between two PRs that do
@@ -41,14 +44,11 @@ class SidebarPagesWearTheHeaderTest extends TestCase
      * BROUGHT_ACROSS and leaves this list.
      */
     private const STILL_TO_DO = [
-        'views/user/notifications/index.blade.php',
         'views/user/stats/index.blade.php',
         'views/user/resume/editor.blade.php',
         'views/user/files/index.blade.php',
         'views/user/subscribers/index.blade.php',
-        'views/user/posts/index.blade.php',
         'views/user/leads/index.blade.php',
-        'views/user/referrals/index.blade.php',
         'views/user/calendars/my-calendar.blade.php',
     ];
 

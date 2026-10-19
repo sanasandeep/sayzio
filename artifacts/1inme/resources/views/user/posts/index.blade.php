@@ -2,19 +2,20 @@
 @section('title', 'My Posts')
 @section('content')
 <div class="max-w-3xl mx-auto px-4 py-8">
-    <div class="flex items-start justify-between mb-6 gap-3">
-        <h1 class="text-2xl font-bold" style="color: var(--text-primary);">My Posts</h1>
-        @if(!empty($approvalEnabled))
-            <span class="text-xs px-2 py-1 rounded-full" style="background: rgba(61,107,255,0.12); color: var(--text-primary);">
-                <i class="fas fa-shield-check mr-1"></i>
-                @if(!empty($userIsApprover))
-                    Approval workflow on (you can approve)
-                @else
-                    Approval workflow on (posts go to review)
-                @endif
-            </span>
-        @endif
-    </div>
+    @include('user.partials.page-hero', [
+        'title'      => 'My Posts',
+        'subtitle'   => 'Updates your followers see.',
+        'emblemIcon' => 'fa-pen-nib',
+        'back'       => route('user.dashboard'),
+        'chips'      => array_values(array_filter([
+            ['text' => \App\Modules\User\Support\HeroCount::label($posts ?? null, 'post'), 'icon' => 'fa-pen-nib'],
+            // The approval notice was a pill beside the old title. It only ever
+            // appeared when the workflow is on, and it still does.
+            ! empty($approvalEnabled)
+                ? ['text' => ! empty($userIsApprover) ? 'Approval on, you can approve' : 'Approval on, posts go to review', 'icon' => 'fa-shield-halved']
+                : null,
+        ])),
+    ])
 
     @if(session('success'))
         <div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>

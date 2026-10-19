@@ -9,8 +9,19 @@
     $__canEdit = $__can('referrals.edit');
 @endphp
 <div class="max-w-4xl">
-    <h1 class="text-2xl font-bold text-white mb-1">Refer friends, earn free days</h1>
-    <p class="text-sm text-white/50 mb-6">Share your link or code. When a friend signs up and activates a paid plan, you both get free subscription days.</p>
+    @include('user.partials.page-hero', [
+        'title'      => 'Refer friends, earn free days',
+        'subtitle'   => 'Share your link or code. When a friend signs up and activates a paid plan, you both get free subscription days.',
+        'emblemIcon' => 'fa-gift',
+        'back'       => route('user.dashboard'),
+        // Straight off $stats, which the page already renders further down --
+        // the chips and the tiles below cannot disagree.
+        'chips'      => [
+            ['text' => number_format($stats['signups'] ?? 0) . ' signups', 'icon' => 'fa-user-plus'],
+            ['text' => number_format($stats['conversions'] ?? 0) . ' converted', 'icon' => 'fa-circle-check'],
+            ['text' => number_format($stats['days_earned'] ?? 0) . ' days earned', 'icon' => 'fa-calendar-plus'],
+        ],
+    ])
 
     @if(!$enabled)
         <div class="rounded-xl px-4 py-3 mb-6 bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 text-sm">
