@@ -53,6 +53,12 @@
 .ch-prices h3{font-size:28px;margin:18px 0 12px;font-weight:750;letter-spacing:-.03em}
 .ch-prices h3 small{font-size:12px;font-weight:400;letter-spacing:0;color:var(--ch-muted)}
 .ch-prices p{font-size:12px}
+/* The plan limits under each price. Rendered from the same features the
+   /pricing cards read, so the list length varies by plan -- hence a list
+   rather than three fixed rows. */
+.ch-plan-limits{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:7px}
+.ch-plan-limits li{font-size:12px;color:var(--ch-muted);display:flex;align-items:center;gap:8px;line-height:1.45}
+.ch-plan-limits li::before{content:'';flex:none;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.55}
 .ch-faq{align-items:start;border-top:1px solid var(--ch-border)}
 .ch-faq details{border-bottom:1px solid var(--ch-border);padding:18px 0}
 .ch-faq details:first-child{padding-top:0}
