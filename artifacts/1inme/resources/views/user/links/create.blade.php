@@ -6,7 +6,10 @@
     $aliasLimits = $aliasLimits ?? ['min' => 3, 'max' => 50];
     $domainHost  = $domainHost ?? request()->getHost();
 @endphp
-<div class="max-w-3xl mx-auto create-premium">
+{{-- No max-width wrapper: My Links has none either, and the two pages
+     sit a click apart. The picker grids below fill the extra width rather
+     than stretching two cards across it. --}}
+<div class="create-premium">
     @php
         // The catalogue is read here rather than further down because the hero
         // chips count it. Both numbers are counted from the catalogue itself --
@@ -72,6 +75,21 @@
    card in the markup and rendered as a rule. Scoped, it wins on specificity
    rather than on source order. Checked in the browser, not assumed. */
 
+/* Full width changes what the grids should do. Both are declared at (0,1,0)
+   -- .cl-primary-grid in the block above, .cl-expanded-grid in
+   create-premium-style -- so these scoped (0,2,0) rules win.
+
+   The phone rules are scoped too, deliberately. .cl-expanded-grid has a
+   single-column rule at max-width:560px at (0,1,0); an unscoped-to-scoped
+   upgrade of the wide rule alone would have beaten it and left two cramped
+   columns on a phone. That is the same specificity mistake as the bulk card,
+   one step further along. */
+.create-premium .cl-primary-grid{grid-template-columns:repeat(auto-fit,minmax(262px,1fr))}
+.create-premium .cl-expanded-grid{grid-template-columns:repeat(auto-fit,minmax(268px,1fr))}
+@media(max-width:560px){
+  .create-premium .cl-primary-grid,
+  .create-premium .cl-expanded-grid{grid-template-columns:1fr}
+}
 .create-premium .cl-steps{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:-6px 0 18px}
 .create-premium .cl-steps .create-progress{margin-bottom:0}
 .create-premium .cl-ask{font-size:17px;font-weight:700;letter-spacing:-.02em;color:var(--text-primary);margin:0}
