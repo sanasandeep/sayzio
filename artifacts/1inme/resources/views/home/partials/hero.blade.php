@@ -36,12 +36,28 @@
       ['Next job','fa-arrows-rotate','#db8d27',true],
     ];
 
-    /* Stations on the folder-map fragment. The dimmed one is a real state:
-     * an unused station is dashed on the map and asks to be filled. */
+    /* Stations on the folder-map fragment. Sana, of the three-row version:
+     * "Folder have 3 lines only... here i want to show multiple blocks or
+     * rows with animations of how data is connected within it".
+     *
+     * So six real station kinds, threaded onto one dashed rail, and a pulse
+     * walks them in order -- the folder handing a job down its own flow
+     * rather than three cards sitting still. The dimmed one is a real state:
+     * an unused station is dashed on the map and asks to be filled.
+     *
+     * The walk is pure CSS: one 6.6s clock, each row offset by its own index,
+     * so there is no px arithmetic to drift and no script to keep in sync.
+     * It also means the pause button and prefers-reduced-motion reach it the
+     * same way they reach every other layer, instead of needing their own
+     * branch in journey-hero-script.
+     */
     $stations=[
       ['Links','3','fa-link','#5865ef',false],
       ['Campaign','1','fa-bullhorn','#8b5cf6',false],
-      ['Tasks','0','fa-list-check','#159b82',true],
+      ['Forms','2','fa-clipboard-list','#0ea5b7',false],
+      ['Contacts','1','fa-address-book','#3672df',false],
+      ['Invoices','1','fa-file-invoice-dollar','#159b82',false],
+      ['Tasks','0','fa-list-check','#db8d27',true],
     ];
 @endphp
 <section id="hero" class="sj-hero sec-first" aria-labelledby="hero-h">
@@ -74,7 +90,11 @@
        nothing is measured at runtime. --}}
   <svg class="sj-rails" viewBox="0 0 600 520" aria-hidden="true" focusable="false">
     <path id="sj-rail-0" d="M441 321 C431 379, 411 358, 363 410" stroke="#0ea5b7"/>
-    <path id="sj-rail-1" d="M51 406 C35 330, 40 265, 50 187" stroke="#5865ef"/>
+    {{-- Rail 1 used to reach up to y=187, which was clear air when the
+         folder card held three rows. At six it ends up behind the card,
+         so the travelling dot spent half its run hidden. Starts at 302
+         now: just under the card's lower edge. --}}
+    <path id="sj-rail-1" d="M51 406 C36 372, 41 338, 51 302" stroke="#5865ef"/>
     <path id="sj-rail-2" d="M389 459 C413 459, 472 458, 500 462" stroke="#db8d27"/>
     @foreach([['0','#0ea5b7','3s','0s'],['1','#5865ef','3.5s','0.9s'],['2','#db8d27','4s','1.8s']] as [$rid,$rc,$rdur,$rdelay])
       <circle r="4" fill="{{ $rc }}" opacity="0">
@@ -86,8 +106,13 @@
 
   <div class="sj-surface sj-map">
     <div class="mh"><i class="fas fa-diagram-project" aria-hidden="true"></i>Folder &middot; flow</div>
-    @foreach($stations as [$sLabel,$sCount,$sIcon,$sColor,$sDim])
-      <div class="stn {{ $sDim ? 'dim' : '' }}"><span><b>{{ $sLabel }}</b><s>{{ $sCount }}</s></span><i class="fas {{ $sIcon }}" style="background:{{ $sColor }}" aria-hidden="true"></i></div>
+    {{-- The rail runs behind the icon tiles, so the rows read as stops on one
+         wire rather than six unrelated cards. --}}
+    <span class="rail" aria-hidden="true"></span>
+    @foreach($stations as $si => [$sLabel,$sCount,$sIcon,$sColor,$sDim])
+      <div class="stn {{ $sDim ? 'dim' : '' }}" style="--sc:{{ $sColor }};--si:{{ $si }}">
+        <i class="fas {{ $sIcon }}" aria-hidden="true"></i><b>{{ $sLabel }}</b><s>{{ $sCount }}</s>
+      </div>
     @endforeach
   </div>
 

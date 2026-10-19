@@ -85,6 +85,139 @@ class HomepageHeroSellsTheOutcomeTest extends TestCase
         );
     }
 
+    /**
+     * ...and the rule has to WIN, which is a different claim.
+     *
+     * The assertion above passed while reduced motion was broken on the live
+     * page. `.sj-scene *{animation:none!important}` was present and correct,
+     * and six of Zio's animations ran straight through it, because
+     * `.sj-zio-stage .zio-face{animation:...!important}` is (0,2,0) against
+     * the universal selector's (0,1,0) and both sides are `!important`, so
+     * specificity decides and the shorter one loses. A test that greps for
+     * the rule's text cannot see that; it reads a lost cascade battle and a
+     * won one exactly the same way.
+     *
+     * Short of running a browser in PHPUnit, the checkable invariant is the
+     * one that was violated: anything in the Zio layer that FORCES an
+     * animation with `!important` must be named, by that same selector, in a
+     * reduced-motion rule that switches it off. Equal selector, equal
+     * specificity, later in the document -- so the off switch wins.
+     *
+     * This is a text-coupling test and does not prove the page holds still;
+     * it proves nobody can add a forced Zio animation without also stopping
+     * it. The behaviour itself was checked in a browser with
+     * getAnimations(), which is where the original bug was finally caught.
+     */
+    public function test_every_forced_zio_animation_is_named_in_the_reduced_motion_block(): void
+    {
+        $css = '';
+        if (preg_match_all('/<style\b[^>]*>([\s\S]*?)<\/style>/i', $this->get('/')->assertOk()->getContent(), $m)) {
+            $css = implode("\n", $m[1]);
+        }
+        $this->assertNotSame('', $css, 'no inline stylesheet found on the homepage');
+
+        // Strip CSS comments first. Without this, the prose in a comment
+        // sitting above a rule is captured as part of that rule's selector
+        // and the comparison below never matches -- found by running this
+        // logic over the real stylesheet before trusting it.
+        $css = (string) preg_replace('#/\*[\s\S]*?\*/#', '', $css);
+
+        $normalise = fn (string $sel) => trim(preg_replace('/\s+/', ' ', $sel));
+
+        // Rules that force an animation on something inside the scene's Zio
+        // stage. `animation:` only -- an animation-delay on its own stops
+        // mattering the moment the animation is none.
+        preg_match_all(
+            '/([^{}]*\.sj-zio-stage[^{}]*)\{([^{}]*)\}/',
+            $css,
+            $rules,
+            PREG_SET_ORDER
+        );
+
+        $forced = [];
+        $switchedOff = [];
+        foreach ($rules as [, $selectorList, $body]) {
+            if (! preg_match('/(?<![a-z-])animation\s*:[^;}]*!important/i', $body)) {
+                continue;
+            }
+            $isOff = (bool) preg_match('/(?<![a-z-])animation\s*:\s*none\s*!important/i', $body);
+            foreach (explode(',', $selectorList) as $sel) {
+                $sel = $normalise($sel);
+                if ($sel === '' || ! str_contains($sel, '.sj-zio-stage')) {
+                    continue;
+                }
+                if ($isOff) {
+                    $switchedOff[$sel] = true;
+                } else {
+                    $forced[$sel] = true;
+                }
+            }
+        }
+
+        $this->assertNotEmpty(
+            $forced,
+            'no forced Zio animations found -- this test has lost sight of the markup it guards'
+        );
+
+        $unstoppable = array_values(array_diff(array_keys($forced), array_keys($switchedOff)));
+        $this->assertSame(
+            [],
+            $unstoppable,
+            "these selectors force a Zio animation with !important but are not switched off by an "
+            . "equally specific reduced-motion rule, so they keep running for a reader who asked the "
+            . "page to hold still:\n  " . implode("\n  ", $unstoppable)
+        );
+
+        // And the off switch must still be carrying real specificity: if it
+        // ever collapses back to `.sj-scene *` alone, this fails.
+        $this->assertGreaterThanOrEqual(
+            2,
+            max(array_map(
+                fn (string $sel) => preg_match_all('/\.[A-Za-z0-9_-]+/', $sel),
+                array_keys($switchedOff)
+            )),
+            'the reduced-motion rules no longer out-specify the Zio layer they are meant to override'
+        );
+    }
+
+    /**
+     * Sana, of the three-row folder card: "Folder have 3 lines only... here i
+     * want to show multiple blocks or rows with animations of how data is
+     * connected within it". Six rows, each carrying its own index so the CSS
+     * can walk the pulse down them, and one of them deliberately empty.
+     */
+    public function test_the_folder_card_shows_six_wired_stations(): void
+    {
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($this->get('/')->assertOk()->getContent());
+        $xpath = new \DOMXPath($dom);
+
+        $rows = $xpath->query('//*[contains(@class,"sj-map")]//*[contains(@class,"stn")]');
+        $this->assertSame(6, $rows->length, 'the folder card must show six stations, not three');
+
+        $this->assertSame(
+            1,
+            $xpath->query('//*[contains(@class,"sj-map")]//*[contains(@class,"rail")]')->length,
+            'the stations need the rail behind them, or they read as six unrelated cards'
+        );
+
+        // Each row carries --si, which is the only thing sequencing the walk.
+        // Without it every row lights at once.
+        for ($i = 0; $i < 6; $i++) {
+            $this->assertSame(
+                1,
+                $xpath->query('//*[contains(@class,"stn") and contains(@style,"--si:'.$i.'")]')->length,
+                "station row $i has no --si index, so the pulse cannot walk to it"
+            );
+        }
+
+        $this->assertSame(
+            1,
+            $xpath->query('//*[contains(@class,"sj-map")]//*[contains(@class,"stn") and contains(@class,"dim")]')->length,
+            'one station stays empty and dashed -- a folder with every slot filled is not a real one'
+        );
+    }
+
     public function test_signed_in_cta_opens_dashboard(): void
     {
         $response = $this->actingAs(User::factory()->create())->get('/')->assertOk();
