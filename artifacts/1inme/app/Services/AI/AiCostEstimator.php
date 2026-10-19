@@ -94,6 +94,40 @@ class AiCostEstimator
                 // speech through Whisper, no LLM/TTS stages.
                 return ['coins' => $this->dictationCoins($user), 'mode' => 'fixed'];
 
+            case 'competitor_teardown':
+                // A fixed worst case, not a live one: the prompt is dominated
+                // by the fetched competitor page, which does not exist yet when
+                // the badge renders. Quoting from the URL the creator typed
+                // would price the URL, not the job.
+                //
+                // Overhead is every cap CompetitorPageFetcher already enforces,
+                // added up, plus the system prompt:
+                //   system prompt                      1,455 chars
+                //   url ~200 + title 300 + meta 500       1,000
+                //   h1   6 x 160                            960
+                //   h2  10 x 160                          1,600
+                //   cta 15 x 160                          2,400
+                //   text_excerpt                          3,000
+                //   JSON keys, counts, lead-in              360
+                //                                     ~10,775 chars
+                // At roughly four characters to a token that is 2,694. The
+                // budget below is 3,000: quoting a little high is the safe
+                // direction for an "up to" price -- the creator is charged
+                // less than the badge said, never more -- and it leaves room
+                // for a cap to move without the quote going stale the same
+                // day. MAX_OUTPUT_TOKENS on the service is 1,400.
+                // CompetitorTeardownEstimateTest pins both to their sources.
+                return [
+                    'coins' => $this->openai->estimateChatCoinsForText(
+                        AiEngineSettings::featureModel('competitor_teardown', $user),
+                        '',
+                        3000,
+                        1400,
+                        $user,
+                    ),
+                    'mode' => 'fixed',
+                ];
+
             case 'minds':
                 return ['coins' => $this->mindsPerThousandWords($user), 'mode' => 'fixed'];
         }

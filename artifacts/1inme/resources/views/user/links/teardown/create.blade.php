@@ -20,10 +20,10 @@
         'emblemIcon' => 'fa-magnifying-glass-chart',
         'back'       => route('user.links.create'),
         'chips'      => array_values(array_filter([
-            // Only claimed when the engine is actually on, and the balance is
-            // the one the page already shows further down.
+            // Only claimed when the engine is actually on.
             $engineOn ? ['text' => 'AI scored', 'icon' => 'fa-robot'] : ['text' => 'AI engine off', 'icon' => 'fa-plug-circle-xmark'],
-            isset($balance) ? ['text' => number_format($balance) . ' coins', 'icon' => 'fa-coins'] : null,
+            // Balance is not repeated here: the estimate badge prints it
+            // beside the price, which is where it is actually being weighed.
         ])),
         'actions'    => [
             ['label' => 'Back to Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-arrow-left', 'class' => 'btn-ghost'],
@@ -51,11 +51,19 @@
             </div>
         </div>
 
-        <div class="glass rounded-2xl p-4 mb-5 flex items-center justify-between text-sm">
-            <div class="text-white/50">
-                <i class="fas fa-coins text-amber-400 mr-1.5"></i>
-                Coin balance: <span class="text-white font-medium">{{ $balance }}</span>
-            </div>
+        {{-- The shared estimate badge, same as Ask Coach, Persona, Minds and
+             the resume tools. It replaces a box that showed the balance but
+             never the price, which is the half that decides whether to press
+             the button. 'fixed' rather than 'live': the prompt is dominated by
+             the competitor page, which has not been fetched yet, so a number
+             driven by the URL field would be pricing the URL. --}}
+        <div class="glass rounded-2xl p-4 mb-5 text-sm">
+            @include('user.ai._partials.cost-estimate', ['cost' => [
+                'feature' => 'competitor_teardown',
+                'mode'    => 'fixed',
+                'prefix'  => 'Up to',
+                'note'    => 'per teardown',
+            ]])
         </div>
 
         <p class="text-sm text-red-400 mb-3" x-show="error" x-text="error"></p>
