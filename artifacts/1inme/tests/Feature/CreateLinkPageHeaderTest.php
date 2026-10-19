@@ -94,6 +94,37 @@ class CreateLinkPageHeaderTest extends TestCase
         $this->assertSame([], $unscoped, 'these rules are not scoped under .create-premium, so create-premium-style beats them on specificity and they do nothing: '.implode(' | ', $unscoped));
     }
 
+    /**
+     * The page's own stylesheet must come AFTER the partial it overrides.
+     *
+     * Scoping was necessary and not sufficient. Both this file and
+     * create-premium-style declare .create-premium .cl-bulk at (0,2,0), and at
+     * equal specificity the later declaration wins. The block sat ABOVE the
+     * @include, so in production the bulk card lost its border, its surface
+     * and its padding and rendered as a bare divider -- while every
+     * specificity assertion in this class passed.
+     *
+     * It survived a browser check too: the check appended a <style> to
+     * document.body, which is after everything, so the probe answered a
+     * question the real page was not being asked.
+     */
+    public function test_the_page_stylesheet_comes_after_the_partial_it_overrides(): void
+    {
+        $src = $this->source();
+
+        $include = strpos($src, "@include('user.links.partials.create-premium-style')");
+        $this->assertNotFalse($include, 'create-premium-style is no longer included; this guard needs rewriting');
+
+        $ownBlock = strrpos($src, '<style>');
+        $this->assertNotFalse($ownBlock, "no <style> block found in the Create Link view");
+
+        $this->assertGreaterThan(
+            $include,
+            $ownBlock,
+            "this page's <style> block sits before the create-premium-style include. Both declare the same selectors at the same specificity, so the include wins and these rules do nothing."
+        );
+    }
+
     /** This page's own <style> block — the last one, after the minified legacy block. */
     private function ownStyleBlock(): string
     {

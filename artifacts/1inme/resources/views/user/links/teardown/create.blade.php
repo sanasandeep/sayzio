@@ -2,15 +2,33 @@
 @section('title', 'Competitor Biolink Teardown')
 
 @section('content')
-<div class="max-w-2xl mx-auto" x-data="competitorTeardown()">
-    <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white transition-colors" title="Back to links"><i class="fas fa-arrow-left"></i></a>
-        <div>
-            <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-                <i class="fas fa-magnifying-glass-chart text-blue-400"></i> Competitor Biolink Teardown
-            </h1>
-            <p class="text-xs text-white/40 mt-0.5">Paste a competitor's link-in-bio (or any page) URL. AI scores it (strengths, weaknesses, missing elements, CTA quality) then you can build a better version in one click.</p>
-        </div>
+<style>
+/* Full width page, readable form. The hero spans the page like every other
+   header; the form itself keeps a measure, because a single URL field stretched
+   across 1200px is harder to use, not easier. */
+.teardown-page form,
+.teardown-page > .glass{max-width:760px}
+</style>
+{{-- No max-width wrapper, matching Create Link and My Links. This page is
+     reached from the Bulk tools card on Create Link, so arriving here used to
+     mean the content jumped from full width to a 672px column with a bare
+     arrow where the header had been. --}}
+<div class="teardown-page" x-data="competitorTeardown()">
+    @include('user.partials.page-hero', [
+        'title'      => 'Competitor Biolink Teardown',
+        'subtitle'   => "Paste a competitor's link-in-bio (or any page) URL. AI scores it on strengths, weaknesses, missing elements and CTA quality, then you can build a better version in one click.",
+        'emblemIcon' => 'fa-magnifying-glass-chart',
+        'back'       => route('user.links.create'),
+        'chips'      => array_values(array_filter([
+            // Only claimed when the engine is actually on, and the balance is
+            // the one the page already shows further down.
+            $engineOn ? ['text' => 'AI scored', 'icon' => 'fa-robot'] : ['text' => 'AI engine off', 'icon' => 'fa-plug-circle-xmark'],
+            isset($balance) ? ['text' => number_format($balance) . ' coins', 'icon' => 'fa-coins'] : null,
+        ])),
+        'actions'    => [
+            ['label' => 'Back to Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-arrow-left', 'class' => 'btn-ghost'],
+        ],
+    ])
     </div>
 
     @if(session('error'))
