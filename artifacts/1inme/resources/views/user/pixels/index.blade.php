@@ -8,21 +8,24 @@
     $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
     $__canEdit = $__can('stats.edit');
 @endphp
-<div class="flex items-center justify-between mb-6">
-    <div>
-        <h1 class="text-2xl font-bold text-white">Pixel</h1>
-        <p class="text-white/40 text-sm mt-1">Manage your tracking pixels for retargeting</p>
-    </div>
-    @if($__canEdit)
-    <a href="{{ route('user.pixels.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-        <i class="fas fa-plus"></i> Add Tracker
-    </a>
-    @else
-    <span class="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 cursor-not-allowed opacity-60 bg-blue-600/40 text-white" title="Your role doesn't allow adding trackers, ask a workspace admin">
-        <i class="fas fa-lock"></i> Add Tracker
-    </span>
-    @endif
-</div>
+@php
+    // The lock state the old header drew by hand: an action the role cannot use
+    // is shown disabled with the reason, rather than silently missing.
+    $pxAction = $__canEdit
+        ? ['label' => 'Add Tracker', 'url' => route('user.pixels.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary']
+        : ['label' => 'Add Tracker', 'url' => '#', 'icon' => 'fa-lock', 'class' => 'btn-ghost opacity-60 pointer-events-none',
+           'title' => "Your role doesn't allow adding trackers, ask a workspace admin"];
+@endphp
+@include('user.partials.page-hero', [
+    'title'      => 'Pixel',
+    'subtitle'   => 'Manage your tracking pixels for retargeting.',
+    'emblemIcon' => 'fa-bullseye',
+    'back'       => route('user.dashboard'),
+    'chips'      => [
+        ['text' => \App\Modules\User\Support\HeroCount::label($pixels ?? null, 'tracker'), 'icon' => 'fa-bullseye'],
+    ],
+    'actions'    => [$pxAction],
+])
 
 @if($pixels->isEmpty())
 <div class="glass rounded-2xl p-12 text-center">

@@ -2,11 +2,18 @@
 @section('title', 'Followers')
 @section('content')
 <div class="max-w-3xl mx-auto px-4 py-8">
-    <div class="flex items-center gap-2 mb-6">
-        <h1 class="text-2xl font-bold flex-1" style="color: var(--text-primary);">Followers</h1>
-        <a href="{{ route('user.followers.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold {{ request()->routeIs('user.followers.*') ? 'bg-blue-600 text-white' : '' }}" style="{{ request()->routeIs('user.followers.*') ? '' : 'background: var(--bg-soft); color: var(--text-muted);' }}">Followers</a>
-        <a href="{{ route('user.following.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background: var(--bg-soft); color: var(--text-muted);">Following</a>
-    </div>
+    @include('user.partials.page-hero', [
+        'title'      => 'Followers',
+        'subtitle'   => 'People following your creator profile.',
+        'emblemIcon' => 'fa-user-group',
+        'back'       => route('user.dashboard'),
+        'chips'      => [
+            ['text' => \App\Modules\User\Support\HeroCount::label($followers ?? null, 'follower'), 'icon' => 'fa-user-group'],
+        ],
+        'actions'    => [
+            ['label' => 'Following', 'url' => route('user.following.index'), 'icon' => 'fa-user-plus', 'class' => 'btn-ghost'],
+        ],
+    ])
 
     @if($followers->count() === 0)
         <div class="text-center py-16 rounded-2xl border" style="background: var(--bg-card); border-color: var(--border-soft);">
