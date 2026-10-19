@@ -143,6 +143,42 @@ class ANewLinkInBioStartsWithBlocksTest extends TestCase
             'placeholder links must never be live on someone\'s public page');
     }
 
+    /**
+     * The owner's own preview is not a visitor.
+     *
+     * The guard above exists so nobody is shown "My Link" pointing at
+     * example.com as though it were the owner's page. The editor's
+     * device-preview iframe loads the same public page, but signed and
+     * owner-only -- and its whole job is to show the blocks being edited.
+     * Blanking it there left a brand new page listing five blocks on the
+     * left and an empty phone on the right.
+     */
+    public function test_the_owners_signed_preview_shows_the_starter_blocks(): void
+    {
+        $link = $this->createBiolink();
+
+        $this->assertTrue($link->isUntouchedStarterPage());
+
+        // Signed exactly as LinkController@previewUrl signs it: relative, so
+        // the iframe works whichever host the browser is on.
+        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'redirect.handle',
+            now()->addHour(),
+            ['alias' => $link->alias, '_preview' => 1],
+            false
+        );
+
+        $html = $this->get($url)->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('being set up', $html,
+            'the owner previewing their own page must see the blocks, not the holding page');
+
+        // And an unsigned request for the same page is still a visitor.
+        $visitor = $this->get('/'.$link->alias)->assertOk()->getContent();
+        $this->assertStringContainsString('being set up', $visitor,
+            'lifting the guard for the preview must not lift it for everyone');
+    }
+
     /** One real edit and the page goes live, blocks and all. */
     public function test_editing_one_block_publishes_the_page(): void
     {
