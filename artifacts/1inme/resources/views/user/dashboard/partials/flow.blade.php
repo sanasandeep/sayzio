@@ -48,12 +48,26 @@
     </div>
 
     <div class="dflow-rail" role="tablist" aria-label="Stages">
-        <span class="dflow-rail-base" aria-hidden="true"></span>
         @foreach($dfVisible as $dfKey => $dfKinds)
         @php
-            $dfUsed = count(array_filter($dfKinds, fn ($k) => ($dfCounts[$k]['count'] ?? 0) > 0));
-            $dfOn   = $dfKey === $dfOpen;
+            $dfUsed  = count(array_filter($dfKinds, fn ($k) => ($dfCounts[$k]['count'] ?? 0) > 0));
+            $dfOn    = $dfKey === $dfOpen;
+            $dfIndex = array_search($dfKey, array_keys($dfVisible), true);
+            $dfPast  = $dfIndex <= array_search($dfOpen, array_keys($dfVisible), true);
         @endphp
+        @if(! $loop->first)
+        {{-- The stages are a sequence, so the gap between them carries a
+             direction. One dash wave crosses the whole rail rather than four
+             separate loops: same period, staggered start, so it reads as one
+             gesture moving left to right instead of four things twitching. --}}
+        <span class="dflow-arrow{{ $dfPast ? ' is-passed' : '' }}" aria-hidden="true"
+              style="--df: {{ $dfStages[$dfKey]['color'] }};--dfa-delay: {{ $dfIndex * 0.26 }}s">
+            <svg viewBox="0 0 26 12" fill="none" preserveAspectRatio="none">
+                <path class="dfa-line" d="M1 6h17"/>
+                <path class="dfa-head" d="M17 2.4 21.4 6 17 9.6"/>
+            </svg>
+        </span>
+        @endif
         <button type="button" class="dflow-stop" role="tab"
                 id="dflow-tab-{{ $dfKey }}"
                 aria-controls="dflow-panel-{{ $dfKey }}"
@@ -88,7 +102,7 @@
             @endphp
             <a class="dflow-station {{ $dfCount > 0 ? 'is-on' : '' }}{{ $dfUrl ? '' : ' is-inert' }}"
                @if($dfUrl) href="{{ $dfUrl }}" @endif>
-                <span class="dflow-station-icon" aria-hidden="true">
+                <span class="dflow-station-icon" data-kind="{{ $dfKind }}" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{!! $dfIcons[$dfKind]['icon'] ?? '' !!}</svg>
                 </span>
                 <span class="dflow-station-copy">

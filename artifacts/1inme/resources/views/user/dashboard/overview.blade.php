@@ -135,12 +135,19 @@
     function stops(root) { return Array.prototype.slice.call(root.querySelectorAll('.dflow-stop')); }
 
     function select(root, stop) {
-        stops(root).forEach(function (s) {
-            var on = s === stop;
+        var all = stops(root), picked = all.indexOf(stop);
+        all.forEach(function (s, i) {
+            var on = i === picked;
             s.setAttribute('aria-selected', on ? 'true' : 'false');
             s.setAttribute('tabindex', on ? '0' : '-1');
             var panel = document.getElementById(s.getAttribute('aria-controls'));
             if (panel) { panel.hidden = !on; }
+        });
+        // The arrows colour in up to the open stage, so the rail shows how far
+        // along you are as well as which way it runs. Arrow i sits between stop
+        // i and stop i+1, so it is 'passed' once the selection reaches i+1.
+        Array.prototype.forEach.call(root.querySelectorAll('.dflow-arrow'), function (a, i) {
+            a.classList.toggle('is-passed', i + 1 <= picked);
         });
     }
 
