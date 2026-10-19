@@ -291,8 +291,7 @@ class RedirectController extends Controller
         // Signed owner previews (the editor's device-preview iframe) are
         // also skipped: they are not real visits, would pollute analytics,
         // and the tracking insert/geo work slows the preview's first paint.
-        $isOwnerPreview = $request->boolean('_preview')
-            && $request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false);
+        $isOwnerPreview = \App\Modules\Common\Support\OwnerPreview::is($request);
         $trackedClick = null;
         if (!$previewEnabled && !$request->boolean('_web') && !$isOwnerPreview) {
             // Where the visit came from, recorded on the click row so the
@@ -654,8 +653,7 @@ class RedirectController extends Controller
         }
 
         $req = request();
-        $isOwnerPreview = $req && $req->boolean('_preview')
-            && $req->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false);
+        $isOwnerPreview = \App\Modules\Common\Support\OwnerPreview::is($req);
 
         if ($type === 'ai_chat') {
             // The full-page AI chat needs a companion bound to the link to
@@ -687,7 +685,7 @@ class RedirectController extends Controller
     {
         $response->headers->set('X-Frame-Options', 'ALLOWALL');
         $response->headers->set('Content-Security-Policy', 'frame-ancestors *');
-        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false)) {
+        if (\App\Modules\Common\Support\OwnerPreview::is($request)) {
             $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             $response->headers->set('Pragma', 'no-cache');
         }
@@ -779,7 +777,7 @@ class RedirectController extends Controller
         // This guarantees the preview is never blocked by visibility tiers
         // even if the iframe loses the session cookie (SameSite / 3rd-party
         // cookie behavior on a custom domain).
-        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t', '_sim_country', '_sim_device'], false)) {
+        if (\App\Modules\Common\Support\OwnerPreview::is($request)) {
             return null;
         }
 
