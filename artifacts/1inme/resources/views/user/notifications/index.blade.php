@@ -2,18 +2,26 @@
 @section('title', 'Notifications')
 @section('content')
 <div class="max-w-3xl mx-auto px-4 py-8">
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Notifications</h1>
-        <div class="flex items-center gap-2">
-            <a href="{{ route('user.notifications.preferences') }}"
-               class="px-3 py-1.5 rounded-lg text-xs font-semibold border"
-               style="border-color: var(--border-soft); color: var(--text-primary);">
-                <i class="fas fa-sliders-h mr-1"></i> Preferences
-            </a>
-            <form action="{{ route('user.notifications.read') }}" method="POST">@csrf
-                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">Mark all read</button>
-            </form>
-        </div>
+    @include('user.partials.page-hero', [
+        'title'      => 'Notifications',
+        'subtitle'   => 'What has happened across your workspace.',
+        'emblemIcon' => 'fa-bell',
+        'back'       => route('user.dashboard'),
+        'chips'      => [
+            ['text' => \App\Modules\User\Support\HeroCount::label($notifications ?? null, 'notification'), 'icon' => 'fa-bell'],
+        ],
+        'actions'    => [
+            ['label' => 'Preferences', 'url' => route('user.notifications.preferences'), 'icon' => 'fa-sliders-h', 'class' => 'btn-ghost'],
+        ],
+    ])
+    {{-- Mark all read stays a POST form, so it cannot be a hero action (those
+         are links). It sits under the header rather than being downgraded to a
+         GET link, which would make it a one-click action any prefetcher could
+         fire. --}}
+    <div class="flex justify-end mb-5">
+        <form action="{{ route('user.notifications.read') }}" method="POST">@csrf
+            <button class="btn-ghost text-xs py-2"><i class="fas fa-check-double text-[10px]"></i> Mark all read</button>
+        </form>
     </div>
 
     @if(session('dismissed_id'))
