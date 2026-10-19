@@ -22,10 +22,25 @@
         <meta name="keywords" content="{{ $__seo['keywords'] }}">
     @endif
     @php
+        /* The home FAQ is rendered by the deferred fragment, which means its
+         * FAQPage node was being emitted into markup injected after first
+         * paint -- correct JSON-LD in a document the crawler's first pass
+         * does not read. It belongs in the head, with the rest of the
+         * page's structured data, so it ships in the initial HTML.
+         *
+         * forActiveDesign() returns [] for any design that keeps its own
+         * questions, and faqPage([]) returns null, so a design whose FAQ
+         * copy is not registered simply emits no FAQ node rather than
+         * claiming the classic questions it does not show. */
         $__schema = \App\Modules\Common\Support\MarketingSchema::forView([
             'seoKey' => 'home',
             'title'  => $__seo['title'] ?? null,
             'url'    => \App\Modules\Common\Support\PlatformHosts::canonicalUrl(),
+            'extra'  => [
+                \App\Modules\Common\Support\MarketingSchema::faqPage(
+                    \App\Modules\Common\Support\HomeFaq::forActiveDesign()
+                ),
+            ],
         ]);
     @endphp
     <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
