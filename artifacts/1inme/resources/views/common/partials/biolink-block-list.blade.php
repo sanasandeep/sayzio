@@ -59,14 +59,23 @@
 
     The starter-page gate lives here rather than in each caller: a page
     whose five example blocks have never been edited must not show them to
-    a visitor, and that has to hold wherever the blocks are drawn.
+    a visitor, and that has to hold wherever the blocks are drawn. The one
+    request that is not a visitor is the owner's signed preview, so the gate
+    asks OwnerPreview rather than hard-coding "never".
 --}}
 @php
     $blocks = ($link->_abVariantBlocks instanceof \Illuminate\Support\Collection)
         ? $link->_abVariantBlocks->filter(fn ($b) => $b->isVisible())
         : $link->activeBiolinkBlocks()->get()->filter(fn ($b) => $b->isVisible());
 
-    if ($blocks->isNotEmpty() && $link->isUntouchedStarterPage()) {
+    // A visitor must never be shown the five untouched example blocks as
+    // though they were the owner's page. The owner's own signed preview is
+    // the one request that is not a visit: that iframe exists to show the
+    // blocks being edited, and blanking it there left a brand new page
+    // looking empty on the right while five blocks sat in the list on the
+    // left.
+    if (! \App\Modules\Common\Support\OwnerPreview::is()
+        && $blocks->isNotEmpty() && $link->isUntouchedStarterPage()) {
         $blocks = collect();
     }
 
