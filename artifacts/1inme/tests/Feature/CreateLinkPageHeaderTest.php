@@ -74,7 +74,7 @@ class CreateLinkPageHeaderTest extends TestCase
         $css = $this->ownStyleBlock();
 
         // Classes the partial claims at (0,2,x) and this page restyles.
-        $contested = ['cl-bulk', 'cl-card', 'cl-steps', 'cl-ask'];
+        $contested = ['cl-bulk', 'cl-card', 'cl-steps', 'cl-ask', 'cl-primary-grid', 'cl-expanded-grid'];
 
         $unscoped = [];
         foreach (preg_split('/(?<=\})/', $css) as $chunk) {
