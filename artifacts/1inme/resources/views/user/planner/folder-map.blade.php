@@ -103,8 +103,11 @@ $chartExports['guide'] = [
 </aside></div>
 <div x-show="mode==='flow'" x-cloak>
 @include('user.planner.fnet-filters',['stages'=>$fnetStages,'filterPeople'=>$fnetActivity['people']])
-<div class="fnet-board">
-<div class="fnet-canvas">
+<div class="fnet-stage" data-fnet-stage>
+@include('user.planner.fnet-zoom')
+<div class="fnet-board" data-fnet-view>
+<div class="fnet-sizer" data-fnet-sizer>
+<div class="fnet-canvas" data-fnet-zoom>
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
 <div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $fnet['cols'] }}">
 @foreach($fnet['stations'] as $fnetStation)
@@ -113,6 +116,8 @@ $chartExports['guide'] = [
 @endforeach
 </div>
 @include('user.planner.fnet-tree',['stations'=>$fnet['stations'],'stages'=>$fnetStages,'labels'=>$fnetLabels,'panelKey'=>'flow'])
+</div>
+</div>
 </div>
 </div>
 @php
@@ -166,7 +171,8 @@ $fnetWire = [
   function boot(board) {
   var grid = board.querySelector('[data-fnet-grid]');
   var svg = board.querySelector('[data-fnet-wires]');
-  var json = board.parentNode.querySelector('[data-fnet-json]');
+  var scope = board.closest('[data-fnet-stage]') || board;
+  var json = scope.parentNode.querySelector('[data-fnet-json]');
   if (!grid || !svg || !json) { return; }
 
   var data;
@@ -195,9 +201,14 @@ $fnetWire = [
     if (!el || window.getComputedStyle(el).display === 'none') { return null; }
     var g = grid.getBoundingClientRect();
     var r = el.getBoundingClientRect();
+    // The canvas can be scaled by the zoom control. getBoundingClientRect
+    // reports screen pixels while the SVG draws in layout pixels, so every
+    // delta is divided back by the current scale -- without this the wires
+    // drift off the cards the moment anyone zooms.
+    var z = board.__fnetZoom || 1;
     return {
-      x: r.left - g.left, y: r.top - g.top, w: r.width, h: r.height,
-      cx: r.left - g.left + r.width / 2, cy: r.top - g.top + r.height / 2
+      x: (r.left - g.left) / z, y: (r.top - g.top) / z, w: r.width / z, h: r.height / z,
+      cx: ((r.left - g.left) + r.width / 2) / z, cy: ((r.top - g.top) + r.height / 2) / z
     };
   }
 
@@ -450,8 +461,11 @@ $guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
 @endphp
 <div class="fnet-sample-band" role="note"><strong>Worked example</strong><span>Every number below is invented &mdash; a fictional folder for {{ \App\Services\Planner\FolderFlowDemo::COMPANY }}, busy mid-launch. Nothing here comes from {{ $project->name }}.</span></div>
 @include('user.planner.fnet-filters',['stages'=>$fnetStages,'filterPeople'=>$guideActivity['people']])
-<div class="fnet-board is-sample">
-<div class="fnet-canvas">
+<div class="fnet-stage" data-fnet-stage>
+@include('user.planner.fnet-zoom')
+<div class="fnet-board is-sample" data-fnet-view>
+<div class="fnet-sizer" data-fnet-sizer>
+<div class="fnet-canvas" data-fnet-zoom>
 <svg class="fnet-wires" data-fnet-wires aria-hidden="true"></svg>
 <div class="fnet-grid" data-fnet-grid style="--fnet-cols:{{ $guide['cols'] }}">
 @foreach($guide['stations'] as $guideStation)
@@ -459,6 +473,8 @@ $guideActivity = \App\Services\Planner\FolderFlowDemo::activity();
 @endforeach
 </div>
 @include('user.planner.fnet-tree',['stations'=>$guide['stations'],'stages'=>$fnetStages,'labels'=>$fnetLabels,'panelKey'=>'guide'])
+</div>
+</div>
 </div>
 </div>
 @php
@@ -490,7 +506,16 @@ $guideWire = [
 </div>
 <div x-show="mode==='people'" x-cloak>
     <p class="notes-hint mb-4">Who has access, what they are assigned, and their recorded task activity. Shared tasks count for every assignee; this view does not indicate live presence.</p>
-    <div class="folder-card-grid">@foreach($peopleData['people'] as $person)<article class="folder-person-card"><div class="folder-person-heading"><span class="folder-person-avatar" x-data="{photoFailed:false}"><span x-show="photoFailed" x-cloak>{{ mb_substr($person['name'],0,1) }}</span><img src="{{ $person['avatar_url'] }}" alt="{{ $person['name'] }}" loading="lazy" x-show="!photoFailed" x-on:error="photoFailed=true" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></span><div><strong>{{ $person['name'] }}</strong><small>{{ $person['role'] }}</small></div></div><div class="folder-person-stats"><span><strong>{{ $person['open'] }}</strong>Open tasks</span><span><strong>{{ $person['completed'] }}</strong>Completed</span><span><strong>{{ $person['actions'] }}</strong>Task actions · 30d</span><span><strong>{{ $person['changes'] === null ? '—' : number_format($person['changes']) }}</strong>Changes · 30d</span></div><div class="folder-person-process"><span>Assigned {{ $person['assigned'] }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span>Open {{ $person['open'] }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i><span>Done {{ $person['completed'] }}</span></div>@forelse(array_slice($person['tasks'],0,4) as $personTask)<div class="folder-mini-row"><i class="fas {{ $personTask['completed']?'fa-circle-check':'fa-circle' }}" aria-hidden="true"></i><span>{{ $personTask['title'] }}</span><small>{{ $personTask['completed']?'Done':($personTask['due']??'No due date') }}</small></div>@empty<p class="notes-hint mt-3">No visible task assignments yet.</p>@endforelse</article>@endforeach</div>
+    <div class="fnet-stage" data-fnet-stage>
+@include('user.planner.fnet-zoom')
+    <div class="fnet-board fnet-board-people" data-fnet-view>
+    <div class="fnet-sizer" data-fnet-sizer>
+    <div class="fnet-canvas" data-fnet-zoom>
+    <div class="pcard-grid">@foreach($peopleData['people'] as $person)@php $pcTone = ['#8b5cf6','#3b82f6','#0d9488','#f59e0b','#e0457b'][$loop->index % 5]; $pcAssigned = (int) $person['assigned']; $pcDone = (int) $person['completed']; $pcPct = $pcAssigned > 0 ? (int) round(100 * min($pcDone, $pcAssigned) / $pcAssigned) : 0; @endphp<article class="pcard" style="--pc:{{ $pcTone }}"><div class="pcard-top"><span class="pcard-av" x-data="{photoFailed:false}"><span x-show="photoFailed" x-cloak>{{ mb_substr($person['name'],0,1) }}</span><img src="{{ $person['avatar_url'] }}" alt="{{ $person['name'] }}" loading="lazy" x-show="!photoFailed" x-on:error="photoFailed=true"></span><div class="pcard-id"><strong>{{ $person['name'] }}</strong><small>{{ $person['role'] }}</small></div><span class="pcard-share">{{ $pcPct }}%<i>done</i></span></div><div class="pcard-stats"><span><b>{{ number_format($person['open']) }}</b>Open tasks</span><span><b>{{ number_format($person['completed']) }}</b>Completed</span><span><b>{{ number_format($person['actions']) }}</b>Actions · 30d</span><span><b>{{ $person['changes'] === null ? '—' : number_format($person['changes']) }}</b>Changes · 30d</span></div><div class="pcard-rail"><div class="pcard-bar" role="img" aria-label="{{ $pcDone }} of {{ $pcAssigned }} assigned tasks done"><i style="width:{{ $pcPct }}%"></i></div><div class="pcard-legend"><span><b>{{ number_format($person['assigned']) }}</b> assigned</span><span><b>{{ number_format($person['open']) }}</b> open</span><span><b>{{ number_format($person['completed']) }}</b> done</span></div></div><div class="pcard-body">@forelse(array_slice($person['tasks'],0,4) as $personTask)<div class="pcard-row {{ $personTask['completed'] ? 'is-done' : '' }}"><i class="fas {{ $personTask['completed']?'fa-circle-check':'fa-circle' }}" aria-hidden="true"></i><span>{{ $personTask['title'] }}</span><small>{{ $personTask['completed']?'Done':($personTask['due']??'No due date') }}</small></div>@empty<p class="pcard-empty">No visible task assignments yet.</p>@endforelse</div></article>@endforeach</div>
+    </div>
+    </div>
+    </div>
+    </div>
 </div>
 <div class="folder-connection-summary"><span><span class="map-legend-solid"></span> Assigned project resources</span><span><span class="map-legend-dashed"></span> Suggested paths</span></div>
 @if($relations->isNotEmpty())
@@ -551,4 +576,168 @@ function folderChart(exports, stations, guideStations) {
         } catch(error) {this.exportError='Image export failed. Try the SVG download.';} finally {if(sourceUrl)URL.revokeObjectURL(sourceUrl);this.exporting=false;}
     }};
 }
+</script>
+<script>
+(function () {
+  // Viewport controller: one per map tab. The canvas is scaled with a CSS
+  // transform (so the wires, which are drawn in the same coordinate space,
+  // scale with the cards rather than having to be redrawn) and a sizer div is
+  // given the scaled dimensions so the viewport's own scrollbars stay honest.
+  var MIN = 0.4, MAX = 2.5;
+
+  function setup(stage) {
+    var view = stage.querySelector('[data-fnet-view]');
+    var sizer = stage.querySelector('[data-fnet-sizer]');
+    var canvas = stage.querySelector('[data-fnet-zoom]');
+    if (!view || !sizer || !canvas) { return; }
+    var slider = stage.querySelector('[data-fnet-slider]');
+    var pct = stage.querySelector('[data-fnet-pct]');
+    var fullText = stage.querySelector('[data-fnet-fulltext]');
+    var z = 1;
+    var nat = { w: 1, h: 1 };
+
+    // The canvas is positioned inside the sizer, and the sizer is given the
+    // scaled size -- so asking the canvas how big it is while it is scaled
+    // returns a number that depends on the number we just set. Measure it
+    // once with both cleared, pin that width, and treat it as the truth until
+    // the window changes size. Without the pin the board creeps wider every
+    // time you zoom in and back out.
+    function measure() {
+      var keep = canvas.style.transform;
+      canvas.style.transform = '';
+      canvas.style.width = '';
+      sizer.style.width = '';
+      sizer.style.height = '';
+      nat = { w: canvas.offsetWidth || 1, h: canvas.offsetHeight || 1 };
+      canvas.style.width = nat.w + 'px';
+      canvas.style.transform = keep;
+    }
+
+    function natural() { return nat; }
+
+    function paint() {
+      var n = natural();
+      canvas.style.transform = z === 1 ? '' : 'scale(' + z + ')';
+      sizer.style.width = Math.round(n.w * z) + 'px';
+      sizer.style.height = Math.round(n.h * z) + 'px';
+      view.__fnetZoom = z;
+      view.classList.toggle('is-zoomed', z > 1.001);
+      if (slider) { slider.value = Math.round(z * 100); }
+      if (pct) { pct.textContent = Math.round(z * 100) + '%'; }
+    }
+
+    // Keep the middle of the viewport looking at the same part of the board,
+    // so zooming feels like leaning in rather than jumping somewhere else.
+    function setZoom(next) {
+      var before = z;
+      var cx = (view.scrollLeft + view.clientWidth / 2) / before;
+      var cy = (view.scrollTop + view.clientHeight / 2) / before;
+      z = Math.min(MAX, Math.max(MIN, next));
+      paint();
+      view.scrollLeft = cx * z - view.clientWidth / 2;
+      view.scrollTop = cy * z - view.clientHeight / 2;
+    }
+
+    function fit() {
+      var n = natural();
+      var pad = 24;
+      var wide = (view.clientWidth - pad) / n.w;
+      var tall = (view.clientHeight - pad) / n.h;
+      var target = Math.min(wide, document.fullscreenElement === stage ? tall : wide);
+      z = Math.min(1.6, Math.max(MIN, target));
+      paint();
+      view.scrollLeft = 0;
+      view.scrollTop = 0;
+    }
+
+    var fitBtn = stage.querySelector('[data-fnet-fit]');
+    var inBtn = stage.querySelector('[data-fnet-in]');
+    var outBtn = stage.querySelector('[data-fnet-out]');
+    var fullBtn = stage.querySelector('[data-fnet-full]');
+    if (fitBtn) { fitBtn.addEventListener('click', fit); }
+    if (inBtn) { inBtn.addEventListener('click', function () { setZoom(z + 0.15); }); }
+    if (outBtn) { outBtn.addEventListener('click', function () { setZoom(z - 0.15); }); }
+    if (slider) {
+      slider.addEventListener('input', function () { setZoom(Number(slider.value) / 100); });
+    }
+
+    if (fullBtn) {
+      fullBtn.addEventListener('click', function () {
+        if (document.fullscreenElement === stage) { document.exitFullscreen(); return; }
+        if (stage.requestFullscreen) { stage.requestFullscreen(); }
+      });
+    }
+    document.addEventListener('fullscreenchange', function () {
+      var on = document.fullscreenElement === stage;
+      stage.classList.toggle('is-full', on);
+      if (fullText) { fullText.textContent = on ? 'Exit' : 'Fullscreen'; }
+      // The viewport just changed size by a lot; refit rather than leave the
+      // board at a scale chosen for the old one.
+      window.setTimeout(fit, 60);
+    });
+
+    // Drag anywhere on the empty board to pan. A few pixels of movement is
+    // what separates a pan from a click, so a card still opens its panel.
+    var dragging = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    view.addEventListener('pointerdown', function (ev) {
+      if (ev.button !== 0) { return; }
+      if (ev.target.closest('button, a, input, select, label, .fnet-stn')) { return; }
+      dragging = true; moved = false;
+      sx = ev.clientX; sy = ev.clientY;
+      ox = view.scrollLeft; oy = view.scrollTop;
+      view.setPointerCapture(ev.pointerId);
+    });
+    view.addEventListener('pointermove', function (ev) {
+      if (!dragging) { return; }
+      var dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 5) { return; }
+      moved = true;
+      view.classList.add('is-panning');
+      view.scrollLeft = ox - dx;
+      view.scrollTop = oy - dy;
+    });
+    function endDrag(ev) {
+      if (!dragging) { return; }
+      dragging = false;
+      view.classList.remove('is-panning');
+      if (ev && ev.pointerId !== undefined && view.hasPointerCapture && view.hasPointerCapture(ev.pointerId)) {
+        view.releasePointerCapture(ev.pointerId);
+      }
+    }
+    view.addEventListener('pointerup', endDrag);
+    view.addEventListener('pointercancel', endDrag);
+
+    // Follow the selection: clicking a station while zoomed in would otherwise
+    // leave it half off-screen behind the panel.
+    view.addEventListener('click', function (ev) {
+      var stn = ev.target.closest('.fnet-stn');
+      if (!stn) { return; }
+      bringIntoView(stn);
+    });
+
+    function bringIntoView(el) {
+      var n = natural();
+      var left = el.offsetLeft, top = el.offsetTop;
+      var parent = el.offsetParent;
+      while (parent && parent !== canvas && canvas.contains(parent)) {
+        left += parent.offsetLeft; top += parent.offsetTop;
+        parent = parent.offsetParent;
+      }
+      var tx = left * z + (el.offsetWidth * z) / 2 - view.clientWidth / 2;
+      var ty = top * z + (el.offsetHeight * z) / 2 - view.clientHeight / 2;
+      view.scrollTo({ left: Math.max(0, Math.min(tx, n.w * z - view.clientWidth)), top: Math.max(0, ty), behavior: 'smooth' });
+    }
+    stage.__fnetBring = bringIntoView;
+
+    // A filter that hides half the board changes what "fit" means.
+    window.addEventListener('fnet:redraw', function () { measure(); paint(); });
+    window.addEventListener('resize', function () { measure(); paint(); });
+    measure();
+    paint();
+  }
+
+  function setupAll() { document.querySelectorAll('[data-fnet-stage]').forEach(setup); }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', setupAll); }
+  else { setupAll(); }
+})();
 </script>
