@@ -2,17 +2,15 @@
 @section('title', 'Competitor Biolink Teardown')
 
 @section('content')
-<style>
-/* Full width page, readable form. The hero spans the page like every other
-   header; the form itself keeps a measure, because a single URL field stretched
-   across 1200px is harder to use, not easier. */
-.teardown-page form,
-.teardown-page > .glass{max-width:760px}
-</style>
-{{-- No max-width wrapper, matching Create Link and My Links. This page is
-     reached from the Bulk tools card on Create Link, so arriving here used to
-     mean the content jumped from full width to a 672px column with a bare
-     arrow where the header had been. --}}
+{{-- No max-width wrapper anywhere on this page, matching Create Link and My
+     Links. This page is reached from the Bulk tools card on Create Link, so
+     arriving here used to mean the content jumped from full width to a 672px
+     column with a bare arrow where the header had been.
+
+     The form and its cards were briefly capped at 760px on the argument that a
+     single URL field reads better with a measure. Sana looked at it against
+     the full-width hero and wanted them to match the hero, so the cap is gone:
+     hero, URL card and estimate card all span the content column. --}}
 <div class="teardown-page" x-data="competitorTeardown()">
     @include('user.partials.page-hero', [
         'title'      => 'Competitor Biolink Teardown',
