@@ -106,11 +106,20 @@
   background:linear-gradient(105deg,transparent 38%,#ffffff38 48%,transparent 58%);transform:translateX(-120%);
   animation:sj-sheen 7s ease-in-out infinite}
 @keyframes sj-sheen{0%,62%{transform:translateX(-120%)}80%,100%{transform:translateX(120%)}}
-.sj-phone .av{display:block;width:30%;aspect-ratio:1;border-radius:50%;background:#ffffff33;border:1.5px solid #ffffff6b;margin:16% auto 0}
-.sj-phone .nm{display:block;height:5px;width:46%;margin:8px auto 0;border-radius:3px;background:#ffffffd4}
-.sj-phone .bi{display:block;height:3.5px;width:62%;margin:5px auto 0;border-radius:3px;background:#ffffff7a}
-.sj-phone .btn{display:block;height:13px;margin:7px 11% 0;border-radius:7px;background:#ffffffe8;box-shadow:0 2px 6px #0000001f}
-.sj-phone .btn.g{background:#ffffff4d}
+.sj-phone .scr{padding:13% 8.5% 7%;display:flex;flex-direction:column;align-items:center}
+.sj-phone .av{width:34%;aspect-ratio:1;border-radius:50%;background:#ffffff2e;border:1.5px solid #ffffff85;margin:0 auto;
+  display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;line-height:1}
+.sj-phone .nm{display:flex;align-items:center;justify-content:center;gap:3px;margin-top:8px;font-size:8px;font-weight:750;color:#fff;white-space:nowrap;letter-spacing:-.01em}
+.sj-phone .nm i{font-size:6.5px;color:#9ff3e0}
+.sj-phone .bi{display:block;margin-top:3px;font-size:6px;color:#ffffffc4;text-align:center;line-height:1.4}
+.sj-phone .lnk{width:100%;margin-top:7px;height:20px;border-radius:10px;background:#fff;display:flex;align-items:center;gap:5px;
+  padding:0 9px;font-size:6.6px;font-weight:700;color:#262f58;box-shadow:0 2px 6px #0000001f}
+.sj-phone .lnk i{font-size:6.5px;color:#5a63e8}
+.sj-phone .lnk.ghost{background:#ffffff2b;border:1px solid #ffffff5c;color:#fff}
+.sj-phone .lnk.ghost i{color:#fff}
+.sj-phone .soc{display:flex;gap:6px;margin-top:10px}
+.sj-phone .soc span{width:14px;height:14px;border-radius:50%;background:#ffffff38;border:1px solid #ffffff5c;display:grid;place-items:center;font-size:6px;color:#fff}
+.sj-phone .pw{display:block;margin-top:9px;font-size:5px;color:#ffffff8f;letter-spacing:.04em}
 
 /* --- the paid moment, and the week's clicks --- */
 .sj-toast{left:49%;top:1%;width:21%;display:flex;align-items:center;gap:7px;transform:rotate(-1deg);
@@ -173,8 +182,13 @@
 @keyframes sj-zio-idle{0%,100%{translate:0 0;rotate:-1.5deg}18%{translate:0 -5px;rotate:1deg}
   40%{translate:0 -2px;rotate:-3deg}52%{translate:0 -7px;rotate:2.5deg}70%{translate:0 -3px;rotate:-1deg}86%{translate:0 -6px;rotate:1.5deg}}
 @keyframes sj-zio-blinks{0%,20%,23.5%,26%,29.5%,61%,64.5%,100%{clip-path:inset(0 0 100% 0)}21%,23%,27%,29%,62%,64%{clip-path:inset(0)}}
-@keyframes sj-zio-ant-l{0%,100%{rotate:-4deg}30%{rotate:3deg}40%{rotate:-14deg}45%{rotate:5deg}50%{rotate:-6deg}72%{rotate:2deg}}
-@keyframes sj-zio-ant-r{0%,100%{rotate:4deg}28%{rotate:-3deg}41%{rotate:13deg}46%{rotate:-5deg}51%{rotate:6deg}74%{rotate:-2deg}}
+/* The perk stays within about 6 degrees. zio-mascot has antennae PAINTED
+ * into it and zio-antenna-l/r.png are overlays on top; swing the overlays
+ * further than that and the painted stubs appear either side of his head.
+ * The shipped Zio animation only ever used -3deg to +5deg, which is why
+ * this never showed before the hero scene enlarged him. */
+@keyframes sj-zio-ant-l{0%,100%{rotate:-4deg}30%{rotate:3deg}40%{rotate:-6deg}45%{rotate:5deg}50%{rotate:-6deg}72%{rotate:2deg}}
+@keyframes sj-zio-ant-r{0%,100%{rotate:4deg}28%{rotate:-3deg}41%{rotate:6deg}46%{rotate:-5deg}51%{rotate:6deg}74%{rotate:-2deg}}
 @keyframes sj-zio-mouth{0%,62%{opacity:0}66%,80%{opacity:1}84%,100%{opacity:0}}
 @keyframes sj-zio-tongue{0%,63%{transform:translateY(88%) rotate(0)}69%,76%{transform:translateY(0) rotate(-3deg)}80%{transform:translateY(28%)}85%,100%{transform:translateY(88%)}}
 .sj-zio-spark{position:absolute;right:8%;bottom:34%;z-index:6;color:#ffb44d;pointer-events:none;line-height:0;

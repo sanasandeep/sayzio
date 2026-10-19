@@ -91,9 +91,20 @@
     @endforeach
   </div>
 
+  {{-- A Link in Bio page, not a loading skeleton. Sana, of the first
+       version: "Link in bio page isnt good" -- it was grey bars on a
+       gradient, which reads as a page still loading rather than a page
+       somebody made. Real avatar, real labels, the handle at the bottom. --}}
   <div class="sj-surface sj-phone" aria-hidden="true"><div class="scr">
-    <span class="av"></span><span class="nm"></span><span class="bi"></span>
-    <span class="btn"></span><span class="btn"></span><span class="btn g"></span><span class="btn g"></span>
+    <span class="av">N</span>
+    <span class="nm">Northstar Studio <i class="fas fa-circle-check"></i></span>
+    <span class="bi">Brand &amp; web design</span>
+    <span class="lnk"><i class="fas fa-calendar-check"></i>Book a call</span>
+    <span class="lnk"><i class="fas fa-palette"></i>Our services</span>
+    <span class="lnk ghost"><i class="fab fa-whatsapp"></i>WhatsApp us</span>
+    <span class="lnk ghost"><i class="fas fa-images"></i>Latest work</span>
+    <span class="soc"><span><i class="fab fa-instagram"></i></span><span><i class="fab fa-linkedin-in"></i></span><span><i class="fab fa-x-twitter"></i></span></span>
+    <span class="pw">sayzio.app/northstar</span>
   </div></div>
 
   <div class="sj-mini sj-toast"><span class="tk"><i class="fas fa-check" aria-hidden="true"></i></span><span><b>Invoice paid</b><small>Brand identity package</small></span></div>
