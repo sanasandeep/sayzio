@@ -652,6 +652,71 @@
     .lts-sent { display: flex; align-items: center; gap: 7px; justify-content: center;
                 font-size: 12px; font-weight: 700; color: var(--a) }
 
+
+    /* ── parts added for the eight page formats that used to fall through to
+       the generic placeholder. Additive only: this stylesheet is shared with
+       the expandable-cards modal, so changing an existing class would move
+       two sections at once. ── */
+
+    /* A progress fill whose END WIDTH is given by the scene, so the bar and
+       the number beside it can agree. Plain .lts-fill still stops at 78%. */
+    .lts-fill.lts-fw { animation-name: lts-fillv }
+    @keyframes lts-fillv { to { width: var(--fw, 78%) } }
+
+    /* Overlapping member portraits. The border is the page behind them --
+       without it the faces merge into one smear at 22px. */
+    .lts-stack { display: flex; align-items: center }
+    .lts-stack .lts-avatar { margin-left: -8px; border: 2px solid #0B0B18 }
+    .lts-stack .lts-avatar:first-child { margin-left: 0 }
+    html.light-mode .lts-stack .lts-avatar { border-color: #F8F9FD }
+    .lts-more { margin-left: 10px; font-size: 11.5px; font-weight: 700; color: var(--a) }
+
+    /* A chip that has been chosen -- a booked slot, a new post.
+       Deliberately NOT white-on-accent: --a is whatever colour the format
+       carries, and #84cc16 or #22d3ee under white text is around 1.9:1. A
+       wash of the accent with the accent itself as the text reads as chosen
+       at any hue and stays legible. */
+    .lts-chip.lts-chip-on { background: color-mix(in srgb, var(--a) 16%, transparent);
+                            border-color: var(--a); font-weight: 800 }
+    .lts-chip.lts-tiny { padding: 2px 7px; font-size: 9.5px; margin-left: 7px;
+                         letter-spacing: 0; text-transform: none; vertical-align: middle }
+
+    /* Quick actions at the end of a directory row. Smaller than .lts-soc,
+       which is a 32px social button centred under a bio. */
+    .lts-acts { display: flex; gap: 6px; flex-shrink: 0 }
+    .lts-act { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+               font-size: 10px; color: var(--a);
+               background: color-mix(in srgb, var(--a) 15%, transparent) }
+    .lts-act i { width: auto }
+
+    /* The fallback scene keeps the column layout of .lts when it is wrapped. */
+    .lts-generic { display: flex; flex-direction: column; gap: 9px }
+
+
+    /* ── light-mode selected states ──
+       `html.light-mode .lts-x` is (0,2,1) and outranks both a bare modifier
+       like `.lts-day-on` (0,1,0) and a two-class one like `.lts-card.lts-accent`
+       (0,2,0), so the resting paint wins on an element that is meant to look
+       picked. Measured on the live page before fixing: all 21 calendar days
+       rendered the same grey under a caption reading "Four dates this month",
+       and the Short Link scene's accent card -- the one holding the shortened
+       URL, the whole point of the scene -- had the same border as the plain
+       card above it.
+
+       Restated here for the two that are pure colour blocks. `.lts-btn.lts-solid`
+       is NOT fixed here and stays on this file's KNOWN_UNFIXED list: it puts
+       white text on var(--a), and several formats carry accents that white
+       cannot sit on. That one needs a light-ground colour chosen and looked
+       at, which is a design call rather than a specificity fix. */
+    html.light-mode .lts-day.lts-day-on { background: var(--a) }
+    /* Same again for the slide dot, which is only reachable through the
+       reduced-motion block -- so it was a light-mode bug behind an
+       accessibility setting, where it was least likely to be noticed. */
+    html.light-mode .lts-dot.lts-dot-0 { background: var(--a) }
+    html.light-mode .lts-card.lts-accent {
+        background: color-mix(in srgb, var(--a) 10%, #fff);
+        border-color: color-mix(in srgb, var(--a) 45%, #fff) }
+
     /* ── motion ── */
     .lts-rise { animation: lts-rise .5s var(--d, 0s) cubic-bezier(.2,.7,.3,1) both }
     .lts-pop  { animation: lts-pop  .45s var(--d, 0s) cubic-bezier(.2,.9,.3,1.2) both }
@@ -671,6 +736,7 @@
         .lts-rise, .lts-pop, .lts-qp-on { animation: none; opacity: 1; transform: none }
         .lts-typing i, .lts-caret { animation: none; opacity: .6 }
         .lts-fill { animation: none; width: 78% }
+        .lts-fill.lts-fw { animation: none; width: var(--fw, 78%) }
         .lts-slide { animation: none; opacity: 0 }
         .lts-slide-0 { opacity: 1 }
         .lts-dot { animation: none } .lts-dot-0 { background: var(--a); width: 14px }

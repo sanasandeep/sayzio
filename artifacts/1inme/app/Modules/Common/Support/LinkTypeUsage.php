@@ -41,6 +41,17 @@ class LinkTypeUsage
         'paid-page'         => 'Put a page behind a payment when the content is the product.',
         'qr-code'           => 'For the offline half of your audience: a code that keeps working after you change the destination.',
         'forms'             => 'Ask the question once and keep every answer in one inbox with your chats.',
+
+        // These eight had no line, and the same eight had no preview scene --
+        // one gap showing twice, since both are keyed by the slug.
+        'real-estate'       => 'One link per property, holding the photos, the specs and the viewing times you would otherwise send one by one.',
+        'education-training'=> 'For a course you teach more than once: the lessons in order, and somewhere to pick up from.',
+        'communities-clubs' => 'The page you send a new member, with the next meetup on it rather than buried in a thread.',
+        'nonprofits-campaigns' => 'A goal, how far along it is, and a way to give, in a link you can put anywhere.',
+        'contact-directory' => 'For a team people need to reach: the right department, with the call or the email ready to go.',
+        'salon-spa'         => 'Your treatments with their lengths and prices, so a booking starts from what you actually offer.',
+        'service-booking'   => 'Let someone take a time that suits them instead of trading messages to find one.',
+        'updates-page'      => 'For news that keeps coming: dated posts in one place people can subscribe to.',
     ];
 
     /** The usage line for a link type name, or an empty string when unknown. */

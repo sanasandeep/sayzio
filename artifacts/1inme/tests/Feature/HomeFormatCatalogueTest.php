@@ -37,4 +37,68 @@ class HomeFormatCatalogueTest extends TestCase
         $r=$this->actingAs(User::factory()->create())->get('/')->assertOk();$this->assertStringContainsString('data-sf-create href="'.e(route('user.links.create',['type'=>'url'])).'"',$r->getContent());
         if(getenv('FORMAT_UI_FIXTURE'))file_put_contents('/tmp/format-showcase-auth.html',$r->getContent());
     }
+
+    /**
+     * Every format in the catalogue must render a scene built for it.
+     *
+     * link-type-scene has a @default branch, and for an unknown stretch eight
+     * formats quietly landed on it -- Real Estate, Education & Training,
+     * Communities & Clubs, Nonprofits & Campaigns, Contact Directory, Salon &
+     * Spa, Service Booking and Updates Page all showed the same avatar, three
+     * grey bars and an "Open" button. Nothing caught it: the count was right,
+     * every card rendered, every template existed. The placeholder is only
+     * visible as a placeholder once you know what the others look like.
+     *
+     * So the fallback is tagged `lts-generic` and this asserts no SHIPPED
+     * format reaches it. The branch stays -- a type added to the catalogue
+     * before someone draws its scene should degrade, not crash -- but it may
+     * never again be what a visitor is shown.
+     */
+    public function test_no_format_falls_back_to_the_generic_preview_scene(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($html);
+        $xpath = new \DOMXPath($dom);
+
+        $items = HomeFormatCatalogue::items();
+        $templates = $xpath->query('//*[@data-sf-template]');
+        $this->assertSame(
+            count($items),
+            $templates->length,
+            'every format needs a preview template'
+        );
+
+        $generic = [];
+        foreach ($templates as $i => $template) {
+            if (str_contains($dom->saveHTML($template), 'lts-generic')) {
+                $generic[] = $items[$i]['name'] ?? ('#' . $i);
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $generic,
+            "these formats render the generic placeholder instead of a scene of their own:\n  "
+            . implode("\n  ", $generic)
+        );
+    }
+
+    /**
+     * The usage line is keyed by the same slug as the scene, so the two gaps
+     * opened and closed together. Asserted together for the same reason.
+     */
+    public function test_every_format_has_a_usage_line(): void
+    {
+        $missing = array_values(array_filter(
+            array_column(HomeFormatCatalogue::items(), 'name'),
+            fn (string $name) => \App\Modules\Common\Support\LinkTypeUsage::forName($name) === ''
+        ));
+
+        $this->assertSame(
+            [],
+            $missing,
+            "these formats show an empty \"How you could use it\" block:\n  " . implode("\n  ", $missing)
+        );
+    }
 }
