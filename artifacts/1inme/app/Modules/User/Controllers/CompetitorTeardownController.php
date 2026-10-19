@@ -43,7 +43,11 @@ class CompetitorTeardownController extends Controller
         }
 
         $owner  = workspace_owner();
-        $recent = CompetitorTeardown::withoutGlobalScope('workspace')
+        // The workspace global scope does the scoping now that the table has
+        // a workspace_id column. The user_id filter stays as a second fence, so
+        // a path that somehow runs without a bound workspace still cannot list
+        // another account's teardowns.
+        $recent = CompetitorTeardown::query()
             ->where('user_id', $owner->id)
             ->latest()
             ->limit(8)

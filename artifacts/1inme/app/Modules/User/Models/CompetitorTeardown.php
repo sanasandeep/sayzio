@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property int $id
  * @property int $user_id
+ * @property int|null $workspace_id
  * @property int|null $actor_user_id
  * @property string $competitor_url
  * @property string $status pending|processing|completed|failed
@@ -26,7 +27,7 @@ class CompetitorTeardown extends Model
     use BelongsToWorkspace;
 
     protected $fillable = [
-        'user_id', 'actor_user_id', 'competitor_url', 'status',
+        'user_id', 'workspace_id', 'actor_user_id', 'competitor_url', 'status',
         'extracted', 'analysis', 'credits_spent', 'error', 'built_link_id',
     ];
 
