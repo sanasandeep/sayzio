@@ -87,15 +87,47 @@
 .sj-mini{border-radius:13px;padding:9px 10px}
 @keyframes sj-float{0%,100%{translate:0 0}50%{translate:0 -7px}}
 
-/* --- folder map fragment --- */
-.sj-map{left:1%;top:4%;width:47%;padding:11px;transform:rotate(-1.6deg);animation-delay:-1.2s}
+/* --- folder map fragment ---
+ * Six stations threaded onto one dashed rail, with a pulse walking down them
+ * in order: the folder handing a job along its own flow.
+ *
+ * The walk is six copies of one 6.6s keyframe, each row delayed by its own
+ * --si index -- no absolute px arithmetic that drifts when the padding
+ * changes at a breakpoint, and no script. Note what is deliberately NOT here:
+ * `!important`. The reduced-motion block below switches the whole scene off
+ * with `animation:none!important`, and an important declaration beats a
+ * normal one whatever the specificity -- so leaving these normal is what
+ * makes the stilled scene actually still. Zio's layer learned that the hard
+ * way; see the note there.
+ */
+/* --mp is the card's own padding, and the rail's offset is derived from it:
+ * the icon tiles sit at padding + 1px row border + 7px row padding + half a
+ * 22px tile, so the rail centres on them at --mp + 19px whatever --mp is.
+ * Hard-coding 29px worked until the breakpoint changed the padding to 10 and
+ * left the wire 1.25px off its tiles -- the same class of mistake that put
+ * the folder map's own wires 39px off their cards in #444. Derive, don't
+ * re-measure. */
+.sj-map{--mp:11px;left:1%;top:4%;width:47%;padding:var(--mp);transform:rotate(-1.6deg);animation-delay:-1.2s}
 .sj-map .mh{font-size:7.5px;font-weight:700;color:#8b94ad;letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:4px}
-.sj-map .stn{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;border:1px solid #e7eaf3;border-radius:9px;padding:6px 7px;margin-bottom:5px;background:#fff}
-.sj-map .stn.dim{border-style:dashed;animation:sj-stn-breathe 4.4s ease-in-out infinite}
-@keyframes sj-stn-breathe{0%,100%{opacity:.42}50%{opacity:.68}}
-.sj-map .stn b{display:block;font-size:7px;font-weight:700;color:#5a6480;letter-spacing:.05em;text-transform:uppercase}
-.sj-map .stn s{display:block;font-size:13px;font-weight:800;color:#1b2342;text-decoration:none;line-height:1.1;margin-top:1px}
-.sj-map .stn i{width:19px;height:19px;border-radius:6px;display:grid;place-items:center;font-size:8px;color:#fff}
+.sj-map .rail{position:absolute;left:calc(var(--mp) + 18.25px);top:calc(var(--mp) + 20px);bottom:calc(var(--mp) + 3px);width:1.5px;z-index:0;pointer-events:none;
+  background-image:linear-gradient(#c9d1e8 0 4px,transparent 4px 10px);background-size:1.5px 10px;
+  animation:sj-rail-flow 1.1s linear infinite}
+@keyframes sj-rail-flow{to{background-position-y:10px}}
+.sj-map .stn{position:relative;z-index:1;display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:7px;
+  border:1px solid #e7eaf3;border-radius:9px;padding:5px 7px;margin-bottom:5px;background:#fff;min-height:33px;
+  animation:sj-stn-lit 6.6s ease-in-out infinite;animation-delay:calc(var(--si) * 1.1s)}
+.sj-map .stn:last-child{margin-bottom:0}
+.sj-map .stn i{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:9px;color:#fff;
+  background:var(--sc);animation:sj-stn-tile 6.6s ease-in-out infinite;animation-delay:calc(var(--si) * 1.1s)}
+.sj-map .stn b{font-size:8px;font-weight:700;color:#5a6480;letter-spacing:.05em;text-transform:uppercase;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sj-map .stn s{font-size:13px;font-weight:800;color:#1b2342;text-decoration:none;line-height:1;
+  font-variant-numeric:tabular-nums;animation:sj-stn-count 6.6s ease-in-out infinite;animation-delay:calc(var(--si) * 1.1s)}
+.sj-map .stn.dim{border-style:dashed;opacity:.55}
+.sj-map .stn.dim i{background:#e6e9f2;color:#aeb5c9}
+@keyframes sj-stn-lit{0%{border-color:#e7eaf3}4%,12%{border-color:var(--sc)}18%,100%{border-color:#e7eaf3}}
+@keyframes sj-stn-tile{0%,18%,100%{transform:scale(1)}5%,12%{transform:scale(1.14)}}
+@keyframes sj-stn-count{0%,18%,100%{color:#1b2342}4%,13%{color:var(--sc)}}
 
 /* --- biolink page on a phone --- */
 .sj-phone{left:72%;top:0;width:26%;aspect-ratio:150/310;padding:7px;border-radius:26px;transform:rotate(1.8deg);
@@ -129,7 +161,9 @@
 .sj-toast .tk{width:17px;height:17px;border-radius:50%;background:#159b82;color:#fff;display:grid;place-items:center;font-size:7px;flex:none;box-shadow:0 0 0 4px #159b8222}
 .sj-toast b{font-size:8.5px;font-weight:720;color:#1b2342;display:block;line-height:1.25}
 .sj-toast small{font-size:7px;color:#99a1b8;display:block}
-.sj-anal{left:45%;top:41%;width:24%;transform:rotate(1deg);animation-delay:-2.6s}
+/* The folder card is six rows tall now, so this clears its lower-right
+ * corner instead of sitting over it. */
+.sj-anal{left:50%;top:45%;width:21%;transform:rotate(1deg);animation-delay:-2.6s}
 .sj-anal .lb{font-size:6.5px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:#99a1b8;display:block}
 .sj-bars{display:flex;align-items:flex-end;gap:3px;height:34px;margin-top:7px}
 .sj-bars i{flex:1;min-width:4px;border-radius:3px 3px 1px 1px;background:linear-gradient(#6a7bff,#9a6ae8);transform-origin:bottom;animation:sj-bar 3.2s ease-in-out infinite}
@@ -173,8 +207,18 @@
   animation:sj-zio-idle 12s ease-in-out infinite!important;transform-origin:50% 88%}
 .sj-zio-stage .zio-lid{animation:sj-zio-blinks 12s linear infinite!important}
 .sj-zio-stage .zio-lid--r{animation-delay:.05s!important}
-.sj-zio-stage .zio-ant--l{animation:sj-zio-ant-l 12s ease-in-out infinite!important;transform-origin:70% 100%}
-.sj-zio-stage .zio-ant--r{animation:sj-zio-ant-r 12s ease-in-out infinite!important;transform-origin:30% 100%}
+/* The pivot is where the antenna meets the head, measured off the alpha
+ * channel of zio-antenna-l/r.png rather than guessed: left base at
+ * 36.5% 26.4% of its own box, right at 68% 30.3%. The shipped values were
+ * `70% 100%` and `30% 100%` -- the BOTTOM EDGE of a 116px box, and left and
+ * right swapped. So each antenna swung about a point several pixels clear of
+ * his head and below it, which hinged the root out from under the skull and
+ * read as a crop. Sana twice: "Antenas arnt cropped properly", then "still
+ * cropping of antinas from Zio head wasnt good. fix the position". The angle
+ * was never the problem; cutting it to 6 degrees only made a wrong pivot
+ * less visible. With the real bases the full swing is clean. */
+.sj-zio-stage .zio-ant--l{animation:sj-zio-ant-l 12s ease-in-out infinite!important;transform-origin:36.5% 26.4%}
+.sj-zio-stage .zio-ant--r{animation:sj-zio-ant-r 12s ease-in-out infinite!important;transform-origin:68% 30.3%}
 .sj-zio-stage .zio-mouth-gate{left:39%;top:40.7%;width:11%;height:4%;animation:sj-zio-mouth 12s ease-in-out infinite!important}
 .sj-zio-stage .zio-mouth{height:140%;animation:none!important;background:#2a1046}
 .sj-zio-stage .zio-tongue{background:linear-gradient(#ff719b,#ef456f);height:72%;bottom:-10%;border-radius:40% 40% 55% 55%;
@@ -182,34 +226,80 @@
 @keyframes sj-zio-idle{0%,100%{translate:0 0;rotate:-1.5deg}18%{translate:0 -5px;rotate:1deg}
   40%{translate:0 -2px;rotate:-3deg}52%{translate:0 -7px;rotate:2.5deg}70%{translate:0 -3px;rotate:-1deg}86%{translate:0 -6px;rotate:1.5deg}}
 @keyframes sj-zio-blinks{0%,20%,23.5%,26%,29.5%,61%,64.5%,100%{clip-path:inset(0 0 100% 0)}21%,23%,27%,29%,62%,64%{clip-path:inset(0)}}
-/* The perk stays within about 6 degrees. zio-mascot has antennae PAINTED
- * into it and zio-antenna-l/r.png are overlays on top; swing the overlays
- * further than that and the painted stubs appear either side of his head.
- * The shipped Zio animation only ever used -3deg to +5deg, which is why
- * this never showed before the hero scene enlarged him. */
-@keyframes sj-zio-ant-l{0%,100%{rotate:-4deg}30%{rotate:3deg}40%{rotate:-6deg}45%{rotate:5deg}50%{rotate:-6deg}72%{rotate:2deg}}
-@keyframes sj-zio-ant-r{0%,100%{rotate:4deg}28%{rotate:-3deg}41%{rotate:6deg}46%{rotate:-5deg}51%{rotate:6deg}74%{rotate:-2deg}}
+/* zio-body.webp carries no painted antennae, only a small root nub at each
+ * base, so with the pivots above the overlays can take a real swing without
+ * anything showing through: -13deg to +12deg, the perk arriving at 40-51%
+ * when the record's own pulse reaches him. */
+@keyframes sj-zio-ant-l{0%,100%{rotate:-4deg}30%{rotate:6deg}40%{rotate:-13deg}45%{rotate:9deg}50%{rotate:-11deg}72%{rotate:3deg}}
+@keyframes sj-zio-ant-r{0%,100%{rotate:4deg}28%{rotate:-6deg}41%{rotate:12deg}46%{rotate:-9deg}51%{rotate:11deg}74%{rotate:-3deg}}
 @keyframes sj-zio-mouth{0%,62%{opacity:0}66%,80%{opacity:1}84%,100%{opacity:0}}
 @keyframes sj-zio-tongue{0%,63%{transform:translateY(88%) rotate(0)}69%,76%{transform:translateY(0) rotate(-3deg)}80%{transform:translateY(28%)}85%,100%{transform:translateY(88%)}}
 .sj-zio-spark{position:absolute;right:8%;bottom:34%;z-index:6;color:#ffb44d;pointer-events:none;line-height:0;
   animation:sj-zio-spark 12s ease-in-out infinite}
 @keyframes sj-zio-spark{0%,34%{opacity:0;transform:scale(.3) rotate(0)}40%,46%{opacity:1;transform:scale(1) rotate(30deg)}52%,100%{opacity:0;transform:scale(.4) rotate(60deg)}}
 
-/* the pause button stops the whole scene, not just one layer */
+/* The pause button stops the whole scene, not just one layer -- including
+ * the phone's sheen, which lives on a pseudo-element. `.sj-scene *` does not
+ * match pseudo-elements, so without the third line the sweep keeps running
+ * after the visitor presses pause. */
 #sayzio-journey.sj-board--scene:not([data-playing]) .sj-scene *,
+#sayzio-journey.sj-board--scene:not([data-playing]) .sj-scene .scr:after,
 #sayzio-journey.sj-board--scene:not([data-playing]) .sj-scene{animation-play-state:paused!important}
 
 @media(max-width:850px){.sj-scene{aspect-ratio:600/560}.sj-map{width:52%}.sj-rec2{width:66%}}
+/* ===== Phone: the scene stops being a composition and becomes a stack =====
+ *
+ * Every surface above is PLACED in percentages of the stage, but the type and
+ * row heights INSIDE them are fixed px. Shrink the stage to a phone and the
+ * contents keep their size while the box does not, so the surfaces grow into
+ * each other. Measured at a 426px viewport, the shipped version already had
+ * six pairs of surfaces overlapping -- the map over the toast, the phone over
+ * the analytics card, the record over Zio's speech bubble -- and nudging the
+ * percentages only moves which pair collides. A six-row folder card makes it
+ * worse, so this is the fix rather than another nudge.
+ *
+ * Below 560px the stage becomes a two-column grid in normal flow: the folder
+ * card full width, the phone beside the paid toast and the week's clicks,
+ * then the record, then Zio. The rails are hidden -- they are drawn for a
+ * 600x520 stage and mean nothing once the surfaces are stacked -- and the
+ * float/land/say animations are stopped, because they were composed to drift
+ * in free space, not inside a grid cell. The blobs stay: they are absolute,
+ * so they keep the colour behind the stack. Measured again after: 0 overlaps,
+ * 0 horizontal overflow, nothing clipped.
+ */
 @media(max-width:560px){
-  .sj-scene{aspect-ratio:600/620}
-  .sj-map{left:0;width:56%;padding:9px}.sj-phone{left:70%;width:29%}
-  .sj-rec2{left:1%;width:76%;padding:10px}
-  .sj-anal{left:41%;top:38%;width:29%}.sj-toast{left:46%;width:27%}
-  .sj-bubble{left:52%;top:58%;font-size:8px}.sj-zbub{right:8%;bottom:22%;font-size:7.5px}
-  .sj-zio-stage{width:23%}
+  .sj-scene{aspect-ratio:auto;height:auto;display:grid;grid-template-columns:42% 1fr;gap:9px;
+    align-content:start;padding:2px 0 4px}
+  .sj-rails{display:none}
+  .sj-scene>.sj-surface,.sj-scene>.sj-mini,.sj-scene>.sj-bubble,.sj-scene>.sj-zbub,.sj-scene>.sj-zio-stage{
+    position:static;inset:auto;width:auto;transform:none;animation:none;opacity:1}
+  .sj-map{--mp:10px;grid-column:1/-1}
+  .sj-scene>.sj-phone{grid-column:1;grid-row:span 2;aspect-ratio:150/290;max-width:140px;align-self:start}
+  .sj-toast,.sj-anal{align-self:start}
+  .sj-scene>.sj-bubble{grid-column:1/-1;justify-self:start;font-size:8px}
+  .sj-rec2{grid-column:1/-1;padding:10px}
+  .sj-scene>.sj-zbub{grid-column:1;align-self:end;justify-self:start;margin-bottom:14px;font-size:7.5px}
+  .sj-scene>.sj-zio-stage{grid-column:2;justify-self:end;width:108px}
   .sj-rec2 .chips span{font-size:7.5px}}
+/* Both sides of this carry `!important`, so SPECIFICITY decides, and
+ * `.sj-scene *` is (0,1,0) while `.sj-zio-stage .zio-face` is (0,2,0). The
+ * universal selector lost, and six of Zio's animations kept running for a
+ * reader who had asked the whole page to hold still -- shipped, and green,
+ * because the test next to it asserted that the rule TEXT existed rather
+ * than that it won. Hence the second selector list: one entry per element
+ * the Zio block names, at matching specificity. Add a rule up there and it
+ * needs a line down here too. */
 @media(prefers-reduced-motion:reduce){
   .sj-scene *,.sj-scene{animation:none!important;transition:none!important;transform:none!important}
+  .sj-zio-stage .zio-face,.sj-zio-stage .zio-face *,.sj-zio-stage .zio-lid,
+  .sj-zio-stage .zio-ant--l,.sj-zio-stage .zio-ant--r,
+  .sj-zio-stage .zio-mouth-gate,.sj-zio-stage .zio-mouth,.sj-zio-stage .zio-tongue,
+  .sj-zio-stage .sj-zio-spark{animation:none!important;transform:none!important}
+  /* Same blind spot, different cause: `.sj-scene *` matches elements, and the
+   * phone's sheen is a pseudo-element, so it swept straight through the
+   * stilled scene. Found by counting getAnimations() after applying this
+   * block, not by reading it. */
+  .sj-phone .scr:after{animation:none!important;transform:translateX(-120%)!important}
   .sj-blob{opacity:.22}
   .sj-bubble,.sj-zbub,.sj-toast{opacity:1!important}
   .sj-zio-stage .zio-lid{clip-path:inset(0 0 100% 0)!important}
