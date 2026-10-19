@@ -29,7 +29,6 @@
             ['label' => 'Back to Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-arrow-left', 'class' => 'btn-ghost'],
         ],
     ])
-    </div>
 
     @if(session('error'))
         <div class="glass rounded-xl p-4 mb-5 border border-red-500/20 text-sm text-red-300">{{ session('error') }}</div>
