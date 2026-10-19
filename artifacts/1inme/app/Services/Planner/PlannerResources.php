@@ -33,11 +33,38 @@ class PlannerResources
         return collect(array_keys(self::TYPES))->mapWithKeys(fn($kind)=>[$kind=>$labels[$kind]??ucfirst($kind)])->all();
     }
 
+    /**
+     * The workspace permission that governs seeing a kind.
+     *
+     * Lifted out of query() so callers can ask the question WITHOUT running a
+     * query. query() answers "can this person see any of these" by returning
+     * an impossible query, which makes a forbidden kind and an empty one look
+     * identical -- fine when you are listing rows, wrong when you are drawing
+     * a station and deciding whether to invite someone to create one.
+     */
+    public static function permissionFor(string $kind): string
+    {
+        return match ($kind) {
+            'task', 'board'              => 'tasks.view',
+            'link'                       => 'links.view',
+            'qr'                         => 'qr.view',
+            'calendar'                   => 'calendar.view',
+            'buzz'                       => 'social-proofs.view',
+            'form'                       => 'forms.view',
+            'file'                       => 'files.view',
+            'plan'                       => 'planner.view',
+            'mind'                       => 'minds.view',
+            'persona'                    => 'ai-personas.view',
+            'staff', 'agent', 'companion' => 'ai-agents.view',
+            default                      => 'ai.view',
+        };
+    }
+
     public function query(string $kind, $user)
     {
         abort_unless(isset(self::TYPES[$kind]), 422, 'Unsupported resource type.');
         $q = self::TYPES[$kind]::query();
-        $permission = match($kind){'task','board'=>'tasks.view','link'=>'links.view','qr'=>'qr.view','calendar'=>'calendar.view','buzz'=>'social-proofs.view','form'=>'forms.view','file'=>'files.view','plan'=>'planner.view','mind'=>'minds.view','persona'=>'ai-personas.view','staff','agent','companion'=>'ai-agents.view',default=>'ai.view'};
+        $permission = self::permissionFor($kind);
         if($permission && !$user->canInWorkspace(app('current_workspace'),$permission)) return $q->whereRaw('1=0');
         if (in_array($kind, ['campaign', 'strategy', 'budget'])) {
             return $q->where('user_id', $user->id)->where('workspace_id', app('current_workspace')->id);
