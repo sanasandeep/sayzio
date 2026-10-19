@@ -17,7 +17,7 @@
     that is restyled or replaced keeps working, and removing this include
     removes the feature completely.
 --}}
-<link rel="stylesheet" href="{{ asset('css/marketing/format-previews-cd6e5b9f2286.css') }}">
+<link rel="stylesheet" href="{{ asset('css/marketing/format-previews-5b53a0307c8a.css') }}">
 
 <script>
 (function () {

@@ -6,7 +6,7 @@
     modal opens, so the panel shows what the type DOES rather than sitting
     still. Everything is CSS; there is no script and no image to load.
 
-    Built from a handful of primitives so nineteen scenes stay short and look
+    Built from a handful of primitives so twenty-eight scenes stay short and look
     like one family:
 
       .lts-card   a surface        .lts-row    a list row
@@ -311,11 +311,151 @@
     <div class="lts-btn lts-solid lts-pop" style="--d:.6s"><i class="fas fa-copy"></i> Copy</div>
     @break
 
-@default
-    <div class="lts-avatar lts-pop" style="--d:.05s"></div>
-    @foreach([80,65,72] as $i => $w)
-        <div class="lts-line lts-w{{ $w }} lts-mid lts-rise" style="--d:{{ .2 + $i * .12 }}s"></div>
+@case('real-estate')
+    {{-- The spec strip is what makes a listing a listing. No property
+         photograph ships with the site -- hero-roles/role_realtor is a letter
+         on a gradient, not a house -- so the structure carries it, the same
+         call the restaurant scene makes about food. --}}
+    <div class="lts-card lts-rise" style="--d:.05s">
+        <div class="lts-lbl">Asking price</div>
+        <b class="lts-num">&euro;285,000</b>
+        <div class="lts-chips">
+            @foreach(['3 bed','2 bath','94 m&sup2;'] as $i => $t)
+                <span class="lts-chip lts-pop" style="--d:{{ .3 + $i * .09 }}s">{!! $t !!}</span>
+            @endforeach
+        </div>
+    </div>
+    <div class="lts-row lts-thin lts-rise" style="--d:.65s">
+        <i class="fas fa-location-dot"></i><span class="lts-grow">12 Rua das Flores</span>
+    </div>
+    <div class="lts-btn lts-solid lts-pop" style="--d:.85s">Book a viewing</div>
+    @break
+
+@case('education-training')
+    {{-- Lessons ticking off is the thing a course page does that a plain
+         page does not, so the scene shows two done and one waiting. --}}
+    @foreach([['Welcome &amp; setup', true],['Core techniques', true],['Your first project', false]] as $i => $m)
+        <div class="lts-row lts-thin lts-rise" style="--d:{{ .08 + $i * .13 }}s">
+            <i class="fas {{ $m[1] ? 'fa-circle-check' : 'fa-circle' }}"></i>
+            <span class="lts-grow {{ $m[1] ? 'lts-dim' : '' }}">{!! $m[0] !!}</span>
+        </div>
     @endforeach
-    <div class="lts-btn lts-solid lts-pop" style="--d:.6s">Open</div>
+    <div class="lts-track lts-rise" style="--d:.5s"><span class="lts-fill lts-fw" style="--fw:67%"></span></div>
+    <div class="lts-lbl lts-rise" style="--d:.65s">2 of 3 lessons done</div>
+    <div class="lts-btn lts-solid lts-pop" style="--d:.85s">Continue course</div>
+    @break
+
+@case('communities-clubs')
+    {{-- A club is its members, so this is one of the few types where a
+         photograph says something: real portraits from the shipped set. --}}
+    <div class="lts-stack lts-rise" style="--d:.05s">
+        @foreach(['role_coach-200','role_creator-200','role_musician-200'] as $i => $m)
+            <img class="lts-avatar lts-xs lts-pop" style="--d:{{ .12 + $i * .09 }}s"
+                 src="{{ $img($m) }}" alt="" width="200" height="200" loading="lazy" decoding="async">
+        @endforeach
+        <span class="lts-more lts-pop" style="--d:.42s">+128 members</span>
+    </div>
+    <div class="lts-card lts-rise" style="--d:.55s">
+        <div class="lts-lbl">Next meetup</div>
+        <div class="lts-row lts-thin"><i class="fas fa-calendar-day"></i><span class="lts-grow">Thursday, 7pm</span></div>
+        <div class="lts-row lts-thin"><i class="fas fa-location-dot"></i><span class="lts-grow">The Old Printworks</span></div>
+    </div>
+    <div class="lts-btn lts-solid lts-pop" style="--d:.95s">Join the club</div>
+    @break
+
+@case('nonprofits-campaigns')
+    {{-- The bar is the page. 8,420 of 12,000 is 70%, and --fw carries that
+         through to the fill, so the picture and the number agree. --}}
+    <div class="lts-card lts-rise" style="--d:.05s">
+        <div class="lts-lbl">Raised so far</div>
+        <b class="lts-num">&euro;8,420</b>
+        <div class="lts-track"><span class="lts-fill lts-fw" style="--fw:70%"></span></div>
+        <div class="lts-lbl lts-right">of &euro;12,000 goal</div>
+    </div>
+    <div class="lts-chips">
+        @foreach(['&euro;10','&euro;25','&euro;50'] as $i => $t)
+            <span class="lts-chip lts-pop" style="--d:{{ .55 + $i * .1 }}s">{!! $t !!}</span>
+        @endforeach
+    </div>
+    <div class="lts-btn lts-solid lts-pop" style="--d:.95s">Donate</div>
+    @break
+
+@case('contact-directory')
+    {{-- A directory is people and a way to reach them, so: a search bar, and
+         rows that carry the two actions rather than just naming a team. --}}
+    <div class="lts-row lts-thin lts-rise" style="--d:.05s">
+        <i class="fas fa-search"></i><span class="lts-line lts-w60"></span>
+    </div>
+    @foreach([['Billing','role_business-200'],['Support','role_coach-200'],['Press','role_creator-200']] as $i => $d)
+        <div class="lts-row lts-rise" style="--d:{{ .25 + $i * .13 }}s">
+            <img class="lts-avatar lts-xs" src="{{ $img($d[1]) }}" alt=""
+                 width="200" height="200" loading="lazy" decoding="async">
+            <span class="lts-grow">{{ $d[0] }}</span>
+            <span class="lts-acts">
+                <span class="lts-act"><i class="fas fa-phone"></i></span>
+                <span class="lts-act"><i class="fas fa-envelope"></i></span>
+            </span>
+        </div>
+    @endforeach
+    @break
+
+@case('salon-spa')
+    {{-- Duration beside price is what separates a treatment list from a menu
+         of dishes, so the middle column is minutes, not a description. --}}
+    @foreach([['Cut &amp; finish','45 min','38'],['Colour','90 min','75'],['Facial','30 min','28']] as $i => $t)
+        <div class="lts-row lts-thin lts-rise" style="--d:{{ .08 + $i * .13 }}s">
+            <span class="lts-grow">{!! $t[0] !!}</span>
+            <span class="lts-lbl">{{ $t[1] }}</span>
+            <b class="lts-price">{{ $t[2] }}</b>
+        </div>
+    @endforeach
+    <div class="lts-row lts-thin lts-rise" style="--d:.55s">
+        <img class="lts-avatar lts-xs" src="{{ $img('role_business-200') }}" alt=""
+             width="200" height="200" loading="lazy" decoding="async">
+        <span class="lts-grow">with Marta</span>
+    </div>
+    <div class="lts-btn lts-solid lts-pop" style="--d:.9s">Book</div>
+    @break
+
+@case('service-booking')
+    {{-- The moment worth showing is the slot being taken, so one chip is
+         already chosen and the button names it back. --}}
+    <div class="lts-lbl lts-rise" style="--d:.05s">Thursday 14 March</div>
+    <div class="lts-chips">
+        @foreach(['09:00','10:30','12:00','14:30','16:00','17:30'] as $i => $t)
+            <span class="lts-chip {{ $t === '14:30' ? 'lts-chip-on' : '' }} lts-pop"
+                  style="--d:{{ .15 + $i * .07 }}s">{{ $t }}</span>
+        @endforeach
+    </div>
+    <div class="lts-lbl lts-rise" style="--d:.65s">45 minutes &middot; video call</div>
+    <div class="lts-btn lts-solid lts-pop" style="--d:.85s">Confirm 14:30</div>
+    @break
+
+@case('updates-page')
+    {{-- Dated entries, newest first -- the shape of a page somebody keeps
+         coming back to rather than reads once. --}}
+    @foreach([['Today','New'],['2 Mar',''],['24 Feb','']] as $i => $u)
+        <div class="lts-sect lts-rise" style="--d:{{ .08 + $i * .14 }}s">
+            <span class="lts-lbl">{{ $u[0] }}@if($u[1])<span class="lts-chip lts-chip-on lts-tiny">{{ $u[1] }}</span>@endif</span>
+            <div class="lts-line lts-w80"></div>
+            <div class="lts-line lts-w60 lts-faint"></div>
+        </div>
+    @endforeach
+    <div class="lts-btn lts-solid lts-pop" style="--d:.7s">Subscribe</div>
+    @break
+
+@default
+    {{-- The safety net, for a type added to the catalogue before it has a
+         scene of its own. It carries `lts-generic` so
+         HomeFormatCatalogueTest can assert that nothing SHIPPED lands here:
+         eight formats quietly rendered this placeholder for an unknown
+         stretch, which is exactly the kind of gap a count cannot see. --}}
+    <div class="lts-generic">
+        <div class="lts-avatar lts-pop" style="--d:.05s"></div>
+        @foreach([80,65,72] as $i => $w)
+            <div class="lts-line lts-w{{ $w }} lts-mid lts-rise" style="--d:{{ .2 + $i * .12 }}s"></div>
+        @endforeach
+        <div class="lts-btn lts-solid lts-pop" style="--d:.6s">Open</div>
+    </div>
 @endswitch
 </div>

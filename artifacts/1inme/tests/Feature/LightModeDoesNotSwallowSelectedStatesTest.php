@@ -45,7 +45,13 @@ class LightModeDoesNotSwallowSelectedStatesTest extends TestCase
         'common/partials/events-hero-band.blade.php'      => ['ehb-dot.active'],
         'common/partials/ai-dashboard-demo.blade.php'     => ['aidd-tab.is-active'],
         'home/partials/audience-visual-style.blade.php'   => ['av-swap-row.is-now'],
-        'home/partials/expandable-cards.blade.php'        => ['lts-btn.lts-solid', 'lts-card.lts-accent'],
+        // lts-card.lts-accent is fixed -- it is a border and a wash with no
+        // text on them, so restating both in light mode was an objective
+        // change. lts-btn.lts-solid stays: it puts white text on var(--a),
+        // and several format accents (#84cc16, #22d3ee) are around 1.9:1
+        // under white. That one needs a light-ground colour chosen, which is
+        // the design call this list was made to hold.
+        'home/partials/expandable-cards.blade.php'        => ['lts-btn.lts-solid'],
     ];
 
     public function test_no_selected_state_loses_its_fill_in_light_mode(): void
