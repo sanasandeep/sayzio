@@ -171,7 +171,14 @@ $fnetWire = [
     // every rail segment that touched it, leaving an honest gap rather than a
     // line running to somewhere nothing is drawn.
     if (!el || window.getComputedStyle(el).display === 'none') { return null; }
-    var g = grid.getBoundingClientRect();
+    // Measured against the SVG's own box, not the grid's. They are not the
+    // same rectangle: the wires layer is absolutely positioned over the whole
+    // canvas, while the grid sits inside the canvas padding. Drawing
+    // grid-relative coordinates into a canvas-sized SVG put every line 30px
+    // left and 34px above its card, and the viewBox in draw() then stretched
+    // that error outward across the board -- invisible on the first station,
+    // ~40px off on the last.
+    var g = svg.getBoundingClientRect();
     var r = el.getBoundingClientRect();
     // The canvas can be scaled by the zoom control. getBoundingClientRect
     // reports screen pixels while the SVG draws in layout pixels, so every
@@ -283,11 +290,22 @@ $fnetWire = [
     // Hidden below the mobile breakpoint, where the grid is a plain list and
     // a rail between two stacked cards would say something untrue.
     if (window.getComputedStyle(svg).display === 'none') { svg.innerHTML = ''; return; }
-    var gbox = grid.getBoundingClientRect();
-    if (!gbox.width) { return; }
-    svg.setAttribute('viewBox', '0 0 ' + gbox.width + ' ' + gbox.height);
-    svg.setAttribute('width', gbox.width);
-    svg.setAttribute('height', gbox.height);
+    // The viewBox must describe the SVG's OWN box, or a user unit stops being
+    // a layout pixel. A viewBox of the grid (1352x757) on an element the size
+    // of the canvas (1412x821) scales every drawn point outward by 4.4%
+    // across and 8.5% down.
+    //
+    // Width and height are left to CSS (position:absolute; inset:0) for a
+    // related reason: setting them from a getBoundingClientRect, which
+    // reports SCREEN pixels, feeds the zoom transform back into an element
+    // that the same transform is already scaling.
+    svg.removeAttribute('width');
+    svg.removeAttribute('height');
+    var vz = board.__fnetZoom || 1;
+    var sbox = svg.getBoundingClientRect();
+    var vw = sbox.width / vz, vh = sbox.height / vz;
+    if (!vw || !vh) { return; }
+    svg.setAttribute('viewBox', '0 0 ' + vw + ' ' + vh);
 
     var out = '';
 
