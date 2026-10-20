@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Support\CsvSafe;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -43,7 +44,7 @@ class AnAttendeeCannotPlantAFormulaTest extends TestCase
         ];
     }
 
-    /** @dataProvider payloads */
+    #[DataProvider('payloads')]
     public function test_a_formula_is_made_inert($payload): void
     {
         $out = CsvSafe::cell($payload);
@@ -54,7 +55,10 @@ class AnAttendeeCannotPlantAFormulaTest extends TestCase
 
     public function test_ordinary_values_are_left_exactly_alone(): void
     {
-        foreach (['Priya Sharma', 'priya@example.com', '+91 98765 43210', 'Acme Ltd', '', '0', 'a-b', 'x=y'] as $value) {
+        // No leading +, -, =, @ here on purpose: those are prefixed, and
+        // the phone-number case below states why that is right rather
+        // than unfortunate. Listing one here contradicted that test.
+        foreach (['Priya Sharma', 'priya@example.com', 'Acme Ltd', '', '0', 'a-b', 'x=y', '91 98765 43210'] as $value) {
             $this->assertSame($value, CsvSafe::cell($value), "Mangled an innocent value: {$value}");
         }
     }
