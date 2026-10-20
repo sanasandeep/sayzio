@@ -11,4 +11,4 @@
 </style>
 
 <style>.sf-preview[data-art=qr] .lts,.sf-preview[data-art=file] .lts,.sf-preview[data-art=link] .lts{max-width:none;border-width:1px;border-color:var(--sf-border);border-radius:18px;height:310px}.sf-paused .lts *{animation:none!important;opacity:1!important;transform:none!important}</style>
-<style>.sf-preview .lts{color:var(--sf-ink);font-size:12px}.sf-preview .lts-btn.lts-solid{background:var(--a)!important;border-color:transparent!important;color:#fff!important}</style>
+<style>.sf-preview .lts{color:var(--sf-ink);font-size:12px}.sf-preview .lts-btn.lts-solid{background:var(--a)!important;border-color:transparent!important;color:var(--a-ink,#fff)!important}</style>

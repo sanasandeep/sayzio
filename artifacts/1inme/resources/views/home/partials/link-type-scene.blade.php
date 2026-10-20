@@ -25,6 +25,62 @@
     $c = $ltColor ?? '#3d6bff';
 
     /*
+     * The ink that goes ON that accent.
+     *
+     * .lts-btn.lts-solid used to hardcode color:#fff over background:var(--a).
+     * Measured against the 23 accents the live page actually serves, 19 of
+     * them failed WCAG AA with white text -- #ffc845 at 1.54:1, #eab308 and
+     * #34d399 at 1.92, #22d3ee at 1.81. White works on a deep indigo and
+     * nothing else. Accent colours are data (an administrator can add a link
+     * type with any colour), so the fix has to be computed, not a corrected
+     * palette: pick whichever of white or near-black actually contrasts with
+     * this accent, by relative luminance, per WCAG 2.1.
+     *
+     * Measured across those 23 accents: 19 failures become 3, and the
+     * worst case goes from 1.54:1 to 4.42:1. The three that remain are
+     * mid-tone indigo/violet (#3d6bff, #6366f1, #8b5cf6) where neither
+     * ink reaches 4.5 -- that is the accent's own doing, not the ink's,
+     * and all three clear AA-large.
+     */
+    $ltInk = (function (string $hex): string {
+        $dark = '#0b1220';
+
+        $norm = static function (string $h): ?string {
+            $h = ltrim(trim($h), '#');
+            if (strlen($h) === 3) {
+                $h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2];
+            }
+            return preg_match('/^[0-9a-f]{6}$/i', $h) ? strtolower($h) : null;
+        };
+
+        $lum = static function (string $h) use ($norm): float {
+            $h = $norm($h) ?? 'ffffff';
+            $channel = static function (int $v): float {
+                $v /= 255;
+                return $v <= 0.03928 ? $v / 12.92 : pow(($v + 0.055) / 1.055, 2.4);
+            };
+            return 0.2126 * $channel((int) hexdec(substr($h, 0, 2)))
+                 + 0.7152 * $channel((int) hexdec(substr($h, 2, 2)))
+                 + 0.0722 * $channel((int) hexdec(substr($h, 4, 2)));
+        };
+
+        $ratio = static function (float $a, float $b): float {
+            return (max($a, $b) + 0.05) / (min($a, $b) + 0.05);
+        };
+
+        if ($norm($hex) === null) {
+            return '#ffffff';
+        }
+
+        $l = $lum($hex);
+
+        // Compare against the ink actually shipped, not against pure black:
+        // comparing to #000 picks dark for #3d6bff and #6366f1, where white
+        // is measurably the better of the two.
+        return $ratio($l, $lum($dark)) > $ratio($l, $lum('ffffff')) ? $dark : '#ffffff';
+    })($c);
+
+    /*
      * Photography, from the sets the site already ships. Local on purpose —
      * an external placeholder host would put the panel's appearance at the
      * mercy of someone else's uptime, and these are already deployed.
@@ -56,7 +112,7 @@
         'images/' . (str_contains($n, '/') ? $n : 'hero-roles/' . $n . '.webp')
     );
 @endphp
-<div class="lts" style="--a:{{ $c }}">
+<div class="lts" style="--a:{{ $c }};--a-ink:{{ $ltInk }}">
 @switch($ltSlug)
 
 @case('short-link')
