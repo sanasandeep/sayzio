@@ -1324,7 +1324,10 @@ $catColors = [
                     // Lowercased labels per section drive search-aware header visibility in Alpine.
                     $paletteSectionLabels = [];
                     foreach ($paletteGroups as $gCat => $gTypes) {
-                        $paletteSectionLabels[$gCat] = array_values(array_map(fn ($t) => strtolower($t['label']), $gTypes));
+                        $paletteSectionLabels[$gCat] = [];
+                        foreach ($gTypes as $gSlug => $gInfo) {
+                            $paletteSectionLabels[$gCat][] = \App\Modules\User\Support\BlockTypeBlurbs::haystack($gSlug, $gInfo['label']);
+                        }
                     }
                 @endphp
                 <div id="paletteList" class="palette-body">
@@ -1352,7 +1355,8 @@ $catColors = [
                                    class="palette-block-locked palette-block-item"
                                    style="cursor: pointer; opacity: 0.6;"
                                    title="Upgrade your plan to unlock this section"
-                                   x-show="paletteItemVisible('{{ $catKey }}', '{{ strtolower($typeInfo['label']) }}')"
+                                   data-search="{{ \App\Modules\User\Support\BlockTypeBlurbs::haystack($typeKey, $typeInfo['label']) }}"
+                                   x-show="paletteItemVisible('{{ $catKey }}', $el.dataset.search)"
                                    x-cloak>
                                     <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
                                         <i class="fas fa-lock" style="color: {{ $pCatColor }};"></i>
@@ -1365,7 +1369,8 @@ $catColors = [
                                         data-block-type="{{ $typeKey }}"
                                         onclick="paletteClickAdd('{{ $typeKey }}')"
                                         title="Drag onto the canvas, or click to add"
-                                        x-show="paletteItemVisible('{{ $catKey }}', '{{ strtolower($typeInfo['label']) }}')"
+                                        data-search="{{ \App\Modules\User\Support\BlockTypeBlurbs::haystack($typeKey, $typeInfo['label']) }}"
+                                        x-show="paletteItemVisible('{{ $catKey }}', $el.dataset.search)"
                                         x-cloak>
                                     <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
                                         <i class="fas {{ $typeInfo['icon'] }}" style="color: {{ $pCatColor }};"></i>
