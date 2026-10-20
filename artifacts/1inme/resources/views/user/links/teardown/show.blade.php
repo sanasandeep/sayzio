@@ -217,10 +217,22 @@ html.light-mode .td-style{border-color:rgba(15,23,42,.12)}
             <div class="flex items-center justify-between gap-4 flex-wrap">
                 <div class="min-w-0">
                     <p class="text-sm text-white font-medium"><i class="fas fa-wand-magic-sparkles text-blue-400 mr-1.5"></i>Ready to beat this page?</p>
-                    <p class="text-xs text-white/40 mt-1">
-                        Builds a new biolink from these findings.
-                        Coin balance: <span class="text-white/70">{{ $balance }}</span>
-                    </p>
+                    <p class="text-xs text-white/40 mt-1">Builds a new biolink from these findings.</p>
+                    {{-- The builder's own estimator, not a worst case: it
+                         prices the exact description this button will send.
+                         Quotes the "match" figure, the larger of the two, so
+                         an "Up to" never comes in under the charge. --}}
+                    <div class="mt-2">
+                        @include('user.ai._partials.cost-estimate', ['cost' => [
+                            'endpoint'     => route('user.links.teardown.build-estimate', $teardown),
+                            'feature'      => 'biolink_builder',
+                            'mode'         => 'fixed',
+                            'prefix'       => 'Up to',
+                            'note'         => 'to build this page',
+                            'field'        => 'estimated_credits',
+                            'balanceField' => 'balance',
+                        ]])
+                    </div>
                 </div>
             </div>
 

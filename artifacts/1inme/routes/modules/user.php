@@ -1048,6 +1048,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links-teardown/create', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'create'])->middleware('workspace.can:links.create')->name('links.teardown.create');
         Route::post('links-teardown', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'store'])->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('links.teardown.store');
         Route::get('links-teardown/{teardown}', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'show'])->whereNumber('teardown')->middleware('workspace.can:links.view')->name('links.teardown.show');
+        Route::post('links-teardown/{teardown}/build-estimate', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'buildEstimate'])->whereNumber('teardown')->middleware(['workspace.can:links.view', 'throttle:30,1'])->name('links.teardown.build-estimate');
         Route::post('links-teardown/{teardown}/build', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'build'])->whereNumber('teardown')->middleware(['workspace.can:links.create', 'throttle:10,1', CheckPlanLimit::class . ':links'])->name('links.teardown.build');
 
         // AI Brand Kit — persistent per-creator brand identity (palette, fonts,
