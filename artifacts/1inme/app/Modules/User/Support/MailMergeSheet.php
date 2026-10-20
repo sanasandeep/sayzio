@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Support;
 
+use App\Support\CsvSafe;
 use Illuminate\Http\UploadedFile;
 
 /**
@@ -39,7 +40,7 @@ class MailMergeSheet
         if ($handle === false) {
             return ['headers' => [], 'rows' => []];
         }
-        while (($r = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
+        while (($r = CsvSafe::get($handle)) !== false) {
             $grid[] = array_map(fn ($v) => (string) $v, $r);
         }
         fclose($handle);
@@ -64,7 +65,7 @@ class MailMergeSheet
             if (trim($line) === '') {
                 continue;
             }
-            $grid[] = str_getcsv($line, $delim, '"', '\\');
+            $grid[] = CsvSafe::parse($line, $delim);
         }
         return self::gridToRows($grid);
     }

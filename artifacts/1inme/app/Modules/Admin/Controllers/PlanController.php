@@ -686,7 +686,7 @@ class PlanController extends Controller
             return array_merge($empty, ['fatal' => 'The file has no data rows. Export the current plans, edit them, then upload.']);
         }
 
-        $header = str_getcsv(array_shift($lines));
+        $header = CsvSafe::parse(array_shift($lines));
         $header = array_map(fn ($h) => trim((string) $h), $header);
 
         $columns    = PlanCsvSchema::columns();
@@ -731,7 +731,7 @@ class PlanController extends Controller
 
         foreach ($lines as $lineNo => $line) {
             if (trim($line) === '') { continue; }
-            $cells = str_getcsv($line);
+            $cells = CsvSafe::parse($line);
 
             $slugRaw = trim((string) ($cells[$matchIndex] ?? ''));
             $slug    = ltrim($slugRaw, "'");

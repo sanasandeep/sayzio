@@ -5,6 +5,7 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\SpamChecker;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -244,7 +245,7 @@ class InboxSettingsController extends Controller
             return $this->fail('Could not read uploaded file.', 422, 'unreadable');
         }
 
-        $first = fgetcsv($h);
+        $first = CsvSafe::get($h);
         if ($first === false) {
             fclose($h);
             return $this->fail('CSV is empty.', 422, 'empty');
@@ -310,7 +311,7 @@ class InboxSettingsController extends Controller
         };
 
         if (!$hasHeader) $process($first);
-        while (($row = fgetcsv($h)) !== false) {
+        while (($row = CsvSafe::get($h)) !== false) {
             if (count($row) === 1 && trim((string) $row[0]) === '') continue;
             $process($row);
         }

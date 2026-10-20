@@ -4418,7 +4418,7 @@ class LinkController extends Controller
             $file = $request->file('csv_file');
             $handle = @fopen($file->getRealPath(), 'r');
             if ($handle !== false) {
-                $header = fgetcsv($handle);
+                $header = CsvSafe::get($handle);
                 if (is_array($header)) {
                     $header = array_map(fn ($h) => strtolower(trim((string) $h)), $header);
                     $iUrl   = array_search('long_url', $header, true);
@@ -4426,7 +4426,7 @@ class LinkController extends Controller
                     if ($iUrl === false) $iUrl = array_search('destination', $header, true);
                     $iAlias = array_search('alias', $header, true);
                     $iTitle = array_search('title', $header, true);
-                    while (($r = fgetcsv($handle)) !== false) {
+                    while (($r = CsvSafe::get($handle)) !== false) {
                         if (count($r) === 1 && trim((string) $r[0]) === '') continue;
                         $rows[] = [
                             'long_url' => $iUrl   !== false ? trim((string) ($r[$iUrl]   ?? '')) : '',

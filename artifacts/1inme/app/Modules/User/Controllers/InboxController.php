@@ -736,7 +736,7 @@ class InboxController
         }
 
         // Strip UTF-8 BOM from the first row, if present.
-        $first = fgetcsv($h);
+        $first = CsvSafe::get($h);
         if ($first === false) {
             fclose($h);
             return back()->with('error', 'CSV is empty.');
@@ -826,7 +826,7 @@ class InboxController
         if (!$hasHeader) {
             $process($first);
         }
-        while (($row = fgetcsv($h)) !== false) {
+        while (($row = CsvSafe::get($h)) !== false) {
             // Skip blank rows (single empty cell).
             if (count($row) === 1 && trim((string)$row[0]) === '') continue;
             $process($row);
