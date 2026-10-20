@@ -9,8 +9,8 @@
 @endphp
 <div class="child-block-card rounded-lg transition-all hover:bg-white/[0.03]" data-block-id="{{ $child->id }}" style="border: 1px solid var(--border-glass);">
     <div class="flex items-center gap-2 p-2">
-        <label class="block-select block-select--sm" title="Select this block">
-            <input type="checkbox" class="block-select-box" data-select-id="{{ $child->id }}" data-parent-id="{{ $child->parent_id }}" aria-label="Select {{ $cTypeInfo['label'] }} block">
+        <label class="block-select block-select--sm" title="Select this item">
+            <input type="checkbox" class="block-select-box" data-select-id="{{ $child->id }}" data-parent-id="{{ $child->parent_id }}" aria-label="Select {{ $cTypeInfo['label'] }} item">
         </label>
         <div class="child-handle cursor-grab" style="color: var(--text-faint);">
             <i class="fas fa-grip-vertical text-[9px]"></i>
@@ -61,7 +61,7 @@
         <div class="inline-editor-head">
             <span class="inline-editor-icon" style="width:22px;height:22px;border-radius:7px;font-size:9px;"><i class="fas fa-pen"></i></span>
             <span class="min-w-0">
-                <span class="inline-editor-title truncate" style="font-size:10.5px;">Edit Block</span>
+                <span class="inline-editor-title truncate" style="font-size:10.5px;">Edit section</span>
                 <span class="inline-editor-sub truncate">{{ $cTypeInfo['label'] }}</span>
             </span>
             <span class="inline-autosave-status text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>

@@ -871,17 +871,17 @@ $catColors = [
             <i class="fas fa-arrow-down"></i><span>Down</span>
         </button>
         <span class="bsb-sep"></span>
-        <button type="button" class="bsb-btn" data-sel-action="duplicate" title="Duplicate every selected block, styling and all">
+        <button type="button" class="bsb-btn" data-sel-action="duplicate" title="Duplicate every selected section, styling and all">
             <i class="fas fa-clone"></i><span>Duplicate</span>
         </button>
-        <button type="button" class="bsb-btn" data-sel-action="hide" title="Hide every selected block from the public page">
+        <button type="button" class="bsb-btn" data-sel-action="hide" title="Hide every selected section from the public page">
             <i class="fas fa-eye-slash"></i><span>Hide</span>
         </button>
-        <button type="button" class="bsb-btn" data-sel-action="show" title="Show every selected block again">
+        <button type="button" class="bsb-btn" data-sel-action="show" title="Show every selected section again">
             <i class="fas fa-eye"></i><span>Show</span>
         </button>
         <span class="bsb-sep"></span>
-        <button type="button" class="bsb-btn bsb-btn--danger" data-sel-action="delete" title="Delete every selected block">
+        <button type="button" class="bsb-btn bsb-btn--danger" data-sel-action="delete" title="Delete every selected section">
             <i class="fas fa-trash"></i><span>Delete</span>
         </button>
     </div>
@@ -1278,11 +1278,11 @@ $catColors = [
         <div id="editorPaletteCol" @if(request('tab') === 'ai') style="display:none" @endif>
             <div class="palette-panel">
                 <div class="palette-head">
-                    <h3 class="text-sm font-bold gradient-text">Add blocks</h3>
+                    <h3 class="text-sm font-bold gradient-text">Add a section</h3>
                     <p class="text-[10px] mt-0.5" style="color: var(--text-faint);"><i class="fas fa-hand-pointer mr-1"></i>Drag onto your page, or click to add</p>
                     <div class="relative mt-2.5">
                         <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>
-                        <input type="text" x-model="paletteSearch" placeholder="Search blocks…" class="theme-input w-full pl-7 text-xs py-1.5" aria-label="Search blocks">
+                        <input type="text" x-model="paletteSearch" placeholder="Search sections…" class="theme-input w-full pl-7 text-xs py-1.5" aria-label="Search sections">
                     </div>
                     <div class="palette-tabs">
                         <button type="button" class="palette-tab" :class="paletteCategory === 'all' ? 'active' : ''" @click="paletteCategory = 'all'">All</button>
@@ -1334,7 +1334,7 @@ $catColors = [
                                 <a href="{{ route('user.upgrade') }}"
                                    class="palette-block-locked palette-block-item"
                                    style="cursor: pointer; opacity: 0.6;"
-                                   title="Upgrade your plan to unlock this block"
+                                   title="Upgrade your plan to unlock this section"
                                    x-show="paletteItemVisible('{{ $catKey }}', '{{ strtolower($typeInfo['label']) }}')"
                                    x-cloak>
                                     <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
@@ -1360,7 +1360,7 @@ $catColors = [
                     @endforeach
                     <div class="palette-empty-note" x-show="!paletteAnyVisible()" x-cloak>
                         <i class="fas fa-search mb-1.5 block opacity-60"></i>
-                        No blocks match your search.
+                        No sections match your search.
                     </div>
                 </div>
                 <div class="palette-foot">
@@ -1379,20 +1379,20 @@ $catColors = [
                 onclick="ajaxDeleteAllBlocks(this)"
                 class="delete-all-btn"
                 style="{{ $blocks->count() ? '' : 'display:none;' }}"
-                title="Delete all blocks">
+                title="Delete every section">
             <i class="fas fa-trash-alt text-[10px]"></i>
             <span>Delete all</span>
         </button>
         <span id="blockCountChip" class="block-count-chip" style="{{ $blocks->count() ? '' : 'display:none;' }}">
             <i class="fas fa-layer-group text-[10px] opacity-70"></i>
-            <span><strong data-block-count>{{ $blocks->count() }}</strong> blocks</span>
+            <span><strong data-block-count>{{ $blocks->count() }}</strong> <span data-block-count-word>{{ $blocks->count() === 1 ? 'section' : 'sections' }}</span></span>
         </span>
     </div>
 
 
             {{-- BLOCKS --}}
                 <div id="reorderHint" class="flex items-center mb-3" style="{{ $blocks->count() ? '' : 'display:none;' }}">
-                    <p class="text-xs" style="color: var(--text-faint);"><i class="fas fa-grip-vertical mr-1"></i> Drag to reorder blocks</p>
+                    <p class="text-xs" style="color: var(--text-faint);"><i class="fas fa-grip-vertical mr-1"></i> Drag to reorder</p>
                 </div>
 
                 {{-- The top of the page, which until now had no way to be
@@ -1406,7 +1406,7 @@ $catColors = [
                         class="insert-rail insert-rail-top"
                         onclick="openInsertGalleryAtTop()"
                         style="{{ $blocks->count() ? '' : 'display:none;' }}"
-                        aria-label="Add a block at the top of the page">
+                        aria-label="Add a section at the top of the page">
                     <span class="insert-rail-line" aria-hidden="true"></span>
                     <span class="insert-rail-dot"><i class="fas fa-plus"></i></span>
                     <span class="insert-rail-line" aria-hidden="true"></span>
@@ -1420,8 +1420,8 @@ $catColors = [
                         <div class="empty-state-icon">
                             <i class="fas fa-layer-group text-3xl text-blue-400"></i>
                         </div>
-                        <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No blocks yet</h3>
-                        <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);"><span class="hidden lg:inline">Drag a block from the palette on the left onto this canvas, or start from a curated template.</span><span class="lg:hidden">Start from a curated template, or add blocks one at a time.</span> Your live preview updates instantly.</p>
+                        <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">Nothing on this page yet</h3>
+                        <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);"><span class="hidden lg:inline">Drag a section from the list on the left onto this canvas, or start from a ready-made template.</span><span class="lg:hidden">Start from a ready-made template, or add sections one at a time.</span> Your live preview updates instantly.</p>
                         <div class="flex items-center justify-center gap-2 flex-wrap">
                             <a href="{{ route('user.links.templates.picker', $link) }}" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #5c83ff, #3d6bff);">
                                 <i class="fas fa-layer-group text-xs"></i> Browse templates
@@ -2928,6 +2928,10 @@ document.addEventListener('DOMContentLoaded', function() {
             chip.style.display = count > 0 ? '' : 'none';
             var strong = chip.querySelector('[data-block-count]');
             if (strong) strong.textContent = count;
+            // The word too, or the chip reads "1 sections" the moment a
+            // creator deletes their way down to one.
+            var word = chip.querySelector('[data-block-count-word]');
+            if (word) word.textContent = count === 1 ? 'section' : 'sections';
         }
         var hint = document.getElementById('reorderHint');
         if (hint) hint.style.display = count > 1 ? '' : 'none';
@@ -2943,7 +2947,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof refreshPreview === 'function') refreshPreview();
     }
 
-    // Update a card's "Child Blocks (N)" counter from its live child list.
+    // Update a card's "Inside this group (N)" counter from its live child list.
     function _syncChildCount(parentId, listEl) {
         var cc = document.querySelector('[data-card-child-count="' + parentId + '"]');
         if (cc) cc.textContent = listEl.querySelectorAll('.child-block-card').length;
