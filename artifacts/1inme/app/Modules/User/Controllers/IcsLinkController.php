@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\AccountBadge;
 use App\Modules\User\Models\CalendarAccount;
 use App\Modules\User\Models\IcsData;
 use App\Modules\User\Models\Link;
@@ -31,7 +32,9 @@ class IcsLinkController extends Controller
         $aliasLimits  = workspace_owner()->getAliasLengthLimits();
         $timezones    = self::TIMEZONES;
         $calAccounts  = $this->ownerCalendarAccounts();
-        return view('user.links.create-ics', compact('projects', 'prefillAlias', 'aliasLimits', 'timezones', 'calAccounts'));
+        $badges = $this->assignableBadges();
+
+        return view('user.links.create-ics', compact('projects', 'prefillAlias', 'aliasLimits', 'timezones', 'calAccounts', 'badges'));
     }
 
     public function store(Request $request)
@@ -77,7 +80,9 @@ class IcsLinkController extends Controller
         $calAccounts = $this->ownerCalendarAccounts();
         $domains    = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
-        return view('user.links.edit-ics', compact('link', 'ics', 'projects', 'timezones', 'calAccounts', 'domains'));
+        $badges = $this->assignableBadges();
+
+        return view('user.links.edit-ics', compact('link', 'ics', 'projects', 'timezones', 'calAccounts', 'domains', 'badges'));
     }
 
     public function update(Request $request, Link $link)
@@ -664,5 +669,20 @@ class IcsLinkController extends Controller
                 'link' => $link->id, 'event' => $event, 'err' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * The badges an organiser can gate on, or hand out.
+     *
+     * Badges are staff-created and platform-wide (see the account_badges
+     * migration: "a general-purpose, staff-only labelling system"). An
+     * organiser cannot mint one, so this is a read of what admin has
+     * already defined rather than anything the creator controls. Both
+     * fields were already validated against this table; they simply had
+     * nowhere to be typed.
+     */
+    private function assignableBadges()
+    {
+        return AccountBadge::orderBy('name')->get(['id', 'name', 'color']);
     }
 }
