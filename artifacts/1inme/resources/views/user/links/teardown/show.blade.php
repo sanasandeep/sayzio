@@ -28,6 +28,24 @@ html.light-mode .td-meter{background:rgba(15,23,42,.08)}
 .td-count{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08)}
 html.light-mode .td-count{background:rgba(15,23,42,.06)}
 
+/* "How Sayzio closes these gaps". Cards, because each one is a destination,
+   and a link that looks like a list item does not get clicked. */
+.td-fixes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:1100px){.td-fixes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.td-fixes{grid-template-columns:1fr}}
+.td-fix{display:flex;align-items:flex-start;gap:11px;padding:14px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.1);text-decoration:none;transition:border-color .15s,background .15s,transform .15s}
+html.light-mode .td-fix{border-color:rgba(15,23,42,.12)}
+a.td-fix:hover{border-color:rgba(96,165,250,.55);background:rgba(59,130,246,.06);transform:translateY(-1px)}
+a.td-fix:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.td-fix-ico{flex:0 0 auto;width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  background:rgba(59,130,246,.14);color:#60a5fa;font-size:13px}
+.td-fix strong{display:block;font-size:13px;font-weight:600}
+.td-fix em{display:block;font-style:normal;font-size:11.5px;opacity:.55;margin-top:2px;line-height:1.45}
+.td-fix-note{opacity:.4!important;margin-top:5px!important}
+.td-fix-go{margin-left:auto;align-self:center;font-size:11px;opacity:.3}
+.td-fix-waiting{opacity:.62}
+
 /* Build-style chooser. Two cards, not a bare radio pair: the choice changes
    what the page will look like, so it deserves the room to say so. */
 .td-styles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
@@ -197,6 +215,42 @@ html.light-mode .td-style{border-color:rgba(15,23,42,.12)}
                     </li>
                 @endforeach
             </ol>
+        </div>
+        @endif
+
+        {{-- How Sayzio closes the gaps above.
+             The model does not write a word of this: it picks keys from
+             SayzioFixes, anything it invents is dropped before the analysis
+             is stored, and every label and destination here is written by a
+             person. A page with no recognised keys shows nothing at all,
+             which is the right answer when nothing fits. --}}
+        @if(!empty($sayzioFixes))
+        <div class="glass rounded-2xl p-6 mb-5">
+            <h3 class="text-sm font-semibold text-blue-300 mb-1"><i class="fas fa-wand-magic-sparkles mr-1.5"></i>How Sayzio closes these gaps</h3>
+            <p class="text-xs text-white/40 mb-4">Each of these is something your account can already do.</p>
+            <div class="td-fixes">
+                @foreach($sayzioFixes as $fix)
+                    @if($fix['url'])
+                        <a href="{{ $fix['url'] }}" class="td-fix">
+                            <span class="td-fix-ico"><i class="fas {{ $fix['icon'] }}"></i></span>
+                            <span class="min-w-0">
+                                <strong>{{ $fix['label'] }}</strong>
+                                <em>{{ $fix['blurb'] }}</em>
+                            </span>
+                            <i class="fas fa-arrow-right td-fix-go"></i>
+                        </a>
+                    @else
+                        <div class="td-fix td-fix-waiting">
+                            <span class="td-fix-ico"><i class="fas {{ $fix['icon'] }}"></i></span>
+                            <span class="min-w-0">
+                                <strong>{{ $fix['label'] }}</strong>
+                                <em>{{ $fix['blurb'] }}</em>
+                                <em class="td-fix-note">{{ $fix['pending'] }}</em>
+                            </span>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
         </div>
         @endif
 
