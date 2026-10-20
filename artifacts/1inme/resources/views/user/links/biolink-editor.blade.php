@@ -1205,6 +1205,81 @@ $catColors = [
             flex: 1; overflow-y: auto; padding: 6px 10px 10px;
             display: flex; flex-direction: column; gap: 4px;
         }
+        /* ---- Preview flyout -------------------------------------------
+           One panel, repositioned and refilled per tile, rather than one
+           per tile: 139 idle iframes would be 139 documents to boot.
+
+           On desktop it never takes the pointer, and it hides on mousedown.
+           Both matter. The palette is a SortableJS drag source, and a panel
+           that could swallow a press -- or merely still be on screen when a
+           drag begins -- is how a preview quietly costs you drag-and-drop.
+           Hover is not drag, so the two never need to meet. */
+        .block-flyout {
+            position: fixed; z-index: 70; left: 0; top: 0;
+            width: 264px;
+            border-radius: 14px; overflow: hidden;
+            background: var(--bg-card); border: 1px solid var(--border-glass);
+            box-shadow: 0 18px 50px rgba(8,12,24,0.38);
+            opacity: 0; transform: translateX(-6px);
+            pointer-events: none;
+            transition: opacity .14s ease, transform .14s ease;
+        }
+        .block-flyout[data-open] { opacity: 1; transform: none; }
+        .block-flyout-head { padding: 11px 13px 0; }
+        .block-flyout-title { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+        .block-flyout-blurb { margin-top: 3px; font-size: 11px; line-height: 1.45; color: var(--text-muted); }
+        .block-flyout-stage {
+            margin: 10px 10px 11px; height: 186px; position: relative;
+            border-radius: 10px; overflow: hidden;
+            background: rgba(10,14,26,0.35);
+        }
+        .block-flyout-stage iframe { width: 100%; height: 100%; border: 0; display: block; }
+        .block-flyout-wait {
+            position: absolute; inset: 0; display: flex;
+            align-items: center; justify-content: center;
+            font-size: 11px; color: var(--text-faint);
+        }
+        .block-flyout[data-loaded] .block-flyout-wait { display: none; }
+        .block-flyout-actions { display: none; }
+        .block-flyout-locked {
+            display: none; margin: 0 13px 11px; padding: 7px 9px;
+            border-radius: 8px; font-size: 10.5px; line-height: 1.4;
+            color: #ffd79a; background: rgba(245,158,11,0.10);
+            border: 1px solid rgba(245,158,11,0.28);
+        }
+        .block-flyout[data-locked] .block-flyout-locked { display: block; }
+
+        /* Touch has no hover, so the same panel becomes a bottom sheet,
+           opened deliberately and dismissed deliberately. Adding moves
+           behind an explicit button there: one tap becomes two on a phone,
+           which is the price of seeing what you are about to add. */
+        .block-flyout[data-sheet] {
+            left: 50% !important; top: auto !important; bottom: 0;
+            width: min(420px, calc(100vw - 20px));
+            border-radius: 18px 18px 0 0;
+            transform: translateX(-50%) translateY(10px);
+            pointer-events: auto;
+        }
+        .block-flyout[data-sheet][data-open] { transform: translateX(-50%); }
+        .block-flyout[data-sheet] .block-flyout-actions {
+            display: flex; gap: 8px; padding: 0 11px 12px;
+        }
+        .block-flyout-add, .block-flyout-cancel {
+            flex: 1; padding: 9px 12px; border-radius: 10px;
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .block-flyout-add { color: #fff; background: linear-gradient(135deg, #5c83ff, #3d6bff); }
+        .block-flyout-cancel { color: var(--text-muted); background: transparent; border-color: var(--border-glass); }
+        .block-flyout-scrim {
+            position: fixed; inset: 0; z-index: 69;
+            background: rgba(6,10,20,0.45);
+            opacity: 0; pointer-events: none; transition: opacity .14s ease;
+        }
+        .block-flyout-scrim[data-open] { opacity: 1; pointer-events: auto; }
+        @media (prefers-reduced-motion: reduce) {
+            .block-flyout, .block-flyout-scrim { transition: none; }
+        }
         .palette-block-item {
             display: flex; align-items: center; gap: 10px;
             padding: 9px 11px; border-radius: 10px; cursor: grab;
@@ -1353,9 +1428,12 @@ $catColors = [
                             @if($pLocked)
                                 <a href="{{ route('user.upgrade') }}"
                                    class="palette-block-locked palette-block-item"
+                                   data-block-type="{{ $typeKey }}"
                                    style="cursor: pointer; opacity: 0.6;"
                                    title="Upgrade your plan to unlock this section"
                                    data-search="{{ \App\Modules\User\Support\BlockTypeBlurbs::haystack($typeKey, $typeInfo['label']) }}"
+                                   data-blurb="{{ \App\Modules\User\Support\BlockTypeBlurbs::for($typeKey) }}"
+                                   data-label="{{ $typeInfo['label'] }}"
                                    x-show="paletteItemVisible('{{ $catKey }}', $el.dataset.search)"
                                    x-cloak>
                                     <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
@@ -1370,6 +1448,8 @@ $catColors = [
                                         onclick="paletteClickAdd('{{ $typeKey }}')"
                                         title="Drag onto the canvas, or click to add"
                                         data-search="{{ \App\Modules\User\Support\BlockTypeBlurbs::haystack($typeKey, $typeInfo['label']) }}"
+                                        data-blurb="{{ \App\Modules\User\Support\BlockTypeBlurbs::for($typeKey) }}"
+                                        data-label="{{ $typeInfo['label'] }}"
                                         x-show="paletteItemVisible('{{ $catKey }}', $el.dataset.search)"
                                         x-cloak>
                                     <span class="palette-block-icon" style="background: {{ $pCatColor }}15; border: 1px solid {{ $pCatColor }}25;">
@@ -1391,6 +1471,29 @@ $catColors = [
                     </button>
                 </div>
                 @include('user.links.partials.editor-special-panel', ['link' => $link, 'userForms' => $userForms ?? [], 'userBuzz' => $userBuzz ?? [], 'userCompanions' => $userCompanions ?? []])
+            </div>
+        </div>
+
+        {{-- Preview flyout. Outside the palette so it can overlap the
+             canvas instead of being clipped by the palette's scroll box. --}}
+        <div class="block-flyout-scrim" id="blockFlyoutScrim" aria-hidden="true"></div>
+        <div class="block-flyout" id="blockFlyout" role="dialog" aria-live="polite" aria-label="Section preview">
+            <div class="block-flyout-head">
+                <div class="block-flyout-title" data-flyout-title></div>
+                <div class="block-flyout-blurb" data-flyout-blurb></div>
+            </div>
+            <div class="block-flyout-stage">
+                <div class="block-flyout-wait">Drawing it&hellip;</div>
+                <iframe data-flyout-frame
+                        title="Preview"
+                        sandbox="allow-same-origin allow-scripts"
+                        referrerpolicy="same-origin"
+                        scrolling="no"></iframe>
+            </div>
+            <div class="block-flyout-locked">Not on your plan yet &mdash; this is what it would look like.</div>
+            <div class="block-flyout-actions">
+                <button type="button" class="block-flyout-cancel" data-flyout-cancel>Not this one</button>
+                <button type="button" class="block-flyout-add" data-flyout-add>Add</button>
             </div>
         </div>
 
@@ -1489,6 +1592,7 @@ window.__blockReorderUrl     = @json(route('user.links.blocks.reorder', $link));
 window.__blockBulkToggleUrl  = @json(route('user.links.blocks.bulkToggle', $link));
 window.__blockBulkDestroyUrl = @json(route('user.links.blocks.bulkDestroy', $link));
 window.__blockDuplicateUrl   = @json(route('user.links.blocks.duplicate', [$link, '__ID__']));
+window.__blockTypePreviewUrl = @json(route('user.links.blocks.typePreview', [$link, '__TYPE__']));
 
 function biolinkEditor() {
     return {
@@ -3298,5 +3402,163 @@ document.addEventListener('DOMContentLoaded', function() {
         window.dispatchEvent(new CustomEvent('editor-test-ready'));
     }
 });
+
+// ---- Palette preview flyout ------------------------------------------
+// "What is this one?" answered before the guess, rather than after it.
+// The old loop was: read a name, guess, add, look, delete, guess again.
+//
+// Two rules hold this together and both are about drag-and-drop, which
+// the palette must not lose: the panel never takes the pointer, and any
+// press anywhere in the palette closes it before SortableJS sees the
+// drag. Nothing here ever calls preventDefault on a mouse event.
+(function () {
+    var panel = document.getElementById('blockFlyout');
+    var scrim = document.getElementById('blockFlyoutScrim');
+    var list  = document.getElementById('paletteList');
+    if (!panel || !list || !window.__blockTypePreviewUrl) return;
+
+    var frame     = panel.querySelector('[data-flyout-frame]');
+    var titleEl   = panel.querySelector('[data-flyout-title]');
+    var blurbEl   = panel.querySelector('[data-flyout-blurb]');
+    var addBtn    = panel.querySelector('[data-flyout-add]');
+    var cancelBtn = panel.querySelector('[data-flyout-cancel]');
+
+    // One decision, made once. A device that cannot hover gets the sheet,
+    // where adding sits behind an explicit button.
+    var coarse = window.matchMedia('(hover: none)').matches;
+    if (coarse) { panel.setAttribute('data-sheet', ''); }
+
+    var openTimer = null, closeTimer = null, shownType = null, pressed = false;
+
+    function urlFor(type) {
+        return window.__blockTypePreviewUrl.replace('__TYPE__', encodeURIComponent(type));
+    }
+
+    function fill(tile) {
+        var type = tile.getAttribute('data-block-type');
+        if (!type) { return false; }
+        if (type !== shownType) {
+            shownType = type;
+            titleEl.textContent = tile.getAttribute('data-label') || '';
+            blurbEl.textContent = tile.getAttribute('data-blurb') || '';
+            panel.removeAttribute('data-loaded');
+            frame.src = urlFor(type);
+        }
+        if (tile.classList.contains('palette-block-locked')) { panel.setAttribute('data-locked', ''); }
+        else { panel.removeAttribute('data-locked'); }
+        return true;
+    }
+
+    function place(tile) {
+        if (coarse) { return; } // the sheet places itself
+        var r = tile.getBoundingClientRect();
+        var pal = tile.closest('.palette-panel') || list;
+        var pr = pal.getBoundingClientRect();
+        var h = panel.offsetHeight || 300;
+        var w = panel.offsetWidth || 264;
+        var top = Math.min(Math.max(12, r.top + (r.height / 2) - (h / 2)), window.innerHeight - h - 12);
+        var left = pr.right + 10;
+        // Narrow windows: fall back to the palette's left rather than
+        // letting the panel hang off the edge of the screen.
+        if (left + w > window.innerWidth - 12) { left = Math.max(12, r.left - w - 10); }
+        panel.style.top = Math.round(top) + 'px';
+        panel.style.left = Math.round(left) + 'px';
+    }
+
+    function open(tile) {
+        if (!fill(tile)) { return; }
+        panel.setAttribute('data-open', '');
+        place(tile);
+        if (coarse && scrim) { scrim.setAttribute('data-open', ''); }
+    }
+
+    function close() {
+        clearTimeout(openTimer); openTimer = null;
+        panel.removeAttribute('data-open');
+        if (scrim) { scrim.removeAttribute('data-open'); }
+        // Drop the document. A closed panel should not leave an embed
+        // playing, a feed polling, or a font request in flight.
+        shownType = null;
+        panel.removeAttribute('data-loaded');
+        try { frame.src = 'about:blank'; } catch (e) {}
+    }
+
+    frame.addEventListener('load', function () {
+        // close() nulls shownType before blanking the frame, so the
+        // about:blank load never un-hides the waiting state.
+        if (shownType) { panel.setAttribute('data-loaded', ''); }
+    });
+
+    if (!coarse) {
+        list.addEventListener('mouseover', function (e) {
+            if (pressed) { return; } // a drag is under way; stay out of it
+            var tile = e.target.closest('.palette-block-item');
+            if (!tile || !list.contains(tile)) { return; }
+            if (e.relatedTarget && tile.contains(e.relatedTarget)) { return; }
+            clearTimeout(closeTimer);
+            clearTimeout(openTimer);
+            openTimer = setTimeout(function () { open(tile); }, 260);
+        });
+
+        list.addEventListener('mouseout', function (e) {
+            var tile = e.target.closest('.palette-block-item');
+            if (!tile) { return; }
+            if (e.relatedTarget && tile.contains(e.relatedTarget)) { return; }
+            clearTimeout(openTimer);
+            closeTimer = setTimeout(close, 120);
+        });
+
+        // Keyboard intent is explicit, so no hover delay and no guessing.
+        list.addEventListener('focusin', function (e) {
+            var tile = e.target.closest('.palette-block-item');
+            if (tile) { clearTimeout(closeTimer); open(tile); }
+        });
+        list.addEventListener('focusout', function (e) {
+            if (e.target.closest('.palette-block-item')) { closeTimer = setTimeout(close, 120); }
+        });
+
+        // A press means a drag is starting or a click is landing. Either
+        // way the panel's work is done. Capture phase so this runs before
+        // SortableJS, and no preventDefault so the drag is untouched.
+        list.addEventListener('mousedown', function () {
+            pressed = true;
+            clearTimeout(openTimer);
+            close();
+        }, true);
+        document.addEventListener('mouseup', function () { pressed = false; }, true);
+        document.addEventListener('dragend', function () { pressed = false; }, true);
+
+        list.addEventListener('scroll', close, { passive: true });
+        window.addEventListener('resize', close);
+    } else {
+        // Touch: the tile's inline onclick adds the block. Intercepting in
+        // the capture phase stops the event reaching it, so a tap opens the
+        // sheet and only the sheet's Add button adds anything. Locked tiles
+        // are left alone -- their upgrade link is the point of them.
+        list.addEventListener('click', function (e) {
+            var tile = e.target.closest('.palette-block-item');
+            if (!tile || !list.contains(tile)) { return; }
+            if (tile.classList.contains('palette-block-locked')) { return; }
+            e.preventDefault();
+            e.stopPropagation();
+            open(tile);
+        }, true);
+
+        if (addBtn) {
+            addBtn.addEventListener('click', function () {
+                var type = shownType;
+                close();
+                if (type && typeof paletteClickAdd === 'function') { paletteClickAdd(type); }
+            });
+        }
+        if (cancelBtn) { cancelBtn.addEventListener('click', close); }
+        if (scrim) { scrim.addEventListener('click', close); }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && panel.hasAttribute('data-open')) { close(); }
+    });
+})();
+
 </script>
 @endsection
