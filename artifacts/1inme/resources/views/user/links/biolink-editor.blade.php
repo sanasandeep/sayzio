@@ -3450,8 +3450,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // The sample renders at a realistic page width and is then scaled to
     // fit, rather than being cropped by whatever box it landed in.
     var FRAME_W = 420;      // what the sample is drawn at
-    var MIN_STAGE_H = 120;  // a divider is 2px tall; do not collapse to it
-    var MAX_STAGE_H = 380;  // and a long card must not push the panel off screen
+    // No floor worth the name. The reasoning for the old 120px one -- "a
+    // divider is 2px tall and must not collapse the panel" -- was wrong
+    // about its own premise: a document is never 2px, because the preview
+    // stage carries 14px and 18px of padding. Real scaled heights are 50
+    // for a divider, 67 for a heading, 71 for a badge. Every one sat under
+    // that floor, so every one got a band of empty stage below it.
+    var MIN_STAGE_H = 40;   // only guards a nonsense measurement
+    var MAX_STAGE_H = 380;  // a long card must not push the panel off screen
 
     function urlFor(type) {
         return window.__blockTypePreviewUrl.replace('__TYPE__', encodeURIComponent(type));
@@ -3556,7 +3562,11 @@ document.addEventListener('DOMContentLoaded', function() {
         frame.style.width = FRAME_W + 'px';
         frame.style.height = contentH + 'px';
         frame.style.transform = 'translateX(' + offsetX + 'px) scale(' + k + ')';
+        // The stage is exactly what the frame paints. Anything taller is
+        // stage background showing below the sample, which reads as the
+        // block having dead space in it.
         stage.style.height = Math.max(MIN_STAGE_H, Math.round(contentH * k)) + 'px';
+        frame.style.transformOrigin = 'top left';
 
         // The panel just changed height, so where it sits changed too.
         if (shownTile) { place(shownTile); }
