@@ -99,6 +99,15 @@
         transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
         overflow: hidden;
     }
+    /* Furniture, not content. A spacer and a divider are adjustments to a
+       page, not parts of it, but they arrive wearing the same card as a
+       profile header -- so a dense page gives a creator no way to tell at a
+       glance what is a thing and what is a gap between things. They keep
+       every control; they just stop asking for the same attention. */
+    .block-card[data-furniture] { background: transparent; border-style: dashed; }
+    .block-card[data-furniture] .block-title { opacity: .7; }
+    .block-card[data-furniture]:hover { background: var(--bg-card-hover); border-style: solid; }
+
     .block-card:hover {
         border-color: rgba(61,107,255,0.15);
         background: var(--bg-card-hover);
@@ -995,19 +1004,27 @@ $catColors = [
             -webkit-backdrop-filter: blur(14px) saturate(140%);
         }
         .block-count-chip strong { color: var(--text-primary); font-weight: 700; }
+        /* Quiet until reached for. A destructive action does not need to
+           advertise itself on a page about making things; it needs to be
+           findable, and unmistakable once the pointer is on it. */
         .delete-all-btn {
             display: inline-flex; align-items: center; gap: 6px;
-            padding: 6px 12px; border-radius: 9999px;
+            padding: 6px 10px; border-radius: 9999px;
             font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-            color: #ef4444; cursor: pointer;
-            background: rgba(239,68,68,0.08);
-            border: 1px solid rgba(239,68,68,0.32);
-            transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+            color: var(--text-faint); cursor: pointer;
+            background: transparent;
+            border: 1px solid transparent;
+            transition: background .18s ease, color .18s ease, border-color .18s ease;
         }
-        .delete-all-btn:hover {
-            background: rgba(239,68,68,0.16);
-            border-color: rgba(239,68,68,0.5);
-            transform: translateY(-1px);
+        .delete-all-btn:hover,
+        .delete-all-btn:focus-visible {
+            color: #ef4444;
+            background: rgba(239,68,68,0.10);
+            border-color: rgba(239,68,68,0.35);
+        }
+        .delete-all-btn:focus-visible {
+            outline: 2px solid rgba(239,68,68,0.55);
+            outline-offset: 2px;
         }
         .delete-all-btn:disabled { opacity: 0.55; pointer-events: none; }
         /* Sticky behavior now lives inside the device-preview partial so
@@ -1374,7 +1391,17 @@ $catColors = [
 
         {{-- CANVAS --}}
         <div id="editorCanvasCol" @if(request('tab') === 'ai') style="display:none" @endif>
-    <div class="flex items-center justify-end gap-2 mb-4" @if(request('tab') === 'ai') style="display:none" @endif>
+    {{-- Count first, Delete all last and quiet.
+         This row used to lead with a red pill. On a screen whose whole job
+         is building a page, the loudest thing on it was the control that
+         destroys the work -- and it sat beside the section count as if the
+         two were equals. Delete all is still here and still one click away;
+         it just stops shouting until you reach for it. --}}
+    <div class="flex items-center justify-end gap-3 mb-4" @if(request('tab') === 'ai') style="display:none" @endif>
+        <span id="blockCountChip" class="block-count-chip" style="{{ $blocks->count() ? '' : 'display:none;' }}">
+            <i class="fas fa-layer-group text-[10px] opacity-70"></i>
+            <span><strong data-block-count>{{ $blocks->count() }}</strong> <span data-block-count-word>{{ $blocks->count() === 1 ? 'section' : 'sections' }}</span></span>
+        </span>
         <button type="button" id="deleteAllBlocksBtn"
                 onclick="ajaxDeleteAllBlocks(this)"
                 class="delete-all-btn"
@@ -1383,10 +1410,6 @@ $catColors = [
             <i class="fas fa-trash-alt text-[10px]"></i>
             <span>Delete all</span>
         </button>
-        <span id="blockCountChip" class="block-count-chip" style="{{ $blocks->count() ? '' : 'display:none;' }}">
-            <i class="fas fa-layer-group text-[10px] opacity-70"></i>
-            <span><strong data-block-count>{{ $blocks->count() }}</strong> <span data-block-count-word>{{ $blocks->count() === 1 ? 'section' : 'sections' }}</span></span>
-        </span>
     </div>
 
 
