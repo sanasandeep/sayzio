@@ -14,6 +14,11 @@
 
 return [
     [
+        'key'         => 'ai:reconcile-abandoned-builds',
+        'description' => 'Refund AI page builds that were charged but never delivered, and remove the empty links they left behind. Covers the one failure the builder cannot: a process killed before its own catch block could run.',
+        'cadence'     => ['hourly'],
+    ],
+    [
         'key'         => 'starter:send-free-window-reminders',
         'description' => 'Remind free Starter-plan users to re-confirm their plan near the end of their 1-year free window.',
         'cadence'     => ['dailyAt', '10:30'],
