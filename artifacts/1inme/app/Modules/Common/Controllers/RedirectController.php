@@ -1497,7 +1497,15 @@ class RedirectController extends Controller
         $icsData = $link->icsData;
         if (!$icsData) abort(404);
 
-        $content = $icsData->toIcs();
+        // ?remind=1440,60 picks reminders; ?remind=none takes them off.
+        // Absent, the attendee gets the sensible pair rather than the
+        // nothing every download carried until now. IcsData::sanitizeReminders
+        // drops anything that is not an exact allowlisted key, so the
+        // request can only choose from a fixed map and never writes into
+        // the file.
+        $content = $icsData->toIcs(
+            \App\Modules\User\Models\IcsData::sanitizeReminders(request()->query('remind'))
+        );
         $filename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $icsData->event_name) . '.ics';
 
         return response($content, 200, [
