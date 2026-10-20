@@ -81,7 +81,10 @@ class RsvpController extends Controller
             $headers = ['Name', 'Email', 'Phone', 'Company', 'Role', 'Response', 'Status',
                         'Plus ones', 'Occurrences', 'Message', 'Source', 'Submitted at'];
             foreach ($questions as $q) $headers[] = 'Q: ' . $q;
-            fputcsv($out, $headers);
+            // Headers go through CsvSafe too: a column name built from the
+            // creator's own custom question label is no safer than the
+            // answers underneath it.
+            \App\Support\CsvSafe::put($out, $headers);
 
             $link->rsvps()->orderBy('created_at')->chunk(500, function ($rows) use ($out, $questions) {
                 foreach ($rows as $r) {
@@ -97,7 +100,12 @@ class RsvpController extends Controller
                         $val = $r->answers[$q] ?? null;
                         $row[] = is_array($val) ? implode(', ', $val) : (string) ($val ?? '');
                     }
-                    fputcsv($out, $row);
+                    // Every field below is written by whoever filled in the
+                    // RSVP form -- a stranger, on a public page -- and the
+                    // person who opens this file is the organiser. A cell
+                    // starting = + - @ is a formula to a spreadsheet, so it
+                    // is made inert before it is written.
+                    \App\Support\CsvSafe::put($out, $row);
                 }
             });
             fclose($out);
