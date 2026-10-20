@@ -1,6 +1,7 @@
 <?php
 namespace App\Modules\User\Services;
 use App\Modules\User\Models\{ClubMembership,Link,LinkedIdentifier,User};
+use App\Support\CsvSafe;
 use Illuminate\Support\Facades\{DB,Validator};
 use Illuminate\Validation\ValidationException;
 
@@ -9,12 +10,12 @@ class ClubMembershipImportService {
     public function import(Link $link, string $path, string $mode='update'): array {
         $handle=fopen($path,'r');
         try {
-            $headers=fgetcsv($handle,0,',','"','');
+            $headers=CsvSafe::get($handle);
             if(!$headers) throw ValidationException::withMessages(['csv'=>'The CSV is empty.']);
             $headers=array_map(fn($v)=>strtolower(trim(ltrim($v,"\xEF\xBB\xBF"))),$headers);
             if(count($headers)!==count(array_unique($headers)) || array_diff(['name','email','phone'],$headers)) throw ValidationException::withMessages(['csv'=>'Include unique name, email and phone column headings.']);
             $rows=[];
-            while(($row=fgetcsv($handle,0,',','"',''))!==false) {
+            while(($row=CsvSafe::get($handle))!==false) {
                 if(count($row)===1 && trim((string)$row[0])==='') continue;
                 $rows[]=$row;
                 if(count($rows)>2000) throw ValidationException::withMessages(['csv'=>'Import at most 2,000 members per file.']);

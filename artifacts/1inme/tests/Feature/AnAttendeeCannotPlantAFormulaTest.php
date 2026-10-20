@@ -187,4 +187,107 @@ class AnAttendeeCannotPlantAFormulaTest extends TestCase
 
         return $out;
     }
+
+    /**
+     * PHP's default CSV escape does not double a quote that a backslash
+     * immediately precedes, so a\"b is written as "a\"b" -- a field that
+     * closes early. Nothing errors; the value simply comes back wrong,
+     * and comes back wrong differently depending on who reads it. An
+     * independent RFC-4180 parser returns a\b"; PHP's own reader cannot
+     * round-trip it either. Both halves of this class set escape to ''
+     * so a value survives the trip out and back.
+     */
+    public static function awkwardValues(): array
+    {
+        return [
+            'backslash before quote' => ['a\\"b'],
+            'windows path'           => ['C:\\Users\\priya'],
+            'path with quoted name'  => ['C:\\dir\\"name"'],
+            'trailing backslash'     => ['ends with backslash\\'],
+            'quotes alone'           => ['he said "hi"'],
+            'comma and quote'        => ['Sharma, "Priya"'],
+            'newline inside'         => ["line one\nline two"],
+            'formula and backslash'  => ['=cmd\\"x'],
+        ];
+    }
+
+    #[DataProvider('awkwardValues')]
+    public function test_a_value_survives_being_written_and_read_back($value): void
+    {
+        $handle = fopen('php://temp', 'r+');
+        CsvSafe::put($handle, [$value, 'next']);
+        rewind($handle);
+        $row = CsvSafe::get($handle);
+        fclose($handle);
+
+        $this->assertSame([CsvSafe::cell($value), 'next'], $row);
+    }
+
+    #[DataProvider('awkwardValues')]
+    public function test_the_old_default_escape_is_what_broke_the_round_trip($value): void
+    {
+        // Not a test of our code -- a record of why the default moved.
+        // If a future PHP makes these agree, this test says so loudly
+        // rather than leaving the comment above quietly wrong.
+        $written = CsvSafe::line([$value, 'next']);
+        $phpDefault = (function () use ($value) {
+            $h = fopen('php://temp', 'r+');
+            fputcsv($h, [CsvSafe::cell($value), 'next'], ',', '"', '\\');
+            rewind($h);
+            $s = (string) stream_get_contents($h);
+            fclose($h);
+            return rtrim($s, "\r\n");
+        })();
+
+        $readBack = CsvSafe::parse($written);
+        $this->assertSame([CsvSafe::cell($value), 'next'], $readBack, 'Our own output must parse back.');
+
+        if ($written !== $phpDefault) {
+            $this->assertNotSame(
+                $phpDefault,
+                $written,
+                'The two escapes differ here, which is the whole reason for the default.'
+            );
+        } else {
+            $this->addToAssertionCount(1);
+        }
+    }
+
+    public function test_parse_and_get_agree(): void
+    {
+        $row = ['a\\"b', 'Sharma, "Priya"', 'plain'];
+        $line = CsvSafe::line($row);
+
+        $handle = fopen('php://temp', 'r+');
+        CsvSafe::put($handle, $row);
+        rewind($handle);
+        $viaHandle = CsvSafe::get($handle);
+        fclose($handle);
+
+        $this->assertSame($viaHandle, CsvSafe::parse($line));
+        $this->assertSame(CsvSafe::row($row), $viaHandle);
+    }
+
+    public function test_a_file_a_spreadsheet_wrote_still_reads_correctly(): void
+    {
+        // The readers also take files Excel and Sheets produced, which
+        // never use backslash escaping. Dropping the escape must not
+        // cost us those.
+        $csv = "name,path\nPriya,\"C:\\Users\\priya\"\nRavi,\"he said \"\"hi\"\"\"\n";
+        $handle = fopen('php://temp', 'r+');
+        fwrite($handle, $csv);
+        rewind($handle);
+
+        $rows = [];
+        while (($r = CsvSafe::get($handle)) !== false) {
+            $rows[] = $r;
+        }
+        fclose($handle);
+
+        $this->assertSame([
+            ['name', 'path'],
+            ['Priya', 'C:\\Users\\priya'],
+            ['Ravi', 'he said "hi"'],
+        ], $rows);
+    }
 }

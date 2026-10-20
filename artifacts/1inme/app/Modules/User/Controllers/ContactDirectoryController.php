@@ -99,10 +99,10 @@ class ContactDirectoryController extends Controller
         } elseif ($action === 'import') {
             $request->validate(['file' => 'required|file|max:1024']);
             $handle = fopen($request->file('file')->getRealPath(), 'r');
-            $columns = fgetcsv($handle);
+            $columns = CsvSafe::get($handle);
             abort_unless($columns === ['name', 'category', 'phone', 'email', 'role', 'location'], 422, 'Use the six-column CSV format shown in the editor.');
             $rows = []; $seen = [];
-            while (($row = fgetcsv($handle)) !== false) {
+            while (($row = CsvSafe::get($handle)) !== false) {
                 abort_if(count($rows) >= 500 || count($row) !== 6, 422, 'Maximum 500 rows, each with six columns.');
                 $row = array_map(static fn ($value) => CsvSafe::uncell($value), $row);
                 $v = validator(array_combine($columns, $row), [

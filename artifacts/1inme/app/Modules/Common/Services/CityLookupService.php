@@ -2,6 +2,7 @@
 
 namespace App\Modules\Common\Services;
 
+use App\Support\CsvSafe;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -107,8 +108,8 @@ class CityLookupService
         if (!$fh) return null;
 
         try {
-            fgetcsv($fh); // header
-            while (($row = fgetcsv($fh)) !== false) {
+            CsvSafe::get($fh); // header
+            while (($row = CsvSafe::get($fh)) !== false) {
                 if (count($row) < 4) continue;
                 $rowCc = strtoupper($row[0] ?? '');
                 if ($rowCc !== $cc) continue;

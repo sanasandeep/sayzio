@@ -98,17 +98,19 @@ final class CsvSafe
      * too: a header built from a creator's own custom question label is
      * no safer than the answers underneath it.
      *
-     * $enclosure and $escape are forwarded rather than defaulted away.
-     * Eight call sites pass ',', '"', '' deliberately -- an empty escape
-     * is the RFC-4180 behaviour, and silently restoring PHP's backslash
-     * default would corrupt those exports.
+     * The escape defaults to '' rather than PHP's backslash. PHP's
+     * default does not double a quote that a backslash immediately
+     * precedes, so the value a\"b is written as "a\"b" -- a field that
+     * ends early. A standards-compliant reader gets back a\b", PHP's own
+     * reader cannot round-trip it either, and nothing warns. Eight call
+     * sites had already worked this out and were passing '' by hand.
      */
     public static function put(
         $handle,
         array $row,
         string $separator = ',',
         string $enclosure = '"',
-        string $escape = '\\'
+        string $escape = ''
     ): int|false {
         return fputcsv($handle, self::row($row), $separator, $enclosure, $escape);
     }
@@ -122,7 +124,7 @@ final class CsvSafe
         array $row,
         string $separator = ',',
         string $enclosure = '"',
-        string $escape = '\\'
+        string $escape = ''
     ): string {
         $handle = fopen('php://temp', 'r+');
         self::put($handle, $row, $separator, $enclosure, $escape);
@@ -131,5 +133,24 @@ final class CsvSafe
         fclose($handle);
 
         return rtrim($line, "\r\n");
+    }
+
+    /**
+     * Drop-in for fgetcsv, with the escape set to '' for the same reason
+     * put() sets it: PHP's backslash default makes the reader treat \" as
+     * an escaped quote, so it cannot read back a field this class wrote
+     * and mis-reads legitimate spreadsheet output containing a backslash
+     * before a quote. Every importer in the app goes through here, so
+     * the two halves of a round trip cannot drift apart again.
+     */
+    public static function get($handle, ?int $length = null, string $separator = ',', string $enclosure = '"'): array|false|null
+    {
+        return fgetcsv($handle, $length, $separator, $enclosure, '');
+    }
+
+    /** Drop-in for str_getcsv, same reasoning as get(). */
+    public static function parse(string $line, string $separator = ',', string $enclosure = '"'): array
+    {
+        return str_getcsv($line, $separator, $enclosure, '');
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Modules\User\Services\Contacts;
 
+use App\Support\CsvSafe;
+
 class ContactImportParser
 {
     /**
@@ -39,12 +41,12 @@ class ContactImportParser
         $handle = fopen($path, 'r');
         if (!$handle) return $rows;
 
-        $header = fgetcsv($handle, 0, ',', '"', '\\');
+        $header = CsvSafe::get($handle);
         if (!$header) { fclose($handle); return $rows; }
         $map = $this->buildHeaderMap($header);
 
         $line = 1; // header was line 1
-        while (($cols = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
+        while (($cols = CsvSafe::get($handle)) !== false) {
             $line++;
             // Skip totally blank rows.
             if (count(array_filter($cols, fn ($v) => trim((string) $v) !== '')) === 0) continue;
