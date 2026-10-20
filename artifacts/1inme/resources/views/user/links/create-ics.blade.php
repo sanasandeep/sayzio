@@ -419,6 +419,48 @@
             </div>
         </div>
 
+@php($requiredBadgeSelected = old('required_badge_id', ''))
+@php($awardBadgeSelected = old('award_badge_id', ''))
+        {{-- Entry rules: who may register, and what attending earns.
+             Both columns already existed and were already validated; there
+             was simply nowhere to set them. Badges are created and granted
+             by admin, so this is a choice among what exists rather than
+             something an organiser can mint. --}}
+        <div class="ics-section">
+            <div class="ics-section-head">
+                <div class="ics-section-icon"><i class="fas fa-shield-halved"></i></div>
+                <div><h2 class="ics-section-title">Entry rules</h2><p class="ics-section-sub">Optional. Restrict who can register, and give attendees a badge for turning up.</p></div>
+            </div>
+
+            @if($badges->isEmpty())
+                <p class="text-xs" style="color: var(--text-muted);">No badges exist yet. Badges are created by the Sayzio team &mdash; ask support if you need one for a private event.</p>
+            @else
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="ics-label text-xs" for="ics-required-badge">Required to register <span style="color: var(--text-faint);">(optional)</span></label>
+                        <select id="ics-required-badge" name="required_badge_id" class="ics-input">
+                            <option value="">Anyone can register</option>
+                            @foreach($badges as $badge)
+                                <option value="{{ $badge->id }}" @selected((string) $requiredBadgeSelected === (string) $badge->id)>{{ $badge->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs mt-1" style="color: var(--text-muted);">Only accounts holding this badge can register, and the door will not scan anyone else in.</p>
+                    </div>
+
+                    <div>
+                        <label class="ics-label text-xs" for="ics-award-badge">Awarded on check-in <span style="color: var(--text-faint);">(optional)</span></label>
+                        <select id="ics-award-badge" name="award_badge_id" class="ics-input">
+                            <option value="">Nothing awarded</option>
+                            @foreach($badges as $badge)
+                                <option value="{{ $badge->id }}" @selected((string) $awardBadgeSelected === (string) $badge->id)>{{ $badge->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs mt-1" style="color: var(--text-muted);">Attendees who scan in with a registered account get this badge added to their profile.</p>
+                    </div>
+                </div>
+            @endif
+        </div>
+
         {{-- Task #5023: Agenda --}}
         <div class="ics-section">
             <div class="ics-section-head">
