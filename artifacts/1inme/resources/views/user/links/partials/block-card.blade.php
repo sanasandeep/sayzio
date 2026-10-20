@@ -18,7 +18,10 @@
      get cramped; the configured span lives on data-grid-span / the width
      selector and only affects the public page + preview. --}}
 <div class="block-card-wrapper" data-block-id="{{ $block->id }}">
-    <div class="block-card {{ $block->isContainer() ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
+    <div class="block-card {{ $block->isContainer() ? 'card-container-block' : '' }}"
+         data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}"
+         @if(in_array($block->type, ['spacer', 'divider'], true)) data-furniture @endif
+         style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
         <div class="flex items-center gap-2 p-3">
             {{-- Multi-select. Ticking any box reveals the selection bar at the
                  foot of the canvas; shift-click ticks a whole run. Always in
@@ -46,7 +49,7 @@
 
             <div class="flex-1 min-w-0 ml-1">
                 <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</span>
+                    <span class="block-title text-sm font-semibold" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</span>
                     @if(!$block->is_active)
                     <span class="editor-pill-badge editor-pill-badge--hidden text-[9px] px-2 py-0.5 rounded-full">HIDDEN</span>
                     @endif
