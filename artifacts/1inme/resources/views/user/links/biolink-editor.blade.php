@@ -108,6 +108,48 @@
         margin-top: 2px;
         padding-top: 6px;
     }
+    /* The folded Width control.
+       Six pills per card, open on every card, were 60 of the editor's 340
+       visible controls -- for a setting most creators never touch. They now
+       sit behind a summary that states the current width, so the card shows
+       one control instead of six and the answer is still readable without
+       opening anything. The details element carries the open/close, keyboard
+       handling and Escape on its own; no script was added. */
+    .grid-span-row > summary,
+    .child-span-row > summary { list-style: none; }
+    .grid-span-row > summary::-webkit-details-marker,
+    .child-span-row > summary::-webkit-details-marker { display: none; }
+    .span-summary {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--text-faint);
+        padding: 2px 0;
+        user-select: none;
+    }
+    .span-summary-sm { font-size: 8px; }
+    .span-summary:hover { color: var(--text-muted); }
+    .span-summary:focus-visible {
+        outline: 2px solid rgba(61,107,255,0.6);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+    .span-summary strong {
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-left: 1px;
+    }
+    .span-summary-caret {
+        margin-left: auto;
+        font-size: 7px;
+        opacity: .5;
+        transition: transform .15s;
+    }
+    details[open] > .span-summary > .span-summary-caret { transform: rotate(180deg); }
+
     .span-btn {
         background: var(--bg-glass-input);
         color: var(--text-faint);
@@ -2150,11 +2192,23 @@ function setMenuSlot(blockId, slot, sel) {
     }).finally(function() { sel.disabled = false; });
 }
 
+// Width labels for the folded summary. Without this the summary keeps
+// stating the old width after a pill is clicked: the pill goes active, the
+// AJAX saves, and the one line a creator can see while it is folded is
+// wrong until the page reloads.
+var SPAN_LABELS = { 3: '\u00bc', 4: '\u2153', 6: '\u00bd', 8: '\u2154', 9: '\u00be', 12: 'Full' };
+function _syncSpanSummary(row, span) {
+    if (!row) return;
+    var label = row.querySelector('.span-summary strong');
+    if (label) label.textContent = SPAN_LABELS[span] || 'Full';
+}
+
 function setGridSpan(blockId, span, btn) {
     var card = btn.closest('.block-card');
     var row = card.querySelector('.grid-span-row');
     row.querySelectorAll('.span-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
+    _syncSpanSummary(row, span);
     card.dataset.gridSpan = span;
     var badge = document.querySelector('[data-span-badge="' + blockId + '"]');
     if (badge) {
@@ -2186,6 +2240,7 @@ function setChildGridSpan(blockId, span, btn) {
     var row = card.querySelector('.child-span-row');
     row.querySelectorAll('.child-span-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
+    _syncSpanSummary(row, span);
     var badge = document.querySelector('[data-child-span-badge="' + blockId + '"]');
     if (badge) {
         badge.textContent = span + '/12';

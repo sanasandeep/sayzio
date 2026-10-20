@@ -33,18 +33,28 @@
     @if($child->type === 'poll')
         @include('user.links.partials.poll-results-panel', ['block' => $child, 'tally' => $pollTallies[$child->id] ?? null, 'compact' => true])
     @endif
-    <div class="child-span-row px-2 pb-1.5">
-        <div class="flex items-center gap-1">
-            <span class="text-[8px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-0.5"></i>Width</span>
+    @php
+        $childSpanLabels = [3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'];
+    @endphp
+    {{-- Same fold as the parent card. A group of three children carried
+         eighteen width pills on its own. --}}
+    <details class="child-span-row px-2 pb-1.5">
+        <summary class="span-summary span-summary-sm" aria-label="Width for this item">
+            <i class="fas fa-columns"></i>
+            <span>Width</span>
+            <strong>{{ $childSpanLabels[$childSpan] ?? 'Full' }}</strong>
+            <i class="fas fa-chevron-down span-summary-caret"></i>
+        </summary>
+        <div class="flex items-center gap-1 pt-1">
             <div class="flex gap-[2px] flex-1">
-                @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $spanVal => $spanLabel)
+                @foreach($childSpanLabels as $spanVal => $spanLabel)
                 <button type="button" class="child-span-btn text-[8px] font-bold px-1 py-0.5 rounded transition-all {{ $childSpan == $spanVal ? 'active' : '' }}"
                         onclick="setChildGridSpan({{ $child->id }}, {{ $spanVal }}, this)"
                         title="{{ $spanLabel }} width">{{ $spanLabel }}</button>
                 @endforeach
             </div>
         </div>
-    </div>
+    </details>
 
     {{-- Inline block editor for this child block (see block-card partial). --}}
     <div class="inline-block-editor" data-inline-editor="{{ $child->id }}" hidden>

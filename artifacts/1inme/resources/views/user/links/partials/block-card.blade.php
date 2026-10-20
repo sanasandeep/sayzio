@@ -201,18 +201,36 @@
         </div>
         @endif
 
-        <div class="grid-span-row px-3 pb-2" data-span-row="{{ $block->id }}">
-            <div class="flex items-center gap-1.5">
-                <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-1"></i>Width</span>
+        @php
+            // One source for the labels, used by both the summary and the pills
+            // so the folded state can never disagree with the open one.
+            $spanLabels = [3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'];
+        @endphp
+        {{-- Width, folded away until it is wanted.
+             These six pills used to sit open on every card. On a page of ten
+             sections that is sixty controls permanently on screen for a
+             setting most creators set once or never -- measured at 60 of the
+             340 visible controls in the editor, which is most of what
+             "it looks too complicated" is pointing at.
+             A details element rather than JS: it opens on click, closes on Escape,
+             is reachable by keyboard and works on touch, with no script. --}}
+        <details class="grid-span-row px-3 pb-2" data-span-row="{{ $block->id }}">
+            <summary class="span-summary" aria-label="Width for this section">
+                <i class="fas fa-columns"></i>
+                <span>Width</span>
+                <strong>{{ $spanLabels[$curSpan] ?? 'Full' }}</strong>
+                <i class="fas fa-chevron-down span-summary-caret"></i>
+            </summary>
+            <div class="flex items-center gap-1.5 pt-1.5">
                 <div class="flex gap-[3px] flex-1">
-                    @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $spanVal => $spanLabel)
+                    @foreach($spanLabels as $spanVal => $spanLabel)
                     <button type="button" class="span-btn text-[9px] font-bold px-1.5 py-0.5 rounded transition-all {{ $curSpan == $spanVal ? 'active' : '' }}"
                             onclick="setGridSpan({{ $block->id }}, {{ $spanVal }}, this)"
                             title="{{ $spanLabel }} width ({{ $spanVal }}/12 columns)">{{ $spanLabel }}</button>
                     @endforeach
                 </div>
             </div>
-        </div>
+        </details>
 
         {{-- Inline block editor: the settings form expands here (below the
              card) when the creator clicks Edit. Populated/cleared by
