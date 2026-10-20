@@ -82,7 +82,7 @@ class CompetitorTeardownController extends Controller
                 'balance'  => $e->balance ?? null,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'analysis_failed');
+            return $this->fail(safe_error_message($e), 422, 'analysis_failed');
         } catch (\Throwable $e) {
             report($e);
             return $this->fail("We couldn't analyze that page. Double-check the URL and try again.", 422, 'analysis_failed');
@@ -126,7 +126,7 @@ class CompetitorTeardownController extends Controller
                 'balance'  => $e->balance ?? null,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'build_failed');
+            return $this->fail(safe_error_message($e), 422, 'build_failed');
         } catch (\Throwable $e) {
             report($e);
             return $this->fail("We couldn't build that page. Please try again.", 422, 'build_failed');

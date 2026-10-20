@@ -101,7 +101,7 @@ class CardScanController extends Controller
             return redirect()->route('user.wallet.buy')
                 ->with('error', "You need {$e->required} coins to scan a card (you have {$e->balance}).");
         } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', safe_error_message($e));
         } catch (\Throwable $e) {
             report($e);
             return back()->with('error', 'We couldn\'t scan that file. Please try again with a clearer image.');
@@ -173,7 +173,7 @@ class CardScanController extends Controller
             return redirect()->route('user.wallet.buy')
                 ->with('error', "You need {$e->required} coins to scan a card (you have {$e->balance}).");
         } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', safe_error_message($e));
         } catch (\Throwable $e) {
             report($e);
             return back()->with('error', 'We couldn\'t re-scan that card. Please try again.');

@@ -86,7 +86,7 @@ class AdminAssetController extends Controller
                 ]
             );
         } catch (\RuntimeException $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'error' => safe_error_message($e)], 422);
         }
 
         return response()->json([

@@ -88,7 +88,7 @@ class AiTypeBuilderController extends Controller
             // charge comes in over the number the creator was shown.
             $cost = $service->estimateCredits($request->user(), $data['description'], $data['links'], $data['images'], $data['scans'], $link);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         return response()->json([
@@ -132,7 +132,7 @@ class AiTypeBuilderController extends Controller
                 'balance'  => $e->balance ?? null,
             ], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         } finally {
             AiActionCooldown::end($cooldownKey);
         }

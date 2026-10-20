@@ -96,7 +96,7 @@ class UserFileController extends Controller
         try {
             $userFile = UserFile::createFromUpload($request->file('file'), $user);
         } catch (\RuntimeException $e) {
-            return $this->uploadError($request, $e->getMessage());
+            return $this->uploadError($request, safe_error_message($e));
         }
 
         return response()->json([
@@ -335,7 +335,7 @@ class UserFileController extends Controller
                 'quota' => $this->getQuotaInfo($user->fresh()),
             ]);
         } catch (\RuntimeException $e) {
-            return $this->uploadError($request, $e->getMessage());
+            return $this->uploadError($request, safe_error_message($e));
         } catch (\Throwable $e) {
             return $this->uploadError($request, 'Import failed.', 500);
         }

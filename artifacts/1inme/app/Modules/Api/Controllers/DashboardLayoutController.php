@@ -85,7 +85,7 @@ class DashboardLayoutController extends Controller
         try {
             $cost = $this->designer->estimateCredits($request->user(), $data);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'invalid_request');
+            return $this->fail(safe_error_message($e), 422, 'invalid_request');
         }
 
         return $this->ok([
@@ -113,7 +113,7 @@ class DashboardLayoutController extends Controller
                 'balance'  => $e->balance ?? null,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'generation_failed');
+            return $this->fail(safe_error_message($e), 422, 'generation_failed');
         }
 
         return $this->ok([

@@ -113,7 +113,7 @@ class BrandKitController extends Controller
         try {
             $cost = $this->kits->estimateCredits($user, $data['prompt'], $data['website_url'], $data['logo_url']);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'invalid_input');
+            return $this->fail(safe_error_message($e), 422, 'invalid_input');
         }
 
         return $this->ok([
@@ -155,7 +155,7 @@ class BrandKitController extends Controller
                 ['required' => $e->required ?? null, 'balance' => $e->balance ?? null],
             );
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'generation_failed');
+            return $this->fail(safe_error_message($e), 422, 'generation_failed');
         }
 
         $result['kit']->forceFill(['workspace_id'=>$this->activeWorkspaceId($user)])->save();
@@ -263,7 +263,7 @@ class BrandKitController extends Controller
                 'balance'  => $e->balance ?? null,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'generation_failed');
+            return $this->fail(safe_error_message($e), 422, 'generation_failed');
         }
 
         return $this->ok([
@@ -341,7 +341,7 @@ class BrandKitController extends Controller
                     break;
             }
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'apply_failed');
+            return $this->fail(safe_error_message($e), 422, 'apply_failed');
         }
 
         return $this->ok(['ok' => true]);

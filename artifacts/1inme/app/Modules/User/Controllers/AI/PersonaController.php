@@ -214,7 +214,7 @@ class PersonaController extends Controller
             ]);
         } catch (\RuntimeException $e) {
             if ($e instanceof InsufficientCoinsForAiException) throw $e;
-            Log::warning('Persona AI call failed: ' . $e->getMessage());
+            Log::warning('Persona AI call failed: ' . safe_error_message($e));
             return back()->withInput()->with('error',
                 'Persona could not respond right now. Please try again.');
         }

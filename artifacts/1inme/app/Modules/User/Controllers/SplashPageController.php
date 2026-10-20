@@ -45,7 +45,7 @@ class SplashPageController extends Controller
             $this->handleUploads($request, $splashPage);
         } catch (\RuntimeException $e) {
             return redirect()->route('user.splash-pages.edit', $splashPage)
-                ->with('error', $e->getMessage());
+                ->with('error', safe_error_message($e));
         }
         return redirect()->route('user.splash-pages.edit', $splashPage)
             ->with('success', 'Splash page created.');
@@ -74,7 +74,7 @@ class SplashPageController extends Controller
             $this->handleUploads($request, $splashPage);
         } catch (\RuntimeException $e) {
             return redirect()->route('user.splash-pages.edit', $splashPage)
-                ->with('error', $e->getMessage());
+                ->with('error', safe_error_message($e));
         }
         return redirect()->route('user.splash-pages.edit', $splashPage)
             ->with('success', 'Splash page saved.');

@@ -85,7 +85,7 @@ class CloudOAuthController extends Controller
                 $this->registry->get($provider)->exchangeCode($app, $code, $this->redirectUriFor($app, $provider));
         } catch (\RuntimeException $e) {
             return redirect()->route('user.cloud-files.connections')
-                ->with('error', 'Connect failed: ' . $e->getMessage());
+                ->with('error', 'Connect failed: ' . safe_error_message($e));
         }
 
         $conn = CloudConnection::query()

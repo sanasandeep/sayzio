@@ -1091,7 +1091,7 @@ class LinkController extends Controller
                 $validated['favicon'] = UserFile::createFromUpload($request->file('favicon'), $request->user())->url;
             }
         } catch (\RuntimeException $e) {
-            return $this->uploadError($request, $e->getMessage());
+            return $this->uploadError($request, safe_error_message($e));
         }
 
         $settings = [];
@@ -3421,7 +3421,7 @@ class LinkController extends Controller
                 unset($validated['favicon']);
             }
         } catch (\RuntimeException $e) {
-            return $this->uploadError($request, $e->getMessage());
+            return $this->uploadError($request, safe_error_message($e));
         }
 
         $settings = $link->settings ?? [];

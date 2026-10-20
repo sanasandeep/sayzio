@@ -157,7 +157,7 @@ class AiBiolinkBuilderController extends Controller
                 $data['image_choices'],
             );
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'invalid_request');
+            return $this->fail(safe_error_message($e), 422, 'invalid_request');
         }
 
         return $this->ok([
@@ -216,7 +216,7 @@ class AiBiolinkBuilderController extends Controller
                 'balance'  => $e->balance ?? null,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'generation_failed');
+            return $this->fail(safe_error_message($e), 422, 'generation_failed');
         } finally {
             AiActionCooldown::end($cooldownKey);
         }
@@ -301,7 +301,7 @@ class AiBiolinkBuilderController extends Controller
                     ['skip_scan' => true, 'context' => 'ai_builder'],
                 );
             } catch (\RuntimeException $e) {
-                return $this->fail($e->getMessage(), 422, 'storage_quota');
+                return $this->fail(safe_error_message($e), 422, 'storage_quota');
             }
 
             $stored[] = ['url' => $file->url_path, 'source_url' => $url];

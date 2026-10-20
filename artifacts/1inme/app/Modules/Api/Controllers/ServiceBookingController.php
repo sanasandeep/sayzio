@@ -473,7 +473,7 @@ class ServiceBookingController extends Controller
                 'quality'        => 85,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'upload_failed');
+            return $this->fail(safe_error_message($e), 422, 'upload_failed');
         }
 
         // Sanctum API path doesn't bind the active workspace, so back-fill it.

@@ -100,7 +100,7 @@ class CardScanController extends Controller
             );
         } catch (\RuntimeException $e) {
             // Caller-fixable validation problems (mime / size / page count).
-            return $this->fail($e->getMessage(), 422, 'invalid_upload');
+            return $this->fail(safe_error_message($e), 422, 'invalid_upload');
         } catch (Throwable $e) {
             report($e);
             return $this->fail(
@@ -184,7 +184,7 @@ class CardScanController extends Controller
                 ['required' => $e->required, 'balance' => $e->balance],
             );
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'invalid_upload');
+            return $this->fail(safe_error_message($e), 422, 'invalid_upload');
         } catch (Throwable $e) {
             report($e);
             return $this->fail(

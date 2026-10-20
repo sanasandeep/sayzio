@@ -88,7 +88,7 @@ class CompetitorTeardownController extends Controller
             return redirect()->route('user.wallet.buy')
                 ->with('error', "You need {$e->required} coins to run a teardown (you have {$e->balance}).");
         } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage())->withInput();
+            return back()->with('error', safe_error_message($e))->withInput();
         } catch (\Throwable $e) {
             report($e);
             return back()->with('error', "We couldn't analyze that page. Double-check the URL and try again.")->withInput();
@@ -133,7 +133,7 @@ class CompetitorTeardownController extends Controller
             return redirect()->route('user.wallet.buy')
                 ->with('error', "You need {$e->required} coins to build this page (you have {$e->balance}).");
         } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', safe_error_message($e));
         } catch (\Throwable $e) {
             report($e);
             return back()->with('error', "We couldn't build that page. Please try again.");
