@@ -9,6 +9,7 @@ use App\Modules\User\Models\StoreMenu;
 use App\Modules\User\Models\StoreOrder;
 use App\Modules\User\Support\MenuOrderRange;
 use App\Modules\User\Support\MenuOrderSummary;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -118,7 +119,7 @@ class MenuOrderExportController extends Controller
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 'Order', 'Placed', 'Status', 'Customer', 'Table',
                 'Items', 'Quantity', 'Subtotal', 'Discount', 'Tax', 'Total', 'Currency', 'Note',
             ]);
@@ -132,7 +133,7 @@ class MenuOrderExportController extends Controller
                         fn ($i) => $i->quantity.'× '.$i->name
                     )->implode('; ');
 
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         $order->token_number ?: $order->id,
                         optional($order->created_at)->format('Y-m-d H:i'),
                         $order->status,

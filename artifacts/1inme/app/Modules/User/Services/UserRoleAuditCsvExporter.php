@@ -4,6 +4,7 @@ namespace App\Modules\User\Services;
 
 use App\Modules\User\Models\UserRoleAudit;
 use App\Modules\User\Models\UserRoleAuditExport;
+use App\Support\CsvSafe;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -90,7 +91,7 @@ class UserRoleAuditCsvExporter
 
         return new StreamedResponse(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, self::COLUMNS);
+            CsvSafe::put($out, self::COLUMNS);
 
             $query->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $row) {
@@ -139,7 +140,7 @@ class UserRoleAuditCsvExporter
      */
     protected function writeRow($out, UserRoleAudit $row): void
     {
-        fputcsv($out, [
+        CsvSafe::put($out, [
             optional($row->created_at)->toIso8601String() ?? '',
             $row->actorLabel(),
             $row->actor_guard ?? '',

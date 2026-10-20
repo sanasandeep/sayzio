@@ -3,6 +3,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\ContactDirectory;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -103,7 +104,7 @@ class ContactDirectoryController extends Controller
             $rows = []; $seen = [];
             while (($row = fgetcsv($handle)) !== false) {
                 abort_if(count($rows) >= 500 || count($row) !== 6, 422, 'Maximum 500 rows, each with six columns.');
-                $row = array_map(fn ($value) => str_starts_with($value, "'") && preg_match('/^[=+@-]/', substr($value, 1)) ? substr($value, 1) : $value, $row);
+                $row = array_map(static fn ($value) => CsvSafe::uncell($value), $row);
                 $v = validator(array_combine($columns, $row), [
                     'name' => 'required|string|max:150', 'category' => 'nullable|string|max:150',
                     'phone' => ['nullable', 'string', 'max:30', 'regex:/^\+?[0-9 ()-]+$/'],
@@ -131,11 +132,11 @@ class ContactDirectoryController extends Controller
         $directory = $this->directory($link)->load(['categories', 'contacts']);
         return response()->streamDownload(function () use ($directory) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['name', 'category', 'phone', 'email', 'role', 'location']);
+            CsvSafe::put($out, ['name', 'category', 'phone', 'email', 'role', 'location']);
             foreach ($directory->contacts as $contact) {
                 $d = $contact->details ?? [];
                 $row = [$contact->name, $directory->categories->firstWhere('id', $contact->category_id)?->name ?? '', $d['phone'] ?? '', $d['email'] ?? '', $d['role'] ?? '', $d['location'] ?? ''];
-                fputcsv($out, array_map(fn ($v) => preg_match('/^[=+@-]/', $v) ? "'".$v : $v, $row));
+                CsvSafe::put($out, $row);
             }
             fclose($out);
         }, 'contacts.csv', ['Content-Type' => 'text/csv']);

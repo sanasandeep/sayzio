@@ -5,6 +5,7 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\Form;
 use App\Modules\User\Models\FormSubmission;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -339,7 +340,7 @@ class FormController extends Controller
             ->pluck('id')->all();
 
         $output = fopen('php://temp', 'r+');
-        fputcsv($output, array_merge(['#', 'submitted_at', 'ip'], $columns));
+        CsvSafe::put($output, array_merge(['#', 'submitted_at', 'ip'], $columns));
         foreach ($rows as $s) {
             $data = (array) ($s->data ?? $s->payload ?? []);
             $line = [$s->id, optional($s->created_at)->toIso8601String(), $s->ip ?? ''];
@@ -348,7 +349,7 @@ class FormController extends Controller
                 if (is_array($v)) $v = implode(', ', $v);
                 $line[] = (string) $v;
             }
-            fputcsv($output, $line);
+            CsvSafe::put($output, $line);
         }
         rewind($output);
         $csv = stream_get_contents($output);

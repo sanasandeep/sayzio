@@ -65,8 +65,4 @@ class ClubMembershipImportService {
         }
         return $report;
     }
-    public static function csvCell($value): string {
-        $value=(string)$value;
-        return preg_match('/^[\s]*[=+@\-]/u',$value)?"'".$value:$value;
-    }
 }

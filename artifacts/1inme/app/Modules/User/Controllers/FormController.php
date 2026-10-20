@@ -10,6 +10,7 @@ use App\Modules\User\Models\Project;
 use App\Modules\User\Models\Domain;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\SpamChecker;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -843,7 +844,7 @@ class FormController extends Controller
             return response()->streamDownload(function () use ($query, $format, $columns, $childParents) {
                 $out = fopen('php://output', 'w'); $first = true;
                 if ($format === 'json') fwrite($out, '[');
-                if ($format === 'long_csv') fputcsv($out, ['submission_id','submitted_at','field','answer']);
+                if ($format === 'long_csv') CsvSafe::put($out, ['submission_id','submitted_at','field','answer']);
                 foreach ($query->orderBy('id')->cursor() as $row) {
                     $data = $columns ? \Illuminate\Support\Arr::only($row->data ?? [], $columns) : ($row->data ?? []);
                     foreach ($columns as $column) {
@@ -852,8 +853,7 @@ class FormController extends Controller
                     if ($format === 'long_csv') {
                         foreach ($data as $key=>$value) {
                             $value = is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : (string)$value;
-                            if (preg_match('/^[=+@\-\t\r]/', $value)) $value = "'".$value;
-                            fputcsv($out, [$row->id,$row->created_at?->toIso8601String(),$key,$value]);
+                            CsvSafe::put($out, [$row->id,$row->created_at?->toIso8601String(),$key,$value]);
                         }
                     } else {
                         $record = json_encode(['id'=>$row->id,'submitted_at'=>$row->created_at?->toIso8601String(),'payment_status'=>$row->payment_status,'data'=>$data], JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE);
@@ -900,7 +900,7 @@ class FormController extends Controller
 
         return response()->streamDownload(function () use ($query, $delimiter, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds, $childParents) {
             $h = fopen('php://output', 'w');
-            fputcsv($h, array_merge(['submitted_at', 'ip'], $headers), $delimiter);
+            CsvSafe::put($h, array_merge(['submitted_at', 'ip'], $headers), $delimiter);
             $query->orderBy('id')->chunk(500, function ($rows) use ($h, $delimiter, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds, $childParents) {
                 foreach ($rows as $row) {
                     $line = [$row->created_at?->toIso8601String(), $row->ip];
@@ -952,14 +952,9 @@ class FormController extends Controller
                         } elseif (is_array($val)) {
                             $val = json_encode($val, JSON_UNESCAPED_UNICODE);
                         }
-                        $val = (string) $val;
-                        // Mitigate CSV formula injection — prefix risky leading chars with apostrophe
-                        if ($val !== '' && in_array($val[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
-                            $val = "'" . $val;
-                        }
-                        $line[] = $val;
+                        $line[] = (string) $val;
                     }
-                    fputcsv($h, $line, $delimiter);
+                    CsvSafe::put($h, $line, $delimiter);
                 }
             });
             fclose($h);

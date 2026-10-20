@@ -10,6 +10,7 @@ use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
 use App\Modules\User\Support\LinkReport;
+use App\Support\CsvSafe;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Modules\User\Models\PollVote;
 use App\Modules\User\Models\User;
@@ -228,14 +229,14 @@ class LinkController extends Controller
                 // A combined export is several tables in one file, so each
                 // gets a blank line and its own title before its header row.
                 if (! $first) {
-                    fputcsv($out, [], ',', '"', '');
+                    CsvSafe::put($out, [], ',', '"', '');
                 }
                 if (count($wanted) > 1) {
-                    fputcsv($out, [$sheet['title']], ',', '"', '');
+                    CsvSafe::put($out, [$sheet['title']], ',', '"', '');
                 }
-                fputcsv($out, $sheet['head'], ',', '"', '');
+                CsvSafe::put($out, $sheet['head'], ',', '"', '');
                 foreach ($sheet['rows'] as $row) {
-                    fputcsv($out, $row, ',', '"', '');
+                    CsvSafe::put($out, $row, ',', '"', '');
                 }
                 $first = false;
             }
@@ -360,32 +361,22 @@ class LinkController extends Controller
 
         $filename = 'my-links-' . now()->format('Y-m-d') . '.csv';
 
-        // Defend against CSV formula injection when opened in a spreadsheet —
-        // prefix any cell starting with =, +, -, @ with a single quote so the
-        // spreadsheet treats it as text.
-        $safe = function ($value) {
-            $s = (string) $value;
-            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
-                return "'" . $s;
-            }
-            return $s;
-        };
 
-        return response()->streamDownload(function () use ($query, $safe) {
+        return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 'title', 'type', 'short_url', 'destination',
                 'project', 'status', 'total_clicks', 'created_at',
             ]);
 
-            $query->chunk(500, function ($rows) use ($out, $safe) {
+            $query->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $link) {
-                    fputcsv($out, [
-                        $safe($link->title ?: $link->alias),
-                        $safe($link->type),
-                        $safe($link->getShortUrl()),
-                        $safe($link->long_url),
-                        $safe(optional($link->project)->name),
+                    CsvSafe::put($out, [
+                        $link->title ?: $link->alias,
+                        $link->type,
+                        $link->getShortUrl(),
+                        $link->long_url,
+                        optional($link->project)->name,
                         $link->is_active ? 'active' : 'inactive',
                         (int) $link->total_clicks,
                         optional($link->created_at)->toIso8601String(),
@@ -2419,16 +2410,6 @@ class LinkController extends Controller
             $endDate->format('Y-m-d')
         );
 
-        // Defend against CSV formula injection when the file is opened in a
-        // spreadsheet — prefix any cell that starts with =, +, -, @ with a
-        // single quote so the spreadsheet treats it as text.
-        $safe = function ($value) {
-            $s = (string) $value;
-            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
-                return "'" . $s;
-            }
-            return $s;
-        };
 
         // Sensitive action — record the export attempt before streaming.
         // We log at intent-time (not on stream completion) so an aborted
@@ -2449,20 +2430,20 @@ class LinkController extends Controller
             );
         }
 
-        return response()->streamDownload(function () use ($query, $followerIds, $safe) {
+        return response()->streamDownload(function () use ($query, $followerIds) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['name', 'email', 'total clicks', 'block clicks', 'first seen', 'last seen']);
+            CsvSafe::put($out, ['name', 'email', 'total clicks', 'block clicks', 'first seen', 'last seen']);
 
             if ($followerIds->isEmpty()) {
                 fclose($out);
                 return;
             }
 
-            $query->chunk(500, function ($rows) use ($out, $safe) {
+            $query->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $r) {
-                    fputcsv($out, [
-                        $safe($r->name ?: 'Anonymous'),
-                        $safe($r->email),
+                    CsvSafe::put($out, [
+                        $r->name ?: 'Anonymous',
+                        $r->email,
                         (int) $r->click_count,
                         (int) $r->block_click_count,
                         $r->first_seen,
@@ -3255,11 +3236,11 @@ class LinkController extends Controller
 
         return response()->stream(function () use ($columns, $buildRow, $rowQuery) {
             $h = fopen('php://output', 'w');
-            fputcsv($h, $columns);
+            CsvSafe::put($h, $columns);
 
             $rowQuery()->chunk(500, function ($rows) use ($h, $buildRow) {
                 foreach ($rows as $r) {
-                    fputcsv($h, $buildRow($r));
+                    CsvSafe::put($h, $buildRow($r));
                 }
             });
             fclose($h);

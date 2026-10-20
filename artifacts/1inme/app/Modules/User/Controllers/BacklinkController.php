@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Backlink;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -82,7 +83,7 @@ class BacklinkController extends Controller
 
         return response()->streamDownload(function () use ($userId, $days, $types) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 'first_seen_at', 'page_url', 'page_title', 'anchor_text',
                 'matched_url', 'matched_property_type', 'matched_property_value',
             ]);
@@ -91,7 +92,7 @@ class BacklinkController extends Controller
             if ($types) $q->whereIn('matched_property_type', $types);
             $q->orderByDesc('first_seen_at')->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $r) {
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         optional($r->first_seen_at)->toIso8601String(),
                         $r->page_url,
                         $r->page_title,

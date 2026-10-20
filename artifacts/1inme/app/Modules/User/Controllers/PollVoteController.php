@@ -8,6 +8,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\PollVote;
 use App\Modules\User\Models\PollVoteResetSnapshot;
 use App\Modules\User\Models\PollVoterErasure;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -94,7 +95,7 @@ class PollVoteController extends Controller
 
         return response()->streamDownload(function () use ($block) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 'Option index', 'Option label', 'Voter name', 'Voter email',
                 'Voter fingerprint', 'Source', 'IP address', 'Submitted at',
             ]);
@@ -102,7 +103,7 @@ class PollVoteController extends Controller
                 ->orderBy('created_at')
                 ->chunk(500, function ($rows) use ($out) {
                     foreach ($rows as $v) {
-                        fputcsv($out, [
+                        CsvSafe::put($out, [
                             $v->option_index,
                             $v->option_label,
                             $v->user?->name,

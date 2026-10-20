@@ -10,6 +10,7 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
 use App\Modules\User\Models\User;
+use App\Support\CsvSafe;
 use Database\Seeders\BannedNamesSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -200,9 +201,9 @@ class AdminBannedNameController extends Controller
         ])->all();
 
         $csvHandle = fopen('php://temp', 'r+');
-        fputcsv($csvHandle, ['name', 'note', 'created_at']);
+        CsvSafe::put($csvHandle, ['name', 'note', 'created_at']);
         foreach ($rows as $r) {
-            fputcsv($csvHandle, [$r['name'], (string) $r['note'], (string) $r['created_at']]);
+            CsvSafe::put($csvHandle, [$r['name'], (string) $r['note'], (string) $r['created_at']]);
         }
         rewind($csvHandle);
         $csv = stream_get_contents($csvHandle);

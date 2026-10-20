@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AdminActionAudit;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -55,10 +56,10 @@ class ActivityLogController extends Controller
 
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Date', 'Operator', 'Operator email', 'Action', 'Target', 'Target email', 'IP', 'Details']);
+            CsvSafe::put($out, ['Date', 'Operator', 'Operator email', 'Action', 'Target', 'Target email', 'IP', 'Details']);
             $query->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $row) {
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         optional($row->created_at)->toDateTimeString(),
                         $row->admin_name,
                         $row->admin_email,

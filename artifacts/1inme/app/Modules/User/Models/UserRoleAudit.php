@@ -3,6 +3,7 @@
 namespace App\Modules\User\Models;
 
 use App\Modules\Admin\Models\Admin;
+use App\Support\CsvSafe;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -412,7 +413,7 @@ class UserRoleAudit extends Model
     {
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 'Timestamp (UTC)',
                 'Action',
                 'Source',
@@ -434,7 +435,7 @@ class UserRoleAudit extends Model
                     $actorId = $r->actor_guard === 'admin'
                         ? $r->actor_admin_id
                         : $r->actor_user_id;
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         optional($r->created_at)->toIso8601String(),
                         $r->action,
                         $r->source,

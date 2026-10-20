@@ -26,8 +26,11 @@ namespace App\Support;
  * "the rest of this cell is literal text". The apostrophe is not part
  * of the value and is not shown in the cell.
  *
- * This class exists because that logic was written out twice already
- * and missed in thirty other exports. One copy, one place to fix.
+ * This class exists because that logic had been written out by hand
+ * nine separate times, in nine slightly different ways, and was absent
+ * from twenty-four other exports entirely. Most of the hand-rolled
+ * copies checked = + - @ but not tab or CR, so each one let through the
+ * payloads the other six characters cover. One copy, one place to fix.
  */
 final class CsvSafe
 {
@@ -71,13 +74,62 @@ final class CsvSafe
     }
 
     /**
-     * Drop-in for fputcsv. Header rows are developer-authored and could
-     * skip this, but they go through it too: a header built from a
-     * creator's own custom question label is no safer than the answers
-     * underneath it.
+     * The inverse of cell(), for the one place that round-trips: the
+     * contact directory exports a CSV and accepts the same file back.
+     * Only an apostrophe that cell() would itself have added is removed,
+     * so a name the user genuinely typed as 'Quote stays intact.
      */
-    public static function put($handle, array $row, string $separator = ','): int|false
+    public static function uncell(mixed $value): string
     {
-        return fputcsv($handle, self::row($row), $separator);
+        $value = (string) $value;
+
+        if (($value[0] ?? null) === "'"
+            && ($value[1] ?? null) !== null
+            && in_array($value[1], self::RISKY_LEADING, true)) {
+            return substr($value, 1);
+        }
+
+        return $value;
+    }
+
+    /**
+     * Drop-in for fputcsv, down to the signature. Header rows are
+     * developer-authored and could skip this, but they go through it
+     * too: a header built from a creator's own custom question label is
+     * no safer than the answers underneath it.
+     *
+     * $enclosure and $escape are forwarded rather than defaulted away.
+     * Eight call sites pass ',', '"', '' deliberately -- an empty escape
+     * is the RFC-4180 behaviour, and silently restoring PHP's backslash
+     * default would corrupt those exports.
+     */
+    public static function put(
+        $handle,
+        array $row,
+        string $separator = ',',
+        string $enclosure = '"',
+        string $escape = '\\'
+    ): int|false {
+        return fputcsv($handle, self::row($row), $separator, $enclosure, $escape);
+    }
+
+    /**
+     * One row as a string, for the two exports that assemble CSV text by
+     * hand instead of writing to a handle. They each carried their own
+     * quoting routine and neither neutralised formulas.
+     */
+    public static function line(
+        array $row,
+        string $separator = ',',
+        string $enclosure = '"',
+        string $escape = '\\'
+    ): string {
+        $handle = fopen('php://temp', 'r+');
+        self::put($handle, $row, $separator, $enclosure, $escape);
+        rewind($handle);
+        $line = (string) stream_get_contents($handle);
+        fclose($handle);
+
+        return rtrim($line, "\r\n");
     }
 }

@@ -18,6 +18,7 @@ use App\Services\AI\Marketing\MarketingDiagnosisService;
 use App\Services\AI\Marketing\MarketingForecastService;
 use App\Services\AI\Marketing\MarketingOutcomeService;
 use App\Services\AI\Marketing\MarketingScorecardService;
+use App\Support\CsvSafe;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -1768,18 +1769,9 @@ PROMPT;
 
         $out = '';
         foreach ($rows as $row) {
-            $out .= implode(',', array_map([$this, 'csvCell'], $row)) . "\r\n";
+            $out .= CsvSafe::line($row) . "\r\n";
         }
         return $out;
-    }
-
-    protected function csvCell($value): string
-    {
-        $v = (string) $value;
-        if (preg_match('/[",\r\n]/', $v)) {
-            $v = '"' . str_replace('"', '""', $v) . '"';
-        }
-        return $v;
     }
 
     /**

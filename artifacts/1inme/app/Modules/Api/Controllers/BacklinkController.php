@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\Backlink;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
@@ -115,7 +116,7 @@ class BacklinkController extends Controller
 
         return response()->streamDownload(function () use ($userId, $days, $type) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 'first_seen_at', 'page_url', 'page_title', 'anchor_text',
                 'matched_url', 'matched_property_type', 'matched_property_value',
             ]);
@@ -124,7 +125,7 @@ class BacklinkController extends Controller
             if ($type) $q->where('matched_property_type', $type);
             $q->orderByDesc('first_seen_at')->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $r) {
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         optional($r->first_seen_at)->toIso8601String(),
                         $r->page_url,
                         $r->page_title,

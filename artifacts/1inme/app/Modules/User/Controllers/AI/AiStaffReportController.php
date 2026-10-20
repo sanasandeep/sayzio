@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers\AI;
 
 use App\Http\Controllers\Controller;
 use App\Services\AI\AiStaffReports;
+use App\Support\CsvSafe;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -29,9 +30,9 @@ class AiStaffReportController extends Controller
         if (($data['export'] ?? '') === 'csv') {
             return response()->streamDownload(function () use ($result) {
                 $f = fopen('php://output', 'w');
-                fputcsv($f, ['Date (server timezone)', 'AI charges', 'Coins']);
+                CsvSafe::put($f, ['Date (server timezone)', 'AI charges', 'Coins']);
                 foreach ($result['daily'] as $row) {
-                    fputcsv($f, [$row->day, $row->charges, $row->coins]);
+                    CsvSafe::put($f, [$row->day, $row->charges, $row->coins]);
                 }fclose($f);
             }, 'ai-staff-report.csv', ['Content-Type' => 'text/csv', 'Cache-Control' => 'private, no-store']);
         }

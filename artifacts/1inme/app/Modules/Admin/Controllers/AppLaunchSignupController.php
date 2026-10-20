@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Models\AppLaunchSignup;
 use App\Modules\Common\Support\AppLaunchNotifier;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -70,10 +71,10 @@ class AppLaunchSignupController extends Controller
         $filename = 'app-launch-signups-' . date('Ymd-His') . '.csv';
         return new StreamedResponse(function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['email', 'store', 'signed_up_at', 'notified_at', 'unsubscribed_at']);
+            CsvSafe::put($out, ['email', 'store', 'signed_up_at', 'notified_at', 'unsubscribed_at']);
             AppLaunchSignup::orderBy('id')->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $r) {
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         $r->email,
                         $r->store,
                         optional($r->created_at)->toIso8601String(),

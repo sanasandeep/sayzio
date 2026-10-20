@@ -8,6 +8,7 @@ use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\NewsletterIssue;
 use App\Modules\Common\Models\NewsletterIssueUnsubscribe;
 use App\Modules\Common\Models\NewsletterSubscriber;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -72,10 +73,10 @@ class NewsletterController extends Controller
         $filename = 'newsletter-subscribers-' . date('Ymd-His') . '.csv';
         return new StreamedResponse(function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['email', 'source', 'subscribed_at', 'unsubscribed_at', 'unsubscribe_source']);
+            CsvSafe::put($out, ['email', 'source', 'subscribed_at', 'unsubscribed_at', 'unsubscribe_source']);
             NewsletterSubscriber::orderBy('id')->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $r) {
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         $r->email,
                         $r->source,
                         optional($r->created_at)->toIso8601String(),

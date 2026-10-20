@@ -3,6 +3,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\{Link, ClubMembership, Form};
 use App\Modules\User\Services\ClubMembershipService;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use App\Modules\User\Models\BillingCompany;
 use App\Services\Billing\ClientInvoiceService;
@@ -85,10 +86,10 @@ class ClubMembershipController extends Controller {
         $this->authorizeLink($link);
         return response()->streamDownload(function()use($link){
             $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
-            fputcsv($out,\App\Modules\User\Services\ClubMembershipImportService::HEADERS,',','"','');
+            CsvSafe::put($out,\App\Modules\User\Services\ClubMembershipImportService::HEADERS,',','"','');
             foreach(ClubMembership::where('link_id',$link->id)->orderBy('id')->cursor() as $member) {
                 $row=[$member->name,$member->email,$member->phone,$member->status,$member->expires_at?->toDateString()??'',json_encode((object)($member->custom_fields??[]),JSON_UNESCAPED_UNICODE)];
-                fputcsv($out,array_map([\App\Modules\User\Services\ClubMembershipImportService::class,'csvCell'],$row),',','"','');
+                CsvSafe::put($out,$row,',','"','');
             }
             fclose($out);
         },'club-'.$link->id.'-members.csv',['Content-Type'=>'text/csv; charset=UTF-8','Cache-Control'=>'private, no-store']);

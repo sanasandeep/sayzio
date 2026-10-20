@@ -9,6 +9,7 @@ use App\Modules\User\Models\CreatorPostReaction;
 use App\Modules\User\Models\CreatorSubscription;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\PostUnlock;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -108,9 +109,9 @@ class CreatorStatsController extends Controller
         $filename = "sayzio-stats-{$user->handle}-" . $start->format('Y-m-d') . '-to-' . $end->format('Y-m-d') . '.csv';
         return response()->streamDownload(function () use ($followsByDay, $postsByDay, $reactionsByDay, $commentsByDay) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Date', 'New followers', 'Posts published', 'Reactions', 'Comments']);
+            CsvSafe::put($out, ['Date', 'New followers', 'Posts published', 'Reactions', 'Comments']);
             foreach ($followsByDay as $day => $followers) {
-                fputcsv($out, [
+                CsvSafe::put($out, [
                     $day,
                     $followers,
                     $postsByDay[$day]     ?? 0,

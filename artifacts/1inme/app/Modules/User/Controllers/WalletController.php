@@ -13,6 +13,7 @@ use App\Services\Billing\InsufficientCoinsException;
 use App\Services\Billing\NotImplementedException;
 use App\Services\Billing\WalletService;
 use App\Services\PricingResolver;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 
 /**
@@ -216,10 +217,10 @@ class WalletController extends Controller
             // The AI columns are on every row rather than only on the AI
             // ones: a CSV whose column count changes per row is a CSV that
             // no spreadsheet opens correctly.
-            fputcsv($out, ['Date', 'Time', 'Type', 'Description', 'Coins', 'Balance after', 'AI', 'Feature', 'Model', 'Tokens in', 'Tokens out']);
+            CsvSafe::put($out, ['Date', 'Time', 'Type', 'Description', 'Coins', 'Balance after', 'AI', 'Feature', 'Model', 'Tokens in', 'Tokens out']);
             $query->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $tx) {
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         optional($tx->created_at)->format('Y-m-d'),
                         optional($tx->created_at)->format('H:i:s'),
                         $tx->type,

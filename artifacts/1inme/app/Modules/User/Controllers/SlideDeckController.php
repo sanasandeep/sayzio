@@ -7,6 +7,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkSlide;
 use App\Modules\User\Models\LinkSlideDeck;
 use App\Modules\User\Models\LinkSlideViewEvent;
+use App\Support\CsvSafe;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -589,19 +590,19 @@ class SlideDeckController extends Controller
             // UTF-8 BOM so Excel opens accents/emoji correctly.
             fwrite($out, "\xEF\xBB\xBF");
 
-            fputcsv($out, ['Slides analytics export']);
-            fputcsv($out, ['Link', ($link->title ?: $link->alias) . ' (/' . $link->alias . ')']);
-            fputcsv($out, ['Deck version', (int) $deck->version]);
-            fputcsv($out, ['Period', $range['period']]);
-            fputcsv($out, ['Date range', $rangeLabel]);
-            fputcsv($out, ['Generated at', now()->toDateTimeString()]);
-            fputcsv($out, ['Total impressions', $totalImpressions]);
-            fputcsv($out, ['Unique sessions', $uniqueSessions]);
-            fputcsv($out, ['Completed decks', $completedCount]);
-            fputcsv($out, ['Completion rate %', $completionPct]);
-            fputcsv($out, []);
+            CsvSafe::put($out, ['Slides analytics export']);
+            CsvSafe::put($out, ['Link', ($link->title ?: $link->alias) . ' (/' . $link->alias . ')']);
+            CsvSafe::put($out, ['Deck version', (int) $deck->version]);
+            CsvSafe::put($out, ['Period', $range['period']]);
+            CsvSafe::put($out, ['Date range', $rangeLabel]);
+            CsvSafe::put($out, ['Generated at', now()->toDateTimeString()]);
+            CsvSafe::put($out, ['Total impressions', $totalImpressions]);
+            CsvSafe::put($out, ['Unique sessions', $uniqueSessions]);
+            CsvSafe::put($out, ['Completed decks', $completedCount]);
+            CsvSafe::put($out, ['Completion rate %', $completionPct]);
+            CsvSafe::put($out, []);
 
-            fputcsv($out, ['Index', 'Title', 'Views', 'Unique sessions', 'Drop-off %']);
+            CsvSafe::put($out, ['Index', 'Title', 'Views', 'Unique sessions', 'Drop-off %']);
             foreach ($slides as $s) {
                 $idx   = (int) $s->sort_order;
                 $views = (int) ($perIndexCounts[$idx] ?? 0);
@@ -609,7 +610,7 @@ class SlideDeckController extends Controller
                 $drop  = $firstImpressions > 0
                     ? round((($firstImpressions - $views) / $firstImpressions) * 100, 1)
                     : 0;
-                fputcsv($out, [
+                CsvSafe::put($out, [
                     $idx + 1,
                     $s->title ?: ('Slide ' . ($idx + 1)),
                     $views,

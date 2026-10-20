@@ -7,6 +7,7 @@ use App\Modules\User\Models\Form;
 use App\Modules\User\Services\FormResponseAnalytics;
 use App\Modules\User\Services\FormVisitTracker;
 use App\Modules\User\Services\FormWebhookDispatcher;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -35,12 +36,11 @@ class FormExperienceController extends Controller
         if ($r->input('export') === 'csv') {
             return response()->streamDownload(function () use ($report) {
                 $h = fopen('php://output', 'w');
-                fputcsv($h, ['Question', 'Type', 'Answered', 'Completion %', 'Value', 'Count', 'Numeric total', 'Numeric average', 'Average rank']);
+                CsvSafe::put($h, ['Question', 'Type', 'Answered', 'Completion %', 'Value', 'Count', 'Numeric total', 'Numeric average', 'Average rank']);
                 foreach ($report['reports'] as $f) {
                     $dist = $f['distribution'] ?: ['' => null];
                     foreach ($dist as $label => $n) {
-                        $safe = fn ($v) => is_string($v) && preg_match('/^[=+@\-\t\r]/', $v) ? "'".$v : $v;
-                        fputcsv($h, array_map($safe, [$f['label'], $f['type'], $f['filled'], $f['rate'], $label, $n, $f['numeric']['sum'] ?? '', $f['numeric']['average'] ?? '', $f['ranking'][$label] ?? '']));
+                        CsvSafe::put($h, [$f['label'], $f['type'], $f['filled'], $f['rate'], $label, $n, $f['numeric']['sum'] ?? '', $f['numeric']['average'] ?? '', $f['ranking'][$label] ?? '']);
                     }
                 }fclose($h);
             }, 'form-'.$form->id.'-report.csv', ['Content-Type' => 'text/csv']);

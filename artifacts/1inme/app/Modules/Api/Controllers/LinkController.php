@@ -10,6 +10,7 @@ use App\Modules\User\Models\AbVariant;
 use App\Modules\User\Models\Domain;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Services\BlockAnalyticsAggregator;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -264,32 +265,21 @@ class LinkController extends Controller
 
         $filename = 'my-links-' . now()->format('Y-m-d') . '.csv';
 
-        // Defend against CSV formula injection when opened in a spreadsheet —
-        // prefix any cell starting with =, +, -, @ with a single quote so the
-        // spreadsheet treats it as text.
-        $safe = function ($value) {
-            $s = (string) $value;
-            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
-                return "'" . $s;
-            }
-            return $s;
-        };
-
-        return response()->streamDownload(function () use ($q, $safe) {
+        return response()->streamDownload(function () use ($q) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 'title', 'type', 'short_url', 'destination',
                 'project', 'status', 'total_clicks', 'created_at',
             ]);
 
-            $q->orderByDesc('id')->chunk(500, function ($rows) use ($out, $safe) {
+            $q->orderByDesc('id')->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $link) {
-                    fputcsv($out, [
-                        $safe($link->title ?: $link->alias),
-                        $safe($link->type),
-                        $safe($link->getShortUrl()),
-                        $safe($link->long_url),
-                        $safe(optional($link->project)->name),
+                    CsvSafe::put($out, [
+                        $link->title ?: $link->alias,
+                        $link->type,
+                        $link->getShortUrl(),
+                        $link->long_url,
+                        optional($link->project)->name,
                         $link->is_active ? 'active' : 'inactive',
                         (int) $link->total_clicks,
                         optional($link->created_at)->toIso8601String(),

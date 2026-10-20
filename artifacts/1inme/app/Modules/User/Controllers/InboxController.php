@@ -10,6 +10,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Services\InboxAggregator;
 use App\Modules\User\Services\SpamChecker;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 
 class InboxController
@@ -275,20 +276,6 @@ class InboxController
         return $row;
     }
 
-    protected function csvSafe($v): string
-    {
-        $v = (string) $v;
-        if ($v !== '' && in_array($v[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
-            $v = "'" . $v;
-        }
-        return $v;
-    }
-
-    protected function fputcsvSafe($h, array $row): void
-    {
-        fputcsv($h, array_map(fn($v) => $this->csvSafe($v), $row));
-    }
-
     public function exportFiltered(Request $request)
     {
         $userId = app()->bound("workspace_owner") ? app("workspace_owner")->id : workspace_owner_id();
@@ -309,12 +296,12 @@ class InboxController
         $filename = 'inbox-' . now()->format('Ymd-His') . '.csv';
         return response()->streamDownload(function () use ($aggregator, $filters) {
             $h = fopen('php://output', 'w');
-            fputcsv($h, ['source', 'source_label', 'name', 'preview', 'submitted_at', 'is_read', 'is_starred', 'is_spam']);
+            CsvSafe::put($h, ['source', 'source_label', 'name', 'preview', 'submitted_at', 'is_read', 'is_starred', 'is_spam']);
             $page = 1;
             do {
                 $p = $aggregator->paginate($filters, 200, $page);
                 foreach ($p->items() as $row) {
-                    $this->fputcsvSafe($h, [
+                    CsvSafe::put($h, [
                         $row->source_type,
                         $row->source_label,
                         $row->name,
@@ -337,7 +324,7 @@ class InboxController
         $filename = 'inbox-selection-' . now()->format('Ymd-His') . '.csv';
         return response()->streamDownload(function () use ($tokens, $userId) {
             $h = fopen('php://output', 'w');
-            fputcsv($h, ['source', 'name', 'email', 'phone', 'preview', 'submitted_at']);
+            CsvSafe::put($h, ['source', 'name', 'email', 'phone', 'preview', 'submitted_at']);
             foreach ($tokens as $token) {
                 [$type, $id] = array_pad(explode(':', $token, 2), 2, null);
                 if (!$type || !$id) continue;
@@ -349,9 +336,9 @@ class InboxController
                     $phone = $model->data['phone'] ?? '';
                     $preview = collect($model->data ?? [])->reject(fn($v) => is_array($v))->take(5)
                         ->map(fn($v, $k) => "$k=$v")->implode(' | ');
-                    $this->fputcsvSafe($h, ['form_submission', $name, $email, $phone, $preview, $model->created_at?->toIso8601String()]);
+                    CsvSafe::put($h, ['form_submission', $name, $email, $phone, $preview, $model->created_at?->toIso8601String()]);
                 } else {
-                    $this->fputcsvSafe($h, [
+                    CsvSafe::put($h, [
                         'subscriber:' . $model->type,
                         $model->name ?? '',
                         $model->email ?? '',
