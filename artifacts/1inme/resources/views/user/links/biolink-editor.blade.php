@@ -3508,7 +3508,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset the stage so the next sample does not inherit this one's
         // height for a frame and flash at the wrong size.
         stage.style.height = '200px';
+        // Every dimension, not just the transform: a leftover inline
+        // height is exactly what made the next sample measure this one.
         frame.style.transform = '';
+        frame.style.width = '';
+        frame.style.height = '';
         try { frame.src = 'about:blank'; } catch (e) {}
     }
 
@@ -3518,9 +3522,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function fitFrame() {
         var stageW = stage.clientWidth || 320;
         var contentH = 0;
+
+        // Collapse the frame before reading it. The sample's body carries
+        // min-height, so a frame already sized to the LAST sample makes
+        // every later document report that height instead of its own --
+        // a divider measured 503px because a profile card had been in
+        // this frame before it. Squash to 40px, let layout settle, then
+        // ask; the real answer is 65px for a divider and 479px for the
+        // card.
+        frame.style.transform = '';
+        frame.style.width = FRAME_W + 'px';
+        frame.style.height = '40px';
         try {
             var doc = frame.contentDocument;
             if (doc && doc.body) {
+                void doc.body.offsetHeight; // force the reflow before reading
                 contentH = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight) || 0;
             }
         } catch (e) { contentH = 0; }

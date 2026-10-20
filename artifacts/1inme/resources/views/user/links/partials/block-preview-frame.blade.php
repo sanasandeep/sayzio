@@ -65,7 +65,7 @@
         <link href="{{ $previewFontHref }}" rel="stylesheet">
     @endif
     <style>
-        html { scroll-behavior: auto; }
+        html { scroll-behavior: auto; background: {{ $bgPaint }}; }
         body {
             margin: 0;
             font-family: '{{ $fontFamily }}', 'Space Grotesk', sans-serif;
@@ -75,7 +75,12 @@
             background: {{ $bgPaint }};
             background-size: cover;
             background-position: center;
-            min-height: 100%;
+            {{-- Deliberately no min-height. The flyout sizes this frame
+                 from the document's own height, and a body that always
+                 fills its frame can never report anything smaller than
+                 the frame it is already in. html carries the same ground
+                 so nothing shows through underneath. --}}
+            min-height: 0;
         }
         {{-- 12-column stage matching the public biolink grid so a block
              whose default width is less than full still reads correctly. --}}
