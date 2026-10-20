@@ -143,6 +143,29 @@ class CompetitorTeardownController extends Controller
             ->with('success', 'Built a better version based on the teardown — review and publish when ready.');
     }
 
+    /**
+     * Price the build before the creator commits to it.
+     *
+     * Quotes the "match their style" figure, which is the larger of the two
+     * because it carries the palette directive. An "Up to" badge may quote
+     * high; it must never quote low.
+     */
+    public function buildEstimate(Request $request, CompetitorTeardown $teardown)
+    {
+        $this->authorizeTeardown($teardown);
+
+        $owner = workspace_owner();
+
+        return response()->json([
+            'estimated_credits' => $this->teardown->estimateBuild(
+                $owner,
+                $teardown,
+                CompetitorTeardownService::STYLE_MATCH,
+            ),
+            'balance' => $this->credits->getBalance($request->user()),
+        ]);
+    }
+
     private function authorizeTeardown(CompetitorTeardown $teardown): void
     {
         abort_if($teardown->user_id !== workspace_owner_id(), 403);

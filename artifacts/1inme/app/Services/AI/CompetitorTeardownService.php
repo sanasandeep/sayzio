@@ -307,6 +307,36 @@ PROMPT;
     }
 
     /**
+     * What "Build me a better version" will cost, before pressing it.
+     *
+     * Not a new worst case: this calls the builder's own estimateCredits()
+     * with the exact description buildBetterVersion() will send, so the
+     * number comes from the same prompt the charge will be computed from --
+     * block catalogue, plan multiplier, and the image-generation fallback
+     * that applies here because no images are ever supplied.
+     *
+     * AiCostEstimator deliberately has no biolink_builder case: its own
+     * docblock says features with an accurate input-specific estimate keep
+     * using theirs. This is that.
+     */
+    public function estimateBuild(User $owner, CompetitorTeardown $teardown, string $style = self::STYLE_ORIGINAL): int
+    {
+        if ($teardown->status !== 'completed' || !is_array($teardown->analysis)) {
+            return 0;
+        }
+
+        return $this->builder->estimateCredits(
+            $owner,
+            $this->describeForBuilder($teardown),
+            [],
+            [],
+            [],
+            '',
+            $style === self::STYLE_MATCH ? $this->brandDirectivesFor($teardown) : '',
+        );
+    }
+
+    /**
      * The competitor's palette, as direction the builder can act on.
      *
      * Colours only -- not their images. A page's palette is not ownable and
