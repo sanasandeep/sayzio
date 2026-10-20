@@ -574,12 +574,12 @@
         }
         .zio-mascot { position: relative; z-index: 1; }
         .zio-ant--l {
-            background-image: url('../../branding/zio-antenna-l.png');
+            background-image: url('../../branding/zio-antenna-l.webp');
             transform-origin: 33% 26%;
             animation: zioAntL 3.6s ease-in-out infinite;
         }
         .zio-ant--r {
-            background-image: url('../../branding/zio-antenna-r.png');
+            background-image: url('../../branding/zio-antenna-r.webp');
             transform-origin: 68% 22%;
             animation: zioAntR 4.3s ease-in-out infinite;
         }
