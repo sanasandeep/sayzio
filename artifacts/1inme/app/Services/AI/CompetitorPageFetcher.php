@@ -175,7 +175,8 @@ class CompetitorPageFetcher
      *   final_url:string, title:string, meta_description:string,
      *   h1:list<string>, h2:list<string>, cta_texts:list<string>,
      *   link_count:int, image_count:int, form_count:int,
-     *   has_email_capture:bool, has_social_links:bool, text_excerpt:string
+     *   has_email_capture:bool, has_social_links:bool, text_excerpt:string,
+     *   palette:array{theme_color:?string, colors:list<string>, roles:array<string,string>}
      * }
      */
     private function extract(string $html, string $finalUrl): array
@@ -239,7 +240,126 @@ class CompetitorPageFetcher
             'has_email_capture' => $hasEmailCapture,
             'has_social_links'  => $hasSocialLinks,
             'text_excerpt'      => mb_substr($bodyText, 0, 3000),
+            'palette'           => $this->extractPalette($html, $xpath),
         ];
+    }
+
+    /**
+     * The page's colours, for the "match their style" build mode.
+     *
+     * Deliberately NOT added to the scoring prompt: buildMessages() in
+     * CompetitorTeardownService whitelists the keys it forwards, and colours
+     * tell a conversion critic nothing. This is stored on the teardown and
+     * read only when a creator asks for a build that matches the competitor's
+     * look, so the teardown's own cost estimate is unaffected.
+     *
+     * Colours were always arriving and always being thrown away -- Linktree's
+     * own --profileBackground / --button-style-background values were sitting
+     * inside text_excerpt as prose for the scorer to ignore.
+     *
+     * @return array{theme_color:?string, colors:list<string>, roles:array<string,string>}
+     */
+    private function extractPalette(string $html, \DOMXPath $xpath): array
+    {
+        $themeColor = null;
+        foreach ($xpath->query('//meta[@name="theme-color"]') as $node) {
+            $hex = $this->normaliseColor((string) $node->getAttribute('content'));
+            if ($hex !== null) {
+                $themeColor = $hex;
+                break;
+            }
+        }
+
+        // Only the <style> blocks and style="" attributes. Scanning the whole
+        // document would pick colours out of body copy and inline SVG paths.
+        $styleText = '';
+        foreach ($xpath->query('//style') as $node) {
+            $styleText .= "\n" . $node->textContent;
+        }
+        foreach ($xpath->query('//*[@style]') as $node) {
+            $styleText .= "\n" . $node->getAttribute('style');
+        }
+        $styleText = mb_substr($styleText, 0, 200000);
+
+        // Custom properties whose NAME says what the colour is for. Matching
+        // the role word rather than one platform's variable names is what
+        // keeps this from being a Linktree-shaped extractor.
+        $roles = [];
+        // Words that mean "a colour derived FROM the role" rather than the
+        // role itself. Without this, --background-contrast-color wins the
+        // `background` slot and hands the builder #000000 for a page whose
+        // actual background is #eceef1. Found by running this against the
+        // real Linktree payload before shipping it.
+        $notTheRole = '/(contrast|shadow|skeleton|hover|active|focus|border|outline|default|disabled|placeholder|overlay|scrim|inverse)/i';
+        $roleWords = [
+            'button_bg'   => '(button|btn|cta)[-_a-z0-9]*(background|bg|fill)',
+            'button_text' => '(button|btn|cta)[-_a-z0-9]*(text|color|colour|foreground)',
+            'background'  => '^(?!.*(button|btn|cta))[-_a-z0-9]*(page|body|profile|backdrop|surface)?[-_a-z0-9]*(background|bg)',
+            'text'        => '^(?!.*(button|btn|cta))[-_a-z0-9]*(body|page|profile)?[-_a-z0-9]*(text|ink)',
+            'accent'      => '(accent|primary|brand|highlight)',
+        ];
+        if (preg_match_all('/--([a-z0-9-_]+)\s*:\s*([^;}]+)/i', $styleText, $m, PREG_SET_ORDER)) {
+            foreach ($m as $hit) {
+                $name  = strtolower($hit[1]);
+                $value = $this->normaliseColor(trim($hit[2]));
+                if ($value === null || preg_match($notTheRole, $name)) {
+                    continue;
+                }
+                foreach ($roleWords as $role => $pattern) {
+                    if (!isset($roles[$role]) && preg_match('/' . $pattern . '/i', $name)) {
+                        $roles[$role] = $value;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Everything else, by how often it is used -- the page's working
+        // palette rather than whatever happens to be declared first.
+        $counts = [];
+        if (preg_match_all('/#[0-9a-f]{3,8}\b|rgba?\([^)]*\)/i', $styleText, $hits)) {
+            foreach ($hits[0] as $raw) {
+                $hex = $this->normaliseColor($raw);
+                if ($hex !== null) {
+                    $counts[$hex] = ($counts[$hex] ?? 0) + 1;
+                }
+            }
+        }
+        arsort($counts);
+
+        return [
+            'theme_color' => $themeColor,
+            'colors'      => array_slice(array_keys($counts), 0, 8),
+            'roles'       => $roles,
+        ];
+    }
+
+    /**
+     * A CSS colour as #rrggbb, or null when it is not one we can use.
+     *
+     * Fully transparent colours are dropped: rgba(0,0,0,0) is "no colour",
+     * and carrying it through as #000000 would hand the builder a black that
+     * the page never actually shows.
+     */
+    private function normaliseColor(string $raw): ?string
+    {
+        $raw = trim(strtolower($raw));
+
+        if (preg_match('/^#([0-9a-f]{3})$/', $raw, $m)) {
+            return '#' . $m[1][0] . $m[1][0] . $m[1][1] . $m[1][1] . $m[1][2] . $m[1][2];
+        }
+        if (preg_match('/^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/', $raw, $m)) {
+            return '#' . $m[1];
+        }
+        if (preg_match('/^rgba?\(\s*([0-9]{1,3})[\s,]+([0-9]{1,3})[\s,]+([0-9]{1,3})\s*(?:[,\/]\s*([0-9.]+)\s*)?\)$/', $raw, $m)) {
+            if (isset($m[4]) && $m[4] !== '' && (float) $m[4] === 0.0) {
+                return null;
+            }
+            $rgb = array_map(static fn (string $v): int => max(0, min(255, (int) $v)), [$m[1], $m[2], $m[3]]);
+            return sprintf('#%02x%02x%02x', $rgb[0], $rgb[1], $rgb[2]);
+        }
+
+        return null;
     }
 
     /** @return list<string> */
