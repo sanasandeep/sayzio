@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Support;
 
+use App\Support\CsvSafe;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -228,33 +229,26 @@ trait ExportsCalendarEvents
     /** Stream events as a downloadable CSV file. */
     protected function exportCalendarCsv(Collection $events, string $filename, string $userTz): StreamedResponse
     {
-        $safe = function ($value): string {
-            $s = (string) $value;
-            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
-                return "'" . $s;
-            }
-            return $s;
-        };
 
-        return response()->stream(function () use ($events, $userTz, $safe) {
+        return response()->stream(function () use ($events, $userTz) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Title', 'Calendar', 'Start', 'End', 'All Day', 'Location', 'Description', 'Tags', 'Ticket URL']);
+            CsvSafe::put($out, ['Title', 'Calendar', 'Start', 'End', 'All Day', 'Location', 'Description', 'Tags', 'Ticket URL']);
 
             foreach ($events as $ev) {
                 $etz   = $ev->timezone ?: ($ev->calendar?->effectiveTimezone() ?? $userTz);
                 $start = $ev->start_at ? $ev->start_at->timezone($etz)->toDateTimeString() : '';
                 $end   = $ev->end_at   ? $ev->end_at->timezone($etz)->toDateTimeString()   : '';
 
-                fputcsv($out, [
-                    $safe($ev->title),
-                    $safe($ev->calendar?->title ?? ''),
-                    $safe($start),
-                    $safe($end),
+                CsvSafe::put($out, [
+                    $ev->title,
+                    $ev->calendar?->title ?? '',
+                    $start,
+                    $end,
                     $ev->all_day ? 'Yes' : 'No',
-                    $safe($ev->location ?? ''),
-                    $safe(strip_tags($ev->description ?? '')),
+                    $ev->location ?? '',
+                    strip_tags($ev->description ?? ''),
                     implode(', ', $ev->hashtags ?? []),
-                    $safe($ev->payment_url ?? ''),
+                    $ev->payment_url ?? '',
                 ]);
             }
 

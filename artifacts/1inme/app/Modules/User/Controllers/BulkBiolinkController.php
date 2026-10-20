@@ -12,6 +12,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Support\BiolinkMergeEngine;
 use App\Modules\User\Support\BlockTypeRegistry;
 use App\Modules\User\Support\MailMergeSheet;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -321,7 +322,7 @@ class BulkBiolinkController extends Controller
             };
         }, $headers);
 
-        $csv = $this->csvLine($headers) . "\r\n" . $this->csvLine($example) . "\r\n";
+        $csv = CsvSafe::line($headers) . "\r\n" . CsvSafe::line($example) . "\r\n";
 
         return response($csv, 200, [
             'Content-Type'        => 'text/csv; charset=UTF-8',
@@ -586,11 +587,4 @@ class BulkBiolinkController extends Controller
     }
 
     /** RFC-4180-ish CSV line builder for the sample download. */
-    private function csvLine(array $fields): string
-    {
-        return implode(',', array_map(function ($v) {
-            $s = (string) $v;
-            return preg_match('/[",\r\n]/', $s) ? '"' . str_replace('"', '""', $s) . '"' : $s;
-        }, $fields));
-    }
 }

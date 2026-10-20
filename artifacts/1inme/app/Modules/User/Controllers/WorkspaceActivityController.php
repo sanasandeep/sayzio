@@ -7,6 +7,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceActivityEvent;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -81,14 +82,14 @@ class WorkspaceActivityController extends Controller
 
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Timestamp (UTC)', 'Actor', 'Action', 'Object type', 'Object', 'Object URL', 'IP', 'User agent', 'Payload']);
+            CsvSafe::put($out, ['Timestamp (UTC)', 'Actor', 'Action', 'Object type', 'Object', 'Object URL', 'IP', 'User agent', 'Payload']);
 
             $query->orderByDesc('id')->chunk(500, function ($rows) use ($out) {
                 $actorIds = $rows->pluck('actor_user_id')->filter()->unique();
                 $actors = User::whereIn('id', $actorIds)->get(['id', 'name', 'email'])->keyBy('id');
                 foreach ($rows as $r) {
                     $actor = $r->actor_user_id ? ($actors[$r->actor_user_id] ?? null) : null;
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         optional($r->created_at)->toIso8601String(),
                         $actor ? ($actor->name ?: $actor->email) : ('user#' . ($r->actor_user_id ?? '?')),
                         $r->action,

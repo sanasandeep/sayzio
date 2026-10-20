@@ -3,6 +3,7 @@
 namespace App\Modules\User\Services\Contacts;
 
 use App\Modules\User\Models\Contact;
+use App\Support\CsvSafe;
 use Illuminate\Support\Collection;
 
 /**
@@ -41,7 +42,7 @@ class ContactExportBuilder
             $header[] = "email {$i}";
             $header[] = "email {$i} label";
         }
-        fputcsv($out, $header);
+        CsvSafe::put($out, $header);
 
         foreach ($contacts as $contact) {
             $phones = $contact->phones ?? collect();
@@ -69,7 +70,7 @@ class ContactExportBuilder
                 $row[] = $e ? ($e->label ?? '') : '';
             }
 
-            fputcsv($out, $row);
+            CsvSafe::put($out, $row);
         }
 
         rewind($out);

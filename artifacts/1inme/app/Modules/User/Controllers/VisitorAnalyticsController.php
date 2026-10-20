@@ -9,6 +9,7 @@ use App\Modules\User\Models\LinkClick;
 use App\Modules\User\Models\NfcWrite;
 use App\Modules\User\Models\PageSession;
 use App\Modules\User\Support\AnalyticsRangeResolver;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -48,59 +49,59 @@ class VisitorAnalyticsController extends Controller
         return response()->streamDownload(function () use ($data, $link) {
             $out = fopen('php://output', 'w');
 
-            fputcsv($out, ['Visitor Insights export']);
-            fputcsv($out, ['Link', $link->title ?: $link->alias]);
-            fputcsv($out, ['Range', $data['startDate']->format('Y-m-d') . ' to ' . $data['endDate']->format('Y-m-d')]);
-            fputcsv($out, []);
+            CsvSafe::put($out, ['Visitor Insights export']);
+            CsvSafe::put($out, ['Link', $link->title ?: $link->alias]);
+            CsvSafe::put($out, ['Range', $data['startDate']->format('Y-m-d') . ' to ' . $data['endDate']->format('Y-m-d')]);
+            CsvSafe::put($out, []);
 
-            fputcsv($out, ['Totals']);
-            fputcsv($out, ['Metric', 'Visitors']);
-            fputcsv($out, ['Unique visitors', $data['totalVisitors']]);
-            fputcsv($out, ['New', $data['newCount']]);
-            fputcsv($out, ['Returning', $data['returningCount']]);
-            fputcsv($out, []);
+            CsvSafe::put($out, ['Totals']);
+            CsvSafe::put($out, ['Metric', 'Visitors']);
+            CsvSafe::put($out, ['Unique visitors', $data['totalVisitors']]);
+            CsvSafe::put($out, ['New', $data['newCount']]);
+            CsvSafe::put($out, ['Returning', $data['returningCount']]);
+            CsvSafe::put($out, []);
 
-            fputcsv($out, ['Daily trend']);
-            fputcsv($out, ['Date', 'Unique visitors', 'Returning', 'Returning %']);
+            CsvSafe::put($out, ['Daily trend']);
+            CsvSafe::put($out, ['Date', 'Unique visitors', 'Returning', 'Returning %']);
             foreach ($data['dailySeries'] as $row) {
-                fputcsv($out, [$row->d, $row->visitors, $row->returning, $row->returning_pct]);
+                CsvSafe::put($out, [$row->d, $row->visitors, $row->returning, $row->returning_pct]);
             }
-            fputcsv($out, []);
+            CsvSafe::put($out, []);
 
-            fputcsv($out, ['Visitors by source']);
-            fputcsv($out, ['Source', 'Clicks']);
+            CsvSafe::put($out, ['Visitors by source']);
+            CsvSafe::put($out, ['Source', 'Clicks']);
             foreach ($data['sourceBreakdown'] as $row) {
-                fputcsv($out, [$row->src, $row->n]);
+                CsvSafe::put($out, [$row->src, $row->n]);
             }
-            fputcsv($out, []);
+            CsvSafe::put($out, []);
 
             // QR Connect funnel (event links only) — mirrors the on-page panel:
             // totals + the per-day scans-vs-connects table.
             if ($data['qrConnect'] !== null) {
                 $qr = $data['qrConnect'];
-                fputcsv($out, ['QR Connect']);
-                fputcsv($out, ['Metric', 'Count']);
-                fputcsv($out, ['Scans', $qr['scans']]);
-                fputcsv($out, ['Connects', $qr['connected']]);
-                fputcsv($out, ['New users', $qr['new_users']]);
-                fputcsv($out, ['Existing users', $qr['existing']]);
-                fputcsv($out, ['RSVPs', $qr['rsvps']]);
-                fputcsv($out, ['Follows', $qr['follows']]);
-                fputcsv($out, ['Conversion %', $qr['conversion_pct'] !== null ? $qr['conversion_pct'] : '—']);
-                fputcsv($out, []);
+                CsvSafe::put($out, ['QR Connect']);
+                CsvSafe::put($out, ['Metric', 'Count']);
+                CsvSafe::put($out, ['Scans', $qr['scans']]);
+                CsvSafe::put($out, ['Connects', $qr['connected']]);
+                CsvSafe::put($out, ['New users', $qr['new_users']]);
+                CsvSafe::put($out, ['Existing users', $qr['existing']]);
+                CsvSafe::put($out, ['RSVPs', $qr['rsvps']]);
+                CsvSafe::put($out, ['Follows', $qr['follows']]);
+                CsvSafe::put($out, ['Conversion %', $qr['conversion_pct'] !== null ? $qr['conversion_pct'] : '—']);
+                CsvSafe::put($out, []);
 
-                fputcsv($out, ['QR Connect daily']);
-                fputcsv($out, ['Date', 'Scans', 'Connects']);
+                CsvSafe::put($out, ['QR Connect daily']);
+                CsvSafe::put($out, ['Date', 'Scans', 'Connects']);
                 foreach ($qr['daily'] as $row) {
-                    fputcsv($out, [$row->d, $row->scans, $row->connects]);
+                    CsvSafe::put($out, [$row->d, $row->scans, $row->connects]);
                 }
-                fputcsv($out, []);
+                CsvSafe::put($out, []);
             }
 
-            fputcsv($out, ['Identified visitors']);
-            fputcsv($out, ['Name', 'Email', 'Visits', 'First seen', 'Last seen', 'Follower']);
+            CsvSafe::put($out, ['Identified visitors']);
+            CsvSafe::put($out, ['Name', 'Email', 'Visits', 'First seen', 'Last seen', 'Follower']);
             foreach ($data['identified'] as $row) {
-                fputcsv($out, [
+                CsvSafe::put($out, [
                     $row->name,
                     $row->email,
                     $row->visit_count,

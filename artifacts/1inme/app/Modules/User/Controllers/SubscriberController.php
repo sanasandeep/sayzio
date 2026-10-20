@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Controllers;
 
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\SubscriberMessage;
@@ -114,9 +115,9 @@ class SubscriberController
 
         $callback = function () use ($subscribers) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Name', 'Email', 'Phone', 'Type', 'Status', 'Source', 'Subscribed At']);
+            CsvSafe::put($file, ['Name', 'Email', 'Phone', 'Type', 'Status', 'Source', 'Subscribed At']);
             foreach ($subscribers as $sub) {
-                fputcsv($file, [
+                CsvSafe::put($file, [
                     $sub->name ?? '',
                     $sub->email ?? '',
                     $sub->phone ?? '',

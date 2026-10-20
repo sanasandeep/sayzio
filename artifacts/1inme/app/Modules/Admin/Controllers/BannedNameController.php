@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\BannedName;
 use App\Modules\Admin\Models\BannedNameAcknowledgement;
 use App\Modules\Admin\Services\BannedNameChecker;
+use App\Support\CsvSafe;
 use Database\Seeders\BannedNamesSeeder;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
@@ -269,9 +270,9 @@ class BannedNameController extends Controller
         // Default: CSV
         return new StreamedResponse(function () use ($items) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['name', 'note', 'created_at']);
+            CsvSafe::put($out, ['name', 'note', 'created_at']);
             foreach ($items as $i) {
-                fputcsv($out, [
+                CsvSafe::put($out, [
                     $i->name,
                     (string) $i->note,
                     optional($i->created_at)->toIso8601String(),

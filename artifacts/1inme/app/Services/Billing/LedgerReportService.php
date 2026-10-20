@@ -5,6 +5,7 @@ namespace App\Services\Billing;
 use App\Modules\User\Models\Expense;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\Refund;
+use App\Support\CsvSafe;
 use Illuminate\Support\Carbon;
 
 /**
@@ -113,16 +114,16 @@ class LedgerReportService
     public function toCsv(array $report): string
     {
         $out = fopen('php://temp', 'r+');
-        fputcsv($out, ['Date', 'Type', 'Reference', 'Party', 'Amount', 'Tax', 'Currency']);
+        CsvSafe::put($out, ['Date', 'Type', 'Reference', 'Party', 'Amount', 'Tax', 'Currency']);
         foreach ($report['invoices'] as $i) {
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 $i['paid_at'], 'Income', $i['number'], $i['recipient'],
                 number_format($i['amount_minor'] / 100, 2),
                 number_format($i['tax_minor'] / 100, 2), $i['currency'],
             ]);
         }
         foreach ($report['expenses'] as $e) {
-            fputcsv($out, [
+            CsvSafe::put($out, [
                 $e['spent_at'], 'Expense', $e['description'], $e['vendor'],
                 '-' . number_format($e['amount_minor'] / 100, 2),
                 number_format($e['tax_minor'] / 100, 2), $e['currency'],

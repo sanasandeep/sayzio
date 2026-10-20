@@ -9,6 +9,7 @@ use App\Modules\Admin\Models\PlanImportSnapshot;
 use App\Modules\Admin\Support\PlanCsvSchema;
 use App\Modules\Admin\Support\PlanWriter;
 use App\Modules\Common\Support\PlanFormCatalogue;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -368,31 +369,23 @@ class PlanController extends Controller
         // the importer via PlanCsvSchema so the exported file round-trips.
         $columns = PlanCsvSchema::columns();
 
-        // ---- Stream the CSV ----
-        $safe = static function (mixed $value): string {
-            $s = (string) $value;
-            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
-                return "'" . $s;
-            }
-            return $s;
-        };
 
         $filename = 'pricing-plans-' . now()->toDateString() . '.csv';
 
-        return response()->stream(function () use ($columns, $plans, $safe) {
+        return response()->stream(function () use ($columns, $plans) {
             $out = fopen('php://output', 'w');
 
             // UTF-8 BOM so Excel auto-detects the encoding.
             fwrite($out, "\xEF\xBB\xBF");
 
-            fputcsv($out, array_column($columns, 'header'));
+            CsvSafe::put($out, array_column($columns, 'header'));
 
             foreach ($plans as $plan) {
                 $row = [];
                 foreach ($columns as $col) {
-                    $row[] = $safe(($col['export'])($plan));
+                    $row[] = ($col['export'])($plan);
                 }
-                fputcsv($out, $row);
+                CsvSafe::put($out, $row);
             }
 
             fclose($out);

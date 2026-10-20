@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\SocialProof;
 use App\Modules\User\Models\User;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -204,12 +205,12 @@ class SocialProofController extends Controller
 
         return response()->streamDownload(function () use ($socialProof) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Date', 'Template', 'Name', 'Email', 'Phone', 'Rating', 'Answer', 'Message', 'Page URL', 'Spam']);
+            CsvSafe::put($out, ['Date', 'Template', 'Name', 'Email', 'Phone', 'Rating', 'Answer', 'Message', 'Page URL', 'Spam']);
             \App\Modules\User\Models\SocialProofSubmission::where('social_proof_id', $socialProof->id)
                 ->orderBy('id')
                 ->chunk(500, function ($rows) use ($out) {
                     foreach ($rows as $s) {
-                        fputcsv($out, [
+                        CsvSafe::put($out, [
                             (string) $s->created_at,
                             SocialProof::TYPES[$s->type] ?? $s->type,
                             (string) $s->name,

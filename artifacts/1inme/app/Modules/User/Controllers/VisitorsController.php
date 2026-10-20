@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Support\AnalyticsRangeResolver;
 use App\Modules\User\Support\LinkTypeCategories;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -55,36 +56,36 @@ class VisitorsController extends Controller
         return response()->streamDownload(function () use ($data) {
             $out = fopen('php://output', 'w');
 
-            fputcsv($out, ['Visitors export']);
-            fputcsv($out, ['Range', $data['startDate']->format('Y-m-d') . ' to ' . $data['endDate']->format('Y-m-d')]);
-            fputcsv($out, ['Link type', $data['typeFilter'] === 'all' ? 'All types' : Link::typeLabel($data['typeFilter'])]);
-            fputcsv($out, []);
+            CsvSafe::put($out, ['Visitors export']);
+            CsvSafe::put($out, ['Range', $data['startDate']->format('Y-m-d') . ' to ' . $data['endDate']->format('Y-m-d')]);
+            CsvSafe::put($out, ['Link type', $data['typeFilter'] === 'all' ? 'All types' : Link::typeLabel($data['typeFilter'])]);
+            CsvSafe::put($out, []);
 
-            fputcsv($out, ['Totals']);
-            fputcsv($out, ['Metric', 'Visitors']);
-            fputcsv($out, ['Total visitors', $data['totalVisitors']]);
-            fputcsv($out, ['New', $data['newCount']]);
-            fputcsv($out, ['Returning', $data['returningCount']]);
-            fputcsv($out, []);
+            CsvSafe::put($out, ['Totals']);
+            CsvSafe::put($out, ['Metric', 'Visitors']);
+            CsvSafe::put($out, ['Total visitors', $data['totalVisitors']]);
+            CsvSafe::put($out, ['New', $data['newCount']]);
+            CsvSafe::put($out, ['Returning', $data['returningCount']]);
+            CsvSafe::put($out, []);
 
-            fputcsv($out, ['Daily trend']);
-            fputcsv($out, ['Date', 'Visitors', 'New', 'Returning']);
+            CsvSafe::put($out, ['Daily trend']);
+            CsvSafe::put($out, ['Date', 'Visitors', 'New', 'Returning']);
             foreach ($data['dailySeries'] as $row) {
-                fputcsv($out, [$row->d, $row->visitors, $row->new, $row->returning]);
+                CsvSafe::put($out, [$row->d, $row->visitors, $row->new, $row->returning]);
             }
-            fputcsv($out, []);
+            CsvSafe::put($out, []);
 
-            fputcsv($out, ['Visitors by link type']);
-            fputcsv($out, ['Link type', 'Visitors']);
+            CsvSafe::put($out, ['Visitors by link type']);
+            CsvSafe::put($out, ['Link type', 'Visitors']);
             foreach ($data['typeBreakdown'] as $row) {
-                fputcsv($out, [$row->label, $row->n]);
+                CsvSafe::put($out, [$row->label, $row->n]);
             }
-            fputcsv($out, []);
+            CsvSafe::put($out, []);
 
-            fputcsv($out, ['Visitors by source']);
-            fputcsv($out, ['Source', 'Clicks']);
+            CsvSafe::put($out, ['Visitors by source']);
+            CsvSafe::put($out, ['Source', 'Clicks']);
             foreach ($data['sourceBreakdown'] as $row) {
-                fputcsv($out, [$row->src, $row->n]);
+                CsvSafe::put($out, [$row->src, $row->n]);
             }
 
             fclose($out);

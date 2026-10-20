@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\WalletTransaction;
+use App\Support\CsvSafe;
 use Illuminate\Http\Request;
 
 /**
@@ -100,10 +101,10 @@ class CoinLedgerController extends Controller
         $filename = 'coin-ledger-all-users-' . now()->format('Ymd-His') . '.csv';
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Date', 'Time', 'User', 'Email', 'Type', 'Description', 'Coins', 'Balance after']);
+            CsvSafe::put($out, ['Date', 'Time', 'User', 'Email', 'Type', 'Description', 'Coins', 'Balance after']);
             $query->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $tx) {
-                    fputcsv($out, [
+                    CsvSafe::put($out, [
                         optional($tx->created_at)->format('Y-m-d'),
                         optional($tx->created_at)->format('H:i:s'),
                         $tx->user->name ?? ('#' . $tx->user_id),
