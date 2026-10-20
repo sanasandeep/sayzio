@@ -518,7 +518,7 @@
                 <input id="ics-cover-url" type="url" name="cover_image_url" x-model="coverImageUrl" placeholder="https://..." class="ics-input" maxlength="2048">
                 <template x-if="coverImageUrl">
                     <div class="mt-2 rounded-lg overflow-hidden" style="border: 1px solid var(--border-subtle);">
-                        <img :src="coverImageUrl" alt="" style="width:100%;max-height:170px;object-fit:cover;display:block;" @error="$el.style.display='none'">
+                        <img :src="coverImageUrl" alt="" style="width:100%;max-height:170px;object-fit:cover;display:block;" x-on:error="$el.style.display='none'">
                     </div>
                 </template>
             </div>
@@ -539,7 +539,7 @@
                         <div class="flex items-center gap-2">
                             <div class="flex-shrink-0 rounded overflow-hidden" style="width:44px;height:44px;border:1px solid var(--border-subtle);background:rgba(148,163,184,0.08);">
                                 <template x-if="item.url">
-                                    <img :src="item.url" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" @error="$el.style.display='none'">
+                                    <img :src="item.url" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" x-on:error="$el.style.display='none'">
                                 </template>
                             </div>
                             <input type="url" :name="'gallery[' + i + ']'" x-model="item.url" placeholder="https://..." class="ics-input flex-1" maxlength="2048">
