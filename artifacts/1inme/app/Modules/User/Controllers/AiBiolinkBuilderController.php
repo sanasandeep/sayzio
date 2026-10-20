@@ -104,7 +104,7 @@ class AiBiolinkBuilderController extends Controller
                 $data['image_choices'],
             );
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         return response()->json([
@@ -164,7 +164,7 @@ class AiBiolinkBuilderController extends Controller
                 'balance'  => $e->balance ?? null,
             ], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         } finally {
             AiActionCooldown::end($cooldownKey);
         }
@@ -267,7 +267,7 @@ class AiBiolinkBuilderController extends Controller
                 );
             } catch (\RuntimeException $e) {
                 // Storage quota — surface loudly instead of silently dropping.
-                return response()->json(['message' => $e->getMessage()], 422);
+                return response()->json(['message' => safe_error_message($e)], 422);
             }
 
             $stored[] = ['url' => $file->url_path, 'source_url' => $url];

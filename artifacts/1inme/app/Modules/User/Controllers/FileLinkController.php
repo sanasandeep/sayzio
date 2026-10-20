@@ -75,7 +75,7 @@ class FileLinkController extends Controller
                 'upload_key'        => 'link.file_share',
             ]);
         } catch (\RuntimeException $e) {
-            return $this->uploadError($request, $e->getMessage());
+            return $this->uploadError($request, safe_error_message($e));
         }
 
         $alias = ($validated['alias'] ?? null) ?: Link::generateAlias();

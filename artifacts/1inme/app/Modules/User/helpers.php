@@ -150,3 +150,44 @@ if (!function_exists('workspace_owner_id')) {
         return auth()->id();
     }
 }
+
+if (!function_exists('safe_error_message')) {
+    /**
+     * An exception's message, unless showing it would leak the database.
+     *
+     * Controllers across this app hand a caught exception's message straight
+     * to the user:
+     *
+     *     } catch (\RuntimeException $e) {
+     *         return back()->with('error', $e->getMessage());
+     *
+     * That reads as safe, because services throw RuntimeException with copy
+     * written for a human. But Illuminate\Database\QueryException extends
+     * PDOException extends RuntimeException, so a database error lands in
+     * that same arm -- ahead of any \Throwable arm below it -- and its
+     * message is the full SQL, the bindings, and the connection's host, port
+     * and database name.
+     *
+     * This happened on production: a teardown insert against a missing column
+     * printed an RDS hostname, port 5432, the database name, a complete
+     * INSERT and the entire scraped page payload onto a page a user was
+     * looking at. It is not gated by APP_DEBUG.
+     *
+     * So: pass PDOException (and therefore QueryException) to the logs and
+     * give the user the fallback; return every other message unchanged, which
+     * is what those call sites were written to do.
+     */
+    function safe_error_message(\Throwable $e, string $fallback = 'Something went wrong. Please try again.'): string
+    {
+        if ($e instanceof \PDOException) {
+            // Previously these were not logged at all -- the catch arm
+            // swallowed them into a flash message and nothing reached the
+            // error log.
+            report($e);
+
+            return $fallback;
+        }
+
+        return $e->getMessage();
+    }
+}

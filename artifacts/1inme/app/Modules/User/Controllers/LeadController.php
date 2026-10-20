@@ -66,7 +66,7 @@ class LeadController extends Controller
         try {
             $result = $this->approver->approve($owner, $item, $request->user()?->id);
         } catch (\RuntimeException $e) {
-            return $this->respond($request, false, $e->getMessage());
+            return $this->respond($request, false, safe_error_message($e));
         }
 
         $message = $result['result'] === 'merged'
@@ -152,7 +152,7 @@ class LeadController extends Controller
                     }
                 } catch (\RuntimeException $e) {
                     $blocked++;
-                    $capMessage = $e->getMessage();
+                    $capMessage = safe_error_message($e);
                 }
             } else {
                 $this->approver->dismiss($owner, $item, $request->user()?->id);

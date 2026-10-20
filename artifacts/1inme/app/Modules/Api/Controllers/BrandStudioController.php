@@ -81,7 +81,7 @@ class BrandStudioController extends Controller
         try {
             $composition = AiBrandStudioService::sanitizeComposition($data['composition']);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'invalid_composition');
+            return $this->fail(safe_error_message($e), 422, 'invalid_composition');
         }
 
         if (BrandStudioPreset::where('user_id', $user->id)->count() >= BrandStudioPreset::MAX_PER_USER) {
@@ -157,7 +157,7 @@ class BrandStudioController extends Controller
             $brand = $this->studio->resolveBrand($user, $data['brand_kit_id'], $data['inline']);
             $cost  = $this->studio->estimateCredits($user, $data['request'], $brand['directives'], $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'invalid_request');
+            return $this->fail(safe_error_message($e), 422, 'invalid_request');
         }
 
         return $this->ok([
@@ -187,7 +187,7 @@ class BrandStudioController extends Controller
                 'balance'  => $e->balance ?? null,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'plan_failed');
+            return $this->fail(safe_error_message($e), 422, 'plan_failed');
         }
 
         return $this->ok([
@@ -222,7 +222,7 @@ class BrandStudioController extends Controller
         try {
             $result = $this->studio->materialize($request->user(), $kit, $data['keep'] ?? null);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'confirm_failed');
+            return $this->fail(safe_error_message($e), 422, 'confirm_failed');
         }
 
         return $this->ok([
@@ -291,7 +291,7 @@ class BrandStudioController extends Controller
                 ? AiBrandStudioService::sanitizeComposition($data['composition'] ?? [])
                 : [];
         } catch (\RuntimeException $e) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['composition' => $e->getMessage()]);
+            throw \Illuminate\Validation\ValidationException::withMessages(['composition' => safe_error_message($e)]);
         }
         return [
             'request'      => (string) ($data['request'] ?? ''),

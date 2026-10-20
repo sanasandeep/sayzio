@@ -516,7 +516,7 @@ class FormController extends Controller
                     $userFile = UserFile::createFromUpload($request->file($field), $request->user(), $opts);
                     $design[$key] = $userFile->url;
                 } catch (\RuntimeException $e) {
-                    return back()->withInput()->with('error', $e->getMessage());
+                    return back()->withInput()->with('error', safe_error_message($e));
                 }
             }
         }
@@ -1275,7 +1275,7 @@ class FormController extends Controller
                                 $files["{$id}.{$pos}.{$cid}"] = $userFile->url;
                                 $copy[$cid] = $up->getClientOriginalName();
                             } catch (\RuntimeException $e) {
-                                $copy[$cid] = '[upload failed: ' . $e->getMessage() . ']';
+                                $copy[$cid] = '[upload failed: ' . safe_error_message($e) . ']';
                             }
                         } else {
                             $copy[$cid] = null;
@@ -1310,7 +1310,7 @@ class FormController extends Controller
                     // Submission attachment couldn't be stored (e.g. owner over
                     // quota). Drop the file but keep the rest of the submission
                     // so the visitor isn't blocked by something they can't fix.
-                    $data[$id] = '[upload failed: ' . $e->getMessage() . ']';
+                    $data[$id] = '[upload failed: ' . safe_error_message($e) . ']';
                 }
             } elseif ($type === 'signature') {
                 $raw = (string) $request->input($id, '');
@@ -1331,7 +1331,7 @@ class FormController extends Controller
                             $files[$id] = $userFile->url;
                             $data[$id]  = $userFile->url;
                         } catch (\RuntimeException $e) {
-                            $data[$id] = '[signature not stored: ' . $e->getMessage() . ']';
+                            $data[$id] = '[signature not stored: ' . safe_error_message($e) . ']';
                         }
                     }
                 }

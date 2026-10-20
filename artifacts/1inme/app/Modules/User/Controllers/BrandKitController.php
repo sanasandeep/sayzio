@@ -113,7 +113,7 @@ class BrandKitController extends Controller
         try {
             $cost = $this->kits->estimateCredits($user, $data['prompt'], $data['website_url'], $data['logo_url'], '', $data['components']);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         // Each requested image asset is a separate flat per-generation charge.
@@ -181,7 +181,7 @@ class BrandKitController extends Controller
                 'balance'  => $e->balance ?? null,
             ], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         // Generate any requested image assets right after the kit. Each is a
@@ -392,7 +392,7 @@ class BrandKitController extends Controller
                 'balance'  => $e->balance ?? null,
             ], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         return response()->json([
@@ -462,7 +462,7 @@ class BrandKitController extends Controller
                     break;
             }
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         return response()->json(['ok' => true]);

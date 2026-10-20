@@ -42,7 +42,7 @@ class ResumeImportController extends Controller
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json(['message' => $e->getMessage()], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         return response()->json(['candidates' => $candidates]);
@@ -74,7 +74,7 @@ class ResumeImportController extends Controller
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json(['message' => $e->getMessage()], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         return response()->json(['candidates' => $candidates]);
@@ -124,7 +124,7 @@ class ResumeImportController extends Controller
                 'balance'  => $e->balance ?? null,
             ], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         return response()->json(['candidates' => $candidates]);

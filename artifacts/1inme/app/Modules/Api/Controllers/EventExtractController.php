@@ -32,7 +32,7 @@ class EventExtractController extends Controller
         try {
             return $this->ok(['event' => $extractor->extractFromUrl($data['url'])]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'extract_failed');
+            return $this->fail(safe_error_message($e), 422, 'extract_failed');
         }
     }
 }

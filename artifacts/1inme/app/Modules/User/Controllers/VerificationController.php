@@ -85,7 +85,7 @@ class VerificationController extends Controller
                 ]);
                 $logoPath = $logoFile->url_path;
             } catch (\RuntimeException $e) {
-                return back()->withInput()->with('error', $e->getMessage());
+                return back()->withInput()->with('error', safe_error_message($e));
             }
         }
 
@@ -100,7 +100,7 @@ class VerificationController extends Controller
                     ]);
                     $proofPaths[] = $pf->url_path;
                 } catch (\RuntimeException $e) {
-                    return back()->withInput()->with('error', $e->getMessage());
+                    return back()->withInput()->with('error', safe_error_message($e));
                 }
             }
         }

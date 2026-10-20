@@ -282,8 +282,8 @@ class CloudFilesApiController extends Controller
                 ? $provider->search($conn, $search, $request->query('cursor') ?: null)
                 : $provider->listFolder($conn, $request->query('folder') ?: null, $request->query('cursor') ?: null);
         } catch (\RuntimeException $e) {
-            $conn->update(['last_error' => substr($e->getMessage(), 0, 240)]);
-            return $this->fail($e->getMessage(), 422, 'list_failed');
+            $conn->update(['last_error' => substr(safe_error_message($e), 0, 240)]);
+            return $this->fail(safe_error_message($e), 422, 'list_failed');
         }
 
         return $this->ok($listing);

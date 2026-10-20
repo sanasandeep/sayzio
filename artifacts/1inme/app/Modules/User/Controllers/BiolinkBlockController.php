@@ -2124,7 +2124,7 @@ class BiolinkBlockController extends Controller
         }
 
         } catch (\RuntimeException $e) {
-            return $this->uploadError($request, $e->getMessage());
+            return $this->uploadError($request, safe_error_message($e));
         }
 
         $updateData = ['settings' => $settings];
@@ -3056,7 +3056,7 @@ class BiolinkBlockController extends Controller
         try {
             $meta = app(OgMetadataService::class)->extractFromUrl($url);
         } catch (\RuntimeException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json(['error' => safe_error_message($e)], 422);
         }
 
         return response()->json(['success' => true, 'meta' => $meta]);

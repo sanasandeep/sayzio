@@ -410,7 +410,7 @@ class BiolinkBlockController extends Controller
         try {
             $meta = app(OgMetadataService::class)->extractFromUrl($url);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422);
+            return $this->fail(safe_error_message($e), 422);
         }
 
         return $this->ok(['meta' => $meta]);

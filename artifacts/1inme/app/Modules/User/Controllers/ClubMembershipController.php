@@ -99,7 +99,7 @@ class ClubMembershipController extends Controller {
         $member=ClubMembership::where('link_id',$link->id)->findOrFail($request->input('id'));
         if($request->boolean('remove')) $member->update(['profile_photo_file_id'=>null]);
         elseif($request->hasFile('photo')) {
-            try {$file=\App\Modules\User\Models\UserFile::createFromUpload($request->file('photo'),$link->user);} catch(\RuntimeException $e) {throw ValidationException::withMessages(['photo'=>$e->getMessage()]);}
+            try {$file=\App\Modules\User\Models\UserFile::createFromUpload($request->file('photo'),$link->user);} catch(\RuntimeException $e) {throw ValidationException::withMessages(['photo'=>safe_error_message($e)]);}
             $member->update(['profile_photo_file_id'=>$file->id]);
         }
         return back()->with('success','Member profile picture updated.');
@@ -186,7 +186,7 @@ class ClubMembershipController extends Controller {
     }
     public function cardAsset(Request $request, Link $link) {
         $this->authorizeLink($link);$request->validate(['asset'=>'required|image|mimes:jpg,jpeg,png,webp|max:8192','kind'=>'required|in:logo,background']);
-        try {$file=\App\Modules\User\Models\UserFile::createFromUpload($request->file('asset'),$link->user);} catch(\RuntimeException $e) {throw ValidationException::withMessages(['asset'=>$e->getMessage()]);}
+        try {$file=\App\Modules\User\Models\UserFile::createFromUpload($request->file('asset'),$link->user);} catch(\RuntimeException $e) {throw ValidationException::withMessages(['asset'=>safe_error_message($e)]);}
         $settings=$link->settings??[];$settings['membership']['card_'.$request->input('kind').'_file_id']=$file->id;$link->update(['settings'=>$settings]);
         return redirect()->route('user.links.memberships',['link'=>$link,'pane'=>'design'])->with('success','Card image uploaded. It becomes visible after the safety scan.');
     }

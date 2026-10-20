@@ -156,7 +156,7 @@ class AskCoachController extends Controller
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json(['error' => 'insufficient_credits', 'message' => $e->getMessage()], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['error' => 'ai_unavailable', 'message' => $e->getMessage()], 503);
+            return response()->json(['error' => 'ai_unavailable', 'message' => safe_error_message($e)], 503);
         }
 
         $assistant = AskCoachMessage::create([
@@ -262,7 +262,7 @@ class AskCoachController extends Controller
                 $emit('error', ['code' => 'insufficient_credits', 'message' => $e->getMessage()]);
                 return;
             } catch (\RuntimeException $e) {
-                Log::warning('Ask Coach (api) stream failed: ' . $e->getMessage());
+                Log::warning('Ask Coach (api) stream failed: ' . safe_error_message($e));
                 $emit('error', ['code' => 'ai_unavailable', 'message' => 'Coach could not reply right now.']);
                 return;
             }

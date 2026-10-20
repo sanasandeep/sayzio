@@ -33,8 +33,8 @@ class CloudFilePickerController extends Controller
                 ? $provider->search($connection, $search, $request->query('cursor') ?: null)
                 : $provider->listFolder($connection, $request->query('folder') ?: null, $request->query('cursor') ?: null);
         } catch (\RuntimeException $e) {
-            $connection->update(['last_error' => substr($e->getMessage(), 0, 240)]);
-            return response()->json(['error' => 'list_failed', 'message' => $e->getMessage()], 422);
+            $connection->update(['last_error' => substr(safe_error_message($e), 0, 240)]);
+            return response()->json(['error' => 'list_failed', 'message' => safe_error_message($e)], 422);
         }
 
         return response()->json($listing);

@@ -495,7 +495,7 @@ class StoreController extends Controller
                 'quality'        => 85,
             ]);
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 422, 'upload_failed');
+            return $this->fail(safe_error_message($e), 422, 'upload_failed');
         }
 
         // The sanctum API path doesn't bind the active workspace, so the

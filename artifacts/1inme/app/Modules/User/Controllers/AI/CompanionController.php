@@ -435,7 +435,7 @@ class CompanionController extends Controller
             ]);
         } catch (\RuntimeException $e) {
             if ($e instanceof InsufficientCoinsForAiException) throw $e;
-            Log::warning('Companion AI call failed: ' . $e->getMessage());
+            Log::warning('Companion AI call failed: ' . safe_error_message($e));
             // Touch the thread so the user can see their saved turn.
             $threadModel->forceFill(['last_message_at' => $now])->save();
             return back()->with('error',

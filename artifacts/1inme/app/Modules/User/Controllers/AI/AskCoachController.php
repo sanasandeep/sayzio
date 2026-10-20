@@ -459,7 +459,7 @@ class AskCoachController extends Controller
                 $totalCredits += (int) ($out['credits_spent'] ?? 0);
             } catch (\RuntimeException $e) {
                 if ($e instanceof InsufficientCoinsForAiException) throw $e;
-                Log::warning('Ask Coach AI call failed: ' . $e->getMessage());
+                Log::warning('Ask Coach AI call failed: ' . safe_error_message($e));
                 $threadModel->forceFill(['last_message_at' => $now])->save();
                 $fallbackMsg = AiEngineSettings::askCoachFallbackMessage()
                     ?: 'Coach could not reply right now. Please try again.';
@@ -588,7 +588,7 @@ class AskCoachController extends Controller
                 $emit('error', ['code' => 'insufficient_credits', 'message' => $e->getMessage()]);
                 return;
             } catch (\RuntimeException $e) {
-                Log::warning('Ask Coach stream failed: ' . $e->getMessage());
+                Log::warning('Ask Coach stream failed: ' . safe_error_message($e));
                 $threadModel->forceFill(['last_message_at' => now()])->save();
                 $fallbackMsg = AiEngineSettings::askCoachFallbackMessage()
                     ?: 'Coach could not reply right now. Please try again.';

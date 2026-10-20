@@ -232,7 +232,7 @@ class QrCodeController extends Controller
                 'max_size_mb' => $cap['max_mb'],
             ]);
         } catch (\RuntimeException $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
+            return response()->json(['error' => safe_error_message($e)], 422);
         }
         return response()->json(['url' => $file->url]);
     }

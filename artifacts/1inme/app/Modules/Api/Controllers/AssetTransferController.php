@@ -59,7 +59,7 @@ class AssetTransferController extends Controller
         } catch (\InvalidArgumentException $e) {
             return $this->fail($e->getMessage(), 422, 'invalid_transfer');
         } catch (\RuntimeException $e) {
-            return $this->forbidden($e->getMessage());
+            return $this->forbidden(safe_error_message($e));
         }
 
         return $this->ok($this->present($transfer));
@@ -85,7 +85,7 @@ class AssetTransferController extends Controller
         } catch (\InvalidArgumentException $e) {
             return $this->fail($e->getMessage(), 422, 'invalid_transfer');
         } catch (\RuntimeException $e) {
-            return $this->forbidden($e->getMessage());
+            return $this->forbidden(safe_error_message($e));
         }
 
         return $this->ok($this->present($transfer));

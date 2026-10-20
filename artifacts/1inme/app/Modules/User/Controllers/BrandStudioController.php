@@ -88,7 +88,7 @@ class BrandStudioController extends Controller
         try {
             $composition = AiBrandStudioService::sanitizeComposition($data['composition']);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         if (BrandStudioPreset::where('user_id', $owner->id)->count() >= BrandStudioPreset::MAX_PER_USER) {
@@ -160,7 +160,7 @@ class BrandStudioController extends Controller
             $brand = $this->studio->resolveBrand($owner, $data['brand_kit_id'], $data['inline']);
             $cost = $this->studio->estimateCredits($owner, $data['request'], $brand['directives']."\n".$data['mind_context'].($data['campaign'] ? '\n'.$this->creationContext($data) : ''), $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         return response()->json([
@@ -195,7 +195,7 @@ class BrandStudioController extends Controller
                 'balance' => $e->balance ?? null,
             ], 402);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         if ($data['campaign']) {
@@ -294,10 +294,10 @@ class BrandStudioController extends Controller
             });
         } catch (\RuntimeException $e) {
             if ($request->ajax()) {
-                return response()->json(['message' => $e->getMessage()], 422);
+                return response()->json(['message' => safe_error_message($e)], 422);
             }
 
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', safe_error_message($e));
         }
 
         if ($request->ajax()) {
@@ -359,7 +359,7 @@ class BrandStudioController extends Controller
                 ? AiBrandStudioService::sanitizeComposition($data['composition'] ?? [])
                 : [];
         } catch (\RuntimeException $e) {
-            throw ValidationException::withMessages(['composition' => $e->getMessage()]);
+            throw ValidationException::withMessages(['composition' => safe_error_message($e)]);
         }
 
         return [

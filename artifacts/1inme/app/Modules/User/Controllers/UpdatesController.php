@@ -100,7 +100,7 @@ class UpdatesController extends Controller
                     'quality'        => 85,
                 ])->url;
             } catch (\RuntimeException $e) {
-                return back()->withInput()->with('error', $e->getMessage());
+                return back()->withInput()->with('error', safe_error_message($e));
             }
         }
 
@@ -156,7 +156,7 @@ class UpdatesController extends Controller
                     'quality'        => 85,
                 ])->url;
             } catch (\RuntimeException $e) {
-                return back()->withInput()->with('error', $e->getMessage());
+                return back()->withInput()->with('error', safe_error_message($e));
             }
         } elseif (!empty($data['remove_image'])) {
             $data['image'] = null;

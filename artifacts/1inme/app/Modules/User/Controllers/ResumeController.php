@@ -385,7 +385,7 @@ class ResumeController extends Controller
                     'quality'        => 85,
                 ]);
             } catch (\RuntimeException $e) {
-                return response()->json(['message' => $e->getMessage()], 422);
+                return response()->json(['message' => safe_error_message($e)], 422);
             }
 
         } elseif ($request->filled('vault_file_id')) {
@@ -437,7 +437,7 @@ class ResumeController extends Controller
                     ]
                 );
             } catch (\RuntimeException $e) {
-                return response()->json(['message' => $e->getMessage()], 422);
+                return response()->json(['message' => safe_error_message($e)], 422);
             } catch (\Throwable $e) {
                 return response()->json(['message' => 'Could not import the photo from that URL.'], 422);
             }
@@ -650,10 +650,10 @@ class ResumeController extends Controller
             // Vault quota / size failures. The picker posts a plain form,
             // so the creator needs to land back on it with the reason.
             if (! $request->expectsJson()) {
-                return back()->withErrors(['background_image' => $e->getMessage()]);
+                return back()->withErrors(['background_image' => safe_error_message($e)]);
             }
 
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => safe_error_message($e)], 422);
         }
 
         // A background type is what PageBackground::chosen() keys on. Clear

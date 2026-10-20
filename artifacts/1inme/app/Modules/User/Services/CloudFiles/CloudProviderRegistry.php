@@ -36,7 +36,7 @@ class CloudProviderRegistry
         try {
             [$access, $expires, $newRefresh] = $this->get($conn->provider)->refreshAccessToken($app, $conn);
         } catch (RuntimeException $e) {
-            $conn->last_error = substr($e->getMessage(), 0, 240);
+            $conn->last_error = substr(safe_error_message($e), 0, 240);
             $conn->save();
             return $conn;
         }
