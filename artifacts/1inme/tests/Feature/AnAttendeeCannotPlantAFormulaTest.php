@@ -160,9 +160,16 @@ class AnAttendeeCannotPlantAFormulaTest extends TestCase
         );
 
         $this->assertSame(
-            $this->capture(fn ($h) => fputcsv($h, $payload, ',', '"', '\\')),
+            $this->capture(fn ($h) => fputcsv($h, $payload, ',', '"', '')),
             $this->capture(fn ($h) => CsvSafe::put($h, $payload)),
-            "put()'s own default must match fputcsv's default."
+            "put()'s own default is '' -- deliberately NOT fputcsv's backslash, "
+            . 'which writes this payload with the quote undoubled.'
+        );
+
+        $this->assertSame(
+            $this->capture(fn ($h) => fputcsv($h, $payload, ',', '"', '\\')),
+            $this->capture(fn ($h) => CsvSafe::put($h, $payload, ',', '"', '\\')),
+            'A caller asking for the old escape still gets it: the argument is forwarded, not ignored.'
         );
 
         $this->assertNotSame(
