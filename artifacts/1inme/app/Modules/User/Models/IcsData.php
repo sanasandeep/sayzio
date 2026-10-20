@@ -209,8 +209,82 @@ class IcsData extends Model
         return $out;
     }
 
-    public function toIcs(): string
+    /**
+     * Reminder offsets an attendee may put on a downloaded event, as
+     * minutes before the start, mapped to the exact ICS duration each one
+     * emits.
+     *
+     * A fixed map rather than arithmetic on a number, deliberately. The
+     * choice arrives in a query string, and an ICS body is newline
+     * delimited: text interpolated into it can open a line of its own and
+     * forge calendar properties. Here the request can only ever pick a
+     * key; it never contributes a character to the file.
+     */
+    public const REMINDER_TRIGGERS = [
+        0     => '-PT0M',
+        15    => '-PT15M',
+        60    => '-PT1H',
+        180   => '-PT3H',
+        1440  => '-P1D',
+        10080 => '-P1W',
+    ];
+
+    /** What a download carries when the attendee did not choose. */
+    public const DEFAULT_REMINDERS = [1440, 60];
+
+    /** Most alarms one event may carry; calendar apps cope badly with many. */
+    public const MAX_REMINDERS = 4;
+
+    /**
+     * Reduce whatever arrived to a safe, ordered set of reminder keys.
+     * Anything not an exact allowlisted key is dropped rather than
+     * coerced, so "60abc", "-1" and a crafted newline all vanish instead
+     * of becoming a reminder nobody asked for.
+     */
+    public static function sanitizeReminders(mixed $raw): array
     {
+        if ($raw === null || $raw === '') {
+            return self::DEFAULT_REMINDERS;
+        }
+        if (is_string($raw)) {
+            if (strtolower(trim($raw)) === 'none') {
+                return [];
+            }
+            $raw = explode(',', $raw);
+        } elseif (is_int($raw)) {
+            // A JSON caller sending a bare number is making a choice, not
+            // declining to make one. Falling through to the defaults here
+            // would hand someone reminders they explicitly did not ask
+            // for -- caught by running it, not by reading it.
+            $raw = [$raw];
+        }
+
+        if (!is_array($raw)) {
+            return self::DEFAULT_REMINDERS;
+        }
+
+        $out = [];
+        foreach ($raw as $value) {
+            if (is_int($value) || (is_string($value) && preg_match('/^\d{1,6}$/', trim($value)))) {
+                $key = (int) trim((string) $value);
+                if (array_key_exists($key, self::REMINDER_TRIGGERS)) {
+                    $out[$key] = true;
+                }
+            }
+        }
+
+        $keys = array_keys($out);
+        rsort($keys);                                  // furthest out first
+
+        return array_slice($keys, 0, self::MAX_REMINDERS);
+    }
+
+    public function toIcs(?array $reminders = null): string
+    {
+        $reminders = $reminders === null
+            ? self::DEFAULT_REMINDERS
+            : self::sanitizeReminders($reminders);
+
         $now = now()->format('Ymd\THis\Z');
 
         $ics  = "BEGIN:VCALENDAR\r\n";
@@ -234,6 +308,7 @@ class IcsData extends Model
                 $rrule,
                 $now,
                 uniqid('1inme-', true),
+                $reminders,
             );
         } else {
             foreach ($slots as $i => $slot) {
@@ -256,6 +331,7 @@ class IcsData extends Model
                     $i === 0 ? $rrule : null,
                     $now,
                     uniqid('1inme-s' . $i . '-', true),
+                    $reminders,
                 );
             }
         }
@@ -264,7 +340,7 @@ class IcsData extends Model
         return $ics;
     }
 
-    protected function renderVevent($summary, $description, $location, $start, $end, ?string $rrule, string $now, string $uid): string
+    protected function renderVevent($summary, $description, $location, $start, $end, ?string $rrule, string $now, string $uid, array $reminders = []): string
     {
         $tz = \App\Support\PlatformTimezone::resolve($this->timezone);
 
@@ -308,6 +384,24 @@ class IcsData extends Model
         if ($cancelled) {
             $out .= "STATUS:CANCELLED\r\n";
         }
+
+        // Alarms last, inside the VEVENT. A cancelled event gets none:
+        // being woken at 7am for something that is not happening is worse
+        // than no reminder at all.
+        if (!$cancelled) {
+            foreach ($reminders as $minutes) {
+                $trigger = self::REMINDER_TRIGGERS[$minutes] ?? null;
+                if ($trigger === null) {
+                    continue;   // belt and braces; sanitize already dropped it
+                }
+                $out .= "BEGIN:VALARM\r\n";
+                $out .= "ACTION:DISPLAY\r\n";
+                $out .= "TRIGGER:{$trigger}\r\n";
+                $out .= "DESCRIPTION:" . $this->escapeIcs((string) $summary) . "\r\n";
+                $out .= "END:VALARM\r\n";
+            }
+        }
+
         $out .= "END:VEVENT\r\n";
         return $out;
     }
