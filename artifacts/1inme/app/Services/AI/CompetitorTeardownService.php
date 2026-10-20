@@ -38,6 +38,12 @@ class CompetitorTeardownService
 
     private const MAX_OUTPUT_TOKENS = 1400;
 
+    /** Build the page in Sayzio's own visual direction, ignoring their look. */
+    public const STYLE_ORIGINAL = 'original';
+
+    /** Build it in the same visual world as the page we analysed. */
+    public const STYLE_MATCH = 'match';
+
     public function __construct(
         protected OpenAiService $openai,
         protected AiUsageCharger $credits,
@@ -149,8 +155,12 @@ class CompetitorTeardownService
      *         from the builder; the shell link is deleted on failure so
      *         no empty page is left behind.
      */
-    public function buildBetterVersion(User $owner, User $actor, CompetitorTeardown $teardown): Link
+    public function buildBetterVersion(User $owner, User $actor, CompetitorTeardown $teardown, string $style = self::STYLE_ORIGINAL): Link
     {
+        if (!in_array($style, [self::STYLE_ORIGINAL, self::STYLE_MATCH], true)) {
+            $style = self::STYLE_ORIGINAL;
+        }
+
         if ($teardown->status !== 'completed' || !is_array($teardown->analysis)) {
             throw new RuntimeException("This teardown isn't ready yet.");
         }
@@ -176,7 +186,11 @@ class CompetitorTeardownService
                 [],
                 '',
                 true,
-                '',
+                // The builder's brand-direction channel. It was always passed
+                // blank, which is the whole reason a built page never matched
+                // the competitor's look: the colours were fetched, stored and
+                // then never handed to the thing that draws the page.
+                $style === self::STYLE_MATCH ? $this->brandDirectivesFor($teardown) : '',
             );
         } catch (\Throwable $e) {
             // The builder auto-refunds its own credits on failure; drop
@@ -290,6 +304,59 @@ PROMPT;
             ],
             'recommendations' => $strList($parsed['recommendations'] ?? [], 6),
         ];
+    }
+
+    /**
+     * The competitor's palette, as direction the builder can act on.
+     *
+     * Colours only -- not their images. A page's palette is not ownable and
+     * matching a market's visual conventions is ordinary competitive design;
+     * their photographs are someone else's work, and lifting them onto a
+     * creator's own biolink is not something this feature should do. The
+     * builder's existing image sourcer handles imagery legitimately.
+     *
+     * Returns '' when the fetch predates palette extraction or the page had
+     * no usable colours, which lands the build back on its previous
+     * behaviour rather than on a half-empty instruction.
+     */
+    protected function brandDirectivesFor(CompetitorTeardown $teardown): string
+    {
+        $extracted = is_array($teardown->extracted) ? $teardown->extracted : [];
+        $palette   = is_array($extracted['palette'] ?? null) ? $extracted['palette'] : [];
+
+        $roles  = is_array($palette['roles'] ?? null) ? $palette['roles'] : [];
+        $colors = is_array($palette['colors'] ?? null) ? $palette['colors'] : [];
+        $theme  = is_string($palette['theme_color'] ?? null) ? $palette['theme_color'] : null;
+
+        $lines = [];
+        $label = [
+            'background'  => 'Page background',
+            'text'        => 'Body text',
+            'button_bg'   => 'Button background',
+            'button_text' => 'Button text',
+            'accent'      => 'Accent',
+        ];
+        foreach ($label as $key => $text) {
+            if (!empty($roles[$key])) {
+                $lines[] = $text . ': ' . $roles[$key];
+            }
+        }
+        if ($theme && !in_array($theme, $roles, true)) {
+            $lines[] = 'Declared theme colour: ' . $theme;
+        }
+        if ($colors !== []) {
+            $lines[] = 'Other colours the page uses, most-used first: ' . implode(', ', array_slice($colors, 0, 8));
+        }
+
+        if ($lines === []) {
+            return '';
+        }
+
+        return "Match the visual direction of the page that was analysed. Use this palette:\n"
+            . '- ' . implode("\n- ", $lines)
+            . "\nKeep contrast readable: if a pairing from this palette would put text below roughly 4.5:1 "
+            . 'against its background, adjust the lightness rather than shipping the pairing. '
+            . 'Use their colours only; do not imitate their wordmark, logo or photography.';
     }
 
     /** Compose the AI biolink builder's free-text description from a teardown's findings. */

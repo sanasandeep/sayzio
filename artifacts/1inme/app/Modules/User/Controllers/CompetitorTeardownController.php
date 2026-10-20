@@ -123,8 +123,12 @@ class CompetitorTeardownController extends Controller
         $owner = workspace_owner();
         $actor = $request->user();
 
+        $style = $request->input('style') === CompetitorTeardownService::STYLE_MATCH
+            ? CompetitorTeardownService::STYLE_MATCH
+            : CompetitorTeardownService::STYLE_ORIGINAL;
+
         try {
-            $link = $this->teardown->buildBetterVersion($owner, $actor, $teardown);
+            $link = $this->teardown->buildBetterVersion($owner, $actor, $teardown, $style);
         } catch (InsufficientCoinsForAiException $e) {
             return redirect()->route('user.wallet.buy')
                 ->with('error', "You need {$e->required} coins to build this page (you have {$e->balance}).");

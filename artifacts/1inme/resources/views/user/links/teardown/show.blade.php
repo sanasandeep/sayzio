@@ -27,6 +27,22 @@ html.light-mode .td-meter{background:rgba(15,23,42,.08)}
 
 .td-count{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08)}
 html.light-mode .td-count{background:rgba(15,23,42,.06)}
+
+/* Build-style chooser. Two cards, not a bare radio pair: the choice changes
+   what the page will look like, so it deserves the room to say so. */
+.td-styles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px}
+@media(max-width:620px){.td-styles{grid-template-columns:1fr}}
+.td-style{display:flex;gap:10px;align-items:flex-start;padding:14px;border-radius:16px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.1);transition:border-color .15s,background .15s}
+html.light-mode .td-style{border-color:rgba(15,23,42,.12)}
+.td-style:hover{border-color:rgba(96,165,250,.5)}
+.td-style:has(input:checked){border-color:#3b82f6;background:rgba(59,130,246,.07)}
+.td-style:focus-within{outline:2px solid #60a5fa;outline-offset:2px}
+.td-style input{margin-top:3px;flex:0 0 auto;accent-color:#3b82f6}
+.td-style strong{display:block;font-size:13px;font-weight:600}
+.td-style em{display:block;font-style:normal;font-size:11.5px;opacity:.55;margin-top:2px;line-height:1.45}
+.td-swatches{display:flex;gap:4px;margin-top:8px}
+.td-swatches i{width:14px;height:14px;border-radius:4px;display:block;border:1px solid rgba(127,127,127,.35)}
 </style>
 <div class="teardown-show" x-data="teardownBuild()">
     @php
@@ -184,22 +200,63 @@ html.light-mode .td-count{background:rgba(15,23,42,.06)}
         </div>
         @endif
 
-        <div class="glass rounded-2xl p-6 flex items-center justify-between gap-4 flex-wrap">
-            <div class="min-w-0">
-                <p class="text-sm text-white font-medium"><i class="fas fa-wand-magic-sparkles text-blue-400 mr-1.5"></i>Ready to beat this page?</p>
-                <p class="text-xs text-white/40 mt-1">
-                    Builds a new biolink from these findings.
-                    Coin balance: <span class="text-white/70">{{ $balance }}</span>
-                </p>
+        @php
+            // Only offer "match their style" when there is actually a palette
+            // to match. A teardown run before palette extraction existed has
+            // none, and an empty radio that silently does nothing is worse
+            // than no radio.
+            $palette    = is_array($teardown->extracted['palette'] ?? null) ? $teardown->extracted['palette'] : [];
+            $swatches   = array_values(array_filter(array_merge(
+                array_values(is_array($palette['roles'] ?? null) ? $palette['roles'] : []),
+                is_array($palette['colors'] ?? null) ? $palette['colors'] : [],
+            ), static fn ($c) => is_string($c) && preg_match('/^#[0-9a-f]{6}$/i', $c)));
+            $swatches   = array_slice(array_values(array_unique($swatches)), 0, 6);
+            $canMatch   = $swatches !== [];
+        @endphp
+        <div class="glass rounded-2xl p-6">
+            <div class="flex items-center justify-between gap-4 flex-wrap">
+                <div class="min-w-0">
+                    <p class="text-sm text-white font-medium"><i class="fas fa-wand-magic-sparkles text-blue-400 mr-1.5"></i>Ready to beat this page?</p>
+                    <p class="text-xs text-white/40 mt-1">
+                        Builds a new biolink from these findings.
+                        Coin balance: <span class="text-white/70">{{ $balance }}</span>
+                    </p>
+                </div>
             </div>
-            <form method="POST" action="{{ route('user.links.teardown.build', $teardown) }}" @submit="building = true">
+
+            <form method="POST" action="{{ route('user.links.teardown.build', $teardown) }}" @submit="building = true" class="mt-5">
                 @csrf
+                @if($canMatch)
+                    <div class="td-styles">
+                        <label class="td-style">
+                            <input type="radio" name="style" value="original" checked>
+                            <span>
+                                <strong>Sayzio original</strong>
+                                <em>Our visual direction, their gaps fixed.</em>
+                            </span>
+                        </label>
+                        <label class="td-style">
+                            <input type="radio" name="style" value="match">
+                            <span>
+                                <strong>Match their style</strong>
+                                <em>Same palette as the page we analysed.</em>
+                                <span class="td-swatches" aria-hidden="true">
+                                    @foreach($swatches as $hex)
+                                        <i style="background:{{ $hex }}" title="{{ $hex }}"></i>
+                                    @endforeach
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+                @endif
+                <div class="flex justify-end">
                 <button type="submit" :disabled="building"
                         class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20 whitespace-nowrap">
                     <i class="fas fa-spinner fa-spin mr-1.5" x-show="building"></i>
                     <i class="fas fa-wand-magic-sparkles mr-1.5 text-xs" x-show="!building"></i>
                     <span x-text="building ? 'Building…' : 'Build me a better version'"></span>
                 </button>
+                </div>
             </form>
         </div>
     @endif
