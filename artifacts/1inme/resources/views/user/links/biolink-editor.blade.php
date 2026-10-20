@@ -1216,7 +1216,7 @@ $catColors = [
            Hover is not drag, so the two never need to meet. */
         .block-flyout {
             position: fixed; z-index: 70; left: 0; top: 0;
-            width: 264px;
+            width: 344px;
             border-radius: 14px; overflow: hidden;
             background: var(--bg-card); border: 1px solid var(--border-glass);
             box-shadow: 0 18px 50px rgba(8,12,24,0.38);
@@ -1228,12 +1228,25 @@ $catColors = [
         .block-flyout-head { padding: 11px 13px 0; }
         .block-flyout-title { font-size: 12px; font-weight: 700; color: var(--text-primary); }
         .block-flyout-blurb { margin-top: 3px; font-size: 11px; line-height: 1.45; color: var(--text-muted); }
+        /* The stage is sized from the sample, not the other way round.
+           A profile card renders 547px tall; in the 186px box this used
+           to be, a creator saw the top third of it and judged the block
+           on a crop. Now the frame renders at a realistic page width and
+           is scaled down whole, so the preview is a miniature of the
+           real thing rather than a window onto part of it. */
         .block-flyout-stage {
-            margin: 10px 10px 11px; height: 186px; position: relative;
+            margin: 10px 10px 11px; height: 200px; position: relative;
             border-radius: 10px; overflow: hidden;
             background: rgba(10,14,26,0.35);
+            transition: height .14s ease;
         }
-        .block-flyout-stage iframe { width: 100%; height: 100%; border: 0; display: block; }
+        .block-flyout-stage iframe {
+            width: 100%; height: 100%; border: 0; display: block;
+            transform-origin: top left;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .block-flyout-stage { transition: none; }
+        }
         .block-flyout-wait {
             position: absolute; inset: 0; display: flex;
             align-items: center; justify-content: center;
@@ -1446,7 +1459,10 @@ $catColors = [
                                         class="palette-block-item"
                                         data-block-type="{{ $typeKey }}"
                                         onclick="paletteClickAdd('{{ $typeKey }}')"
-                                        title="Drag onto the canvas, or click to add"
+                                        {{-- No title attribute: the browser's own tooltip drew
+                                             itself on top of the flyout, so the hint covered the
+                                             preview it was hinting at. The panel says more. --}}
+                                        aria-label="{{ $typeInfo['label'] }} -- drag onto the canvas, or click to add"
                                         data-search="{{ \App\Modules\User\Support\BlockTypeBlurbs::haystack($typeKey, $typeInfo['label']) }}"
                                         data-blurb="{{ \App\Modules\User\Support\BlockTypeBlurbs::for($typeKey) }}"
                                         data-label="{{ $typeInfo['label'] }}"
@@ -3428,7 +3444,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var coarse = window.matchMedia('(hover: none)').matches;
     if (coarse) { panel.setAttribute('data-sheet', ''); }
 
-    var openTimer = null, closeTimer = null, shownType = null, pressed = false;
+    var stage = panel.querySelector('.block-flyout-stage');
+    var openTimer = null, closeTimer = null, shownType = null, pressed = false, shownTile = null;
+
+    // The sample renders at a realistic page width and is then scaled to
+    // fit, rather than being cropped by whatever box it landed in.
+    var FRAME_W = 420;      // what the sample is drawn at
+    var MIN_STAGE_H = 120;  // a divider is 2px tall; do not collapse to it
+    var MAX_STAGE_H = 380;  // and a long card must not push the panel off screen
 
     function urlFor(type) {
         return window.__blockTypePreviewUrl.replace('__TYPE__', encodeURIComponent(type));
@@ -3467,6 +3490,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function open(tile) {
         if (!fill(tile)) { return; }
+        shownTile = tile;
         panel.setAttribute('data-open', '');
         place(tile);
         if (coarse && scrim) { scrim.setAttribute('data-open', ''); }
@@ -3479,14 +3503,55 @@ document.addEventListener('DOMContentLoaded', function() {
         // Drop the document. A closed panel should not leave an embed
         // playing, a feed polling, or a font request in flight.
         shownType = null;
+        shownTile = null;
         panel.removeAttribute('data-loaded');
+        // Reset the stage so the next sample does not inherit this one's
+        // height for a frame and flash at the wrong size.
+        stage.style.height = '200px';
+        frame.style.transform = '';
         try { frame.src = 'about:blank'; } catch (e) {}
+    }
+
+    // Measure the sample and scale it to fit, whole. Same-origin, so the
+    // frame's own height is readable; if it ever is not, fall back to a
+    // plain box rather than throwing inside a load handler.
+    function fitFrame() {
+        var stageW = stage.clientWidth || 320;
+        var contentH = 0;
+        try {
+            var doc = frame.contentDocument;
+            if (doc && doc.body) {
+                contentH = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight) || 0;
+            }
+        } catch (e) { contentH = 0; }
+
+        if (!contentH) {
+            frame.style.width = '100%';
+            frame.style.height = '100%';
+            frame.style.transform = '';
+            stage.style.height = '200px';
+            return;
+        }
+
+        var k = Math.min(stageW / FRAME_W, MAX_STAGE_H / contentH, 1);
+        var drawnW = FRAME_W * k;
+        var offsetX = Math.max(0, Math.round((stageW - drawnW) / 2));
+
+        frame.style.width = FRAME_W + 'px';
+        frame.style.height = contentH + 'px';
+        frame.style.transform = 'translateX(' + offsetX + 'px) scale(' + k + ')';
+        stage.style.height = Math.max(MIN_STAGE_H, Math.round(contentH * k)) + 'px';
+
+        // The panel just changed height, so where it sits changed too.
+        if (shownTile) { place(shownTile); }
     }
 
     frame.addEventListener('load', function () {
         // close() nulls shownType before blanking the frame, so the
         // about:blank load never un-hides the waiting state.
-        if (shownType) { panel.setAttribute('data-loaded', ''); }
+        if (!shownType) { return; }
+        fitFrame();
+        panel.setAttribute('data-loaded', '');
     });
 
     if (!coarse) {
