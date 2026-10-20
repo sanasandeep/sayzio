@@ -166,6 +166,18 @@ class YouCanSeeABlockBeforeYouAddItTest extends TestCase
         $this->assertSame($before, BiolinkBlock::count(), 'A preview created a real block.');
     }
 
+    /**
+     * Not 403. Link uses BelongsToWorkspace, whose global scope filters
+     * every read by workspace_id, so route-model binding never finds
+     * another workspace's page and the request 404s before the
+     * controller's own ownership check runs. That is the better answer
+     * of the two -- "no such page" tells a stranger less than "yes it
+     * exists, and no" -- so this asserts the refusal rather than pinning
+     * a status code that the global scope, not this endpoint, decides.
+     *
+     * The controller's abort_if stays as the second lock, for a link
+     * inside the workspace that this user does not own.
+     */
     public function test_someone_elses_page_is_refused(): void
     {
         $stranger = User::factory()->create(['onboarded_at' => now()]);
@@ -180,9 +192,18 @@ class YouCanSeeABlockBeforeYouAddItTest extends TestCase
 
         app(WorkspaceContext::class)->resolve($this->user);
 
-        $this->actingAs($this->user)
-            ->get($this->previewUrl($theirLink, 'heading'))
-            ->assertForbidden();
+        $response = $this->actingAs($this->user)->get($this->previewUrl($theirLink, 'heading'));
+
+        $this->assertContains(
+            $response->getStatusCode(),
+            [403, 404],
+            'A stranger\'s page answered with '.$response->getStatusCode().'.'
+        );
+        $this->assertStringNotContainsString(
+            'data-block-type=',
+            $response->getContent(),
+            'The refusal still rendered a block.'
+        );
     }
 
     public function test_a_type_that_does_not_exist_is_refused(): void
