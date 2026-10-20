@@ -8,6 +8,22 @@ class IcsData extends Model
 {
     protected $table = 'ics_data';
 
+    /**
+     * Hosts whose players we are willing to put in an iframe. The video URL
+     * is typed by the organiser, so this is an allow-list rather than a
+     * blocklist: an unknown host renders nothing instead of framing it.
+     */
+    public const EMBEDDABLE_HOSTS = [
+        'vimeo.com',
+        'player.vimeo.com',
+        'loom.com',
+        'www.loom.com',
+        'wistia.com',
+        'fast.wistia.net',
+        'dailymotion.com',
+        'streamable.com',
+    ];
+
     protected $fillable = [
         'link_id', 'event_name', 'description', 'location',
         'organizer', 'organizer_email',
@@ -21,7 +37,7 @@ class IcsData extends Model
         'latitude', 'longitude',
         // Task #3593 (Events overhaul): hashtags, richer page content and
         // badge-powered invite/entry rules.
-        'hashtags', 'gallery', 'info_sections', 'cover_image_url',
+        'hashtags', 'gallery', 'info_sections', 'cover_image_url', 'video_url',
         'required_badge_id', 'award_badge_id',
         'agenda', 'documents',
     ];
@@ -472,5 +488,61 @@ class IcsData extends Model
     protected function escapeIcs(string $text): string
     {
         return str_replace(["\n", ",", ";", "\\"], ["\\n", "\\,", "\\;", "\\\\"], $text);
+    }
+
+    /**
+     * Which of the existing block renderers can show this event's video, and
+     * what to hand it.
+     *
+     * Nothing here is new machinery: common/blocks/youtube.blade.php,
+     * video.blade.php and iframe-embed.blade.php have been rendering these
+     * same shapes on biolink pages for a long time. Each one reads a single
+     * `$s` settings array, so an event can reuse them as they are.
+     *
+     * Returns null when there is no video, or when the URL is not one we
+     * are willing to put in an iframe. The caller renders nothing in that
+     * case rather than an empty frame.
+     *
+     * @return array{view: string, s: array}|null
+     */
+    public function videoEmbed(): ?array
+    {
+        $url = trim((string) ($this->video_url ?? ''));
+
+        if ($url === '') {
+            return null;
+        }
+
+        $parts = parse_url($url);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+
+        // Only ever embed over https, and only a real host. A javascript: or
+        // data: URL has no business reaching an iframe src, and the field is
+        // organiser-supplied.
+        if ($scheme !== 'https' || $host === '') {
+            return null;
+        }
+
+        $host = preg_replace('/^www\./', '', $host);
+
+        // A file we can play ourselves, no third party involved.
+        if (preg_match('/\.(mp4|webm|ogg)$/i', (string) ($parts['path'] ?? ''))) {
+            return ['view' => 'common.blocks.video', 's' => ['url' => $url]];
+        }
+
+        if ($host === 'youtube.com' || $host === 'youtu.be' || $host === 'm.youtube.com') {
+            // The youtube block pulls the id out of a full URL itself, so it
+            // is handed the URL rather than a guess at the id.
+            return ['view' => 'common.blocks.youtube', 's' => ['video_id' => $url]];
+        }
+
+        // Everything else goes through the generic frame: Vimeo, Loom, a
+        // conference player. There is no Vimeo-specific renderer to reuse.
+        if (in_array($host, self::EMBEDDABLE_HOSTS, true)) {
+            return ['view' => 'common.blocks.iframe-embed', 's' => ['url' => $url, 'height' => 420]];
+        }
+
+        return null;
     }
 }

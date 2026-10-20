@@ -28,6 +28,17 @@
     </div>
 @endif
 
+{{-- The video reuses whichever block renderer fits the URL. These partials
+     have been serving biolink pages all along; the event page just had no
+     field pointing at them. videoEmbed() returns null for an empty or
+     non-embeddable URL, so nothing is drawn rather than an empty frame. --}}
+@php($videoEmbed = $ics ? $ics->videoEmbed() : null)
+@if($videoEmbed)
+    <div class="ev-rich mb-3">
+        @include($videoEmbed['view'], ['s' => $videoEmbed['s']])
+    </div>
+@endif
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         @foreach($hashtagList as $ht)
