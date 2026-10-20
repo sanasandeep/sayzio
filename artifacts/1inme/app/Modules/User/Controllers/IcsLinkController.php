@@ -363,6 +363,7 @@ class IcsLinkController extends Controller
             'hashtags'             => 'nullable|array|max:15',
             'hashtags.*'           => 'string|max:50',
             'cover_image_url'      => 'nullable|url|max:2048',
+            'video_url'            => 'nullable|url|max:2048',
             'gallery'              => 'nullable|array|max:20',
             'gallery.*'            => 'url|max:2048',
             'info_sections'        => 'nullable|array|max:10',
@@ -443,6 +444,7 @@ class IcsLinkController extends Controller
             // Events overhaul (Task #3593).
             'hashtags'            => $this->normalizeHashtags($v['hashtags'] ?? []),
             'cover_image_url'     => $v['cover_image_url'] ?? null,
+            'video_url'           => $v['video_url'] ?? null,
             'gallery'             => array_values(array_filter(array_map('trim', $v['gallery'] ?? []))),
             'info_sections'       => $this->normalizeInfoSections($v['info_sections'] ?? []),
             'required_badge_id'   => $v['required_badge_id'] ?? null,

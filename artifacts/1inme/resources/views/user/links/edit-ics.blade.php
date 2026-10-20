@@ -162,6 +162,12 @@
                 },
                 addQuestion: function () { if (this.questions.length < 10) this.questions.push({ label: '', type: 'text', required: false, options: '' }); },
                 removeQuestion: function (i) { this.questions.splice(i, 1); },
+                // Media: cover, video, gallery.
+                coverImageUrl: @json(old('cover_image_url', $ics->cover_image_url ?? '')),
+                videoUrl: @json(old('video_url', $ics->video_url ?? '')),
+                galleryItems: (@json(old('gallery', (array) ($ics->gallery ?? [])))).map(function (u) { return { url: u }; }),
+                addGalleryItem: function () { if (this.galleryItems.length < 20) this.galleryItems.push({ url: '' }); },
+                removeGalleryItem: function (i) { this.galleryItems.splice(i, 1); },
                 // Task #5023 — agenda
                 agendaItems: @json(old('agenda', (array) ($ics->agenda ?? []))),
                 addAgendaItem: function () {
@@ -494,6 +500,56 @@
                         </div>
                     </div>
                 </template>
+            </div>
+        </div>
+
+        {{-- Media: cover, video and gallery.
+             These three columns have existed on ics_data and rendered on the
+             public page for a long time; until now there was nowhere to type
+             them. --}}
+        <div class="ics-section">
+            <div class="ics-section-head">
+                <div class="ics-section-icon"><i class="fas fa-photo-film"></i></div>
+                <div><h2 class="ics-section-title">Media</h2><p class="ics-section-sub">Optional. A cover image, one video, and photos from a past run. All shown on your public event page.</p></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="ics-label text-xs" for="ics-cover-url">Cover image URL <span style="color: var(--text-faint);">(optional)</span></label>
+                <input id="ics-cover-url" type="url" name="cover_image_url" x-model="coverImageUrl" placeholder="https://..." class="ics-input" maxlength="2048">
+                <template x-if="coverImageUrl">
+                    <div class="mt-2 rounded-lg overflow-hidden" style="border: 1px solid var(--border-subtle);">
+                        <img :src="coverImageUrl" alt="" style="width:100%;max-height:170px;object-fit:cover;display:block;" @error="$el.style.display='none'">
+                    </div>
+                </template>
+            </div>
+
+            <div class="mb-3">
+                <label class="ics-label text-xs" for="ics-video-url">Video URL <span style="color: var(--text-faint);">(optional)</span></label>
+                <input id="ics-video-url" type="url" name="video_url" x-model="videoUrl" placeholder="https://youtube.com/watch?v=... or a link to an .mp4" class="ics-input" maxlength="2048">
+                <p class="text-xs mt-1" style="color: var(--text-muted);">YouTube, Vimeo, Loom, Wistia, Dailymotion, Streamable, or a direct .mp4, .webm or .ogg file. Must start with https.</p>
+            </div>
+
+            <div>
+                <label class="ics-label text-xs">Photos <span style="color: var(--text-faint);">(up to 20)</span></label>
+                <template x-if="galleryItems.length === 0">
+                    <p class="text-xs mb-2" style="color: var(--text-muted);">No photos yet. Paste image URLs below.</p>
+                </template>
+                <div class="space-y-2 mb-2">
+                    <template x-for="(item, i) in galleryItems" :key="i">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-shrink-0 rounded overflow-hidden" style="width:44px;height:44px;border:1px solid var(--border-subtle);background:rgba(148,163,184,0.08);">
+                                <template x-if="item.url">
+                                    <img :src="item.url" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" @error="$el.style.display='none'">
+                                </template>
+                            </div>
+                            <input type="url" :name="'gallery[' + i + ']'" x-model="item.url" placeholder="https://..." class="ics-input flex-1" maxlength="2048">
+                            <button type="button" @click="removeGalleryItem(i)" :aria-label="'Remove photo ' + (i + 1)" class="text-red-400/70 hover:text-red-400 text-xs px-2 py-2 rounded hover:bg-red-500/10"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </template>
+                </div>
+                <button type="button" @click="addGalleryItem()" x-show="galleryItems.length < 20" class="text-sm px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20">
+                    <i class="fas fa-plus mr-1.5"></i>Add photo
+                </button>
             </div>
         </div>
 
