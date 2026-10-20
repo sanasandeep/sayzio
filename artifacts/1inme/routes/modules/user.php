@@ -1136,6 +1136,13 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/blocks/link-picker', [BiolinkBlockController::class, 'linkPicker'])->middleware('workspace.can:links.view')->name('links.blocks.linkPicker');
         Route::put('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.blocks.update');
         Route::get('links/{link}/blocks/{block}/edit-form', [BiolinkBlockController::class, 'editForm'])->middleware('workspace.can:links.view')->name('links.blocks.editForm');
+        // Palette flyout: one block TYPE rendered as it would look on this
+        // page, before the creator commits to adding it. Declared above the
+        // {block} routes so a type slug can never be read as a block id.
+        Route::get('links/{link}/blocks/preview-type/{type}', [BiolinkBlockController::class, 'blockPreview'])
+            ->where('type', '[a-z0-9_]+')
+            ->middleware('workspace.can:links.view')
+            ->name('links.blocks.typePreview');
         Route::delete('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.blocks.destroy');
         Route::delete('links/{link}/blocks', [BiolinkBlockController::class, 'bulkDestroy'])->middleware('workspace.can:links.edit')->name('links.blocks.bulkDestroy');
         // Multi-select bar: show/hide a selection in one call. Moving a

@@ -1040,6 +1040,92 @@ class BiolinkBlockController extends Controller
     }
 
     /**
+     * Render one block TYPE as it would look on THIS page, for the palette
+     * preview flyout -- "what am I about to add", answered before adding.
+     *
+     * The sample block is assembled exactly the way store() assembles a
+     * real one: the same BlockDefaults content for the raw palette slug
+     * (not the canonical type -- link_big and cta_button both canonicalise
+     * to link, and telling those apart is the entire point), the same
+     * STYLE_DEFAULTS -> type defaults -> template colours layering, the
+     * same design-lock override, the same sanitiser. Any other recipe and
+     * the preview drifts from what the creator actually gets, which is
+     * worse than showing nothing: a preview that lies is a preview that
+     * costs trust the first time someone notices.
+     *
+     * Nothing is written. The block is a transient model that never meets
+     * the database.
+     *
+     * Locked types preview too, deliberately. The palette already shows
+     * them as upgrade links, and letting someone see what they would get
+     * is the honest version of an upsell.
+     */
+    public function blockPreview(Link $link, string $type)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+
+        $known = array_unique(array_merge(
+            array_keys(BiolinkBlock::TYPES),
+            array_keys(\App\Modules\User\Support\BlockTypeRegistry::aliases())
+        ));
+        abort_unless(in_array($type, $known, true), 404);
+
+        $settings = BlockDefaults::contentForType($type);
+        $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
+            BiolinkBlock::STYLE_DEFAULTS,
+            BlockDefaults::styleForType($type),
+            $this->templateDefaultColorStyleFor($link, $type)
+        ));
+
+        if ($link->isDesignLocked()) {
+            $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
+                $settings['_style'],
+                $link->designLockStyleFor($type) ?? []
+            ));
+        }
+
+        $settings = $this->sanitizeSettings($type, $settings);
+
+        $block = new BiolinkBlock();
+        $block->id = 0;
+        $block->type = $type;
+        $block->settings = $settings;
+        $block->is_active = true;
+        $block->parent_id = null;
+        // A container type's partial reads ->children. On an unsaved model
+        // that would fire a query against parent_id = null and pull in the
+        // whole page; seeding the relation empty keeps the sample a sample.
+        $block->setRelation('children', collect());
+
+        try {
+            $html = view('user.links.partials.block-preview-frame', [
+                'link'  => $link,
+                'block' => $block,
+            ])->render();
+        } catch (\Throwable $e) {
+            // Some partials need live records (feeds, embeds with real IDs,
+            // anything reading a saved id). Fail soft with a plain frame
+            // rather than a broken iframe -- the admin preview has done the
+            // same since it shipped, and the flyout must never be the thing
+            // that breaks the editor.
+            \Illuminate\Support\Facades\Log::info('Block type preview render failed', [
+                'type'  => $type,
+                'error' => $e->getMessage(),
+            ]);
+            $html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+                . '<meta name="robots" content="noindex,nofollow"></head>'
+                . '<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;'
+                . 'background:#0f172a;font-family:sans-serif;color:rgba(255,255,255,0.6);font-size:12px;'
+                . 'text-align:center;padding:18px;line-height:1.5;">'
+                . '<div>This one only fills in once it is on your page.</div></body></html>';
+        }
+
+        return response($html)
+            ->header('Content-Type', 'text/html; charset=utf-8')
+            ->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
+    /**
      * True when the template's fixed-position rules apply to this editor
      * session: page is design-locked AND this isn't the admin design draft
      * (the draft must stay fully editable so admins can curate the layout).
