@@ -32,7 +32,7 @@ class CompetitorTeardownEstimateTest extends TestCase
     use RefreshDatabase;
 
     /** The overhead constant used in AiCostEstimator for this feature. */
-    private const QUOTED_OVERHEAD_TOKENS = 3000;
+    private const QUOTED_OVERHEAD_TOKENS = 3400;
 
     private const QUOTED_MAX_OUTPUT_TOKENS = 1400;
 
@@ -107,8 +107,18 @@ class CompetitorTeardownEstimateTest extends TestCase
     {
         $this->assertSame(1_500_000, CompetitorPageFetcher::MAX_BYTES, 'fetcher byte cap changed');
 
+        // The system prompt is MEASURED, not pinned to a number somebody has
+        // to remember. It is built from SayzioFixes::all(), so adding one
+        // capability lengthens it; a hardcoded 1455 would have kept passing
+        // while the real prompt outgrew the budget, which is the exact
+        // failure this test exists to catch.
+        $service = $this->app->make(CompetitorTeardownService::class);
+        $prompt  = new \ReflectionMethod($service, 'systemPrompt');
+        $prompt->setAccessible(true);
+        $systemChars = mb_strlen((string) $prompt->invoke($service));
+
         // Caps the fetcher applies before the payload is built, in characters.
-        $worstCaseChars = 1455   // system prompt
+        $worstCaseChars = $systemChars
             + 200                // final_url
             + 300                // title
             + 500                // meta_description
@@ -124,7 +134,7 @@ class CompetitorTeardownEstimateTest extends TestCase
         $this->assertLessThanOrEqual(
             self::QUOTED_OVERHEAD_TOKENS,
             $impliedTokens,
-            "the fetcher now sends more than the estimate budgets for ({$impliedTokens} tokens implied vs ".self::QUOTED_OVERHEAD_TOKENS.' quoted); raise the overhead in AiCostEstimator'
+            "the prompt now sends more than the estimate budgets for ({$impliedTokens} tokens implied from a {$systemChars}-char system prompt, vs ".self::QUOTED_OVERHEAD_TOKENS.' quoted); raise the overhead in AiCostEstimator'
         );
     }
 

@@ -7,6 +7,7 @@ use App\Modules\User\Models\CompetitorTeardown;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
+use App\Modules\User\Support\SayzioFixes;
 use App\Services\AI\CompetitorTeardownService;
 use App\Services\AI\InsufficientCoinsForAiException;
 use Illuminate\Http\Request;
@@ -101,10 +102,21 @@ class CompetitorTeardownController extends Controller
     {
         $this->authorizeTeardown($teardown);
 
+        $analysis = is_array($teardown->analysis) ? $teardown->analysis : [];
+
         return view('user.links.teardown.show', [
             'teardown' => $teardown,
-            'analysis' => is_array($teardown->analysis) ? $teardown->analysis : [],
+            'analysis' => $analysis,
             'balance'  => $this->credits->getBalance($request->user()),
+            // Resolved per request, not at save time: a creator who adds a
+            // subscription tier next week should start seeing the promo
+            // suggestion on a teardown they ran today, and block links only
+            // exist once a page has been built to put them on.
+            'sayzioFixes' => SayzioFixes::resolve(
+                $analysis['sayzio_fixes'] ?? [],
+                workspace_owner(),
+                $teardown,
+            ),
         ]);
     }
 

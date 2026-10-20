@@ -3,6 +3,7 @@
 namespace App\Services\AI;
 
 use App\Modules\User\Models\CompetitorTeardown;
+use App\Modules\User\Support\SayzioFixes;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Services\Biolink\AiBiolinkBuilderService;
@@ -233,7 +234,9 @@ class CompetitorTeardownService
 
     protected function systemPrompt(): string
     {
-        return <<<'PROMPT'
+        $catalogue = SayzioFixes::promptCatalogue();
+
+        return <<<PROMPT
 You are an expert conversion-rate + link-in-bio design critic. You are
 given structured signals scraped from a competitor's public web page
 (title, headings, button/link CTA copy, counts, a text excerpt). Score
@@ -252,7 +255,8 @@ markdown fences:
     "quality_score": number,       // 0-100
     "feedback": string             // 1-2 sentences on the CTA(s)
   },
-  "recommendations": [string]      // up to 6 concrete, actionable fixes, ordered by impact
+  "recommendations": [string],     // up to 6 concrete, actionable fixes, ordered by impact
+  "sayzio_fixes": [string]         // up to 6 keys from ALLOWED FIXES below, naming the Sayzio features that close this page's gaps
 }
 
 Rules:
@@ -260,7 +264,14 @@ Rules:
 - Be specific and actionable, not generic ("weak CTA" is bad; "the CTA text 'Learn More' doesn't tell visitors what happens next — swap for a specific action like 'Book a 15-min call'" is good).
 - If cta_texts is empty, treat cta.present as false and cta.quality_score as low.
 - Keep every string under 200 characters.
+- sayzio_fixes: choose ONLY from the ALLOWED FIXES keys listed below, and only
+  where the gap you found is genuinely one that fix addresses. Never invent a
+  key, never describe a Sayzio feature in prose, and return an empty array
+  rather than reaching for a key that does not fit.
 - Output ONLY the JSON object.
+
+ALLOWED FIXES (key: what it does)
+{$catalogue}
 PROMPT;
     }
 
@@ -303,6 +314,10 @@ PROMPT;
                 'feedback'      => mb_substr(trim((string) ($cta['feedback'] ?? '')), 0, 300),
             ],
             'recommendations' => $strList($parsed['recommendations'] ?? [], 6),
+            // Anything the model named that SayzioFixes does not define is
+            // dropped here, before this is stored. That is the only thing
+            // standing between a hallucinated feature and a creator's screen.
+            'sayzio_fixes'    => SayzioFixes::sanitize($parsed['sayzio_fixes'] ?? []),
         ];
     }
 
