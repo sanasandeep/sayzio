@@ -112,4 +112,79 @@ class AnAttendeeCannotPlantAFormulaTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/(^|,)"?[=+@]/m', $csv, "A live formula survived:\n{$csv}");
         $this->assertStringContainsString("'=cmd", $csv, 'The payload should still be present, just inert.');
     }
+
+    /**
+     * The contact directory is the one export that is also an import:
+     * it hands the creator a CSV and accepts the same file back. If
+     * uncell() is not the exact inverse of cell(), a contact named
+     * "-Smith" gains an apostrophe on every round trip.
+     */
+    #[DataProvider('payloads')]
+    public function test_a_round_trip_through_the_directory_returns_the_original($payload): void
+    {
+        $this->assertSame($payload, CsvSafe::uncell(CsvSafe::cell($payload)));
+    }
+
+    public function test_an_apostrophe_the_user_actually_typed_survives_the_inverse(): void
+    {
+        // uncell() may only undo what cell() would have added.
+        $this->assertSame("'Quote", CsvSafe::uncell("'Quote"));
+        $this->assertSame("'", CsvSafe::uncell("'"));
+        $this->assertSame('Priya', CsvSafe::uncell('Priya'));
+    }
+
+    public function test_a_hand_assembled_line_is_quoted_and_inert(): void
+    {
+        // Two exports build CSV text rather than writing to a handle.
+        $this->assertSame("'=1+1,b", CsvSafe::line(['=1+1', 'b']));
+        $this->assertSame('"a,b",c', CsvSafe::line(['a,b', 'c']));
+        $this->assertSame('"he said ""hi"""', CsvSafe::line(['he said "hi"']));
+        $this->assertSame('a', CsvSafe::line(['a']), 'line() must not carry a trailing newline.');
+    }
+
+    /**
+     * Eight call sites pass ',', '"', '' to disable PHP's backslash
+     * escaping. That argument is not cosmetic: with the default escape,
+     * a value containing a backslash before a quote is written with the
+     * quote undoubled, which breaks the field for any reader. put()
+     * must forward what it is given rather than defaulting it away.
+     */
+    public function test_the_enclosure_and_escape_arguments_are_forwarded(): void
+    {
+        $payload = ['a\\"b', 'c'];
+
+        $this->assertSame(
+            $this->capture(fn ($h) => fputcsv($h, $payload, ',', '"', '')),
+            $this->capture(fn ($h) => CsvSafe::put($h, $payload, ',', '"', '')),
+            'An explicit empty escape must reach fputcsv unchanged.'
+        );
+
+        $this->assertSame(
+            $this->capture(fn ($h) => fputcsv($h, $payload, ',', '"', '\\')),
+            $this->capture(fn ($h) => CsvSafe::put($h, $payload)),
+            "put()'s own default must match fputcsv's default."
+        );
+
+        $this->assertNotSame(
+            $this->capture(fn ($h) => fputcsv($h, $payload, ',', '"', '')),
+            $this->capture(fn ($h) => fputcsv($h, $payload, ',', '"', '\\')),
+            'If these were identical the forwarding would not matter and this test would prove nothing.'
+        );
+    }
+
+    public function test_a_custom_separator_is_forwarded(): void
+    {
+        $this->assertSame("a;b\n", $this->capture(fn ($h) => CsvSafe::put($h, ['a', 'b'], ';')));
+    }
+
+    private function capture(callable $write): string
+    {
+        $handle = fopen('php://temp', 'r+');
+        $write($handle);
+        rewind($handle);
+        $out = (string) stream_get_contents($handle);
+        fclose($handle);
+
+        return $out;
+    }
 }
