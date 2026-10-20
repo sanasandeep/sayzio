@@ -24,12 +24,12 @@
                  foot of the canvas; shift-click ticks a whole run. Always in
                  the markup (not hover-only) so it is discoverable and so a
                  keyboard or touch user can reach it. --}}
-            <label class="block-select" title="Select this block">
-                <input type="checkbox" class="block-select-box" data-select-id="{{ $block->id }}" aria-label="Select {{ $typeInfo['label'] }} block">
+            <label class="block-select" title="Select this section">
+                <input type="checkbox" class="block-select-box" data-select-id="{{ $block->id }}" aria-label="Select {{ $typeInfo['label'] }} section">
             </label>
 
             @if($isLockedFixed)
-            <div class="flex-shrink-0 w-5 flex items-center justify-center" title="Fixed by the template: this block can't be moved or removed">
+            <div class="flex-shrink-0 w-5 flex items-center justify-center" title="Fixed by the template: this section can't be moved or removed">
                 <i class="fas fa-thumbtack text-[11px]" style="color: var(--text-faint);"></i>
             </div>
             @else
@@ -121,7 +121,7 @@
         <div class="card-children-area px-3 pb-3" x-data="{ cardExpanded: true }">
             <div class="rounded-xl overflow-hidden" style="border: 1px dashed var(--border-glass); background: rgba(61,107,255,0.02);">
                 <button type="button" @click="cardExpanded = !cardExpanded" class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold transition-colors hover:bg-white/[0.02]" style="color: var(--text-faint); background: rgba(61,107,255,0.04);">
-                    <span><i class="fas fa-cubes mr-1"></i> Child Blocks (<span data-card-child-count="{{ $block->id }}">{{ $block->children->count() }}</span>)</span>
+                    <span><i class="fas fa-cubes mr-1"></i> Inside this group (<span data-card-child-count="{{ $block->id }}">{{ $block->children->count() }}</span>)</span>
                     <i class="fas fa-chevron-down transition-transform text-[8px]" :class="cardExpanded ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="cardExpanded" x-collapse>
@@ -130,13 +130,13 @@
                             @include('user.links.partials.block-child-card', ['child' => $child, 'link' => $link, 'blockTypes' => $blockTypes, 'catColors' => $catColors, 'pollTallies' => $pollTallies])
                         @empty
                         <div class="card-empty-hint text-center py-3">
-                            <p class="text-[10px]" style="color: var(--text-dimmed);">Drag blocks here or click + below</p>
+                            <p class="text-[10px]" style="color: var(--text-dimmed);">Drag sections here or click + below</p>
                         </div>
                         @endforelse
                     </div>
                     <div class="px-2 pb-2">
                         <button type="button" class="w-full py-1.5 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all hover:bg-blue-500/10" style="border: 1px dashed rgba(61,107,255,0.3); color: #90acff;" onclick="openCardGallery({{ $block->id }})">
-                            <i class="fas fa-plus text-[8px]"></i> Add block to card
+                            <i class="fas fa-plus text-[8px]"></i> Add to group
                         </button>
                     </div>
                 </div>
@@ -190,7 +190,7 @@
                 <span class="menu-slot-field">
                     <select class="menu-slot-select"
                             data-prev-value="{{ $curSlot }}"
-                            aria-label="Where this block sits on the page"
+                            aria-label="Where this section sits on the page"
                             onchange="setMenuSlot({{ $block->id }}, this.value, this)">
                         @foreach($slotOptions as $opt)
                         <option value="{{ $opt['value'] }}" @selected($curSlot === $opt['value'])>{{ $opt['label'] }}</option>
@@ -239,7 +239,7 @@
             <div class="inline-editor-head">
                 <span class="inline-editor-icon"><i class="fas fa-pen"></i></span>
                 <span class="min-w-0">
-                    <span class="inline-editor-title truncate">Edit Block</span>
+                    <span class="inline-editor-title truncate">Edit section</span>
                     <span class="inline-editor-sub truncate">{{ $typeInfo['label'] }}</span>
                 </span>
                 <span class="inline-autosave-status text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
@@ -264,7 +264,7 @@
             class="insert-rail"
             data-insert-after="{{ $block->id }}"
             onclick="openInsertGallery({{ $block->id }})"
-            aria-label="Add a block below this one">
+            aria-label="Add a section below this one">
         <span class="insert-rail-line" aria-hidden="true"></span>
         <span class="insert-rail-dot"><i class="fas fa-plus"></i></span>
         <span class="insert-rail-line" aria-hidden="true"></span>
