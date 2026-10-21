@@ -10,22 +10,28 @@
         'icon'  => 'fa-qrcode',
     ])
 
-    <div class="card-premium p-5 mb-6" id="progress-card">
-        <div class="flex items-baseline justify-between mb-3">
-            <div class="text-sm font-semibold" style="color: var(--text-primary);">Live door progress</div>
-            <div class="text-[11px]" style="color: var(--text-muted);" id="progress-updated"></div>
+    <div class="ev-panel p-5 mb-6" id="progress-card">
+        <div class="ev-section-head">
+            <span class="ev-section-icon"><i class="fas fa-door-open"></i></span>
+            <span class="ev-section-title">Live door progress</span>
+            <span class="ev-section-meta" id="progress-updated"></span>
         </div>
-        <div class="flex items-end gap-2 mb-2">
-            <span id="progress-in" class="text-3xl font-bold" style="color: var(--text-primary);">–</span>
-            <span class="text-sm mb-1" style="color: var(--text-muted);">/ <span id="progress-sold">–</span> checked in</span>
+        <div class="flex items-end gap-2 mb-3">
+            <span id="progress-in" class="ev-stat-value" data-pending="1" style="font-size:2.25rem;">–</span>
+            <span class="text-sm mb-1.5" style="color: var(--text-muted);">/ <span id="progress-sold">–</span> checked in</span>
         </div>
-        <div class="w-full h-2 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.08);">
-            <div id="progress-bar" class="h-full rounded-full" style="width:0%; background: var(--accent, #6366f1); transition: width .3s;"></div>
-        </div>
+        {{-- The track was rgba(255,255,255,0.08) inline: the dark theme's
+             value, invisible on a white card. A div is not a form control,
+             so the guards in #514 and #517 never looked at it. --}}
+        <div class="ev-meter"><div id="progress-bar" class="ev-meter-fill"></div></div>
         <div id="progress-tiers" class="mt-4 space-y-1.5"></div>
     </div>
 
-    <div class="card-premium p-5 mb-6">
+    <div class="ev-panel p-5 mb-6">
+        <div class="ev-section-head">
+            <span class="ev-section-icon"><i class="fas fa-qrcode"></i></span>
+            <span class="ev-section-title">Scan a ticket</span>
+        </div>
         <div id="reader" style="max-width: 420px; margin: 0 auto;"></div>
         <div id="scan-result" class="mt-4 text-sm text-center" style="color: var(--text-secondary);"></div>
 
@@ -52,7 +58,10 @@
 
     function renderProgress(data) {
         const t = data.totals || { sold: 0, checked_in: 0 };
-        document.getElementById('progress-in').textContent = t.checked_in;
+        // Clear the pending pulse once a real figure lands.
+        const inEl = document.getElementById('progress-in');
+        inEl.textContent = t.checked_in;
+        inEl.removeAttribute('data-pending');
         document.getElementById('progress-sold').textContent = t.sold;
         const pct = t.sold > 0 ? Math.round((t.checked_in / t.sold) * 100) : 0;
         document.getElementById('progress-bar').style.width = pct + '%';
@@ -61,7 +70,7 @@
         tiersEl.innerHTML = (data.tiers || []).map(function (tier) {
             return `<div class="flex items-center justify-between text-sm">
                 <span style="color: var(--text-secondary);">${esc(tier.name)}</span>
-                <span style="color: var(--text-primary); font-weight:600;">${tier.checked_in} / ${tier.sold}</span>
+                <span style="color: var(--text-primary); font-weight:600; font-variant-numeric: tabular-nums;">${tier.checked_in} / ${tier.sold}</span>
             </div>`;
         }).join('');
     }

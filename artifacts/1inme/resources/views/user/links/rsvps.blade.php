@@ -63,8 +63,10 @@
                 <div class="text-2xl font-bold" style="color: var(--text-primary);">{{ $counts['yes'] }} <span class="text-sm font-normal" style="color: var(--text-muted);">of {{ $cap }}</span></div>
             </div>
             <div class="flex-1 mx-6 hidden md:block">
-                <div class="w-full h-2 rounded-full overflow-hidden" style="background:rgba(255,255,255,.08)">
-                    <div style="width: {{ min(100, ($cap > 0 ? ($counts['yes']/$cap)*100 : 0)) }}%; background:linear-gradient(90deg,#10b981,#3d6bff); height:100%"></div>
+                {{-- Same invisible track as the check-in page: the dark
+                     theme's value inline, white on a white card. --}}
+                <div class="ev-meter">
+                    <div class="ev-meter-fill" style="width: {{ min(100, ($cap > 0 ? ($counts['yes']/$cap)*100 : 0)) }}%"></div>
                 </div>
             </div>
             <div class="text-right text-xs" style="color: var(--text-muted);">
@@ -102,7 +104,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint); border-bottom: 1px solid rgba(255,255,255,0.08);">
+                    <tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint); border-bottom: 1px solid var(--border-glass);">
                         <th class="text-left font-semibold py-3 pl-5">Guest</th>
                         <th class="text-left font-semibold py-3">Contact</th>
                         <th class="text-left font-semibold py-3">Response</th>
@@ -122,7 +124,7 @@
                             [$slabel, $scolor] = $smap[$r->status] ?? ['Confirmed', '#10b981'];
                             $hasExpand = !empty($r->occurrences) || !empty($r->answers) || $r->company || $r->role;
                         @endphp
-                        <tr id="rsvp-{{ $r->id }}" style="border-top: 1px solid rgba(255,255,255,0.06); {{ (int) request()->query('highlight') === (int) $r->id ? 'outline: 2px solid #5c83ff; outline-offset: -2px; background: rgba(92,131,255,0.08);' : '' }}" x-data="{ open: false }">
+                        <tr id="rsvp-{{ $r->id }}" style="border-top: 1px solid var(--border-glass); {{ (int) request()->query('highlight') === (int) $r->id ? 'outline: 2px solid #5c83ff; outline-offset: -2px; background: rgba(92,131,255,0.08);' : '' }}" x-data="{ open: false }">
                             <td class="py-3 pl-5">
                                 <div class="font-semibold" style="color: var(--text-primary);">{{ $r->name ?: '—' }}</div>
                                 @if($r->message)
@@ -176,7 +178,7 @@
                             </td>
                         </tr>
                         @if($hasExpand)
-                            <tr x-show="open" x-cloak style="border-top:1px solid rgba(255,255,255,0.04); background:rgba(61,107,255,0.04)">
+                            <tr x-show="open" x-cloak style="border-top: 1px solid var(--border-glass); background:rgba(61,107,255,0.04)">
                                 <td colspan="8" class="px-5 py-3 text-xs" style="color: var(--text-secondary);">
                                     @if(!empty($r->occurrences))
                                         <div class="mb-2">

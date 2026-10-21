@@ -77,7 +77,7 @@
 
         <div class="space-y-3 mb-5">
             @foreach($tiers as $tier)
-            <div class="flex flex-wrap items-center gap-3 p-3 rounded-lg" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+            <div class="flex flex-wrap items-center gap-3 p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                 <div class="flex-1 min-w-[160px]">
                     <div class="font-semibold text-sm" style="color: var(--text-primary);">{{ $tier->name }}</div>
                     <div class="text-xs" style="color: var(--text-muted);">{{ $tier->priceLabel() }} &middot; {{ $tier->sold }} sold @if($tier->capacity) / {{ $tier->capacity }} @endif</div>
@@ -103,7 +103,7 @@
             @endforeach
         </div>
 
-        <form method="POST" action="{{ route('user.links.ics.tiers.store', $link) }}" class="flex flex-wrap gap-2 items-end p-3 rounded-lg" style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15);">
+        <form method="POST" action="{{ route('user.links.ics.tiers.store', $link) }}" class="flex flex-wrap gap-2 items-end p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass-light);">
             @csrf
             <div>
                 <label class="text-xs block mb-1" style="color: var(--text-muted);">Name</label>
@@ -137,11 +137,11 @@
                 </thead>
                 <tbody>
                 @forelse($tickets as $t)
-                    <tr id="ticket-{{ $t->id }}" style="border-top: 1px solid rgba(255,255,255,0.06); {{ (int) request()->query('highlight') === (int) $t->id ? 'outline: 2px solid #5c83ff; outline-offset: -2px; background: rgba(92,131,255,0.08);' : '' }}">
+                    <tr id="ticket-{{ $t->id }}" style="border-top: 1px solid var(--border-glass); {{ (int) request()->query('highlight') === (int) $t->id ? 'outline: 2px solid #5c83ff; outline-offset: -2px; background: rgba(92,131,255,0.08);' : '' }}">
                         <td class="py-2" style="color: var(--text-primary);">{{ $t->attendee_name }}<div class="text-xs" style="color: var(--text-muted);">{{ $t->attendee_email }}</div></td>
                         <td class="py-2" style="color: var(--text-secondary);">{{ $t->tier?->name ?? '—' }}</td>
                         <td class="py-2" style="color: var(--text-secondary);">{{ $t->quantity }}</td>
-                        <td class="py-2"><span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--text-secondary);">{{ $t->status }}</span></td>
+                        <td class="py-2"><span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--bg-glass-input); color: var(--text-secondary);">{{ $t->status }}</span></td>
                         <td class="py-2" style="color: var(--text-muted);">{{ $t->created_at->format('M j, Y g:i A') }}</td>
                         <td class="py-2 text-right">
                             @if(in_array($t->status, ['valid', 'checked_in'], true))
