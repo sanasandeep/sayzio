@@ -3,7 +3,7 @@
 @section('title', 'People & connections: ' . $link->title)
 
 @section('content')
-<div class="py-8 px-4">
+<div class="pb-8 px-4">
     @include('user.partials.event-header', [
         'link'  => $link,
         'title' => 'People & connections',
