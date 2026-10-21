@@ -1855,6 +1855,9 @@ class ContactController extends Controller
      * here, or the picker is empty for exactly the people most likely to
      * be reused. Hence withoutGlobalScope plus an explicit owner filter,
      * which is also what keeps it scoped.
+     *
+     * The ordering is the other half of being usable, and is explained
+     * where it is built below.
      */
     public function pickerSearch(Request $request)
     {
@@ -1879,7 +1882,43 @@ class ContactController extends Controller
             });
         }
 
-        $contacts = $query->orderBy('display_name')->limit(20)->get();
+        // ORDER. This was alphabetical, which is the wrong question to
+        // ask of an address book that fills itself: public flows
+        // (subscribers, RSVPs, reviews, orders, inbox threads) create
+        // contacts automatically, and one of those arriving with a name
+        // that starts with a digit or a bracket takes the whole first
+        // page. On a real account that is exactly what happened -- all
+        // twenty slots held the same auto-captured name, and no speaker
+        // could be reached without typing.
+        //
+        // So rank by what makes somebody likely to be the person being
+        // billed:
+        //   1. already billed on an event, most recent first -- the same
+        //      speakers come back, and this is the reuse the picker is for
+        //   2. then contacts the owner entered or imported themselves
+        //   3. then everything else, most recently touched first
+        //
+        // Auto-captured contacts are DEMOTED, not hidden. Somebody who
+        // RSVP'd and is now speaking is a real person to bill; they just
+        // should not outrank the address book on an empty query.
+        //
+        // The join is a grouped subquery rather than a correlated exists
+        // per row: ordering happens before the limit, so a correlated
+        // form would run once per contact in the account.
+        $lastBilled = \Illuminate\Support\Facades\DB::table('event_people')
+            ->selectRaw('contact_id, max(id) as last_billed_id')
+            ->whereNotNull('contact_id')
+            ->groupBy('contact_id');
+
+        $contacts = $query
+            ->leftJoinSub($lastBilled, 'billed', 'billed.contact_id', '=', 'contacts.id')
+            ->select('contacts.*')
+            ->orderByRaw('billed.last_billed_id desc nulls last')
+            ->orderBy('contacts.is_auto_captured')          // false before true
+            ->orderByDesc('contacts.updated_at')
+            ->orderBy('contacts.display_name')
+            ->limit(20)
+            ->get();
 
         return response()->json([
             'data' => $contacts->map(fn (Contact $c) => [
