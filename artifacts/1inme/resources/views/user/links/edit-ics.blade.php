@@ -117,19 +117,12 @@
     html.light-mode .dz-btn-ok { color: #047857; border-color: rgba(4,120,87,0.35); }
 </style>
 
-<div class="max-w-3xl mx-auto pb-12">
-    @include('user.partials.page-hero', [
-        'title'    => 'Edit Event',
-        'subtitle' => $link->title ?: $link->alias,
-        'icon'     => 'fa-calendar',
-        'back'     => route('user.links.show', $link),
-        'chips'    => [
-            ['icon' => 'fa-circle ' . ($link->is_active ? 'text-emerald-400' : 'text-red-400'), 'text' => $link->is_active ? 'Active' : 'Inactive'],
-            ['icon' => 'fa-calendar', 'text' => 'Event'],
-        ],
+<div class="py-8 px-4 pb-12">
+    @include('user.partials.event-header', [
+        'link'  => $link,
+        'title' => 'Edit Event',
+        'icon'  => 'fa-calendar',
     ])
-
-    @include('user.partials.event-tabs', ['link' => $link])
 
     @if($errors->any())
         <div class="mb-5 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-300">

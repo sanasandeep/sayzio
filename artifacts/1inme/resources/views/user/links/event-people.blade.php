@@ -3,15 +3,12 @@
 @section('title', 'People & connections: ' . $link->title)
 
 @section('content')
-<div class="max-w-3xl mx-auto">
-    @include('user.partials.page-hero', [
+<div class="py-8 px-4">
+    @include('user.partials.event-header', [
+        'link'  => $link,
         'title' => 'People & connections',
-        'subtitle' => $link->title,
-        'icon' => 'fa-people-arrows',
-        'back' => route('user.links.show', $link),
+        'icon'  => 'fa-people-arrows',
     ])
-
-    @include('user.partials.event-tabs', ['link' => $link])
 
     <div class="card-premium p-5 mb-6">
         <div class="flex items-baseline justify-between mb-4">
