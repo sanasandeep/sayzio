@@ -131,7 +131,7 @@
         padding: .4rem .55rem; border-radius: .55rem;
         background: var(--bg-glass-input); border: 1px solid var(--border-glass);
     }
-    .lineup-name    { font-size: .8125rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lineup-name    { font-size: .8125rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .lineup-billing { font-size: .6875rem; color: var(--text-muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lineup-linked  { font-size: .6875rem; color: var(--accent); flex: 0 0 auto; }
     .lineup-role    { margin-left: auto; width: auto; flex: 0 0 auto; padding: .2rem 1.4rem .2rem .5rem; font-size: .6875rem; border-radius: .4rem; }
@@ -154,14 +154,19 @@
     .lineup-dialog-title { font-size: .875rem; font-weight: 650; color: var(--text-primary); }
     .lineup-results { overflow-y: auto; display: flex; flex-direction: column; gap: .35rem; min-height: 2.5rem; }
     .lineup-result {
-        display: grid; grid-template-columns: 1fr auto; gap: 0 .75rem; align-items: center;
+        display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 .75rem; align-items: center;
         width: 100%; text-align: left; padding: .5rem .65rem; border-radius: .55rem;
         background: var(--bg-glass-input); border: 1px solid var(--border-glass);
     }
     .lineup-result:hover:not(:disabled) { border-color: var(--accent); }
     .lineup-result:disabled { opacity: .5; }
-    .lineup-result .lineup-billing { grid-column: 1; }
-    .lineup-result-action { grid-row: 1 / span 2; font-size: .6875rem; font-weight: 700; color: var(--accent); }
+    .lineup-result .lineup-name    { grid-column: 1; grid-row: 1; }
+    .lineup-result .lineup-billing { grid-column: 1; grid-row: 2; }
+    /* grid-column is NOT optional here. With only grid-row set, auto
+       placement claimed column 1 for the action and pushed the name
+       into column 2 -- the button rendered to the LEFT of the person it
+       belonged to. Every position in this row is now stated. */
+    .lineup-result-action { grid-column: 2; grid-row: 1 / span 2; justify-self: end; align-self: center; font-size: .6875rem; font-weight: 700; color: var(--accent); }
     .lineup-result-guest { border-style: dashed; }
     .lineup-hint { font-size: .6875rem; color: var(--text-muted); }
     .lineup-dialog-foot { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding-top: .25rem; }
