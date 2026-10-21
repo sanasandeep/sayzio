@@ -83,11 +83,11 @@
     </div>
 
     <div class="card-premium overflow-hidden">
-        <div class="px-5 py-3 text-xs uppercase tracking-wider font-semibold" style="color: var(--text-faint); border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <div class="px-5 py-3 text-xs uppercase tracking-wider font-semibold" style="color: var(--text-faint); border-bottom: 1px solid var(--border-glass);">
             Past broadcasts
         </div>
         @forelse($broadcasts as $b)
-            <div class="px-5 py-3 flex items-start justify-between gap-3" style="border-top: 1px solid rgba(255,255,255,0.06);">
+            <div class="px-5 py-3 flex items-start justify-between gap-3" style="border-top: 1px solid var(--border-glass);">
                 <div class="min-w-0">
                     <div class="text-sm font-semibold truncate" style="color: var(--text-primary);">{{ $b->subject }}</div>
                     <div class="text-xs mt-0.5" style="color: var(--text-muted);">
