@@ -8,8 +8,10 @@
         'title' => 'People & connections',
         'subtitle' => $link->title,
         'icon' => 'fa-people-arrows',
-        'back' => route('user.links.ics.tickets', $link),
+        'back' => route('user.links.show', $link),
     ])
+
+    @include('user.partials.event-tabs', ['link' => $link])
 
     <div class="card-premium p-5 mb-6">
         <div class="flex items-baseline justify-between mb-4">

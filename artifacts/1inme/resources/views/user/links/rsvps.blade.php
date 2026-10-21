@@ -13,10 +13,11 @@
             ['icon' => 'fa-users text-emerald-400', 'text' => $counts['total'] . ' responses'],
         ],
         'actions' => [
-            ['label' => 'Message guests', 'url' => route('user.links.ics.broadcast', $link), 'icon' => 'fa-paper-plane', 'class' => 'btn-secondary'],
             ['label' => 'Export CSV', 'url' => route('user.links.rsvps.export', $link), 'icon' => 'fa-download', 'class' => 'btn-primary'],
         ],
     ])
+
+    @include('user.partials.event-tabs', ['link' => $link])
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">

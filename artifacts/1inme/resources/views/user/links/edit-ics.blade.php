@@ -125,6 +125,8 @@
         ],
     ])
 
+    @include('user.partials.event-tabs', ['link' => $link])
+
     @if($errors->any())
         <div class="mb-5 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-300">
             <div class="font-semibold mb-1"><i class="fas fa-exclamation-circle mr-2"></i>Please fix the highlighted fields below.</div>
