@@ -464,6 +464,7 @@
      a visitor or an RSVP. --}}
 @if($link->type === 'ics')
     @include('user.links.partials.event-funnel', ['link' => $link])
+    @include('user.links.partials.event-report', ['link' => $link])
 @endif
 
 @include('user.links.partials.analytics-tabs', ['link' => $link, 'active' => 'overview'])
