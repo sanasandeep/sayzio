@@ -124,6 +124,8 @@ class EventConnectService
             } else {
                 $rsvp = Rsvp::create([
                     'link_id'    => $link->id,
+                    // This flow only runs for a signed-in visitor.
+                    'user_id'    => $user->id,
                     'name'       => $user->name ?: ($email ? Str::before($email, '@') : 'Guest'),
                     'email'      => $email,
                     'phone'      => $user->mobile,
