@@ -837,7 +837,7 @@
                         <a href="{{ route('user.links.index', ['type' => 'ics']) }}"
                            class="sidebar-link {{ nav_route_is('user.links.index') && request('type') === 'ics' ? 'active' : '' }}"
                            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-calendar-star"></i></div>
+                            <div class="nav-icon-wrap"><i class="fas fa-calendar-check"></i></div>
                             <span class="nav-label">My Events</span>
                             <span class="sidebar-tooltip">My Events</span>
                         </a>
@@ -1775,7 +1775,7 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                @if($__mEventsOn && $__can['links_view'])<a href="{{ route('user.links.index', ['type' => 'ics']) }}" class="sidebar-link {{ nav_route_is('user.links.index') && request('type') === 'ics' ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-star"></i></div> <span>My Events</span></a>@endif
+                                @if($__mEventsOn && $__can['links_view'])<a href="{{ route('user.links.index', ['type' => 'ics']) }}" class="sidebar-link {{ nav_route_is('user.links.index') && request('type') === 'ics' ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-check"></i></div> <span>My Events</span></a>@endif
                                 @if($__mEventsOn && $__can['links_create'])<a href="{{ route('user.links.ics.create') }}" class="sidebar-link {{ nav_route_is('user.links.ics.create') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-circle-plus"></i></div> <span>Create Event</span></a>@endif
                                 @if($__mEventsOn && $__can['settings_view'])<a href="{{ route('user.events.index') }}" class="sidebar-link {{ nav_route_is('user.events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-week"></i></div> <span>Events Calendar</span></a>@endif
                                 @if($__can['links_view'])<a href="{{ route('user.calendars.mine') }}" class="sidebar-link {{ nav_route_is('user.calendars.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div> <span>My Calendar</span></a>@endif
