@@ -67,7 +67,7 @@
                 <label class="block text-[10px] font-semibold uppercase tracking-wide mb-1" style="color:var(--text-muted);">Date &amp; time</label>
                 <input type="datetime-local" x-model="dt" :min="nowInput()"
                        class="w-full rounded-lg px-2.5 py-2 text-xs mb-2.5"
-                       style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);color-scheme:dark;">
+                       style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                 <label class="block text-[10px] font-semibold uppercase tracking-wide mb-1" style="color:var(--text-muted);">Note <span style="color:var(--text-faint);">(optional)</span></label>
                 <textarea x-model="note" rows="2" placeholder="e.g. call about renewal"
                           class="w-full rounded-lg px-2.5 py-2 text-xs resize-none mb-2.5"
