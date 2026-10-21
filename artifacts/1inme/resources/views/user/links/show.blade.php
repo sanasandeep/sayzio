@@ -425,6 +425,8 @@
     'actions'  => $heroActions,
 ])
 
+@include('user.partials.event-tabs', ['link' => $link])
+
 @if($link->type === 'ics')
     @php
         $eventNotDiscoverableReasons = \App\Modules\User\Support\EventDirectoryEligibility::reasons($link);

@@ -8,8 +8,10 @@
         'title' => 'Message guests',
         'subtitle' => $link->title,
         'icon' => 'fa-paper-plane',
-        'back' => route('user.links.rsvps.index', $link),
+        'back' => route('user.links.show', $link),
     ])
+
+    @include('user.partials.event-tabs', ['link' => $link])
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">

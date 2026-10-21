@@ -14,11 +14,9 @@
             ['icon' => 'fa-users text-blue-400', 'text' => $totals['sold'] . ' sold'],
             ['icon' => 'fa-door-open text-primary-400', 'text' => $totals['checked_in'] . ' checked in'],
         ],
-        'actions' => [
-            ['label' => 'People & connections', 'url' => route('user.links.ics.people', $link), 'icon' => 'fa-people-arrows', 'class' => 'btn-secondary'],
-            ['label' => 'Scan tickets', 'url' => route('user.links.ics.checkin', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-primary'],
-        ],
     ])
+
+    @include('user.partials.event-tabs', ['link' => $link])
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">

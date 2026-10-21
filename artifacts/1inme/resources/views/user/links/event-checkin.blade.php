@@ -8,8 +8,10 @@
         'title' => 'Door check-in',
         'subtitle' => $link->title,
         'icon' => 'fa-qrcode',
-        'back' => route('user.links.ics.tickets', $link),
+        'back' => route('user.links.show', $link),
     ])
+
+    @include('user.partials.event-tabs', ['link' => $link])
 
     <div class="card-premium p-5 mb-6" id="progress-card">
         <div class="flex items-baseline justify-between mb-3">
