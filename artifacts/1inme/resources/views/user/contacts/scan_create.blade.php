@@ -39,7 +39,7 @@
             <input type="file" name="files[]" required multiple
                    accept="image/jpeg,image/png,image/webp,application/pdf"
                    class="block w-full text-sm rounded-xl px-3 py-2"
-                   style="background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10); color: var(--text-primary);">
+                   style="background: var(--bg-glass-input); border:1px solid var(--border-glass); color: var(--text-primary);">
             <p class="mt-2 text-xs" style="color: var(--text-muted);">
                 Up to {{ $maxUploads }} files, {{ $maxMb }} MB each. Add the front and back of a card,
                 or several brochure photos in one go. PDFs are processed up to {{ $maxPages }} pages.
@@ -54,7 +54,7 @@
                       maxlength="{{ \App\Services\AI\CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH }}"
                       placeholder="e.g. "just grab the logo and phone number" or "only extract brand colors""
                       class="block w-full text-sm rounded-xl px-3 py-2 resize-none"
-                      style="background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10); color: var(--text-primary);">{{ old('instruction') }}</textarea>
+                      style="background: var(--bg-glass-input); border:1px solid var(--border-glass); color: var(--text-primary);">{{ old('instruction') }}</textarea>
             <p class="mt-1 text-xs" style="color: var(--text-muted);">
                 Tell the AI what to prioritise. Leave blank to extract everything on the card.
             </p>

@@ -44,7 +44,7 @@
         @foreach($phones as $i => $p)
             @php [$_ccDial, $_ccNum] = CountryDialCodes::parse($p->value ?? ''); @endphp
             <div class="flex gap-2 phone-row">
-                <select name="phones[{{ $i }}][label]" class="px-2 py-2 rounded-lg text-xs w-28" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                <select name="phones[{{ $i }}][label]" class="px-2 py-2 rounded-lg text-xs w-28" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                     @foreach($phoneLabels as $l)
                         <option value="{{ $l }}" @selected($p->label === $l)>{{ $l }}</option>
                     @endforeach
@@ -73,7 +73,7 @@
     <div id="emails-list" class="space-y-2">
         @foreach($emails as $i => $e)
             <div class="flex gap-2 email-row">
-                <select name="emails[{{ $i }}][label]" class="px-2 py-2 rounded-lg text-xs w-28" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                <select name="emails[{{ $i }}][label]" class="px-2 py-2 rounded-lg text-xs w-28" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                     @foreach($emailLabels as $l)
                         <option value="{{ $l }}" @selected($e->label === $l)>{{ $l }}</option>
                     @endforeach
@@ -91,7 +91,7 @@
 
 <div class="mt-5">
     <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">Notes</label>
-    <textarea name="notes" rows="3" class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">{{ old('notes', $contact?->notes) }}</textarea>
+    <textarea name="notes" rows="3" class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">{{ old('notes', $contact?->notes) }}</textarea>
 </div>
 
 <div class="mt-5"
@@ -114,7 +114,7 @@
                @keydown.backspace="onBackspace()"
                @input="filterSuggestions()" @focus="filterSuggestions()" @blur.window="showDropdown = false"
                placeholder="Add tag…"
-               class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+               class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
         <div x-show="showDropdown && filtered.length" x-cloak
              class="absolute left-0 z-20 mt-1 w-full rounded-xl shadow-xl overflow-hidden"
              style="background:var(--surface-2,#1a1d2e);border:1px solid rgba(255,255,255,.12);">

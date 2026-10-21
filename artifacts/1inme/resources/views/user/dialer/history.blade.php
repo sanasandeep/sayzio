@@ -36,13 +36,13 @@
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
                 <input type="text" x-model.debounce.400ms="filters.q" @input="reload()"
                        placeholder="Name, number, note…"
-                       class="w-full pl-8 pr-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                       class="w-full pl-8 pr-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
             </div>
 
             {{-- Outcome filter --}}
             <div class="relative">
                 <select x-model="filters.outcome" @change="reload()"
-                        class="w-full appearance-none px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                        class="w-full appearance-none px-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                     <option value="">All outcomes</option>
                     <option value="called">Called</option>
                     <option value="messaged">Messaged</option>
@@ -60,7 +60,7 @@
                 <i class="fas fa-tag absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
                 <input type="text" x-model.debounce.400ms="filters.tag" @input="reload()"
                        placeholder="Filter by tag…"
-                       class="w-full pl-8 pr-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                       class="w-full pl-8 pr-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
             </div>
         </div>
 
@@ -188,7 +188,7 @@
             <div>
                 <label class="text-xs font-semibold block mb-1.5" style="color:var(--text-muted);">Outcome</label>
                 <select x-model="editFields.outcome"
-                        class="w-full appearance-none px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                        class="w-full appearance-none px-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                     <option value="">none</option>
                     <option value="called">Called</option>
                     <option value="messaged">Messaged</option>
@@ -204,14 +204,14 @@
             <div>
                 <label class="text-xs font-semibold block mb-1.5" style="color:var(--text-muted);">Note</label>
                 <textarea x-model="editFields.note" rows="3" placeholder="Add a note…"
-                          class="w-full px-3 py-2 rounded-xl text-sm resize-none" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);"></textarea>
+                          class="w-full px-3 py-2 rounded-xl text-sm resize-none" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);"></textarea>
             </div>
 
             {{-- Tag --}}
             <div>
                 <label class="text-xs font-semibold block mb-1.5" style="color:var(--text-muted);">Tag</label>
                 <input type="text" x-model="editFields.tag" placeholder="e.g. lead, follow-up…" maxlength="50"
-                       class="w-full px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                       class="w-full px-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-1">

@@ -458,7 +458,7 @@
                     <div class="text-xs font-semibold mb-2" style="color:var(--text-muted);">Channels</div>
                     <template x-for="(c, i) in channels" :key="'c'+i">
                         <div class="flex gap-2 mb-2">
-                            <select :name="`channels[${i}][type]`" x-model="c.type" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                            <select :name="`channels[${i}][type]`" x-model="c.type" class="px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
                                 <option value="phone">Phone</option>
                                 <option value="sms">SMS</option>
                                 <option value="whatsapp">WhatsApp</option>
@@ -468,7 +468,7 @@
                                 <option value="email">Email</option>
                                 <option value="custom">Custom link</option>
                             </select>
-                            <input :name="`channels[${i}][value]`" x-model="c.value" placeholder="Number / URL / handle" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                            <input :name="`channels[${i}][value]`" x-model="c.value" placeholder="Number / URL / handle" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
                             <button type="button" @click="channels.splice(i,1)" class="px-2 rounded-lg" style="color:#ef4444;"><i class="fas fa-trash text-xs"></i></button>
                         </div>
                     </template>
@@ -480,8 +480,8 @@
                     <div class="text-xs font-semibold mb-2" style="color:var(--text-muted);">Socials</div>
                     <template x-for="(s, i) in socials" :key="'s'+i">
                         <div class="flex gap-2 mb-2">
-                            <input :name="`socials[${i}][platform]`" x-model="s.platform" placeholder="Platform" class="w-28 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
-                            <input :name="`socials[${i}][url]`" x-model="s.url" placeholder="https://…" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                            <input :name="`socials[${i}][platform]`" x-model="s.platform" placeholder="Platform" class="w-28 px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
+                            <input :name="`socials[${i}][url]`" x-model="s.url" placeholder="https://…" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
                             <button type="button" @click="socials.splice(i,1)" class="px-2 rounded-lg" style="color:#ef4444;"><i class="fas fa-trash text-xs"></i></button>
                         </div>
                     </template>
@@ -499,7 +499,7 @@
 
                     <div x-show="showMap" x-cloak class="mb-3">
                         <div class="flex gap-2 mb-2">
-                            <input x-model="searchQuery" @keydown.enter.prevent="searchAddress()" type="text" placeholder="Search a place or address…" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                            <input x-model="searchQuery" @keydown.enter.prevent="searchAddress()" type="text" placeholder="Search a place or address…" class="flex-1 px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
                             <button type="button" @click="searchAddress()" class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20)">
                                 <i class="fas fa-magnifying-glass"></i>
                             </button>
@@ -511,10 +511,10 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
-                        <input name="location[label]" x-model="location.label" placeholder="Label (e.g. Office)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
-                        <input name="location[address]" x-model="location.address" placeholder="Address" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
-                        <input name="location[lat]" x-model="location.lat" @input="syncMapFromInputs()" placeholder="Latitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
-                        <input name="location[lng]" x-model="location.lng" @input="syncMapFromInputs()" placeholder="Longitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);color:var(--text-primary);border:1px solid rgba(255,255,255,.10);">
+                        <input name="location[label]" x-model="location.label" placeholder="Label (e.g. Office)" class="px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
+                        <input name="location[address]" x-model="location.address" placeholder="Address" class="px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
+                        <input name="location[lat]" x-model="location.lat" @input="syncMapFromInputs()" placeholder="Latitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
+                        <input name="location[lng]" x-model="location.lng" @input="syncMapFromInputs()" placeholder="Longitude (optional)" class="px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass);">
                     </div>
 
                     {{-- Live preview of the pending point (before saving) --}}
@@ -717,12 +717,12 @@
             </div>
         </div>
         <input id="log-tag" type="text" placeholder="Tag (e.g. lead, family, vendor)" maxlength="50"
-               class="w-full px-3 py-2 rounded-xl text-sm mb-2" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+               class="w-full px-3 py-2 rounded-xl text-sm mb-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
         <textarea id="log-note" rows="2" placeholder="Note about this call…" maxlength="2000"
-               class="w-full px-3 py-2 rounded-xl text-sm mb-2" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);"></textarea>
+               class="w-full px-3 py-2 rounded-xl text-sm mb-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);"></textarea>
         <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-                <input id="cb-at" type="datetime-local" class="px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                <input id="cb-at" type="datetime-local" class="px-2 py-1.5 rounded-lg text-xs" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                 <button type="button" onclick="setCallback()" class="text-[11px] px-2.5 py-1.5 rounded-lg font-medium" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20)">
                     <i class="fas fa-bell mr-1"></i> Remind me
                 </button>

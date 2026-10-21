@@ -83,7 +83,7 @@
                 <div class="flex items-stretch gap-2">
                     <input id="apple-feed-url" type="text" readonly value="{{ $appleFeedUrl }}"
                            class="flex-1 min-w-0 px-3 py-2 rounded-lg text-xs font-mono truncate"
-                           style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-muted);"
+                           style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);"
                            onclick="this.select()">
                     <button type="button" onclick="copyAppleFeedUrl(this)"
                             class="shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition"
@@ -111,7 +111,7 @@
                     <p class="text-xs mb-3" style="color: var(--text-muted);">Pick a default calendar, every new Event Invite link you create will automatically save to it in "Keep in sync" mode.</p>
                     <form method="POST" action="{{ route('user.calendar.auto-sync') }}">
                         @csrf
-                        <select name="account_id" class="w-full px-3 py-2.5 rounded-xl text-sm" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);" onchange="this.form.submit()">
+                        <select name="account_id" class="w-full px-3 py-2.5 rounded-xl text-sm" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);" onchange="this.form.submit()">
                             <option value="">Off (don't push by default)</option>
                             @foreach($accounts->where('push_enabled', true) as $a)
                                 <option value="{{ $a->id }}" {{ (int)($autoSyncAccountId ?? 0) === (int)$a->id ? 'selected' : '' }}>

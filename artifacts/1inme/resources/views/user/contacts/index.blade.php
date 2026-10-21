@@ -208,7 +208,7 @@
                             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
                             <input type="text" x-model="q" @input="onInput()" placeholder="Search by name, phone, or email"
                                    autocomplete="off" spellcheck="false"
-                                   class="w-full pl-9 pr-9 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                                   class="w-full pl-9 pr-9 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                             <i x-show="loading" x-cloak class="fas fa-spinner fa-spin absolute right-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
                         </div>
                     </div>
