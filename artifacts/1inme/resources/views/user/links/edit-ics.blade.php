@@ -254,6 +254,12 @@
                     p.uid = 'p' + Math.random().toString(36).slice(2, 10);
                     return p;
                 }),
+                // Whether a billing follows its contact or is frozen to
+                // what is stored turns on whether the event has begun.
+                // The server answers that per person and sends
+                // follows_contact; this exists only so somebody added
+                // without a page reload gets the same answer.
+                eventStarted: {{ ($ics && $ics->start_date && $ics->start_date->isPast()) ? 'true' : 'false' }},
                 pickerFor: null,        // null = closed; '' = event level; else an agenda id
                 pickerQuery: '',
                 pickerResults: [],
@@ -314,6 +320,10 @@
                         linkedin_url: c.linkedin_url,
                         bio: c.bio,
                         photo_url: c.photo_url,
+                        // Picked from Contacts, so this reads from the
+                        // contact until the event starts -- which means
+                        // these fields do not decide what the page shows.
+                        follows_contact: !this.eventStarted,
                     });
                 },
 
@@ -327,6 +337,9 @@
                         contact_id: null, agenda_item_id: this.pickerFor || '',
                         role: 'speaker', name: name,
                         title: '', company: '', linkedin_url: '', bio: '', photo_url: '',
+                        // Nothing to follow, so these fields are the
+                        // whole story and always decide the page.
+                        follows_contact: false,
                     });
                     this.pickerQuery = '';
                     this.pickerResults = [];
@@ -797,7 +810,10 @@
                         <div class="lineup-row">
                             <span class="lineup-name" x-text="p.name"></span>
                             <span class="lineup-billing" x-text="[p.title, p.company].filter(Boolean).join(' at ')"></span>
-                            <span class="lineup-linked" x-show="p.contact_id" title="Linked to a contact"><i class="fas fa-address-card"></i></span>
+                            <span class="lineup-linked" x-show="p.contact_id"
+                                  :title="p.follows_contact
+                                      ? 'Shows this contact\'s name and title, and updates when you edit the contact'
+                                      : 'Linked to a contact'"><i class="fas fa-address-card"></i></span>
                             <select class="ics-input lineup-role" x-model="p.role">
                                 <template x-for="(label, value) in roles" :key="value">
                                     <option :value="value" x-text="label"></option>
@@ -807,6 +823,19 @@
                         </div>
                     </template>
                 </div>
+                {{-- Says out loud what the marked rows are doing. Without
+                     it the card icon means "linked" and nothing more, and
+                     an organiser has no way of knowing that editing one of
+                     these people in their contacts is what changes the
+                     page -- or that a one-off title typed here would not.
+                     Its own line rather than anything inside .lineup-row:
+                     that row is a single flex line and has already been
+                     broken twice by things added into it. --}}
+                <p class="lineup-hint mt-2" x-show="peopleFor('').some(p => p.follows_contact)">
+                    <i class="fas fa-address-card"></i>
+                    Marked people show their contact's details and change with it. To bill
+                    someone differently for this event, remove them and add them as a guest.
+                </p>
             </div>
             <template x-if="agendaItems.length === 0">
                 <p class="text-xs mb-3" style="color: var(--text-muted);">No agenda items yet. Add sessions, talks, or activities below.</p>
@@ -858,7 +887,10 @@
                                     <div class="lineup-row">
                                         <span class="lineup-name" x-text="p.name"></span>
                                         <span class="lineup-billing" x-text="[p.title, p.company].filter(Boolean).join(' at ')"></span>
-                                        <span class="lineup-linked" x-show="p.contact_id" title="Linked to a contact"><i class="fas fa-address-card"></i></span>
+                                        <span class="lineup-linked" x-show="p.contact_id"
+                                  :title="p.follows_contact
+                                      ? 'Shows this contact\'s name and title, and updates when you edit the contact'
+                                      : 'Linked to a contact'"><i class="fas fa-address-card"></i></span>
                                         <select class="ics-input lineup-role" x-model="p.role">
                                             <template x-for="(label, value) in roles" :key="value">
                                                 <option :value="value" x-text="label"></option>
@@ -868,6 +900,11 @@
                                     </div>
                                 </template>
                             </div>
+                            <p class="lineup-hint mt-2" x-show="peopleFor(item.id).some(p => p.follows_contact)">
+                                <i class="fas fa-address-card"></i>
+                                Marked people show their contact's details and change with it. To bill
+                                someone differently for this session, remove them and add them as a guest.
+                            </p>
                         </div>
                     </div>
                 </template>

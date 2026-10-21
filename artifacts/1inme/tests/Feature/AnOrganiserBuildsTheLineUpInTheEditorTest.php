@@ -37,17 +37,20 @@ class AnOrganiserBuildsTheLineUpInTheEditorTest extends TestCase
         return $u->fresh();
     }
 
-    private function event(User $host, array $agenda = []): Link
+    /** `$when` matters to anything about the freeze; everything else wants the default. */
+    private function event(User $host, array $agenda = [], string $when = '+1 day'): Link
     {
         $link = Link::create([
             'user_id' => $host->id, 'type' => 'ics',
             'alias' => 'evt' . Str::random(8), 'title' => 'Founder Sessions', 'is_active' => true,
         ]);
 
+        $start = \Illuminate\Support\Carbon::parse($when);
+
         IcsData::create([
             'link_id' => $link->id, 'event_name' => 'Founder Sessions',
-            'start_date' => now()->addDay()->toDateTimeString(),
-            'end_date'   => now()->addDay()->addHours(4)->toDateTimeString(),
+            'start_date' => $start->toDateTimeString(),
+            'end_date'   => $start->copy()->addHours(4)->toDateTimeString(),
             'timezone'   => 'Asia/Kolkata',
             'agenda'     => $agenda,
         ]);
@@ -124,6 +127,85 @@ class AnOrganiserBuildsTheLineUpInTheEditorTest extends TestCase
         // The picker has to be reachable from both levels.
         $this->assertStringContainsString("openPicker('')", $body);
         $this->assertStringContainsString('openPicker(item.id)', $body);
+    }
+
+    // ── Fields that do not control what they appear to control ───────
+
+    /**
+     * One key/value pair as `@json` writes it into the page.
+     *
+     * Blade's directive passes flags 15 -- HEX_TAG|HEX_AMP|HEX_APOS|
+     * HEX_QUOT -- which escape those characters WITHIN a string value,
+     * not JSON's own delimiters. So a plain pair does come out as
+     * '"title":"VP Engineering"' and could be asserted by hand; a value
+     * containing an apostrophe, an ampersand or an angle bracket would
+     * not, and a hand-written assertion for one of those fails while
+     * the page is perfectly correct. Deriving it the way the page does
+     * costs a line and removes the trap.
+     */
+    private function asBladeJson(array $pair): string
+    {
+        return trim(json_encode($pair, 15), '{}');
+    }
+
+    /**
+     * A linked person on an upcoming event reads from their Contact, so
+     * the editor's fields for them are not what the public page shows.
+     * The editor has to say that or it is lying by omission -- somebody
+     * types a one-off title, saves, sees no change, and has no way of
+     * knowing why.
+     */
+    public function test_a_linked_person_on_an_upcoming_event_is_marked_as_following_their_contact(): void
+    {
+        $owner   = $this->owner();
+        $contact = Contact::create([
+            'user_id' => $owner->id, 'display_name' => 'Priya Sharma',
+            'job_title' => 'VP Engineering', 'organization' => 'Globex',
+        ]);
+        $event = $this->event($owner);
+
+        EventPerson::create([
+            'link_id' => $event->id, 'contact_id' => $contact->id, 'role' => 'speaker',
+            'name' => 'Priya Sharma', 'title' => 'CTO', 'company' => 'Acme',
+        ]);
+
+        $body = $this->actingAs($owner)
+            ->get(route('user.links.ics.edit', $event, false))->assertOk()->getContent();
+
+        $this->assertStringContainsString($this->asBladeJson(['follows_contact' => true]), $body);
+        $this->assertStringContainsString('eventStarted: false', $body);
+
+        // And the field agrees with the page: the editor shows the
+        // Contact's title, not the stored column it is overriding.
+        $this->assertStringContainsString($this->asBladeJson(['title' => 'VP Engineering']), $body);
+
+        // The note that explains the marker is wired to the same flag.
+        $this->assertStringContainsString("peopleFor('').some(p => p.follows_contact)", $body);
+        $this->assertStringContainsString('Marked people show', $body);
+    }
+
+    public function test_a_started_event_does_not_claim_anybody_follows_anything(): void
+    {
+        // Once it has started the fields ARE what renders, so the note
+        // must not appear and the values must be the stored ones.
+        $owner   = $this->owner();
+        $contact = Contact::create([
+            'user_id' => $owner->id, 'display_name' => 'Priya Sharma',
+            'job_title' => 'VP Engineering', 'organization' => 'Globex',
+        ]);
+        $event = $this->event($owner, [], '-1 month');
+
+        EventPerson::create([
+            'link_id' => $event->id, 'contact_id' => $contact->id, 'role' => 'speaker',
+            'name' => 'Priya Sharma', 'title' => 'CTO', 'company' => 'Acme',
+        ]);
+
+        $body = $this->actingAs($owner)
+            ->get(route('user.links.ics.edit', $event, false))->assertOk()->getContent();
+
+        $this->assertStringContainsString($this->asBladeJson(['follows_contact' => false]), $body);
+        $this->assertStringContainsString('eventStarted: true', $body);
+        $this->assertStringContainsString($this->asBladeJson(['title' => 'CTO']), $body);
     }
 
     public function test_rows_are_keyed_on_identity_not_position(): void
