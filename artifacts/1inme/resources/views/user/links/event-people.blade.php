@@ -66,6 +66,11 @@
         if (!el) return;
         el.textContent = value;
         el.removeAttribute('data-pending');
+
+        // Nothing to be pleased about yet: drop the semantic colour so a
+        // zero does not announce itself as good news. Parses "0%" too.
+        var n = parseFloat(String(value));
+        el.classList.toggle('is-zero', !isFinite(n) || n === 0);
     }
 
     function render(d) {

@@ -155,9 +155,15 @@
         margin-top: .4rem; font-size: 1.875rem; font-weight: 800; line-height: 1.05;
         letter-spacing: -.025em; font-variant-numeric: tabular-nums; color: var(--text-primary);
     }
-    .ev-stat-value.is-accent { color: var(--accent); }
-    .ev-stat-value.is-good   { color: #10b981; }
-    html.light-mode .ev-stat-value.is-good { color: #047857; }
+    /* Colour has to mean something. Zero connections rendered in
+       success-green reads as "this is going well" when it is nothing at
+       all, and a bold accent on 0% draws the eye to the least
+       informative number on the page. So the semantic colour applies
+       only once the figure is non-zero; until then the tile is just a
+       number. The JS toggles is-zero. */
+    .ev-stat-value.is-accent:not(.is-zero) { color: var(--accent); }
+    .ev-stat-value.is-good:not(.is-zero)   { color: #10b981; }
+    html.light-mode .ev-stat-value.is-good:not(.is-zero) { color: #047857; }
     .ev-stat-note { margin-top: .3rem; font-size: .6875rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
     /* A figure still waiting on its fetch. It keeps pulsing if the fetch
