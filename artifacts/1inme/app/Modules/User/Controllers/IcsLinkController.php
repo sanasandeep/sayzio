@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AccountBadge;
 use App\Modules\User\Models\CalendarAccount;
 use App\Modules\User\Models\IcsData;
+use App\Modules\User\Models\EventPerson;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Services\Calendar\CalendarSyncService;
 use Illuminate\Http\Request;
@@ -60,6 +61,10 @@ class IcsLinkController extends Controller
         ]);
 
         IcsData::create($this->icsPayload($validated, $link->id));
+
+        if ($request->has('people')) {
+            $this->syncEventPeople($link->fresh('icsData'), (array) $request->input('people', []));
+        }
 
         $this->syncToCalendar($link, 'created');
 
@@ -204,6 +209,14 @@ class IcsLinkController extends Controller
             $link->icsData->update($payload);
         } else {
             IcsData::create($payload);
+        }
+
+        // After the agenda is saved, so a person attached to a session
+        // added in this same request validates against an id that now
+        // exists. Guarded on the key being present: a settings-only
+        // submission must not wipe a line-up it never rendered.
+        if ($request->has('people')) {
+            $this->syncEventPeople($link->fresh('icsData'), (array) $request->input('people', []));
         }
 
         $this->syncToCalendar($link->fresh('icsData'), 'updated');
@@ -380,6 +393,17 @@ class IcsLinkController extends Controller
             // Event agenda (Task #5023).
             'agenda'               => 'nullable|array|max:100',
             'agenda.*.id'          => 'nullable|string|max:16',
+            // Event line-up (hosts, speakers, moderators, panellists).
+            'people'                   => 'nullable|array|max:200',
+            'people.*.contact_id'      => 'nullable|integer',
+            'people.*.agenda_item_id'  => 'nullable|string|max:16',
+            'people.*.role'            => 'nullable|string|max:20',
+            'people.*.name'            => 'nullable|string|max:160',
+            'people.*.title'           => 'nullable|string|max:160',
+            'people.*.company'         => 'nullable|string|max:160',
+            'people.*.linkedin_url'    => 'nullable|string|max:255',
+            'people.*.bio'             => 'nullable|string|max:2000',
+            'people.*.photo_url'       => 'nullable|string|max:2048',
             'agenda.*.time'        => 'nullable|string|max:10',
             'agenda.*.end_time'    => 'nullable|string|max:10',
             'agenda.*.title'       => 'nullable|string|max:255',
@@ -486,6 +510,94 @@ class IcsLinkController extends Controller
     }
 
     /** Normalize agenda items — drop items with no title, cap fields. */
+    /**
+     * Replace the event's line-up with what was submitted.
+     *
+     * Called ONLY when the request carries a `people` key. An ordinary
+     * save from a screen that does not render these fields must leave
+     * the line-up alone -- the same reasoning as required_badge_id in
+     * this controller, and the same bug if ignored: a save from one
+     * screen silently wipes something another screen owns.
+     *
+     * Replace-in-full rather than diff. A line-up is a handful of rows
+     * whose order is the organiser's, so reconciling ids would be more
+     * code for no behaviour. Rows are rebuilt from the payload, so the
+     * contact reference and the snapshot both survive.
+     *
+     * A contact_id is honoured only when that contact belongs to the
+     * workspace owner; anything else is dropped to null and the typed
+     * name kept, so a tampered id bills a name rather than attaching
+     * someone else's CRM record to this event.
+     */
+    private function syncEventPeople(Link $link, array $people): void
+    {
+        $ownerId = workspace_owner_id();
+
+        $ownContactIds = $ownerId
+            ? \App\Modules\User\Models\Contact::withoutGlobalScope('workspace')
+                ->where('user_id', $ownerId)->pluck('id')->flip()
+            : collect();
+
+        // An agenda id that is not on this event would orphan the row.
+        $agendaIds = collect((array) ($link->icsData->agenda ?? []))
+            ->pluck('id')->filter()->flip();
+
+        $rows  = [];
+        $order = 0;
+
+        foreach ($people as $person) {
+            $name = trim((string) ($person['name'] ?? ''));
+
+            // A line-up entry with no name is not a line-up entry.
+            if ($name === '') {
+                continue;
+            }
+
+            $contactId = isset($person['contact_id']) ? (int) $person['contact_id'] : null;
+            if ($contactId && !$ownContactIds->has($contactId)) {
+                $contactId = null;
+            }
+
+            $agendaItemId = trim((string) ($person['agenda_item_id'] ?? '')) ?: null;
+            if ($agendaItemId !== null && !$agendaIds->has($agendaItemId)) {
+                $agendaItemId = null;
+            }
+
+            $role = (string) ($person['role'] ?? EventPerson::ROLE_SPEAKER);
+            if (!in_array($role, EventPerson::ROLES, true)) {
+                $role = EventPerson::ROLE_SPEAKER;
+            }
+
+            $rows[] = [
+                'link_id'        => $link->id,
+                'contact_id'     => $contactId,
+                'agenda_item_id' => $agendaItemId,
+                'role'           => $role,
+                'name'           => mb_substr($name, 0, 160),
+                'title'          => mb_substr(trim((string) ($person['title']        ?? '')), 0, 160)  ?: null,
+                'company'        => mb_substr(trim((string) ($person['company']      ?? '')), 0, 160)  ?: null,
+                'linkedin_url'   => mb_substr(trim((string) ($person['linkedin_url'] ?? '')), 0, 255)  ?: null,
+                'bio'            => mb_substr(trim((string) ($person['bio']          ?? '')), 0, 2000) ?: null,
+                'photo_url'      => mb_substr(trim((string) ($person['photo_url']    ?? '')), 0, 2048) ?: null,
+                'sort_order'     => $order++,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ];
+
+            if ($order >= 200) {
+                break;
+            }
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($link, $rows) {
+            EventPerson::where('link_id', $link->id)->delete();
+
+            foreach (array_chunk($rows, 100) as $chunk) {
+                EventPerson::insert($chunk);
+            }
+        });
+    }
+
     private function normalizeAgenda(array $items): array
     {
         // Ids are minted here so a session can be referred to -- speakers
