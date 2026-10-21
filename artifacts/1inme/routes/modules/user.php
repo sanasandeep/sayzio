@@ -960,6 +960,14 @@ Route::prefix('user')->name('user.')->group(function () {
         // decides the guard, and $request->user() is the session user here.
         Route::get ('event-people/{alias}', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'listAttendees'])->name('event-people.index')->middleware('events.enabled');
         Route::post('event-people/{alias}/request', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'requestExchange'])->middleware('throttle:10,1')->name('event-people.request')->middleware('events.enabled');
+        // Opting in, from a browser. This existed only on the mobile API
+        // (routes/api.php), which is bearer-token -- statefulApi() is not
+        // enabled -- so a signed-in attendee on the web could read the list
+        // and never join it. The page even told them to turn on something
+        // it gave them no way to turn on. Same controller again, for the
+        // same reason as the two routes above: who may opt in (live event,
+        // attendee only) is the rule, not the surface.
+        Route::post('event-people/{alias}/me', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'toggleDiscoverability'])->middleware('throttle:30,1')->name('event-people.toggle')->middleware('events.enabled');
         Route::get ('event-swaps/{alias}', [\App\Modules\User\Controllers\EventSwapsController::class, 'index'])->name('event-swaps.index')->middleware('events.enabled');
         Route::post('contact-exchanges/{id}/cancel', [\App\Modules\User\Controllers\EventSwapsController::class, 'cancel'])->whereNumber('id')->name('contact-exchanges.cancel')->middleware('events.enabled');
         Route::post('links-ics/{link}/tickets/{ticket}/refund', [\App\Modules\User\Controllers\EventTicketTierController::class, 'refundTicket'])->middleware('workspace.can:links.edit')->name('links.ics.tickets.refund')->middleware('events.enabled');
