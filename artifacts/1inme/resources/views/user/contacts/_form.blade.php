@@ -14,27 +14,27 @@
     <div>
         <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">First name</label>
         <input name="given_name" value="{{ old('given_name', $contact?->given_name) }}"
-               class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input);border: 1px solid var(--border-glass);color:var(--text-primary);">
     </div>
     <div>
         <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">Last name</label>
         <input name="family_name" value="{{ old('family_name', $contact?->family_name) }}"
-               class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input);border: 1px solid var(--border-glass);color:var(--text-primary);">
     </div>
     <div class="md:col-span-2">
         <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">Display name <span style="color:var(--text-faint);">(optional)</span></label>
         <input name="display_name" value="{{ old('display_name', $contact?->display_name) }}"
-               class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input);border: 1px solid var(--border-glass);color:var(--text-primary);">
     </div>
     <div>
         <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">Organization</label>
         <input name="organization" value="{{ old('organization', $contact?->organization) }}"
-               class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input);border: 1px solid var(--border-glass);color:var(--text-primary);">
     </div>
     <div>
         <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">Job title</label>
         <input name="job_title" value="{{ old('job_title', $contact?->job_title) }}"
-               class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input);border: 1px solid var(--border-glass);color:var(--text-primary);">
     </div>
 </div>
 
@@ -79,7 +79,7 @@
                     @endforeach
                 </select>
                 <input type="email" name="emails[{{ $i }}][value]" value="{{ $e->value }}" placeholder="name@example.com"
-                       class="flex-1 px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                       class="flex-1 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input);border: 1px solid var(--border-glass);color:var(--text-primary);">
                 <button type="button" onclick="this.closest('.email-row').remove()" class="px-3 rounded-lg text-xs" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)"><i class="fas fa-times"></i></button>
             </div>
         @endforeach
