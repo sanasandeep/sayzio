@@ -2153,6 +2153,8 @@ class RedirectController extends Controller
 
         $rsvp = \App\Modules\User\Models\Rsvp::create([
             'link_id'         => $link->id,
+            // Signed in? Then this RSVP is theirs, and their dashboard can say so.
+            'user_id'         => $request->user()?->id,
             'source_block_id' => null,
             'name'            => $data['name'],
             'email'           => $data['email'] ?? null,
