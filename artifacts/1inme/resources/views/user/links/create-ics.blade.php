@@ -24,7 +24,11 @@
     .day-chip-off { background: var(--bg-glass); border-color: var(--border-glass); color: var(--text-muted); }
     .day-chip-on { background-color: #5c83ff; border-color: #5c83ff; color: #fff; }
     .ics-freq-off { background: var(--bg-glass); border-color: var(--border-glass); color: var(--text-muted); }
-    .ics-freq-on { background-color: rgba(92,131,255,0.15); border-color: #5c83ff; color: #fff; }
+    .ics-freq-on { background-color: color-mix(in srgb, var(--accent) 14%, transparent); border-color: var(--accent); color: var(--accent); }
+    /* The selected pill sits on a translucent tint, so it takes the ground
+       beneath it. #fff here read fine on a dark ground and was invisible on a
+       light one. The solid .day-chip-on above keeps its white text: a solid
+       accent fill is the same colour in both themes. */
     .ics-tile { background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: 0.75rem; }
     .ics-tile-strong { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 0.75rem; }
     .ics-pill { display: flex; align-items: stretch; background-color: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 0.75rem; overflow: hidden; }
@@ -222,9 +226,9 @@
             </div>
             <div class="mt-4">
                 <label class="ics-label">Time zone <span class="text-red-400">*</span></label>
-                <select name="timezone" required class="ics-input">
+                <select name="timezone" required class="ics-input" @if(!old('timezone')) data-tz-autodetect @endif>
                     @foreach($timezones as $tz)
-                        <option value="{{ $tz }}" {{ old('timezone', 'UTC') === $tz ? 'selected' : '' }}>{{ $tz }}</option>
+                        <option value="{{ $tz }}" {{ old('timezone', \App\Support\PlatformTimezone::forUser(workspace_owner())) === $tz ? 'selected' : '' }}>{{ $tz }}</option>
                     @endforeach
                 </select>
             </div>
@@ -685,4 +689,6 @@
         </div>
     </form>
 </div>
+@include('user.partials.timezone-autodetect')
+
 @endsection
