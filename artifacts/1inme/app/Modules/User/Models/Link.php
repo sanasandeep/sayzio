@@ -184,6 +184,12 @@ protected $fillable = [
         return $this->hasMany(Rsvp::class);
     }
 
+    /** Hosts, speakers, moderators and panellists billed on this event. */
+    public function eventPeople()
+    {
+        return $this->hasMany(EventPerson::class);
+    }
+
     public function eventInterests()
     {
         return $this->hasMany(EventInterest::class);
