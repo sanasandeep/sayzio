@@ -86,6 +86,27 @@ class TheEventPagesAreMadeOfTokensTest extends TestCase
             "{$view}: a one-line @php(...) will pair with the next closing tag below it and swallow every directive in between");
     }
 
+    public function test_a_zero_does_not_wear_a_meaningful_colour(): void
+    {
+        // Found by looking at the deployed page rather than by a test:
+        // "CONNECTIONS 0" rendered in success-green and "ACCEPTANCE 0%"
+        // in bold accent. Green zero reads as "this is going well" when
+        // it is nothing at all. The colour is gated on the figure being
+        // non-zero, decided in JS where the value actually lands.
+        //
+        // This is a presence check and says so: it pins the mechanism
+        // against a careless revert, not the appearance. The appearance
+        // was checked by opening the page.
+        $css = $this->sourceWithoutComments('user/partials/event-header');
+
+        $this->assertStringContainsString('.ev-stat-value.is-good:not(.is-zero)', $css);
+        $this->assertStringContainsString('.ev-stat-value.is-accent:not(.is-zero)', $css);
+
+        $js = $this->sourceWithoutComments('user/links/event-people');
+
+        $this->assertStringContainsString("classList.toggle('is-zero'", $js);
+    }
+
     public function test_the_progress_tracks_use_the_shared_meter(): void
     {
         // The two that were invisible. Named explicitly so a future
