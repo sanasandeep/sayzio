@@ -72,7 +72,16 @@ class ContactActivityService
                 $sub->select('id')->from('forms')->where('user_id', $ownerId);
             });
         $push('form_submissions', 'Form submissions', 'clipboard', (clone $q)->count(),
-            $q->with('form')->latest('id')->limit(self::GROUP_LIMIT)->get()->map(fn ($s) => [
+            // The eager load needs the same unscoping as the root query
+            // above. withoutGlobalScope() applies to THIS builder only --
+            // a relation is loaded by its own query, with its own global
+            // scopes, so `form` came back null for anything outside the
+            // active workspace and every such row read "Form submission"
+            // instead of the form's name. Same cause as the two link
+            // loads below, where it cost a whole ref key rather than a
+            // title.
+            $q->with(['form' => fn ($r) => $r->withoutGlobalScope('workspace')])
+              ->latest('id')->limit(self::GROUP_LIMIT)->get()->map(fn ($s) => [
                 'title'    => $s->form?->name ?: 'Form submission',
                 'subtitle' => null,
                 'date'     => optional($s->created_at)->toIso8601String(),
@@ -124,7 +133,16 @@ class ContactActivityService
             ->where('contact_id', $cid)
             ->whereIn('link_id', $this->ownerLinkIds($ownerId));
         $push('rsvps', 'Event RSVPs', 'check-circle', (clone $q)->count(),
-            $q->with('link')->latest('id')->limit(self::GROUP_LIMIT)->get()->map(fn ($r) => [
+            // The eager load needs the same unscoping as the root query
+            // above. withoutGlobalScope() applies to THIS builder only --
+            // a relation is loaded by its own query, with its own global
+            // scopes, so `link` came back null for anything outside the
+            // active workspace. The symptom was not a missing title: the
+            // refs below run through array_filter(), so an empty alias was
+            // deleted from the payload entirely and clients reading
+            // refs.alias got an undefined key.
+            $q->with(['link' => fn ($l) => $l->withoutGlobalScope('workspace')])
+              ->latest('id')->limit(self::GROUP_LIMIT)->get()->map(fn ($r) => [
                 'title'    => $r->link?->title ?: 'RSVP',
                 'subtitle' => ucfirst((string) $r->status),
                 'date'     => optional($r->created_at)->toIso8601String(),
@@ -144,7 +162,16 @@ class ContactActivityService
             ->where('contact_id', $cid)
             ->whereIn('link_id', $this->ownerLinkIds($ownerId));
         $push('event_tickets', 'Event tickets', 'tag', (clone $q)->count(),
-            $q->with('link')->latest('id')->limit(self::GROUP_LIMIT)->get()->map(fn ($t) => [
+            // The eager load needs the same unscoping as the root query
+            // above. withoutGlobalScope() applies to THIS builder only --
+            // a relation is loaded by its own query, with its own global
+            // scopes, so `link` came back null for anything outside the
+            // active workspace. The symptom was not a missing title: the
+            // refs below run through array_filter(), so an empty alias was
+            // deleted from the payload entirely and clients reading
+            // refs.alias got an undefined key.
+            $q->with(['link' => fn ($l) => $l->withoutGlobalScope('workspace')])
+              ->latest('id')->limit(self::GROUP_LIMIT)->get()->map(fn ($t) => [
                 'title'    => $t->link?->title ?: 'Event ticket',
                 'subtitle' => $t->code ? ('Ticket ' . $t->code) : null,
                 'date'     => optional($t->created_at)->toIso8601String(),
