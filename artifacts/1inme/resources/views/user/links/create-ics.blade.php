@@ -34,14 +34,12 @@
     .sync-tile.is-on { border-color:#5c83ff; background:rgba(92,131,255,0.1); }
 </style>
 
-<div class="max-w-3xl mx-auto pb-12">
-    <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white/50" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
-        <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Create Event</h1>
-            <p class="text-xs mt-0.5" style="color: var(--text-muted);"><span class="create-progress" aria-label="Step 2 of 2"><span><span class="step-dot">✓</span>Choose</span><span class="progress-line" aria-hidden="true"></span><span class="active"><span class="step-dot">2</span>Set up</span></span> <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
-        </div>
-    </div>
+<div class="pb-12">
+    @include('user.partials.create-step-header', [
+        'title' => 'Create Event',
+        'icon' => 'fa-calendar',
+    ])
+
 
     @if($errors->any())
         <div class="mb-5 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-300">

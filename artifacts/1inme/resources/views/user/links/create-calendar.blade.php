@@ -9,14 +9,12 @@
     .cal-create select, .cal-create input { color-scheme: dark; }
     html.light-mode .cal-create select, html.light-mode .cal-create input { color-scheme: light; }
 </style>
-<div class="max-w-2xl mx-auto cal-create">
-    <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white/50" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
-        <div>
-            <h1 class="text-2xl font-bold text-white">Create Calendar</h1>
-            <p class="text-xs text-white/40 mt-0.5"><span class="create-progress" aria-label="Step 2 of 2"><span><span class="step-dot">✓</span>Choose</span><span class="progress-line" aria-hidden="true"></span><span class="active"><span class="step-dot">2</span>Set up</span></span> <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
-        </div>
-    </div>
+<div class="cal-create">
+    @include('user.partials.create-step-header', [
+        'title' => 'Create Calendar',
+        'icon' => 'fa-calendar-days',
+    ])
+
 
     <form method="POST" action="{{ route('user.links.store') }}">
         @csrf

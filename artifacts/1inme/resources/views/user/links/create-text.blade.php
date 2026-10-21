@@ -7,23 +7,14 @@
 @endpush
 
 @section('content')
-<div class="max-w-2xl mx-auto py-8 px-4">
+<div class="py-8 px-4">
 
-    {{-- Breadcrumbs --}}
-    <nav class="flex items-center gap-2 text-sm text-white/50 mb-6">
-        <a href="{{ route('user.links.index') }}" class="hover:text-white/80 transition-colors">My Links</a>
-        <i class="fa fa-chevron-right text-xs"></i>
-        <a href="{{ route('user.links.create') }}" class="hover:text-white/80 transition-colors">Create</a>
-        <i class="fa fa-chevron-right text-xs"></i>
-        <span class="text-white/80">Text Page</span>
-    </nav>
+    @include('user.partials.create-step-header', [
+        'title' => 'Create a Text Page',
+        'icon' => 'fa-align-left',
+        'subtitle' => 'Paste or type any text and get a short link. Visitors see a clean page with your text, and every visit is tracked.',
+    ])
 
-    {{-- Header --}}
-    <div class="mb-8">
-        <div class="flex items-center gap-3 mb-2">
-            <div class="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center">
-                <i class="fa fa-align-left text-sky-400 text-lg"></i>
-            </div>
             <h1 class="text-2xl font-bold text-white">Create a Text Page</h1>
         </div>
         <p class="text-white/60 text-sm mt-1 ml-13">

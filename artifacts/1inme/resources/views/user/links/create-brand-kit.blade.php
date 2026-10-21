@@ -3,14 +3,12 @@
 
 @section('content')
 @include('user.links.partials.create-premium-style')
-<div class="max-w-2xl mx-auto create-premium">
-    <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white/50" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
-        <div>
-            <h1 class="text-2xl font-bold text-white">Create Brand / Press Kit</h1>
-            <p class="text-xs text-white/40 mt-0.5"><span class="create-progress" aria-label="Step 2 of 2"><span><span class="step-dot">✓</span>Choose</span><span class="progress-line" aria-hidden="true"></span><span class="active"><span class="step-dot">2</span>Set up</span></span> <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
-        </div>
-    </div>
+<div class="create-premium">
+    @include('user.partials.create-step-header', [
+        'title' => 'Create Brand / Press Kit',
+        'icon' => 'fa-palette',
+    ])
+
 
     <form method="POST" action="{{ route('user.links.store') }}">
         @csrf
