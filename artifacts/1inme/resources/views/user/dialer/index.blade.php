@@ -61,7 +61,7 @@
                 </div>
             </div>
             <input id="dialer-number" type="text" inputmode="tel" value="" placeholder="+1 555 0100 or a name" autocomplete="off"
-                   class="w-full text-center text-2xl font-mono px-3 py-3 rounded-xl mb-4" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                   class="w-full text-center text-2xl font-mono px-3 py-3 rounded-xl mb-4" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
 
             {{-- Live universal results (grouped) --}}
             <div id="dialer-live" class="mb-3 hidden space-y-3 max-h-72 overflow-y-auto"></div>
@@ -114,7 +114,7 @@
                 <div class="relative">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
                     <input type="text" id="universal-q" value="{{ $q }}" placeholder="Name, handle, alias, keyword…"
-                           class="w-full pl-9 pr-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                           class="w-full pl-9 pr-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                 </div>
 
                 {{-- Advanced filter chips (contacts + verification) --}}
@@ -127,7 +127,7 @@
                     </button>
                     <div class="relative">
                         <input type="text" id="filter-tag" oninput="runUniversal()" placeholder="Tag…"
-                               class="w-24 px-2.5 py-1 rounded-full text-[11px]" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                               class="w-24 px-2.5 py-1 rounded-full text-[11px]" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                     </div>
                 </div>
 

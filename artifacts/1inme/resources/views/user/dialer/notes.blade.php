@@ -50,12 +50,12 @@
         </div>
 
         <input type="text" x-model="form.title" placeholder="Title"
-               class="w-full mb-3 px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+               class="w-full mb-3 px-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
 
         {{-- Plain note body --}}
         <template x-if="form.kind === 'note'">
             <textarea x-model="form.body" rows="4" placeholder="Write your note…"
-                      class="w-full mb-3 px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);"></textarea>
+                      class="w-full mb-3 px-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);"></textarea>
         </template>
 
         {{-- Checklist items --}}
@@ -66,7 +66,7 @@
                         <input type="checkbox" x-model="item.done" class="rounded">
                         <input type="text" x-model="item.text" placeholder="To-do item…"
                                @keydown.enter.prevent="addItem(idx)"
-                               class="flex-1 px-3 py-1.5 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                               class="flex-1 px-3 py-1.5 rounded-lg text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                         <button type="button" @click="form.checklist.splice(idx, 1)" class="text-xs px-2" style="color:var(--text-faint);"><i class="fas fa-times"></i></button>
                     </div>
                 </template>
@@ -92,12 +92,12 @@
             <div>
                 <label class="block text-xs mb-1" style="color:var(--text-faint);">Remind me at</label>
                 <input type="datetime-local" x-model="form.remind_at_local"
-                       class="w-full px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                       class="w-full px-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
             </div>
             <div>
                 <label class="block text-xs mb-1" style="color:var(--text-faint);">Share with phone numbers <span style="color:var(--text-faint);">(comma-separated)</span></label>
                 <input type="text" x-model="form.share_phones_raw" placeholder="+15551234567, +4479…"
-                       class="w-full px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                       class="w-full px-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
             </div>
         </div>
 

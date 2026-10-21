@@ -201,7 +201,7 @@
                        @keydown.comma.prevent="addFromInput()" @keydown.backspace="onBackspace()"
                        @input="filterSuggestions()" @focus="filterSuggestions()" @blur.window="showDropdown = false"
                        placeholder="Add tag…"
-                       class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                       class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                 <div x-show="showDropdown && filtered.length" x-cloak
                      class="absolute left-0 z-20 mt-1 w-full rounded-xl shadow-xl overflow-hidden"
                      style="background:var(--surface-2,#1a1d2e);border:1px solid rgba(255,255,255,.12);">
@@ -235,7 +235,7 @@
             <div x-show="editing" class="mt-1">
                 <textarea x-model="draft" rows="4" maxlength="5000"
                           placeholder="Add notes about this contact…"
-                          class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);"></textarea>
+                          class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);"></textarea>
                 <div class="flex items-center gap-2 mt-2">
                     <button type="button" @click="save()" :disabled="saving"
                             class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
@@ -302,7 +302,7 @@
                 <div>
                     <label class="block text-[11px] font-semibold mb-1" style="color:var(--text-faint);">Time zone</label>
                     <select name="follow_up_tz"
-                            class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                            class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                         @foreach(timezone_identifiers_list() as $tzId)
                             <option value="{{ $tzId }}" {{ $selectedTz === $tzId ? 'selected' : '' }}>{{ $tzId }}</option>
                         @endforeach
@@ -312,7 +312,7 @@
                 <div>
                     <label class="block text-[11px] font-semibold mb-1" style="color:var(--text-faint);">Note (optional)</label>
                     <textarea name="follow_up_note" rows="2" maxlength="2000" placeholder="What to follow up about…"
-                              class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">{{ old('follow_up_note', $contact->follow_up_note) }}</textarea>
+                              class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">{{ old('follow_up_note', $contact->follow_up_note) }}</textarea>
                 </div>
                 <div class="flex gap-2">
                     <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:linear-gradient(135deg,#3d6bff,#ec4899);color:#fff;">
@@ -456,7 +456,7 @@
         <input type="text" x-model="query" x-ref="search" @input.debounce.300ms="search()"
                placeholder="Search contacts by name, email or phone…"
                class="w-full px-3 py-2 rounded-lg text-sm mb-3"
-               style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--text-primary);">
+               style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
         <div class="overflow-y-auto flex-1 -mx-1 px-1" style="min-height:120px;">
             <template x-if="loading"><div class="py-6 text-center text-xs" style="color:var(--text-muted);">Searching…</div></template>
             <template x-if="!loading && candidates.length === 0"><div class="py-6 text-center text-xs" style="color:var(--text-muted);">No other contacts found.</div></template>

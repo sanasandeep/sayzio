@@ -59,7 +59,7 @@
             <input type="text" name="identifier" required maxlength="255"
                    placeholder="email@example.com, user id, or fingerprint"
                    class="flex-1 px-3 py-2 rounded-lg text-sm"
-                   style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                   style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
             <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-1.5"
                     style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.25); color: #ef4444;">
                 <i class="fas fa-eraser"></i> Erase submitter

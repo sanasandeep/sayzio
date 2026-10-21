@@ -89,7 +89,7 @@
                 <textarea name="instruction" rows="2" maxlength="{{ \App\Services\AI\CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH }}"
                     placeholder="e.g. also grab the brand colors and any product prices"
                     class="w-full text-sm rounded-lg px-3 py-2"
-                    style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">{{ old('instruction') }}</textarea>
+                    style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">{{ old('instruction') }}</textarea>
             </label>
             <div class="flex items-center justify-end mt-3">
                 <button type="submit" class="px-4 py-2 rounded-xl text-sm font-bold text-white transition" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">
@@ -161,7 +161,7 @@
                                     <span class="block text-[11px] font-semibold mb-1" style="color: var(--text-muted);">{$label}</span>
                                     <input type="{$type}" name="{$name}" value="{$val}"
                                         class="w-full text-sm rounded-lg px-3 py-2"
-                                        style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                                        style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                                 </label>
                             HTML;
                         };
@@ -175,15 +175,15 @@
                 </div>
                 <label class="block mt-3">
                     <span class="block text-[11px] font-semibold mb-1" style="color: var(--text-muted);">Tagline</span>
-                    <input type="text" name="tagline" value="{{ $extracted['tagline'] ?? '' }}" class="w-full text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                    <input type="text" name="tagline" value="{{ $extracted['tagline'] ?? '' }}" class="w-full text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                 </label>
                 <label class="block mt-3">
                     <span class="block text-[11px] font-semibold mb-1" style="color: var(--text-muted);">Description / brochure copy</span>
-                    <textarea name="description" rows="3" class="w-full text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">{{ $extracted['description'] ?? '' }}</textarea>
+                    <textarea name="description" rows="3" class="w-full text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">{{ $extracted['description'] ?? '' }}</textarea>
                 </label>
                 <label class="block mt-3">
                     <span class="block text-[11px] font-semibold mb-1" style="color: var(--text-muted);">Address</span>
-                    <input type="text" name="address" value="{{ $extracted['address'] ?? '' }}" class="w-full text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                    <input type="text" name="address" value="{{ $extracted['address'] ?? '' }}" class="w-full text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                 </label>
             </div>
 
@@ -195,8 +195,8 @@
                 <div class="space-y-2">
                     @foreach($phones as $i => $p)
                     <div class="grid grid-cols-3 gap-2">
-                        <input type="text" name="phones[{{ $i }}][label]" value="{{ $p['label'] ?? '' }}" placeholder="Label (Mobile, Work…)" class="text-xs rounded-lg px-2 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
-                        <input type="text" name="phones[{{ $i }}][value]" value="{{ $p['value'] ?? '' }}" placeholder="+44 20 7946 0958" class="col-span-2 text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                        <input type="text" name="phones[{{ $i }}][label]" value="{{ $p['label'] ?? '' }}" placeholder="Label (Mobile, Work…)" class="text-xs rounded-lg px-2 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
+                        <input type="text" name="phones[{{ $i }}][value]" value="{{ $p['value'] ?? '' }}" placeholder="+44 20 7946 0958" class="col-span-2 text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                     </div>
                     @endforeach
                 </div>
@@ -210,8 +210,8 @@
                 <div class="space-y-2">
                     @foreach($emails as $i => $em)
                     <div class="grid grid-cols-3 gap-2">
-                        <input type="text" name="emails[{{ $i }}][label]" value="{{ $em['label'] ?? '' }}" placeholder="Label (Work, Personal…)" class="text-xs rounded-lg px-2 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
-                        <input type="email" name="emails[{{ $i }}][value]" value="{{ $em['value'] ?? '' }}" placeholder="name@example.com" class="col-span-2 text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                        <input type="text" name="emails[{{ $i }}][label]" value="{{ $em['label'] ?? '' }}" placeholder="Label (Work, Personal…)" class="text-xs rounded-lg px-2 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
+                        <input type="email" name="emails[{{ $i }}][value]" value="{{ $em['value'] ?? '' }}" placeholder="name@example.com" class="col-span-2 text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                     </div>
                     @endforeach
                 </div>
@@ -223,7 +223,7 @@
                     @foreach(['instagram'=>'Instagram','tiktok'=>'TikTok','youtube'=>'YouTube','twitter'=>'X / Twitter','linkedin'=>'LinkedIn','facebook'=>'Facebook'] as $k => $label)
                     <label class="block">
                         <span class="block text-[11px] font-semibold mb-1" style="color: var(--text-muted);">{{ $label }}</span>
-                        <input type="text" name="socials[{{ $k }}]" value="{{ $socials[$k] ?? '' }}" placeholder="username" class="w-full text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                        <input type="text" name="socials[{{ $k }}]" value="{{ $socials[$k] ?? '' }}" placeholder="username" class="w-full text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                     </label>
                     @endforeach
                 </div>
@@ -254,11 +254,11 @@
                                     <div class="flex items-center gap-2">
                                         <input type="color" value="{$val}"
                                             oninput="this.nextElementSibling.value = this.value.toUpperCase()"
-                                            class="h-9 w-12 rounded-lg cursor-pointer" style="background:transparent;border:1px solid rgba(255,255,255,.10);">
+                                            class="h-9 w-12 rounded-lg cursor-pointer" style="background:transparent;border:1px solid var(--border-glass);">
                                         <input type="text" name="{$name}" value="{$val}" maxlength="7" placeholder="#RRGGBB"
                                             oninput="const v=this.value; if(/^#[0-9A-Fa-f]{6}$/.test(v)) this.previousElementSibling.value=v;"
                                             class="w-full text-sm rounded-lg px-3 py-2 font-mono uppercase"
-                                            style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                                            style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                                     </div>
                                 </label>
                             HTML;
@@ -280,10 +280,10 @@
                         @foreach($products as $i => $p)
                         <div class="rounded-lg p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);">
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <input type="text" name="products[{{ $i }}][name]" value="{{ $p['name'] ?? '' }}" placeholder="Product name" class="sm:col-span-2 text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
-                                <input type="text" name="products[{{ $i }}][price]" value="{{ $p['price'] ?? '' }}" placeholder="Price (e.g. $29)" class="text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                                <input type="text" name="products[{{ $i }}][name]" value="{{ $p['name'] ?? '' }}" placeholder="Product name" class="sm:col-span-2 text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
+                                <input type="text" name="products[{{ $i }}][price]" value="{{ $p['price'] ?? '' }}" placeholder="Price (e.g. $29)" class="text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                             </div>
-                            <input type="text" name="products[{{ $i }}][description]" value="{{ $p['description'] ?? '' }}" placeholder="Short description (optional)" class="mt-2 w-full text-sm rounded-lg px-3 py-2" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                            <input type="text" name="products[{{ $i }}][description]" value="{{ $p['description'] ?? '' }}" placeholder="Short description (optional)" class="mt-2 w-full text-sm rounded-lg px-3 py-2" style="background:var(--bg-glass-input);border:1px solid var(--border-glass);color:var(--text-primary);">
                         </div>
                         @endforeach
                     </div>

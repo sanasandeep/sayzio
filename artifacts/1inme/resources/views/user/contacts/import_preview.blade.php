@@ -121,19 +121,19 @@
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                             <label class="block">
                                                 <span class="text-[11px] uppercase" style="color:var(--text-faint);">Display name</span>
-                                                <input type="text" name="display_name" value="{{ $row['display_name'] ?? '' }}" maxlength="191" class="w-full mt-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); color:var(--text-primary);">
+                                                <input type="text" name="display_name" value="{{ $row['display_name'] ?? '' }}" maxlength="191" class="w-full mt-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid var(--border-glass); color:var(--text-primary);">
                                             </label>
                                             <label class="block">
                                                 <span class="text-[11px] uppercase" style="color:var(--text-faint);">Organization</span>
-                                                <input type="text" name="organization" value="{{ $row['organization'] ?? '' }}" maxlength="191" class="w-full mt-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); color:var(--text-primary);">
+                                                <input type="text" name="organization" value="{{ $row['organization'] ?? '' }}" maxlength="191" class="w-full mt-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid var(--border-glass); color:var(--text-primary);">
                                             </label>
                                             <label class="block">
                                                 <span class="text-[11px] uppercase" style="color:var(--text-faint);">Given name</span>
-                                                <input type="text" name="given_name" value="{{ $row['given_name'] ?? '' }}" maxlength="191" class="w-full mt-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); color:var(--text-primary);">
+                                                <input type="text" name="given_name" value="{{ $row['given_name'] ?? '' }}" maxlength="191" class="w-full mt-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid var(--border-glass); color:var(--text-primary);">
                                             </label>
                                             <label class="block">
                                                 <span class="text-[11px] uppercase" style="color:var(--text-faint);">Family name</span>
-                                                <input type="text" name="family_name" value="{{ $row['family_name'] ?? '' }}" maxlength="191" class="w-full mt-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); color:var(--text-primary);">
+                                                <input type="text" name="family_name" value="{{ $row['family_name'] ?? '' }}" maxlength="191" class="w-full mt-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid var(--border-glass); color:var(--text-primary);">
                                             </label>
                                         </div>
 
@@ -142,13 +142,13 @@
                                                 <div class="text-[11px] uppercase mb-1" style="color:var(--text-faint);">Phones</div>
                                                 @foreach($phoneRows as $idx => $p)
                                                     <div class="flex gap-2 mb-1.5">
-                                                        <select name="phones[{{ $idx }}][label]" class="px-2 py-1.5 rounded-md text-xs" style="background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); color:var(--text-primary);">
+                                                        <select name="phones[{{ $idx }}][label]" class="px-2 py-1.5 rounded-md text-xs" style="background:rgba(0,0,0,.25); border:1px solid var(--border-glass); color:var(--text-primary);">
                                                             <option value="">Label</option>
                                                             @foreach(\App\Modules\User\Controllers\ContactController::PHONE_LABELS as $lbl)
                                                                 <option value="{{ $lbl }}" @selected(($p['label'] ?? null) === $lbl)>{{ $lbl }}</option>
                                                             @endforeach
                                                         </select>
-                                                        <input type="text" name="phones[{{ $idx }}][value]" value="{{ $p['value'] ?? '' }}" maxlength="80" placeholder="+1 555-…" class="flex-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); color:var(--text-primary);">
+                                                        <input type="text" name="phones[{{ $idx }}][value]" value="{{ $p['value'] ?? '' }}" maxlength="80" placeholder="+1 555-…" class="flex-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid var(--border-glass); color:var(--text-primary);">
                                                     </div>
                                                 @endforeach
                                                 <div class="text-[11px]" style="color:var(--text-faint);">Leave a row blank to remove it.</div>
@@ -157,13 +157,13 @@
                                                 <div class="text-[11px] uppercase mb-1" style="color:var(--text-faint);">Emails</div>
                                                 @foreach($emailRows as $idx => $e)
                                                     <div class="flex gap-2 mb-1.5">
-                                                        <select name="emails[{{ $idx }}][label]" class="px-2 py-1.5 rounded-md text-xs" style="background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); color:var(--text-primary);">
+                                                        <select name="emails[{{ $idx }}][label]" class="px-2 py-1.5 rounded-md text-xs" style="background:rgba(0,0,0,.25); border:1px solid var(--border-glass); color:var(--text-primary);">
                                                             <option value="">Label</option>
                                                             @foreach(\App\Modules\User\Controllers\ContactController::EMAIL_LABELS as $lbl)
                                                                 <option value="{{ $lbl }}" @selected(($e['label'] ?? null) === $lbl)>{{ $lbl }}</option>
                                                             @endforeach
                                                         </select>
-                                                        <input type="text" name="emails[{{ $idx }}][value]" value="{{ $e['value'] ?? '' }}" maxlength="191" placeholder="name@example.com" class="flex-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08); color:var(--text-primary);">
+                                                        <input type="text" name="emails[{{ $idx }}][value]" value="{{ $e['value'] ?? '' }}" maxlength="191" placeholder="name@example.com" class="flex-1 px-2 py-1.5 rounded-md text-sm" style="background:rgba(0,0,0,.25); border:1px solid var(--border-glass); color:var(--text-primary);">
                                                     </div>
                                                 @endforeach
                                                 <div class="text-[11px]" style="color:var(--text-faint);">Leave a row blank to remove it.</div>
