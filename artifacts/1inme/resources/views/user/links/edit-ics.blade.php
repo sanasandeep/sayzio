@@ -1235,7 +1235,7 @@
             <template x-if="pickerSearched && !pickerSearching && pickerResults.length === 0 && pickerQuery.trim() !== ''">
                 <button type="button" class="lineup-result lineup-result-guest" @click="addGuest()">
                     <span class="lineup-name">Add “<span x-text="pickerQuery.trim()"></span>” as a one-off guest</span>
-                    <span class="lineup-billing">Not in your contacts — their details live on this event only</span>
+                    <span class="lineup-billing">Not in your contacts: their details live on this event only</span>
                     <span class="lineup-result-action">Add</span>
                 </button>
             </template>
