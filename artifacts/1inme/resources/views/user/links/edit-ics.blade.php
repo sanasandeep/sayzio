@@ -178,7 +178,7 @@
 
 </style>
 
-<div class="py-8 px-4 pb-12">
+<div class="px-4 pb-12">
     @include('user.partials.event-header', [
         'link'  => $link,
         'title' => 'Edit Event',
