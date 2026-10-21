@@ -10,9 +10,41 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contact extends Model
 {
-    
+
     use BelongsToWorkspace;
-protected $fillable = [
+
+    /**
+     * Contacts belong to the ACCOUNT, not to a workspace.
+     *
+     * They are owner-scoped by user_id, they are reused across an
+     * owner's workspaces on purpose, and the whole product treats the
+     * address book as one thing. The workspace_id column is still
+     * filled in and still worth having as provenance -- where a contact
+     * was captured -- but it must not decide who can read the row.
+     *
+     * It used to, on about forty of the sixty query sites across the two
+     * ContactControllers. `index` and `show` had opted out by hand; the
+     * mutations had not. So on mobile a contact saved under another
+     * workspace was listed, opened, and then refused every edit: rename,
+     * tag, note, follow-up and delete all 404'd, with nothing to tell
+     * anybody why. Nobody decided that. Forty call sites each answered
+     * the question separately and about half got it wrong.
+     *
+     * The hand-written withoutGlobalScope('workspace') calls dotted
+     * around the contact code are now redundant. They are harmless and
+     * are left alone here rather than touched in the same change as the
+     * behaviour.
+     *
+     * `workspace_record_access` is untouched and still applies: WHICH
+     * TEAM MEMBER may see which record is a separate question with a
+     * real answer, and it is not this one.
+     */
+    public static function readsAreWorkspaceScoped(): bool
+    {
+        return false;
+    }
+
+    protected $fillable = [
         'user_id', 'google_contacts_account_id', 'google_resource_name', 'google_etag',
         'display_name', 'given_name', 'family_name', 'organization', 'job_title',
         'website', 'socials', 'manual_profile', 'notes', 'sources', 'tags', 'contact_type',

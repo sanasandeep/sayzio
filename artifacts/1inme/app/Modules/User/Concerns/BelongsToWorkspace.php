@@ -17,13 +17,35 @@ use Illuminate\Database\Eloquent\Builder;
  * link viewers, webhook handlers, etc.) so non-app code paths are unaffected.
  *
  * Use `Model::query()->withoutGlobalScope('workspace')` (or `withoutWorkspaceScope()`)
- * to opt out of the filter for admin / cross-workspace queries.
+ * to opt out of the filter for a single admin / cross-workspace query.
+ *
+ * A model whose records are ACCOUNT-WIDE rather than per-workspace opts
+ * out for good instead, by overriding {@see readsAreWorkspaceScoped()}.
+ * That is a property of the record, not of the query, and answering it
+ * per call site is how Contact ended up letting you open a contact on
+ * mobile and then refusing to let you rename, tag, note or delete it --
+ * `index` and `show` had opted out by hand and the other forty sites
+ * had not. The writing half of this trait still applies: those models
+ * keep filling workspace_id in, and keep the record-access scope.
  */
 trait BelongsToWorkspace
 {
+    /**
+     * Whether READS of this model are confined to the active workspace.
+     *
+     * Override to false on a model that belongs to the account rather
+     * than to the workspace somebody happened to be standing in when
+     * the row was written.
+     */
+    public static function readsAreWorkspaceScoped(): bool
+    {
+        return true;
+    }
+
     public static function bootBelongsToWorkspace(): void
     {
         static::addGlobalScope('workspace', function (Builder $builder) {
+            if (!$builder->getModel()::readsAreWorkspaceScoped()) return;
             if (!app()->bound('current_workspace')) return;
             $ws = app('current_workspace');
             if (!$ws) return;
