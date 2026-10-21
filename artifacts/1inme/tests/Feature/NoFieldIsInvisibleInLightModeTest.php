@@ -112,4 +112,69 @@ class NoFieldIsInvisibleInLightModeTest extends TestCase
             implode("\n  ", $offenders)
         ));
     }
+
+    /**
+     * `color-scheme` in a style attribute can never be themed.
+     *
+     * It decides which variant the BROWSER draws for native widgets --
+     * the date picker panel, the select option list, the scrollbar --
+     * and the app already answers it correctly per theme: `:root` says
+     * dark and `html.light-mode` says light. A declaration in a
+     * stylesheet can sit under `html.light-mode` and be corrected.
+     * An inline one outranks every selector and cannot be, so the
+     * native picker stays dark on a light page with no rule able to
+     * reach it.
+     *
+     * This found exactly one: a datetime-local input in the contacts
+     * follow-up row. It slipped past the guard above because its
+     * colours are all var() tokens and perfectly correct -- the only
+     * wrong thing about it was a property that guard does not look at.
+     *
+     * Whole view tree on purpose, not just views/user. The
+     * deliberately-dark standalone pages (maintenance, rate-limited,
+     * the auth screens) set color-scheme in a <style> block, which is
+     * fine and is what this leaves alone.
+     */
+    public function test_nothing_sets_color_scheme_in_a_style_attribute(): void
+    {
+        $root  = resource_path('views');
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root));
+
+        $offenders = [];
+        $scanned   = 0;
+
+        foreach ($files as $file) {
+            if (!$file->isFile() || !str_ends_with($file->getFilename(), '.blade.php')) {
+                continue;
+            }
+
+            $scanned++;
+            $source = file_get_contents($file->getPathname());
+
+            // Same tag regex as above, and for the same reason: [^>]*
+            // truncates at the '>' inside {{ $x->y }} and silently
+            // passes the tag. Any element, not only form controls --
+            // color-scheme inherits, so it can be set on a wrapper.
+            preg_match_all('~<[a-zA-Z][^\s>]*(?:[^>"]|"[^"]*")*>~s', $source, $m);
+
+            foreach ($m[0] as $tag) {
+                if (!preg_match('~style="([^"]*)"~', $tag, $sm)) {
+                    continue;
+                }
+
+                if (preg_match('~(^|[;\s])color-scheme\s*:~', $sm[1])) {
+                    $offenders[] = str_replace($root . '/', '', $file->getPathname())
+                        . ' :: ' . mb_substr(preg_replace('~\s+~', ' ', $tag), 0, 120);
+                }
+            }
+        }
+
+        $this->assertGreaterThan(500, $scanned, 'the scan found almost no views, so it is not actually checking anything');
+
+        $this->assertSame([], $offenders, sprintf(
+            "%d element(s) set color-scheme inline, where no theme rule can override it:\n  %s",
+            count($offenders),
+            implode("\n  ", $offenders)
+        ));
+    }
 }
