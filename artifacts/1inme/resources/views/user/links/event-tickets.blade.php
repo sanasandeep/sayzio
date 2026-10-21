@@ -3,20 +3,17 @@
 @section('title', 'Ticketing: ' . $link->title)
 
 @section('content')
-<div class="max-w-7xl mx-auto">
-    @include('user.partials.page-hero', [
+<div class="py-8 px-4">
+    @include('user.partials.event-header', [
+        'link'  => $link,
         'title' => 'Ticketing',
-        'subtitle' => $link->title,
-        'icon' => 'fa-ticket-alt',
-        'back' => route('user.links.show', $link),
+        'icon'  => 'fa-ticket-alt',
         'chips' => [
             ['icon' => 'fa-coins text-emerald-400', 'text' => '$' . number_format($totals['gross_cents'] / 100, 2) . ' gross'],
             ['icon' => 'fa-users text-blue-400', 'text' => $totals['sold'] . ' sold'],
             ['icon' => 'fa-door-open text-primary-400', 'text' => $totals['checked_in'] . ' checked in'],
         ],
     ])
-
-    @include('user.partials.event-tabs', ['link' => $link])
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -57,7 +54,7 @@
             @endphp
             <div x-data="{ cat: @js($categorySelectValue) }" class="flex flex-col sm:flex-row gap-2 flex-1">
                 <select name="event_category" x-model="cat"
-                        class="px-3 py-2 rounded-lg text-sm flex-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                        class="ev-input flex-1">
                     <option value="">No category</option>
                     @foreach(\App\Modules\User\Support\EventCategories::selectOptions() as $slug => $label)
                         <option value="{{ $slug }}">{{ $label }}</option>
@@ -67,7 +64,7 @@
                 <input type="text" name="event_category_other" placeholder="Custom category" maxlength="100"
                        value="{{ $isKnownCategory ? '' : $currentCategory }}"
                        x-show="cat === '{{ \App\Modules\User\Support\EventCategories::OTHER }}'" x-cloak
-                       class="px-3 py-2 rounded-lg text-sm flex-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                       class="ev-input flex-1">
             </div>
             <button type="submit" class="btn-secondary px-4 py-2 text-sm rounded-lg">Save</button>
         </form>
@@ -110,15 +107,15 @@
             @csrf
             <div>
                 <label class="text-xs block mb-1" style="color: var(--text-muted);">Name</label>
-                <input type="text" name="name" required class="px-2 py-1.5 rounded text-sm w-40" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                <input type="text" name="name" required class="ev-input ev-input-sm w-40">
             </div>
             <div>
                 <label class="text-xs block mb-1" style="color: var(--text-muted);">Price (USD)</label>
-                <input type="number" step="0.01" min="0" name="price" required value="0" class="px-2 py-1.5 rounded text-sm w-24" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                <input type="number" step="0.01" min="0" name="price" required value="0" class="ev-input ev-input-sm w-24">
             </div>
             <div>
                 <label class="text-xs block mb-1" style="color: var(--text-muted);">Capacity</label>
-                <input type="number" min="1" name="capacity" class="px-2 py-1.5 rounded text-sm w-24" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                <input type="number" min="1" name="capacity" class="ev-input ev-input-sm w-24">
             </div>
             <button type="submit" class="btn-primary px-4 py-2 text-sm rounded-lg"><i class="fas fa-plus mr-1"></i> Add tier</button>
         </form>

@@ -3,15 +3,12 @@
 @section('title', 'Message guests: ' . $link->title)
 
 @section('content')
-<div class="max-w-3xl mx-auto">
-    @include('user.partials.page-hero', [
+<div class="py-8 px-4">
+    @include('user.partials.event-header', [
+        'link'  => $link,
         'title' => 'Message guests',
-        'subtitle' => $link->title,
-        'icon' => 'fa-paper-plane',
-        'back' => route('user.links.show', $link),
+        'icon'  => 'fa-paper-plane',
     ])
-
-    @include('user.partials.event-tabs', ['link' => $link])
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -46,8 +43,7 @@
             <div class="mb-4">
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Audience</label>
                 <select name="audience" x-model="audience"
-                        class="w-full px-3 py-2 rounded-lg text-sm"
-                        style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                        class="ev-input">
                     @foreach($audiences as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
@@ -62,16 +58,14 @@
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Subject</label>
                 <input type="text" name="subject" x-model="subject" required maxlength="200"
                        placeholder="e.g. Venue has moved"
-                       class="w-full px-3 py-2 rounded-lg text-sm"
-                       style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                       class="ev-input">
             </div>
 
             <div class="mb-4">
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Message</label>
                 <textarea name="message" x-model="message" required maxlength="5000" rows="6"
                           placeholder="Write your update to guests…"
-                          class="w-full px-3 py-2 rounded-lg text-sm"
-                          style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);"></textarea>
+                          class="ev-input"></textarea>
             </div>
 
             <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">

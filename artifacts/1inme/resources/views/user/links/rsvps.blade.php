@@ -3,12 +3,11 @@
 @section('title', 'RSVPs: ' . $link->title)
 
 @section('content')
-<div class="max-w-7xl mx-auto">
-    @include('user.partials.page-hero', [
+<div class="py-8 px-4">
+    @include('user.partials.event-header', [
+        'link'  => $link,
         'title' => 'RSVPs',
-        'subtitle' => $link->title,
-        'icon' => 'fa-calendar-check',
-        'back' => route('user.links.show', $link),
+        'icon'  => 'fa-calendar-check',
         'chips' => [
             ['icon' => 'fa-users text-emerald-400', 'text' => $counts['total'] . ' responses'],
         ],
@@ -16,8 +15,6 @@
             ['label' => 'Export CSV', 'url' => route('user.links.rsvps.export', $link), 'icon' => 'fa-download', 'class' => 'btn-primary'],
         ],
     ])
-
-    @include('user.partials.event-tabs', ['link' => $link])
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -48,8 +45,7 @@
             @csrf
             <input type="email" name="identifier" required maxlength="255"
                    placeholder="email@example.com"
-                   class="flex-1 px-3 py-2 rounded-lg text-sm"
-                   style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                   class="ev-input flex-1">
             <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-1.5"
                     style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.25); color: #ef4444;">
                 <i class="fas fa-eraser"></i> Erase guest

@@ -3,15 +3,12 @@
 @section('title', 'Check-in: ' . $link->title)
 
 @section('content')
-<div class="max-w-3xl mx-auto">
-    @include('user.partials.page-hero', [
+<div class="py-8 px-4">
+    @include('user.partials.event-header', [
+        'link'  => $link,
         'title' => 'Door check-in',
-        'subtitle' => $link->title,
-        'icon' => 'fa-qrcode',
-        'back' => route('user.links.show', $link),
+        'icon'  => 'fa-qrcode',
     ])
-
-    @include('user.partials.event-tabs', ['link' => $link])
 
     <div class="card-premium p-5 mb-6" id="progress-card">
         <div class="flex items-baseline justify-between mb-3">
@@ -35,7 +32,7 @@
         <div class="mt-6">
             <label class="text-xs block mb-1" style="color: var(--text-muted);">Or enter code manually</label>
             <form id="manual-form" class="flex gap-2">
-                <input type="text" id="manual-code" class="flex-1 px-3 py-2 rounded-lg text-sm" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);" placeholder="Ticket code">
+                <input type="text" id="manual-code" class="ev-input flex-1"  placeholder="Ticket code">
                 <button type="submit" class="btn-primary px-4 py-2 text-sm rounded-lg">Check in</button>
             </form>
         </div>
