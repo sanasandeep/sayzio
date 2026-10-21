@@ -22,25 +22,41 @@ use Illuminate\Support\Facades\Schema;
  * day she changes jobs, and anyone who saved the link sees a different
  * event than the one they attended.
  *
- * WHICH OF THE TWO RENDERS WAS REVERSED AFTER THIS TABLE WAS BUILT.
+ * WHICH OF THE TWO RENDERS WAS SETTLED AFTER THIS TABLE WAS BUILT, AND
+ * IT IS NOT "THE SNAPSHOT", AS THE PARAGRAPH ABOVE ASSUMED.
  *
- * The paragraph above is the argument for rendering the snapshot, and it
- * is still a fair argument -- it is left standing rather than quietly
- * deleted. It lost to a commoner case: most events being edited have not
- * happened yet, and an organiser who corrects a job title in their CRM
- * expects every event billing that person to say the new thing, not only
- * the ones added after the correction. So the live Contact renders
- * whenever one is linked, and the archived-page cost described above is
- * real and accepted. EventPerson::resolved() is the single place that
- * decides this, and it carries the exact few lines that reverse it again
- * for past events if the cost ever outgrows the benefit.
+ * That paragraph is left standing because its argument holds; it just
+ * does not hold all the time. It was being applied to events that had
+ * not happened yet, where there is no history to rewrite and an
+ * organiser correcting a job title in their CRM reasonably expects the
+ * event to follow.
  *
- * The snapshot is therefore not legacy. It is the whole story for anyone
- * typed in rather than picked, the fallback for any field the Contact
- * leaves blank, and what the line-up falls back to the day someone is
- * unlinked -- which is why `contact_id` is nulled rather than cascaded
- * on delete: losing the CRM record must not blank a past event's
- * line-up.
+ * So the cut is the event's START:
+ *
+ *   - before it starts, the live Contact renders;
+ *   - from the start onwards, these columns render, for good.
+ *
+ * EventPerson::resolved() is the single place that decides it.
+ *
+ * WHICH MAKES THESE COLUMNS A LIVE MIRROR, NOT A SNAPSHOT, UNTIL THE
+ * EVENT BEGINS. Contact::updated keeps them in step
+ * (EventPerson::syncSnapshotsForContact) and stops at events that have
+ * started. Without that, freezing at the start would freeze to whatever
+ * was true the day the speaker was ADDED -- so the page would follow
+ * the profile for weeks and then jump to a value nobody ever saw, at
+ * the one moment the whole point was that nothing changes.
+ *
+ * One consequence of the mirror: a per-event override typed against a
+ * LINKED person on an upcoming event does not survive, and did not
+ * render in the first place. Overriding one upcoming event means
+ * unlinking that person so these columns are all there is.
+ *
+ * The columns are therefore the whole story for anyone typed in rather
+ * than picked, the fallback for any field the Contact leaves blank, the
+ * billing of record from the start of the event onwards, and what the
+ * line-up falls back to the day someone is unlinked -- which is why
+ * `contact_id` is nulled rather than cascaded on delete: losing the CRM
+ * record must not blank a past event's line-up.
  *
  * A person with no Contact at all is allowed: a one-off guest should not
  * force a CRM entry.

@@ -27,6 +27,13 @@
             ->with('contact')
             ->ordered()
             ->get();
+
+    // Each billing needs the event's start date to know whether it is
+    // frozen (EventPerson::eventHasStarted()). That is THIS event, and
+    // $link already has icsData loaded, so hand it over rather than let
+    // every person lazy-load the link and its icsData back -- two
+    // queries per speaker on a public page, for a date already in hand.
+    $eventPeople->each(fn ($person) => $person->setRelation('link', $link));
     $peopleByItem   = $eventPeople->groupBy('agenda_item_id');
     $headlinePeople = \App\Modules\User\Models\EventPerson::billingOrder($peopleByItem->get('', collect())->merge($peopleByItem->get(null, collect())));
     $eventDocuments = $ics ? (array) $ics->documents : [];
