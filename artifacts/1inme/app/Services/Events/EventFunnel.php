@@ -99,7 +99,12 @@ class EventFunnel
      */
     private static function stage(string $key, string $label, int $count, ?int $previous, bool $applicable = true): array
     {
-        $rate = ($previous === null || $previous === 0) ? null : $count / $previous;
+        // (float) is not decoration. PHP's / returns an INT when both
+        // operands are ints and the division is exact, so a stage that
+        // kept everybody gave 1 while every other stage gave a float.
+        // The type varied with the data, which a consumer formatting or
+        // serialising this would eventually trip over.
+        $rate = ($previous === null || $previous === 0) ? null : (float) ($count / $previous);
 
         return [
             'key'        => $key,
