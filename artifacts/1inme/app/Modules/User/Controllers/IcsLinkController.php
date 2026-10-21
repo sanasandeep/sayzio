@@ -62,7 +62,14 @@ class IcsLinkController extends Controller
 
         IcsData::create($this->icsPayload($validated, $link->id));
 
-        if ($request->has('people')) {
+        // `people_present` is the editor saying "I rendered the line-up
+        // fields". Without it, an organiser removing the LAST person
+        // would post no people[] keys at all, has('people') would be
+        // false, and the removal would silently not save -- the guard
+        // from #510 working against the screen it was written to
+        // protect. A settings-only submission sends neither key and
+        // still leaves the line-up alone, which is the point.
+        if ($request->has('people') || $request->boolean('people_present')) {
             $this->syncEventPeople($link->fresh('icsData'), (array) $request->input('people', []));
         }
 
@@ -87,7 +94,22 @@ class IcsLinkController extends Controller
 
         $badges = $this->assignableBadges();
 
-        return view('user.links.edit-ics', compact('link', 'ics', 'projects', 'timezones', 'calAccounts', 'domains', 'badges'));
+        // The line-up, in the organiser's own order. Loaded with its
+        // contacts so the editor can show who is linked to a reusable
+        // profile and who was typed in once.
+        $eventPeople = $link->eventPeople()->with('contact')->ordered()->get()->map(fn ($p) => [
+            'contact_id'     => $p->contact_id,
+            'agenda_item_id' => $p->agenda_item_id,
+            'role'           => $p->role,
+            'name'           => $p->name,
+            'title'          => $p->title,
+            'company'        => $p->company,
+            'linkedin_url'   => $p->linkedin_url,
+            'bio'            => $p->bio,
+            'photo_url'      => $p->photo_url,
+        ])->values();
+
+        return view('user.links.edit-ics', compact('link', 'ics', 'projects', 'timezones', 'calAccounts', 'domains', 'badges', 'eventPeople'));
     }
 
     public function update(Request $request, Link $link)
@@ -215,7 +237,14 @@ class IcsLinkController extends Controller
         // added in this same request validates against an id that now
         // exists. Guarded on the key being present: a settings-only
         // submission must not wipe a line-up it never rendered.
-        if ($request->has('people')) {
+        // `people_present` is the editor saying "I rendered the line-up
+        // fields". Without it, an organiser removing the LAST person
+        // would post no people[] keys at all, has('people') would be
+        // false, and the removal would silently not save -- the guard
+        // from #510 working against the screen it was written to
+        // protect. A settings-only submission sends neither key and
+        // still leaves the line-up alone, which is the point.
+        if ($request->has('people') || $request->boolean('people_present')) {
             $this->syncEventPeople($link->fresh('icsData'), (array) $request->input('people', []));
         }
 
@@ -394,6 +423,7 @@ class IcsLinkController extends Controller
             'agenda'               => 'nullable|array|max:100',
             'agenda.*.id'          => 'nullable|string|max:16',
             // Event line-up (hosts, speakers, moderators, panellists).
+            'people_present'           => 'nullable|boolean',
             'people'                   => 'nullable|array|max:200',
             'people.*.contact_id'      => 'nullable|integer',
             'people.*.agenda_item_id'  => 'nullable|string|max:16',

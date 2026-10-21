@@ -115,6 +115,62 @@
     html.light-mode .dz-btn-danger { color: #b91c1c; border-color: rgba(185,28,28,0.35); }
     .dz-btn-ok { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.30); color: #34d399; }
     html.light-mode .dz-btn-ok { color: #047857; border-color: rgba(4,120,87,0.35); }
+
+    /* ── The line-up ───────────────────────────────────────────────── */
+    .lineup-block { border-top: 1px solid var(--border-glass); padding-top: .75rem; margin-top: .25rem; }
+    .lineup-add {
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: .75rem; font-weight: 600; padding: .3rem .6rem; border-radius: .5rem;
+        color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+    .lineup-add:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+    .lineup-rows { display: flex; flex-direction: column; gap: .4rem; }
+    .lineup-row {
+        display: flex; align-items: center; gap: .5rem; min-width: 0;
+        padding: .4rem .55rem; border-radius: .55rem;
+        background: var(--bg-glass-input); border: 1px solid var(--border-glass);
+    }
+    .lineup-name    { font-size: .8125rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lineup-billing { font-size: .6875rem; color: var(--text-muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lineup-linked  { font-size: .6875rem; color: var(--accent); flex: 0 0 auto; }
+    .lineup-role    { margin-left: auto; width: auto; flex: 0 0 auto; padding: .2rem 1.4rem .2rem .5rem; font-size: .6875rem; border-radius: .4rem; }
+    .lineup-remove  {
+        flex: 0 0 auto; width: 1.5rem; height: 1.5rem; border-radius: .4rem;
+        color: var(--text-muted); background: transparent; border: 0;
+        display: inline-flex; align-items: center; justify-content: center; font-size: .75rem;
+    }
+    .lineup-remove:hover { color: #ef4444; background: rgba(239,68,68,.1); }
+
+    .lineup-modal { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .lineup-backdrop { position: absolute; inset: 0; background: rgba(8,10,16,.6); backdrop-filter: blur(2px); }
+    .lineup-dialog {
+        position: relative; width: 100%; max-width: 30rem; max-height: 80vh;
+        display: flex; flex-direction: column; gap: .75rem; padding: 1.1rem;
+        border-radius: 1rem; background: var(--bg-card);
+        border: 1px solid var(--border-glass); box-shadow: 0 24px 60px -20px rgba(0,0,0,.55);
+    }
+    .lineup-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .lineup-dialog-title { font-size: .875rem; font-weight: 650; color: var(--text-primary); }
+    .lineup-results { overflow-y: auto; display: flex; flex-direction: column; gap: .35rem; min-height: 2.5rem; }
+    .lineup-result {
+        display: grid; grid-template-columns: 1fr auto; gap: 0 .75rem; align-items: center;
+        width: 100%; text-align: left; padding: .5rem .65rem; border-radius: .55rem;
+        background: var(--bg-glass-input); border: 1px solid var(--border-glass);
+    }
+    .lineup-result:hover:not(:disabled) { border-color: var(--accent); }
+    .lineup-result:disabled { opacity: .5; }
+    .lineup-result .lineup-billing { grid-column: 1; }
+    .lineup-result-action { grid-row: 1 / span 2; font-size: .6875rem; font-weight: 700; color: var(--accent); }
+    .lineup-result-guest { border-style: dashed; }
+    .lineup-hint { font-size: .6875rem; color: var(--text-muted); }
+    .lineup-dialog-foot { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding-top: .25rem; }
+    .lineup-done {
+        font-size: .75rem; font-weight: 600; padding: .35rem .8rem; border-radius: .5rem;
+        color: #fff; background: var(--accent);
+    }
+    [x-cloak] { display: none !important; }
+
 </style>
 
 <div class="py-8 px-4 pb-12">
@@ -179,6 +235,104 @@
                 galleryItems: (@json(old('gallery', (array) ($ics->gallery ?? [])))).map(function (u) { return { url: u }; }),
                 addGalleryItem: function () { if (this.galleryItems.length < 20) this.galleryItems.push({ url: '' }); },
                 removeGalleryItem: function (i) { this.galleryItems.splice(i, 1); },
+                // ── The line-up ──────────────────────────────────────
+                // Flat list. Each person carries the agenda_item_id they
+                // belong to, or '' for the event itself, which is exactly
+                // the shape syncEventPeople() expects back.
+                // Each row gets a stable client-side id. x-for keyed on an
+                // array index re-binds a row's <select> to whoever slides
+                // into that position when somebody above them is removed
+                // -- the same bug #511 fixed on the agenda, and the same
+                // fix. The uid is never posted; it exists only to key the
+                // loop.
+                people: (@json($eventPeople ?? [])).map(function (p) {
+                    p.uid = 'p' + Math.random().toString(36).slice(2, 10);
+                    return p;
+                }),
+                pickerFor: null,        // null = closed; '' = event level; else an agenda id
+                pickerQuery: '',
+                pickerResults: [],
+                pickerSearching: false,
+                pickerSearched: false,
+
+                roles: @json(\App\Modules\User\Models\EventPerson::ROLE_LABELS),
+
+                peopleFor: function (agendaId) {
+                    return this.people.filter(function (p) { return (p.agenda_item_id || '') === agendaId; });
+                },
+
+                openPicker: function (agendaId) {
+                    this.pickerFor = agendaId;
+                    this.pickerQuery = '';
+                    this.pickerResults = [];
+                    this.pickerSearched = false;
+                    this.$nextTick(function () {
+                        var el = document.getElementById('people-picker-search');
+                        if (el) el.focus();
+                    });
+                },
+                closePicker: function () { this.pickerFor = null; },
+
+                searchContacts: function () {
+                    var self = this;
+                    var q = this.pickerQuery.trim();
+                    self.pickerSearching = true;
+                    fetch(@js(route('user.contacts.picker-search')) + '?q=' + encodeURIComponent(q), {
+                        headers: { 'Accept': 'application/json' }, credentials: 'same-origin',
+                    })
+                        .then(function (r) { return r.ok ? r.json() : { data: [] }; })
+                        .then(function (d) { self.pickerResults = (d && d.data) || []; })
+                        .catch(function () { self.pickerResults = []; })
+                        .finally(function () { self.pickerSearching = false; self.pickerSearched = true; });
+                },
+
+                // Picking the same contact twice for one session is almost
+                // always a misclick, and the server would happily store it.
+                alreadyOn: function (contactId) {
+                    var target = this.pickerFor || '';
+                    return this.people.some(function (p) {
+                        return p.contact_id && Number(p.contact_id) === Number(contactId)
+                            && (p.agenda_item_id || '') === target;
+                    });
+                },
+
+                addContact: function (c) {
+                    if (this.alreadyOn(c.contact_id)) { return; }
+                    this.people.push({
+                        uid: 'p' + Math.random().toString(36).slice(2, 10),
+                        contact_id: c.contact_id,
+                        agenda_item_id: this.pickerFor || '',
+                        role: 'speaker',
+                        name: c.name,
+                        title: c.title,
+                        company: c.company,
+                        linkedin_url: c.linkedin_url,
+                        bio: c.bio,
+                        photo_url: c.photo_url,
+                    });
+                },
+
+                // Somebody who is not in Contacts. The snapshot is all
+                // there is for them, which is what the columns are for.
+                addGuest: function () {
+                    var name = (this.pickerQuery || '').trim();
+                    if (name === '') { return; }
+                    this.people.push({
+                        uid: 'p' + Math.random().toString(36).slice(2, 10),
+                        contact_id: null, agenda_item_id: this.pickerFor || '',
+                        role: 'speaker', name: name,
+                        title: '', company: '', linkedin_url: '', bio: '', photo_url: '',
+                    });
+                    this.pickerQuery = '';
+                    this.pickerResults = [];
+                    this.pickerSearched = false;
+                },
+
+                removePerson: function (person) {
+                    var i = this.people.indexOf(person);
+                    if (i > -1) { this.people.splice(i, 1); }
+                },
+
                 // Task #5023 — agenda
                 // Items saved before ids existed arrive without one, so they
                 // are given one on load rather than on first save: the hidden
@@ -619,6 +773,36 @@
                 <div class="ics-section-icon"><i class="fas fa-list-ul"></i></div>
                 <div><h2 class="ics-section-title">Agenda</h2><p class="ics-section-sub">Optional, add a schedule of sessions or activities. Shown on your public event page.</p></div>
             </div>
+
+            {{-- The event's own line-up: hosts and anyone not tied to a
+                 single session. Per-session speakers live on their agenda
+                 row below. --}}
+            <div class="lineup-block mb-5">
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <span class="ics-label text-xs mb-0">Hosts &amp; speakers</span>
+                    <button type="button" @click="openPicker('')" class="lineup-add">
+                        <i class="fas fa-user-plus"></i> Add people
+                    </button>
+                </div>
+                <template x-if="peopleFor('').length === 0">
+                    <p class="text-xs" style="color: var(--text-muted);">Nobody billed yet. Pick from your contacts, or add a one-off guest.</p>
+                </template>
+                <div class="lineup-rows">
+                    <template x-for="p in peopleFor('')" :key="p.uid">
+                        <div class="lineup-row">
+                            <span class="lineup-name" x-text="p.name"></span>
+                            <span class="lineup-billing" x-text="[p.title, p.company].filter(Boolean).join(' at ')"></span>
+                            <span class="lineup-linked" x-show="p.contact_id" title="Linked to a contact"><i class="fas fa-address-card"></i></span>
+                            <select class="ics-input lineup-role" x-model="p.role">
+                                <template x-for="(label, value) in roles" :key="value">
+                                    <option :value="value" x-text="label"></option>
+                                </template>
+                            </select>
+                            <button type="button" class="lineup-remove" @click="removePerson(p)" title="Remove"><i class="fas fa-xmark"></i></button>
+                        </div>
+                    </template>
+                </div>
+            </div>
             <template x-if="agendaItems.length === 0">
                 <p class="text-xs mb-3" style="color: var(--text-muted);">No agenda items yet. Add sessions, talks, or activities below.</p>
             </template>
@@ -651,6 +835,34 @@
                         <div>
                             <label class="ics-label text-xs">Description <span style="color: var(--text-faint);">(optional)</span></label>
                             <textarea :name="'agenda[' + i + '][description]'" x-model="item.description" rows="2" class="ics-input" placeholder="A brief description of this session" maxlength="2000"></textarea>
+                        </div>
+
+                        {{-- Speakers on this session. Keyed to the item's id
+                             rather than its position, which is why #511 had
+                             to make that id survive a save. --}}
+                        <div class="lineup-block">
+                            <div class="flex items-center justify-between gap-3 mb-2">
+                                <span class="ics-label text-xs mb-0">Speakers</span>
+                                <button type="button" @click="openPicker(item.id)" class="lineup-add">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span x-text="peopleFor(item.id).length ? 'Manage (' + peopleFor(item.id).length + ')' : 'Add people'"></span>
+                                </button>
+                            </div>
+                            <div class="lineup-rows">
+                                <template x-for="p in peopleFor(item.id)" :key="p.uid">
+                                    <div class="lineup-row">
+                                        <span class="lineup-name" x-text="p.name"></span>
+                                        <span class="lineup-billing" x-text="[p.title, p.company].filter(Boolean).join(' at ')"></span>
+                                        <span class="lineup-linked" x-show="p.contact_id" title="Linked to a contact"><i class="fas fa-address-card"></i></span>
+                                        <select class="ics-input lineup-role" x-model="p.role">
+                                            <template x-for="(label, value) in roles" :key="value">
+                                                <option :value="value" x-text="label"></option>
+                                            </template>
+                                        </select>
+                                        <button type="button" class="lineup-remove" @click="removePerson(p)" title="Remove"><i class="fas fa-xmark"></i></button>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -921,6 +1133,79 @@
             </div>
         </div>
 
+        {{-- The line-up, posted flat. syncEventPeople() reads `people`
+             and is guarded on the key being PRESENT, so this block must
+             render even when the list is empty -- that is how an
+             organiser removes the last person. An empty array is an
+             explicit "remove everyone"; a missing key means "this screen
+             did not render the field", and the two must not be confused.
+             The marker below guarantees the key is always sent. --}}
+        <div id="lineup-fields">
+            <input type="hidden" name="people_present" value="1">
+            <template x-for="(p, pi) in people" :key="p.uid">
+                <div>
+                    <input type="hidden" :name="'people[' + pi + '][contact_id]'"     :value="p.contact_id || ''">
+                    <input type="hidden" :name="'people[' + pi + '][agenda_item_id]'" :value="p.agenda_item_id || ''">
+                    <input type="hidden" :name="'people[' + pi + '][role]'"           :value="p.role">
+                    <input type="hidden" :name="'people[' + pi + '][name]'"           :value="p.name">
+                    <input type="hidden" :name="'people[' + pi + '][title]'"          :value="p.title || ''">
+                    <input type="hidden" :name="'people[' + pi + '][company]'"        :value="p.company || ''">
+                    <input type="hidden" :name="'people[' + pi + '][linkedin_url]'"   :value="p.linkedin_url || ''">
+                    <input type="hidden" :name="'people[' + pi + '][bio]'"            :value="p.bio || ''">
+                    <input type="hidden" :name="'people[' + pi + '][photo_url]'"      :value="p.photo_url || ''">
+                </div>
+            </template>
+        </div>
+
+{{-- One picker, reused. `pickerFor` says what it is filling: '' for the
+     event itself, an agenda id for a session. --}}
+<div class="lineup-modal" x-show="pickerFor !== null" x-cloak
+     @keydown.escape.window="closePicker()" style="display:none;">
+    <div class="lineup-backdrop" @click="closePicker()"></div>
+    <div class="lineup-dialog" role="dialog" aria-modal="true" aria-label="Add people">
+        <div class="lineup-dialog-head">
+            <span class="lineup-dialog-title"
+                  x-text="pickerFor === '' ? 'Hosts & speakers' : 'Speakers on this session'"></span>
+            <button type="button" class="lineup-remove" @click="closePicker()" aria-label="Close"><i class="fas fa-xmark"></i></button>
+        </div>
+
+        <input type="text" id="people-picker-search" class="ics-input" autocomplete="off"
+               placeholder="Search your contacts by name, company or title…"
+               x-model="pickerQuery"
+               @input.debounce.300ms="searchContacts()"
+               @keydown.enter.prevent="searchContacts()">
+
+        <div class="lineup-results">
+            <template x-if="pickerSearching">
+                <p class="lineup-hint">Searching…</p>
+            </template>
+
+            <template x-for="c in pickerResults" :key="c.contact_id">
+                <button type="button" class="lineup-result" @click="addContact(c)" :disabled="alreadyOn(c.contact_id)">
+                    <span class="lineup-name" x-text="c.name"></span>
+                    <span class="lineup-billing" x-text="[c.title, c.company].filter(Boolean).join(' at ')"></span>
+                    <span class="lineup-result-action"
+                          x-text="alreadyOn(c.contact_id) ? 'Added' : 'Add'"></span>
+                </button>
+            </template>
+
+            {{-- Not everyone who speaks at an event is in a CRM. --}}
+            <template x-if="pickerSearched && !pickerSearching && pickerResults.length === 0 && pickerQuery.trim() !== ''">
+                <button type="button" class="lineup-result lineup-result-guest" @click="addGuest()">
+                    <span class="lineup-name">Add “<span x-text="pickerQuery.trim()"></span>” as a one-off guest</span>
+                    <span class="lineup-billing">Not in your contacts — their details live on this event only</span>
+                    <span class="lineup-result-action">Add</span>
+                </button>
+            </template>
+        </div>
+
+        <div class="lineup-dialog-foot">
+            <span class="lineup-hint" x-text="peopleFor(pickerFor || '').length + ' on this ' + (pickerFor === '' ? 'event' : 'session')"></span>
+            <button type="button" class="lineup-done" @click="closePicker()">Done</button>
+        </div>
+    </div>
+</div>
+
         <div class="flex items-center justify-end gap-3 mt-6">
             <a href="{{ route('user.links.show', $link) }}" class="px-5 py-2.5 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-xl">Cancel</a>
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/20">
@@ -928,6 +1213,8 @@
             </button>
         </div>
     </form>
+
+
 
     {{-- Cancel / reactivate event (Sayzio events). Kept out of the main form
          so it's an explicit, deliberate action with its own confirm step. --}}
