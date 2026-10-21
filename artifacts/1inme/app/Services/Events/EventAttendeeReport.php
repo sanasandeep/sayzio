@@ -68,10 +68,20 @@ class EventAttendeeReport
             // Null, not 0, until there is an event to have missed.
             'no_shows' => $started ? ($live->count() - $arrived->count()) : null,
             'released' => $released->count(),
-            // Heads, not tickets: one RSVP can bring people the door
-            // never scans individually. Reported, never used as a
-            // denominator for the arrival rate.
-            'heads'    => $live->sum(fn (EventTicket $t) => 1 + (int) ($t->rsvp->plus_ones ?? 0)),
+            // Heads, not tickets. A group turns up on ONE scannable
+            // code two different ways and both have to count: an RSVP
+            // carries its party in plus_ones, a paid purchase carries
+            // it in quantity -- MonetizationCheckout writes the seats
+            // bought into that column and the line total into
+            // price_cents.
+            //
+            // This first shipped counting every ticket as one person:
+            // right for RSVPs, silently wrong for anybody who bought
+            // more than one seat.
+            //
+            // Reported, never the denominator for an arrival rate. The
+            // door scans codes, not people.
+            'heads'    => $live->sum(fn (EventTicket $t) => max(1, (int) $t->quantity) + (int) ($t->rsvp->plus_ones ?? 0)),
             'started'  => $started,
         ];
     }
@@ -96,7 +106,10 @@ class EventAttendeeReport
             // and a spreadsheet with holes in it.
             'via'   => $ticket->tier?->name ?: 'RSVP',
             'paid'  => $ticket->tier !== null,
-            'guests' => (int) ($ticket->rsvp->plus_ones ?? 0),
+            // People beyond the one holding the code: extra seats on a
+            // paid purchase, plus-ones on an RSVP. Same correction as
+            // `heads` above, for the same reason.
+            'guests' => max(0, (int) $ticket->quantity - 1) + (int) ($ticket->rsvp->plus_ones ?? 0),
             'status' => match (true) {
                 $cancelled => $ticket->status,
                 $checkedIn => 'arrived',
@@ -119,6 +132,148 @@ class EventAttendeeReport
         $start = $link->icsData?->start_date;
 
         return $start instanceof \DateTimeInterface && $start < now();
+    }
+
+    /**
+     * What was sold, by tier.
+     *
+     * TWO THINGS THAT LOOK LIKE DETAILS AND ARE NOT.
+     *
+     * The money comes off the TICKET, never the tier. A tier's price is
+     * what it costs today; the ticket's price_cents is what was actually
+     * charged, and those differ the moment anybody edits a price after
+     * a sale. Reading the tier would quietly restate history at the
+     * current price.
+     *
+     * And takings are grouped by currency rather than summed. An event
+     * that sold in two currencies has two totals, not one meaningless
+     * one, and nothing here is allowed to invent an exchange rate.
+     *
+     * price_cents is the LINE TOTAL for the whole purchase, not a unit
+     * price -- MonetizationCheckout writes the charged amount into it
+     * and the seat count into quantity -- so revenue is a plain sum and
+     * multiplying by quantity would double-count every group booking.
+     *
+     * @return array{tiers: array<int, array<string, mixed>>, takings: array<string, int>, refunded: array<string, int>}
+     */
+    public static function sales(Link $link): array
+    {
+        $tickets = EventTicket::where('link_id', $link->id)->with('tier')->get();
+
+        $live     = $tickets->whereIn('status', [EventTicket::STATUS_VALID, EventTicket::STATUS_CHECKED_IN]);
+        $returned = $tickets->where('status', EventTicket::STATUS_REFUNDED);
+
+        $tiers = $live->whereNotNull('tier_id')
+            ->groupBy('tier_id')
+            ->map(function ($rows) {
+                $first = $rows->first();
+
+                return [
+                    'tier'     => $first->tier?->name ?? 'Removed tier',
+                    'currency' => $first->currency ?: ($first->tier->currency ?? 'USD'),
+                    'orders'   => $rows->count(),
+                    'seats'    => $rows->sum(fn (EventTicket $t) => max(1, (int) $t->quantity)),
+                    'cents'    => $rows->sum(fn (EventTicket $t) => (int) $t->price_cents),
+                ];
+            })
+            ->sortByDesc('cents')
+            ->values()
+            ->all();
+
+        return [
+            'tiers'    => $tiers,
+            'takings'  => self::byCurrency($live),
+            'refunded' => self::byCurrency($returned),
+        ];
+    }
+
+    /** @return array<string, int> */
+    private static function byCurrency($tickets): array
+    {
+        return $tickets
+            ->groupBy(fn (EventTicket $t) => $t->currency ?: 'USD')
+            ->map(fn ($rows) => (int) $rows->sum(fn (EventTicket $t) => (int) $t->price_cents))
+            ->filter(fn (int $cents) => $cents > 0)
+            ->all();
+    }
+
+    /**
+     * When people actually walked in, in half-hour buckets measured
+     * from the event's start.
+     *
+     * Measured from the START rather than from the first arrival,
+     * because "who came early" is the question an organiser is asking
+     * and a first-arrival baseline makes the earliest person look
+     * punctual by definition. Arrivals before the start get negative
+     * buckets, which is the honest place to put them.
+     *
+     * Empty when nobody has been scanned. A timing chart drawn through
+     * no arrivals is a shape with no data behind it.
+     *
+     * @return array<int, array{offset_minutes: int, count: int}>
+     */
+    public static function arrivals(Link $link): array
+    {
+        $start = $link->icsData?->start_date;
+
+        if (! $start instanceof \DateTimeInterface) {
+            return [];
+        }
+
+        $scans = EventTicket::where('link_id', $link->id)
+            ->where('status', EventTicket::STATUS_CHECKED_IN)
+            ->whereNotNull('checked_in_at')
+            ->pluck('checked_in_at');
+
+        if ($scans->isEmpty()) {
+            return [];
+        }
+
+        $buckets = [];
+        foreach ($scans as $at) {
+            // intdiv floors toward zero, which would put -10 and +10
+            // minutes in the same bucket. floor() keeps the half hour
+            // before the doors distinct from the half hour after.
+            $minutes = ($at->getTimestamp() - $start->getTimestamp()) / 60;
+            $bucket  = (int) (floor($minutes / 30) * 30);
+
+            $buckets[$bucket] = ($buckets[$bucket] ?? 0) + 1;
+        }
+
+        ksort($buckets);
+
+        return array_map(
+            fn ($offset, $count) => ['offset_minutes' => (int) $offset, 'count' => (int) $count],
+            array_keys($buckets),
+            array_values($buckets)
+        );
+    }
+
+    /**
+     * What the networking surface actually did.
+     *
+     * The acceptance rate is null when nobody asked -- there is no
+     * share of zero requests, and a 0% printed here would read as
+     * "everyone was turned down".
+     *
+     * @return array{opted_in: int, requested: int, accepted: int, rate: float|null}
+     */
+    public static function networking(Link $link): array
+    {
+        $optedIn = (int) \App\Modules\User\Models\EventDiscoverability::where('link_id', $link->id)->count();
+
+        $exchanges = \App\Modules\User\Models\EventContactExchange::where('link_id', $link->id)->get();
+        $requested = $exchanges->count();
+        $accepted  = $exchanges
+            ->where('status', \App\Modules\User\Models\EventContactExchange::STATUS_ACCEPTED)
+            ->count();
+
+        return [
+            'opted_in'  => $optedIn,
+            'requested' => $requested,
+            'accepted'  => $accepted,
+            'rate'      => $requested > 0 ? (float) ($accepted / $requested) : null,
+        ];
     }
 
     /**

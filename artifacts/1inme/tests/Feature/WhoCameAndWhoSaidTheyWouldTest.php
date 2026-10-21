@@ -173,6 +173,31 @@ class WhoCameAndWhoSaidTheyWouldTest extends TestCase
         $this->assertSame(2, $report['rows']->first()['guests']);
     }
 
+    public function test_a_group_ticket_counts_everybody_it_bought_a_seat_for(): void
+    {
+        // Found while building the sales section. This shipped counting
+        // every ticket as one head, which is right for an RSVP (its
+        // party sits in plus_ones) and wrong for a paid purchase, where
+        // MonetizationCheckout writes the seats into `quantity` and the
+        // line total into price_cents.
+        //
+        // One code is still one scan at the door -- `expected` counts
+        // rows on purpose -- but three seats are three people.
+        $host  = $this->host();
+        $event = $this->event($host, '-1 hour');
+
+        $tier = EventTicketTier::create([
+            'link_id' => $event->id, 'name' => 'Table of four', 'price_cents' => 10000,
+        ]);
+        $this->ticket($event, ['tier_id' => $tier->id, 'quantity' => 4, 'price_cents' => 10000]);
+
+        $report = EventAttendeeReport::for($event);
+
+        $this->assertSame(1, $report['expected'], 'one code is one scan');
+        $this->assertSame(4, $report['heads'], 'a four-seat purchase was counted as one person');
+        $this->assertSame(3, $report['rows']->first()['guests'], 'the row did not show the extra seats');
+    }
+
     public function test_arrivals_are_listed_in_the_order_they_turned_up(): void
     {
         $event = $this->event($this->host(), '-3 hours');
