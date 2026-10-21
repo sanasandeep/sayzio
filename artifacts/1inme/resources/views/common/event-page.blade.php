@@ -742,10 +742,16 @@
         return '<button type="button" data-request-id="' + it.user.id + '" class="ev-chip text-[11px] font-semibold px-2.5 py-1.5 rounded-lg hover:opacity-80 transition flex-shrink-0">Swap contacts</button>';
     }
 
-    function render(items) {
+    function render(items, locationShared) {
         if (!items.length) { card.hidden = true; return; }
         card.hidden = false;
-        if (hintEl) hintEl.hidden = false;
+        if (hintEl) {
+            hintEl.hidden = false;
+            if (!locationShared) {
+                hintEl.textContent = 'You appear here only if you turned on discoverability for this event. '
+                    + 'Share your location when you turn it on to see roughly how far away people are.';
+            }
+        }
         listEl.innerHTML = items.map(function (it) {
             var u = it.user || {};
             var name = esc(u.name || 'Attendee');
@@ -755,9 +761,21 @@
             var sub = u.handle
                 ? '<span class="ev-muted-lite font-normal">@' + esc(u.handle) + '</span>'
                 : (u.bio ? '<span class="ev-muted-lite font-normal">' + esc(u.bio) + '</span>' : '');
+            // How far, never where. The server sends a band or nothing;
+            // there are no coordinates in this payload to plot.
+            var bands = {
+                here: 'In the room',
+                close: 'A short walk',
+                nearby: 'Nearby',
+                far: 'Across town',
+                distant: 'Further out'
+            };
+            var band = it.distance && bands[it.distance]
+                ? '<span class="ev-chip text-[10px] font-semibold px-1.5 py-0.5 rounded ml-1.5 align-middle">' + esc(bands[it.distance]) + '</span>'
+                : '';
             return '<div class="ev-card-soft flex items-center gap-2.5 p-2.5" data-person-row="' + esc(u.id) + '">'
                 + avatar
-                + '<div class="min-w-0 flex-1"><div class="text-sm font-semibold ev-strong truncate">' + name + '</div><div class="text-[11px] truncate">' + sub + '</div></div>'
+                + '<div class="min-w-0 flex-1"><div class="text-sm font-semibold ev-strong truncate">' + name + band + '</div><div class="text-[11px] truncate">' + sub + '</div></div>'
                 + actionFor(it)
                 + '</div>';
         }).join('');
@@ -802,7 +820,8 @@
         .then(function (body) {
             // A non-attendee, or an event that is not live, gets an error
             // rather than an empty list. Either way there is nothing to show.
-            render((body && body.data && body.data.items) || []);
+            var data = (body && body.data) || {};
+            render(data.items || [], !!data.my_location_shared);
         })
         .catch(function () { /* leave the card hidden */ });
 })();

@@ -13,6 +13,7 @@ use App\Modules\User\Models\EventDiscoverability;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
+use App\Modules\User\Support\Hallway;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -174,6 +175,14 @@ class EventContactExchangeController extends Controller
             );
         }
 
+        // The viewer's own row, for two things: whether they are listed,
+        // and the coordinate their distance bands are measured from. It
+        // never leaves this method.
+        $mine = EventDiscoverability::active()
+            ->where('link_id', $link->id)
+            ->where('user_id', $user->id)
+            ->first();
+
         $discoverable = EventDiscoverability::active()
             ->where('link_id', $link->id)
             ->where('user_id', '!=', $user->id)
@@ -191,7 +200,7 @@ class EventContactExchangeController extends Controller
                 return $ex->requester_id === $user->id ? $ex->recipient_id : $ex->requester_id;
             });
 
-        $items = $discoverable->map(function (EventDiscoverability $d) use ($myExchanges, $user) {
+        $items = $discoverable->map(function (EventDiscoverability $d) use ($myExchanges, $user, $mine) {
             $u = $d->user;
             if (!$u) return null;
 
@@ -209,16 +218,25 @@ class EventContactExchangeController extends Controller
                 'exchange_status'  => $exchange ? $exchange->status : null,
                 'exchange_id'      => $exchange ? $exchange->id : null,
                 'sent_by_me'       => $exchange ? $myRequest : null,
+                // How far, never where. A band or null -- the coordinates
+                // behind it are not in this response and never will be.
+                'distance'         => Hallway::band(
+                    $mine?->lat,
+                    $mine?->lng,
+                    $d->lat,
+                    $d->lng,
+                ),
             ];
         })->filter()->values()->all();
 
         return $this->ok([
             'items'        => $items,
             'total'        => count($items),
-            'my_discoverable' => EventDiscoverability::where('user_id', $user->id)
-                ->where('link_id', $link->id)
-                ->active()
-                ->exists(),
+            'my_discoverable' => $mine !== null,
+            // Bands are only measured when the viewer shared a coordinate
+            // of their own. Without one every distance is null, and the
+            // page should say so rather than look broken.
+            'my_location_shared' => $mine !== null && $mine->lat !== null && $mine->lng !== null,
         ]);
     }
 
