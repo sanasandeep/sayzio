@@ -11,35 +11,38 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * THIS TEST IS EXPECTED TO FAIL until the workspace global scope comes
- * off Contact. It is written first, on purpose, to show the bug exists
- * before anything is done about it.
- *
  * Contacts are account-based. They belong to the person, not to the
  * workspace they happened to be standing in when the contact was saved,
  * and they deliberately cross workspaces.
  *
- * The code only half agrees. Contact still carries the `workspace`
- * global scope, and on API routes EnforceApiWorkspaceFeature binds a
- * current_workspace, so the scope is live. Roughly half the query sites
- * in the two ContactControllers opt out of it by hand and the rest do
- * not -- 26 hand-written withoutGlobalScope('workspace') calls, each one
- * a bug somebody found the hard way, one at a time.
+ * The code only half agreed. Contact carried the `workspace` global
+ * scope, and on API routes EnforceApiWorkspaceFeature binds a
+ * current_workspace, so the scope was live. About forty of the sixty
+ * query sites across the two ContactControllers ran through it and the
+ * rest opted out by hand -- 26 withoutGlobalScope('workspace') calls,
+ * each one a bug somebody had found the hard way, one at a time.
  *
- * The result is an inconsistency INSIDE one controller, which is what
- * these tests pin down. index, show and update opt out, so a contact
- * saved in another workspace is listed and can be renamed. updateTags,
- * updateNotes, setFollowUp, clearFollowUp, share, destroy, callLogs,
- * logCalls and mergeCandidates do not, so the same contact 404s.
+ * These tests were written and run BEFORE the fix, to see the bug on
+ * its own. Five of the six failed. The one that passed is the listing,
+ * and it is the control: it proves the fixture really does put the
+ * contact in another workspace and really does make the request under
+ * a second one. Without it, five 404s would have been equally
+ * consistent with a broken test setup.
  *
- * You can see it. You can rename it. You cannot tag it, note it, set a
- * reminder on it, or delete it. Nothing about that is a decision anyone
- * made; it is 40-odd call sites each answering the question separately.
+ * What the run showed, on one controller: `index` and `show` opted out,
+ * so a contact saved under another workspace was listed and could be
+ * opened. Everything else -- update, updateTags, updateNotes,
+ * setFollowUp, clearFollowUp, share, destroy -- did not. You could read
+ * a contact on mobile and then be refused every single edit to it, with
+ * nothing on screen to say why.
  *
- * The fix is to stop asking per call site -- drop the `workspace` scope
- * from Contact so account-based means account-based. The
- * `workspace_record_access` scope stays: which team MEMBER may see which
- * record is a different question with a real answer.
+ * The fix stopped asking per call site: Contact::readsAreWorkspaceScoped()
+ * returns false, so the scope no longer applies to it at all.
+ * `workspace_record_access` is untouched -- which team MEMBER may see
+ * which record is a different question with a real answer.
+ *
+ * Keep the listing test. It is what stops this file from passing for the
+ * wrong reason if the fixture ever stops reproducing the situation.
  */
 class ContactsAreAccountWideOrTheyAreNotTest extends TestCase
 {
