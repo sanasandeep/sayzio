@@ -23,15 +23,26 @@ use Tests\TestCase;
  * assertion here therefore checks BOTH the desktop and mobile nav blocks.
  *
  * Items exercised:
- *   - "API keys"        — plan feature gate (`api_access`).
  *   - AI section        — always rendered now (Task #1999); the engine state
  *                         no longer hides it. Per-item gates still apply
  *                         (Minds → settings_view).
- *   - "Ask Coach"       — per-plan allow-list gate (`askCoachAllowedFor()`),
- *                         engine-independent.
- *   - Administration    — back-office permission gates
- *                         (`user.plans.manage`, `user.verifications.review`,
- *                          `user.roles.manage`).
+ *   - "Ask Zio"         — ONE item with a ternary href: Ask Coach when
+ *                         `askCoachAllowedFor()` passes, the companion page
+ *                         when it does not. It never disappears.
+ *   - "API keys"        — no longer in the sidebar at all (moved into the
+ *                         Settings hub); asserted absent so it does not
+ *                         return by accident.
+ *   - Administration    — removed from the user sidebar by Task #3805;
+ *                         asserted absent even for someone holding every
+ *                         permission it used to key off.
+ *
+ * Three of the items above were, until this file was corrected, asserted
+ * as PRESENT long after they had been deliberately removed. The pattern
+ * is worth naming because it is easy to recreate: when a nav item goes
+ * away, its "hidden" test keeps passing for the wrong reason while its
+ * "shown" test fails, and the pair stops describing anything. Both halves
+ * were replaced with the invariant that actually survives the removal —
+ * that the item stays gone.
  */
 class UserSidebarMenuGatingTest extends TestCase
 {
@@ -155,19 +166,26 @@ class UserSidebarMenuGatingTest extends TestCase
         $this->assertNavItem($u, 'user.links.index', true);
     }
 
-    // ===== API keys — plan feature gate (api_access) =====
+    // ===== API keys — no longer a sidebar item at all =====
 
-    public function test_api_keys_hidden_without_plan_feature(): void
+    public function test_api_keys_is_not_a_sidebar_item_any_more(): void
     {
-        $u = $this->user($this->plan(['api_access' => false]));
-        $this->assertNavItem($u, 'user.api-keys.index', false);
+        // Commit 973125935 ("Consolidate ~10 user-settings surfaces into one
+        // Settings hub") moved API keys into Settings. The route still
+        // exists and the page still works -- it is the NAV ENTRY that is
+        // gone, so the old pair of tests asserted a plan gate on an item
+        // that cannot appear either way. The "hidden" half passed for the
+        // wrong reason and the "shown" half had been failing ever since.
+        //
+        // What is still worth holding: the item does not come back by
+        // accident, under either plan.
+        $this->assertNavItem($this->user($this->plan(['api_access' => false])), 'user.api-keys.index', false);
+        $this->assertNavItem($this->user($this->plan(['api_access' => true])),  'user.api-keys.index', false);
     }
 
-    public function test_api_keys_shown_with_plan_feature(): void
-    {
-        $u = $this->user($this->plan(['api_access' => true]));
-        $this->assertNavItem($u, 'user.api-keys.index', true);
-    }
+    // NOTE: nothing here covers the api_access gate where it now lives, in
+    // the Settings hub. That is a gap, not a decision -- it belongs in a
+    // test about Settings, not about the sidebar.
 
     // ===== AI section — always rendered regardless of engine state =====
     //
@@ -177,12 +195,20 @@ class UserSidebarMenuGatingTest extends TestCase
     // group. These tests guard against the @if wrapper being reintroduced in
     // either the desktop or mobile nav copy.
 
-    /** AI items with no per-item gate — always visible to a workspace owner. */
+    /**
+     * AI items with no per-item gate — always visible to a workspace owner.
+     *
+     * `user.ai.companion.show` is deliberately NOT in this list. "Ask Zio"
+     * is a single nav item whose href is a ternary: ask-coach when the
+     * plan is allowed, companion when it is not. Asserting both present at
+     * once is impossible, which is why the two tests below had been
+     * failing -- the layout collapsed two items into one and the list was
+     * never updated.
+     */
     private const ALWAYS_ON_AI_ROUTES = [
         'user.ai.mind.show',
         'user.ai.persona.show',
         'user.ai-personas.index',
-        'user.ai.companion.show',
         'user.ai-companions.index',
     ];
 
@@ -218,61 +244,78 @@ class UserSidebarMenuGatingTest extends TestCase
 
     // ===== Ask Coach — per-plan allow-list gate (independent of engine) =====
 
-    public function test_ask_coach_hidden_when_plan_not_allowed_engine_on(): void
+    public function test_ask_zio_falls_back_to_companion_when_the_plan_is_not_allowed(): void
     {
+        // The old name said "hidden", which is not what happens. Ask Zio is
+        // one item and it stays visible -- only its destination changes,
+        // from Ask Coach to the companion page. A test that only checked
+        // ask-coach was absent would also pass if the whole item vanished,
+        // which is the regression anyone would actually care about.
         AiEngineSettings::setEnabled(true);
-        // Restrict to a plan the user is NOT on.
         AiEngineSettings::setAskCoachEnabledPlans(['some-other-plan']);
         $u = $this->user($this->plan([], 'notcoachon'));
-        // The rest of the AI section still renders…
+
         $this->assertNavItem($u, 'user.ai.mind.show', true);
-        // …but Ask Coach is gated out by the plan allow-list.
         $this->assertNavItem($u, 'user.ai.ask-coach.show', false);
+        $this->assertNavItem($u, 'user.ai.companion.show', true);
     }
 
-    public function test_ask_coach_hidden_when_plan_not_allowed_engine_off(): void
+    public function test_the_fallback_holds_with_the_engine_off_too(): void
     {
-        // The Ask Coach plan gate must keep working with the engine off —
-        // turning AI off neither reveals nor hides it beyond the plan rule.
+        // Turning AI off neither reveals nor hides Ask Zio beyond the plan
+        // rule: same item, same fallback destination.
         AiEngineSettings::setEnabled(false);
         AiEngineSettings::setAskCoachEnabledPlans(['some-other-plan']);
         $u = $this->user($this->plan([], 'notcoachoff'));
-        // Core AI items still render with the engine off…
+
         $this->assertNavItem($u, 'user.ai.mind.show', true);
-        // …while Ask Coach stays gated out by the plan allow-list.
         $this->assertNavItem($u, 'user.ai.ask-coach.show', false);
+        $this->assertNavItem($u, 'user.ai.companion.show', true);
     }
 
-    // ===== Administration — back-office permission gates =====
+    // ===== Administration — removed from the user sidebar on purpose =====
 
-    public function test_administration_hidden_for_plain_user(): void
-    {
-        $u = $this->user($this->plan());
-        $this->assertNavItem($u, 'user.plans.index', false);
-        $this->assertNavItem($u, 'user.verification.admin', false);
-        $this->assertNavItem($u, 'user.access.users.index', false);
-    }
+    /** The three links the Administration section used to carry. */
+    private const RETIRED_ADMIN_ROUTES = [
+        'user.plans.index',
+        'user.verification.admin',
+        'user.access.users.index',
+    ];
 
-    public function test_administration_shown_for_admin_with_all_permissions(): void
+    public function test_the_admin_menu_stays_out_of_the_user_sidebar(): void
     {
+        // Task #3805 removed the Administration section from both nav
+        // blocks. The pages and their permission gates are untouched --
+        // only the sidebar entry went.
+        //
+        // This replaces three tests that no longer described anything:
+        // "hidden_for_plain_user" passed because the items can never
+        // appear, and the two that asserted they DO appear for a permitted
+        // admin had been failing since #3805 landed. Between them they
+        // could not have caught the section being reinstated, which is the
+        // one thing worth guarding.
+        //
+        // So: grant every permission the section used to key off, and
+        // assert it still does not render. Someone who genuinely wants it
+        // back has to change this test, deliberately.
         $u = $this->user($this->plan());
         $this->grantPermissions($u, [
             'user.plans.manage',
             'user.verifications.review',
             'user.roles.manage',
         ]);
-        $this->assertNavItem($u, 'user.plans.index', true);
-        $this->assertNavItem($u, 'user.verification.admin', true);
-        $this->assertNavItem($u, 'user.access.users.index', true);
+
+        foreach (self::RETIRED_ADMIN_ROUTES as $route) {
+            $this->assertNavItem($u, $route, false);
+        }
     }
 
-    public function test_administration_items_track_their_individual_permissions(): void
+    public function test_a_plain_user_does_not_see_them_either(): void
     {
-        // Only the plans-manage permission — the other two admin links stay hidden.
         $u = $this->user($this->plan());
-        $this->grantPermissions($u, ['user.plans.manage']);
-        $this->assertNavItem($u, 'user.plans.index', true);
-        $this->assertNavItem($u, 'user.verification.admin', false);
-        $this->assertNavItem($u, 'user.access.users.index', false);
+
+        foreach (self::RETIRED_ADMIN_ROUTES as $route) {
+            $this->assertNavItem($u, $route, false);
+        }
     }
 }
