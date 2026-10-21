@@ -47,8 +47,70 @@ protected $fillable = [
      * are never echoed back out. The push job builds the lead from the fresh
      * record after commit, so emails/phones attached later are included.
      */
+    /**
+     * The workspace a contact belongs to when no request supplied one.
+     *
+     * Contacts are owner-scoped: `user_id` is the workspace owner, not the
+     * team member who happened to type it in. So the answer is a workspace
+     * that owner owns -- their active one when they own it, otherwise their
+     * first. Read-only on purpose; see the note in booted().
+     */
+    protected static function ownerWorkspaceId(int $ownerId): ?int
+    {
+        $active = User::whereKey($ownerId)->value('active_workspace_id');
+
+        if ($active) {
+            $owned = Workspace::whereKey($active)
+                ->where('owner_user_id', $ownerId)
+                ->value('id');
+
+            if ($owned) {
+                return (int) $owned;
+            }
+        }
+
+        $first = Workspace::where('owner_user_id', $ownerId)
+            ->orderBy('id')
+            ->value('id');
+
+        return $first ? (int) $first : null;
+    }
+
     protected static function booted(): void
     {
+        // A contact must never be born without a workspace.
+        //
+        // BelongsToWorkspace fills workspace_id from the container-bound
+        // `current_workspace`, which request middleware sets and a queue
+        // worker, a webhook or an artisan command does not. Its read scope
+        // then filters every lookup to `workspace_id = <active>`, so a row
+        // written with NULL is invisible to the person who owns it. That is
+        // not hypothetical: a CSV import once reported "completed" while
+        // every contact it created silently vanished (see
+        // ImportedContactsLandInTheOwnersWorkspaceTest). That job was fixed
+        // by binding the workspace inside it, but CrmSyncService,
+        // GoogleContactsSyncService and WhatsAppAgentTools all create
+        // contacts with no binding at all, and the next writer will forget
+        // too. So the floor belongs on the model.
+        //
+        // This runs only when nothing else supplied a workspace, so an
+        // ordinary request write is untouched.
+        //
+        // Deliberately NOT WorkspaceContext::resolve(): it writes to the
+        // session and will CREATE a workspace via ensureDefaultWorkspace().
+        // Neither is acceptable from a model hook on a queue worker. This
+        // mirrors resolve()'s precedence -- the owner's active workspace,
+        // then their first -- as a read-only lookup, and leaves the column
+        // NULL when the owner has no workspace at all, which is exactly
+        // today's behaviour rather than a new one.
+        static::creating(function (Contact $contact): void {
+            if (!empty($contact->workspace_id) || empty($contact->user_id)) {
+                return;
+            }
+
+            $contact->workspace_id = self::ownerWorkspaceId((int) $contact->user_id);
+        });
+
         static::created(function (Contact $contact): void {
             $contact->queueCrmPush();
         });
