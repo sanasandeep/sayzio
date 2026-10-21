@@ -1882,25 +1882,36 @@ class ContactController extends Controller
             });
         }
 
-        // ORDER. This was alphabetical, which is the wrong question to
-        // ask of an address book that fills itself: public flows
-        // (subscribers, RSVPs, reviews, orders, inbox threads) create
-        // contacts automatically, and one of those arriving with a name
-        // that starts with a digit or a bracket takes the whole first
-        // page. On a real account that is exactly what happened -- all
-        // twenty slots held the same auto-captured name, and no speaker
-        // could be reached without typing.
+        // ORDER. Alphabetical is the wrong question to ask of an address
+        // book of a thousand contacts: on a real account all twenty slots
+        // held the same name and no speaker could be reached without
+        // typing one.
         //
-        // So rank by what makes somebody likely to be the person being
-        // billed:
+        // The first attempt at this ranked by ORIGIN -- auto-captured
+        // last -- on the assumption that a public flow had created them.
+        // It had not. They came in through Google Contacts sync, carrying
+        // a name copied verbatim from Google, so the flag that fix sorted
+        // on was false for every one of them and the first page did not
+        // move. Origin was never the right signal anyway: where a contact
+        // came from says nothing about whether they are the person being
+        // billed.
+        //
+        // What does say something is whether there is anything to bill
+        // them WITH. This picker exists to put a name, a job title and a
+        // company on an event page; a contact that is a bare name with no
+        // title and no organization cannot fill that card in, whoever
+        // created it. Those thousand rows are exactly that.
+        //
         //   1. already billed on an event, most recent first -- the same
-        //      speakers come back, and this is the reuse the picker is for
-        //   2. then contacts the owner entered or imported themselves
-        //   3. then everything else, most recently touched first
+        //      speakers come back, and that reuse is what this is for
+        //   2. then anyone with a job title or an organization
+        //   3. then contacts the owner entered rather than captured
+        //   4. then most recently touched
         //
-        // Auto-captured contacts are DEMOTED, not hidden. Somebody who
-        // RSVP'd and is now speaking is a real person to bill; they just
-        // should not outrank the address book on an empty query.
+        // Every tier DEMOTES, none excludes: a bare name is still in the
+        // list and still found instantly by typing it, because somebody
+        // whose title you have not filled in yet is still a real person
+        // to put on a stage.
         //
         // The join is a grouped subquery rather than a correlated exists
         // per row: ordering happens before the limit, so a correlated
@@ -1910,10 +1921,17 @@ class ContactController extends Controller
             ->whereNotNull('contact_id')
             ->groupBy('contact_id');
 
+        // Postgres-specific, as is the ilike above: this endpoint has
+        // never been portable and pretending otherwise would cost a
+        // clearer expression.
+        $hasSomethingToBill = "(coalesce(nullif(btrim(contacts.job_title), ''),"
+            . " nullif(btrim(contacts.organization), '')) is not null) desc";
+
         $contacts = $query
             ->leftJoinSub($lastBilled, 'billed', 'billed.contact_id', '=', 'contacts.id')
             ->select('contacts.*')
             ->orderByRaw('billed.last_billed_id desc nulls last')
+            ->orderByRaw($hasSomethingToBill)
             ->orderBy('contacts.is_auto_captured')          // false before true
             ->orderByDesc('contacts.updated_at')
             ->orderBy('contacts.display_name')

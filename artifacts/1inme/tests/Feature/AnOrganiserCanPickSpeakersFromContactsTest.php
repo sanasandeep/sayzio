@@ -152,27 +152,83 @@ class AnOrganiserCanPickSpeakersFromContactsTest extends TestCase
         return array_column($response->json('data'), 'name');
     }
 
-    public function test_an_auto_captured_name_cannot_take_the_whole_first_page(): void
+    public function test_a_pile_of_bare_names_cannot_take_the_whole_first_page(): void
     {
-        // The real symptom, on a real account: every one of the twenty
-        // slots read the same auto-captured name. Nothing was wrong with
-        // the data -- the order was alphabetical, public flows fill the
-        // address book by themselves, and one of those arriving with a
-        // name starting with a digit sorts ahead of every letter there
-        // is. No speaker could be reached without typing.
+        // THE REAL SHAPE, which the first version of this fix got wrong.
+        //
+        // Every one of the twenty slots on a real account read the same
+        // name. The fix ranked auto-captured contacts last, assuming a
+        // public capture flow had made them. It had not: they arrived
+        // through Google Contacts sync with the name copied verbatim, so
+        // is_auto_captured was FALSE on all of them and the first page
+        // did not move. This fixture is deliberately built the way those
+        // rows actually are -- not auto-captured, no title, no company --
+        // so the test fails if the ranking goes back to sorting on where
+        // a contact came from.
         $owner = $this->owner();
 
         foreach (range(1, 25) as $i) {
             $this->contact($owner, '1INME - One link to everything', [
-                'is_auto_captured' => true, 'job_title' => null, 'organization' => null,
+                'is_auto_captured' => false, 'job_title' => null, 'organization' => null,
             ]);
         }
-        $this->contact($owner, 'Zara Ahmed');
+        $this->contact($owner, 'Zara Ahmed');   // the helper gives her a title
 
         $names = $this->pickerNames($owner);
 
         $this->assertSame('Zara Ahmed', $names[0] ?? null,
-            'an auto-captured contact outranked the address book on an empty query');
+            'a contact with nothing to bill outranked one with a title');
+    }
+
+    public function test_a_contact_with_a_title_outranks_a_bare_name(): void
+    {
+        // The rule on its own, with the alphabet pulling the other way.
+        $owner = $this->owner();
+        $this->contact($owner, 'Aaron Bare', ['job_title' => null, 'organization' => null]);
+        $this->contact($owner, 'Zoe Titled', ['job_title' => 'Head of Design', 'organization' => null]);
+
+        $this->assertSame('Zoe Titled', $this->pickerNames($owner)[0] ?? null);
+    }
+
+    public function test_a_company_with_no_title_is_enough_to_bill_somebody(): void
+    {
+        // "CTO at Acme" is the card; either half of it fills something in.
+        $owner = $this->owner();
+        $this->contact($owner, 'Aaron Bare', ['job_title' => null, 'organization' => null]);
+        $this->contact($owner, 'Zoe Company-Only', ['job_title' => null, 'organization' => 'Globex']);
+
+        $this->assertSame('Zoe Company-Only', $this->pickerNames($owner)[0] ?? null);
+    }
+
+    public function test_whitespace_is_not_something_to_bill_somebody_with(): void
+    {
+        // A title of three spaces renders as nothing on the event page,
+        // so it must not count as having one here either.
+        $owner = $this->owner();
+        $this->contact($owner, 'Aaron Spaces', ['job_title' => '   ', 'organization' => '']);
+        $this->contact($owner, 'Zoe Real', ['job_title' => 'CTO', 'organization' => null]);
+
+        $this->assertSame('Zoe Real', $this->pickerNames($owner)[0] ?? null);
+    }
+
+    public function test_a_bare_name_is_demoted_but_still_reachable(): void
+    {
+        // Somebody whose title you have not filled in yet is still a real
+        // person to put on a stage. Demoted, never hidden, and found
+        // instantly by typing the name.
+        $owner = $this->owner();
+        $this->contact($owner, 'Aisha Bare', ['job_title' => null, 'organization' => null]);
+        $this->contact($owner, 'Manu Titled');
+
+        $names = $this->pickerNames($owner);
+
+        $this->assertSame('Manu Titled', $names[0] ?? null);
+        $this->assertContains('Aisha Bare', $names);
+
+        $this->actingAs($owner)
+            ->getJson(route('user.contacts.picker-search', ['q' => 'Aisha'], false))
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Aisha Bare');
     }
 
     public function test_somebody_already_billed_comes_first(): void
