@@ -141,6 +141,90 @@ class AnOrganiserCanPickSpeakersFromContactsTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
+    // ── What the picker shows before you type ────────────────────────
+
+    /** Returns the picker's first page of names, in order. */
+    private function pickerNames(User $owner): array
+    {
+        $response = $this->actingAs($owner)
+            ->getJson(route('user.contacts.picker-search', [], false))->assertOk();
+
+        return array_column($response->json('data'), 'name');
+    }
+
+    public function test_an_auto_captured_name_cannot_take_the_whole_first_page(): void
+    {
+        // The real symptom, on a real account: every one of the twenty
+        // slots read the same auto-captured name. Nothing was wrong with
+        // the data -- the order was alphabetical, public flows fill the
+        // address book by themselves, and one of those arriving with a
+        // name starting with a digit sorts ahead of every letter there
+        // is. No speaker could be reached without typing.
+        $owner = $this->owner();
+
+        foreach (range(1, 25) as $i) {
+            $this->contact($owner, '1INME - One link to everything', [
+                'is_auto_captured' => true, 'job_title' => null, 'organization' => null,
+            ]);
+        }
+        $this->contact($owner, 'Zara Ahmed');
+
+        $names = $this->pickerNames($owner);
+
+        $this->assertSame('Zara Ahmed', $names[0] ?? null,
+            'an auto-captured contact outranked the address book on an empty query');
+    }
+
+    public function test_somebody_already_billed_comes_first(): void
+    {
+        // The reuse the picker exists for: the same speakers come back.
+        $owner  = $this->owner();
+        $before = $this->contact($owner, 'Aaron Alphabetically-First');
+        $billed = $this->contact($owner, 'Zoe Spoke-Last-Time');
+        $event  = $this->event($owner);
+
+        EventPerson::create([
+            'link_id' => $event->id, 'contact_id' => $billed->id,
+            'role' => EventPerson::ROLE_SPEAKER, 'name' => 'Zoe Spoke-Last-Time',
+        ]);
+
+        $names = $this->pickerNames($owner);
+
+        $this->assertSame('Zoe Spoke-Last-Time', $names[0] ?? null);
+        $this->assertContains('Aaron Alphabetically-First', $names,
+            'demoting somebody must not drop them');
+    }
+
+    public function test_an_auto_captured_person_is_demoted_but_still_reachable(): void
+    {
+        // Somebody who RSVP'd and is now speaking is a real person to
+        // bill. Demoted, never hidden -- and still findable by name,
+        // which is how you would actually reach them.
+        $owner = $this->owner();
+        $this->contact($owner, 'Aisha Attendee', ['is_auto_captured' => true]);
+        $this->contact($owner, 'Manu Manual');
+
+        $names = $this->pickerNames($owner);
+
+        $this->assertSame('Manu Manual', $names[0] ?? null);
+        $this->assertContains('Aisha Attendee', $names);
+
+        $this->actingAs($owner)
+            ->getJson(route('user.contacts.picker-search', ['q' => 'Aisha'], false))
+            ->assertOk()
+            ->assertJsonPath('data.0.name', 'Aisha Attendee');
+    }
+
+    public function test_the_first_page_is_still_capped_at_twenty(): void
+    {
+        $owner = $this->owner();
+        foreach (range(1, 30) as $i) {
+            $this->contact($owner, 'Person ' . str_pad((string) $i, 2, '0', STR_PAD_LEFT));
+        }
+
+        $this->assertCount(20, $this->pickerNames($owner));
+    }
+
     // ── Saving a line-up ─────────────────────────────────────────────
 
     public function test_picking_a_contact_bills_them_on_the_event(): void
