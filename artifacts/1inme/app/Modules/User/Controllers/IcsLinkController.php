@@ -419,7 +419,7 @@ class IcsLinkController extends Controller
             $byday = ['MO', 'TU', 'WE', 'TH', 'FR'];
         }
 
-        return [
+        $payload = [
             'link_id'         => $linkId,
             'event_name'      => $v['event_name'],
             'description'     => $v['description'] ?? null,
@@ -452,13 +452,24 @@ class IcsLinkController extends Controller
             'video_url'           => $v['video_url'] ?? null,
             'gallery'             => array_values(array_filter(array_map('trim', $v['gallery'] ?? []))),
             'info_sections'       => $this->normalizeInfoSections($v['info_sections'] ?? []),
-            'required_badge_id'   => $v['required_badge_id'] ?? null,
             'award_badge_id'      => $v['award_badge_id'] ?? null,
 
             // Agenda + documents (Task #5023).
             'agenda'              => $this->normalizeAgenda($v['agenda'] ?? []),
             'documents'           => $this->normalizeDocuments($v['documents'] ?? []),
         ];
+
+        // required_badge_id is deliberately absent above. The event editor no
+        // longer sets it -- a gate is granted by admin, or through the badge
+        // request flow -- and `?? null` would mean every ordinary save from
+        // the editor silently cleared a gate the organiser cannot even see.
+        // Omitting the key leaves the column untouched on update; a caller
+        // that does mean to change it still can, including to null.
+        if (array_key_exists('required_badge_id', $v)) {
+            $payload['required_badge_id'] = $v['required_badge_id'];
+        }
+
+        return $payload;
     }
 
     /** Trim, drop the leading '#', lowercase, dedupe, and cap hashtags. */
