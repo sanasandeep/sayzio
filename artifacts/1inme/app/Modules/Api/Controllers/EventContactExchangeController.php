@@ -620,7 +620,14 @@ class EventContactExchangeController extends Controller
     /** Find a public ICS link by alias. */
     private function resolveEventLink(string $alias): ?Link
     {
-        return Link::where('alias', $alias)->where('type', 'ics')->with('icsData')->first();
+        // An attendee is, by definition, outside the host's workspace, and
+        // this is a lookup by public alias rather than anything workspace
+        // owned. Left scoped it resolves to nothing the moment a workspace
+        // is bound -- which never happens over the token API and always
+        // happens over a session, so the same code returned a row for the
+        // mobile app and a 404 on the web. EventSwapsController reached the
+        // same conclusion separately for its own lookup.
+        return Link::withoutGlobalScopes()->where('alias', $alias)->where('type', 'ics')->with('icsData')->first();
     }
 
     /**

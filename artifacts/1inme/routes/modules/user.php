@@ -951,6 +951,15 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links-ics/{link}/people/stats', [\App\Modules\User\Controllers\EventPeopleController::class, 'stats'])->middleware('workspace.can:links.view')->name('links.ics.people.stats')->middleware('events.enabled');
         // Task #5052 — attendee "My swaps" per event: JSON list + withdraw,
         // consumed by the public event page for signed-in viewers.
+        // Task #5052 gave the web the viewer's own swaps; these give it the
+        // other half -- who else is here, and asking one of them. Both point
+        // at the API controller rather than a copy of it: the rules for who
+        // may see this list (live event, attendee only, opt-in only) and the
+        // race handling behind a request are involved enough that a second
+        // implementation would drift. A controller is a class; the route
+        // decides the guard, and $request->user() is the session user here.
+        Route::get ('event-people/{alias}', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'listAttendees'])->name('event-people.index')->middleware('events.enabled');
+        Route::post('event-people/{alias}/request', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'requestExchange'])->middleware('throttle:10,1')->name('event-people.request')->middleware('events.enabled');
         Route::get ('event-swaps/{alias}', [\App\Modules\User\Controllers\EventSwapsController::class, 'index'])->name('event-swaps.index')->middleware('events.enabled');
         Route::post('contact-exchanges/{id}/cancel', [\App\Modules\User\Controllers\EventSwapsController::class, 'cancel'])->whereNumber('id')->name('contact-exchanges.cancel')->middleware('events.enabled');
         Route::post('links-ics/{link}/tickets/{ticket}/refund', [\App\Modules\User\Controllers\EventTicketTierController::class, 'refundTicket'])->middleware('workspace.can:links.edit')->name('links.ics.tickets.refund')->middleware('events.enabled');

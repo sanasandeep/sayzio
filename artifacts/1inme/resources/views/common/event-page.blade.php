@@ -563,6 +563,27 @@
                             @endif
 
                             @auth('web')
+                                {{-- Who else is here. The list itself is the API's
+                                     listAttendees, which decides who may see it:
+                                     the event must be live, the viewer must hold a
+                                     ticket or a confirmed RSVP, and only people who
+                                     opted in appear. Nobody is listed by default. --}}
+                                <div class="ev-card p-4 mt-4" id="ev-people" hidden
+                                     data-list-url="{{ route('user.event-people.index', $link->alias) }}"
+                                     data-request-url="{{ route('user.event-people.request', $link->alias) }}"
+                                     data-csrf="{{ csrf_token() }}">
+                                    <div class="flex items-center gap-2 mb-3 px-1">
+                                        <i class="fas fa-user-group ev-accent-text text-xs"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide ev-section-label">Who else is here</span>
+                                    </div>
+                                    <div id="ev-people-list" class="space-y-2"></div>
+                                    <p id="ev-people-hint" class="text-[11px] ev-muted-lite mt-3 px-1" hidden>
+                                        You appear here only if you turned on discoverability for this event.
+                                    </p>
+                                </div>
+                            @endauth
+
+                            @auth('web')
                                 {{-- Task #5052 — "My swaps": the signed-in viewer's own
                                      pending/accepted contact-swap requests at this event,
                                      with a Withdraw button on pending ones they sent. --}}
@@ -691,6 +712,101 @@
 
 @auth('web')
 @push('scripts')
+<script>
+// Who else is here: the opted-in attendees of a live event, and a button to
+// ask one of them to swap contacts. Both endpoints are the mobile API's,
+// reached over the session guard, so the rules cannot drift between
+// surfaces. The card stays hidden unless somebody is actually listed.
+(function () {
+    var card = document.getElementById('ev-people');
+    if (!card) return;
+    var listEl = document.getElementById('ev-people-list');
+    var hintEl = document.getElementById('ev-people-hint');
+    var listUrl = card.dataset.listUrl;
+    var requestUrl = card.dataset.requestUrl;
+    var csrf = card.dataset.csrf;
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function actionFor(it) {
+        if (it.exchange_status === 'accepted') {
+            return '<span class="text-[11px] ev-accent-text font-semibold flex-shrink-0"><i class="fas fa-check mr-1"></i>Swapped</span>';
+        }
+        if (it.exchange_status === 'pending') {
+            return '<span class="text-[11px] ev-muted-lite flex-shrink-0">' + (it.sent_by_me ? 'Requested' : 'Wants to swap') + '</span>';
+        }
+        return '<button type="button" data-request-id="' + it.user.id + '" class="ev-chip text-[11px] font-semibold px-2.5 py-1.5 rounded-lg hover:opacity-80 transition flex-shrink-0">Swap contacts</button>';
+    }
+
+    function render(items) {
+        if (!items.length) { card.hidden = true; return; }
+        card.hidden = false;
+        if (hintEl) hintEl.hidden = false;
+        listEl.innerHTML = items.map(function (it) {
+            var u = it.user || {};
+            var name = esc(u.name || 'Attendee');
+            var avatar = u.avatar_url
+                ? '<img src="' + esc(u.avatar_url) + '" alt="" class="w-8 h-8 rounded-full object-cover flex-shrink-0">'
+                : '<div class="w-8 h-8 rounded-full ev-chip flex items-center justify-center text-xs font-bold flex-shrink-0">' + esc((u.name || '?')[0]).toUpperCase() + '</div>';
+            var sub = u.handle
+                ? '<span class="ev-muted-lite font-normal">@' + esc(u.handle) + '</span>'
+                : (u.bio ? '<span class="ev-muted-lite font-normal">' + esc(u.bio) + '</span>' : '');
+            return '<div class="ev-card-soft flex items-center gap-2.5 p-2.5" data-person-row="' + esc(u.id) + '">'
+                + avatar
+                + '<div class="min-w-0 flex-1"><div class="text-sm font-semibold ev-strong truncate">' + name + '</div><div class="text-[11px] truncate">' + sub + '</div></div>'
+                + actionFor(it)
+                + '</div>';
+        }).join('');
+    }
+
+    listEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-request-id]');
+        if (!btn) return;
+        var id = btn.getAttribute('data-request-id');
+        btn.disabled = true;
+        btn.textContent = 'Asking...';
+        fetch(requestUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ recipient_id: Number(id) }),
+        }).then(function (r) {
+            return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+        }).then(function (res) {
+            var row = listEl.querySelector('[data-person-row="' + id + '"]');
+            if (!row) return;
+            var slot = row.lastElementChild;
+            if (res.ok) {
+                // An accepted status here means they had already asked us and
+                // the request completed the swap both ways.
+                var accepted = res.body && res.body.data && res.body.data.status === 'accepted';
+                slot.outerHTML = accepted
+                    ? '<span class="text-[11px] ev-accent-text font-semibold flex-shrink-0"><i class="fas fa-check mr-1"></i>Swapped</span>'
+                    : '<span class="text-[11px] ev-muted-lite flex-shrink-0">Requested</span>';
+            } else {
+                var msg = (res.body && res.body.error && res.body.error.message) || 'Could not send that request.';
+                slot.outerHTML = '<span class="text-[11px] ev-muted-lite flex-shrink-0">' + esc(msg) + '</span>';
+            }
+        }).catch(function () {
+            btn.disabled = false;
+            btn.textContent = 'Swap contacts';
+        });
+    });
+
+    fetch(listUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (body) {
+            // A non-attendee, or an event that is not live, gets an error
+            // rather than an empty list. Either way there is nothing to show.
+            render((body && body.data && body.data.items) || []);
+        })
+        .catch(function () { /* leave the card hidden */ });
+})();
+</script>
 <script>
 // Task #5052 — "My swaps" panel: fetch the viewer's pending/accepted swap
 // requests for this event and allow withdrawing pending ones they sent.
