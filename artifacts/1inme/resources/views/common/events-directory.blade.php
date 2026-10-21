@@ -230,6 +230,66 @@
     .ev-cat-pill { display:inline-flex; align-items:center; gap:.3rem; font-size:.65rem; font-weight:700; padding:.2rem .55rem; border-radius:999px; color:#fff; }
     .ev-price-badge { box-shadow:0 6px 16px -4px rgba(0,0,0,0.35); }
 </style>
+
+    /* ── Results beside the map ────────────────────────────────────── */
+    .events-page-wide { max-width: 1680px; }
+
+    .evdir-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+    @media (min-width: 1280px) {
+        .evdir-split { grid-template-columns: minmax(0, 1fr) minmax(0, 46%); }
+        /* The map tracks the list rather than scrolling away from it --
+           the point of the split is reading a card and its pin together. */
+        .evdir-map-col { position: sticky; top: 1.5rem; }
+    }
+
+    .evdir-map-panel {
+        position: relative; border-radius: 1.25rem; overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        box-shadow: 0 16px 40px -26px rgba(0,0,0,0.6);
+    }
+    .evdir-map-canvas { height: clamp(380px, 68vh, 760px); width: 100%; }
+    @media (max-width: 1279px) { .evdir-map-canvas { height: 320px; } }
+
+    .evdir-map-note {
+        position: absolute; left: 0; right: 0; bottom: 0; z-index: 500;
+        padding: .6rem .9rem; font-size: .75rem; font-weight: 600;
+        color: rgba(255,255,255,.82);
+        background: linear-gradient(to top, rgba(11,14,22,.92), rgba(11,14,22,0));
+    }
+    .evdir-map-note-sub { font-weight: 500; opacity: .6; margin-left: .35rem; }
+
+    /* The marker: a label that says something, not a generic pin. */
+    .evdir-pin-wrap { background: none !important; border: 0 !important; }
+    .evdir-pin {
+        display: inline-block; white-space: nowrap;
+        padding: .3rem .6rem; border-radius: 999px;
+        font-size: .75rem; font-weight: 700; line-height: 1;
+        background: #ffffff; color: #0f172a;
+        border: 1px solid rgba(15,23,42,.1);
+        box-shadow: 0 4px 12px rgba(15,23,42,.22);
+        transform: translate(-50%, -50%);
+        transition: background .15s, color .15s, transform .15s;
+    }
+    .evdir-pin.is-active {
+        background: #3d6bff; color: #fff; border-color: #3d6bff;
+        transform: translate(-50%, -50%) scale(1.08);
+        z-index: 600;
+    }
+
+    .event-card.is-map-hover {
+        outline: 2px solid #3d6bff; outline-offset: 2px;
+    }
+
+    html.light-mode .events-page-body .evdir-map-panel {
+        background: #ffffff; border-color: rgba(15,23,42,0.08);
+        box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    }
+    html.light-mode .events-page-body .evdir-map-note {
+        color: rgba(15,23,42,.78);
+        background: linear-gradient(to top, rgba(255,255,255,.95), rgba(255,255,255,0));
+    }
+
 @endpush
 
 @section('content')
@@ -339,7 +399,7 @@
     </div>
 </div>
 
-<div class="events-page-body max-w-6xl mx-auto px-4 py-8">
+<div class="events-page-body events-page-wide mx-auto px-4 py-8">
 
     {{-- Icon-only category tiles: name shows as a hover tooltip, progressive
          disclosure keeps the row to one line with a "more" toggle for the
@@ -538,6 +598,13 @@
         </div>
     @endif
 
+    {{-- Results beside the map. The map is a sibling of the list rather
+         than something below it, so an event's position and its card are
+         readable at the same time -- which is the only thing that makes
+         the two halves worth the width. --}}
+    <div class="evdir-split">
+    <div class="evdir-results">
+
     @if($events->count() === 0)
         <div class="text-center py-20 ev-card">
             <i class="fas fa-calendar-xmark text-4xl text-white/20 mb-4"></i>
@@ -548,7 +615,7 @@
             @endif
         </div>
     @else
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5">
             @foreach($events as $event)
                 @php
                     $ics = $event->icsData;
@@ -572,7 +639,7 @@
                         $priceIsFree = $lowest->isFree() && !$hasRange;
                     }
                 @endphp
-                <div class="event-card ev-card overflow-hidden">
+                <div class="event-card ev-card overflow-hidden" data-event-alias="{{ $event->alias }}">
                     <a href="{{ url('/' . $event->alias) }}" class="block relative aspect-[16/10] overflow-hidden">
                         @if($cover)
                             <img src="{{ $cover }}"@imgSize($cover) alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
@@ -668,6 +735,13 @@
 
         <div class="mt-8">{{ $events->links() }}</div>
     @endif
+
+    </div>{{-- /evdir-results --}}
+
+    <aside class="evdir-map-col">
+        @include('common.partials.events-results-map', ['events' => $events])
+    </aside>
+    </div>{{-- /evdir-split --}}
 
     @include('common.partials.event-connection-tips', ['theme' => 'dark', 'surface' => 'directory'])
 
