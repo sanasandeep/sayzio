@@ -11,6 +11,13 @@
     $organizer = $host ? $host->organizerProfile() : null;
     // Task #5023: agenda + documents.
     $agendaItems = $ics ? (array) $ics->agenda : [];
+
+    // The event line-up. Loaded once and grouped here rather than queried
+    // per agenda item, which on a conference with fifty sessions would be
+    // fifty queries on a public page.
+    $eventPeople    = $link->relationLoaded('eventPeople') ? $link->eventPeople : $link->eventPeople()->ordered()->get();
+    $peopleByItem   = $eventPeople->groupBy('agenda_item_id');
+    $headlinePeople = \App\Modules\User\Models\EventPerson::billingOrder($peopleByItem->get('', collect())->merge($peopleByItem->get(null, collect())));
     $eventDocuments = $ics ? (array) $ics->documents : [];
 @endphp
 
@@ -32,7 +39,18 @@
      have been serving biolink pages all along; the event page just had no
      field pointing at them. videoEmbed() returns null for an empty or
      non-embeddable URL, so nothing is drawn rather than an empty frame. --}}
-@php($videoEmbed = $ics ? $ics->videoEmbed() : null)
+{{-- Block form on purpose. This file also uses the block form elsewhere,
+     and Blade lifts raw PHP blocks out BEFORE compiling directives,
+     non-greedily -- so the one-line parenthesised form here would pair
+     with the next closing tag far below and swallow every directive in
+     between. That is exactly how adding a section under it produced
+     "unexpected endif, expecting end of file" at the end of the file,
+     with nothing wrong at the line the error named.
+
+     Note this comment does not spell the one-line form out: raw-block
+     extraction happens before comments are stripped, so writing it here
+     would re-arm the trap it is warning about. --}}
+@php $videoEmbed = $ics ? $ics->videoEmbed() : null; @endphp
 @if($videoEmbed)
     <div class="ev-rich mb-3">
         @include($videoEmbed['view'], ['s' => $videoEmbed['s']])
@@ -73,6 +91,17 @@
     </div>
 @endif
 
+{{-- The event line-up: hosts and anyone not tied to one session. --}}
+@if($headlinePeople->isNotEmpty())
+    <div class="event-people-section mb-4">
+        <div class="event-people-heading d-flex align-items-center gap-2 mb-3">
+            <i class="fas fa-users" style="color:var(--c-primary,#6d5fff);"></i>
+            <span class="fw-semibold">{{ $headlinePeople->count() === 1 ? 'Host' : 'Hosts & speakers' }}</span>
+        </div>
+        @include('common.partials.event-people-row', ['people' => $headlinePeople, 'full' => true])
+    </div>
+@endif
+
 {{-- Task #5023: Event agenda --}}
 @if(!empty($agendaItems))
     @php
@@ -100,6 +129,9 @@
                         @if(!empty($item['description']))
                             <div class="small" style="color:var(--text-muted,#94a3b8);white-space:pre-line;">{{ $item['description'] }}</div>
                         @endif
+                        @include('common.partials.event-people-row', [
+                            'people' => \App\Modules\User\Models\EventPerson::billingOrder($peopleByItem->get($item['id'] ?? '~none~', collect())),
+                        ])
                     </div>
                 </div>
             @endforeach

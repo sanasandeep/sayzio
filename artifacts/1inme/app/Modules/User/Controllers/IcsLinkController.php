@@ -379,6 +379,7 @@ class IcsLinkController extends Controller
 
             // Event agenda (Task #5023).
             'agenda'               => 'nullable|array|max:100',
+            'agenda.*.id'          => 'nullable|string|max:16',
             'agenda.*.time'        => 'nullable|string|max:10',
             'agenda.*.end_time'    => 'nullable|string|max:10',
             'agenda.*.title'       => 'nullable|string|max:255',
@@ -487,14 +488,39 @@ class IcsLinkController extends Controller
     /** Normalize agenda items — drop items with no title, cap fields. */
     private function normalizeAgenda(array $items): array
     {
+        // Ids are minted here so a session can be referred to -- speakers
+        // are attached to an agenda item, and a position in a JSON array
+        // is not an identity: reorder the agenda and every attachment
+        // silently points at the wrong session.
+        //
+        // An id already on an item is kept, which is what makes editing
+        // an agenda non-destructive. A duplicate (an item copied in the
+        // editor brings its id along) gets a fresh one, or the copy and
+        // the original would share a line-up.
+        $seen = [];
+
         return collect($items)
-            ->map(fn ($item) => [
-                'time'        => mb_substr(trim((string) ($item['time']        ?? '')), 0, 10)  ?: null,
-                'end_time'    => mb_substr(trim((string) ($item['end_time']    ?? '')), 0, 10)  ?: null,
-                'title'       => mb_substr(trim((string) ($item['title']       ?? '')), 0, 255),
-                'description' => mb_substr(trim((string) ($item['description'] ?? '')), 0, 2000) ?: null,
-                'day'         => isset($item['day']) && (int) $item['day'] >= 1 ? (int) $item['day'] : null,
-            ])
+            ->map(function ($item) use (&$seen) {
+                $id = preg_replace('~[^a-z0-9]~', '', strtolower((string) ($item['id'] ?? '')));
+                $id = mb_substr($id, 0, 16);
+
+                if ($id === '' || isset($seen[$id])) {
+                    do {
+                        $id = strtolower(\Illuminate\Support\Str::random(12));
+                    } while (isset($seen[$id]));
+                }
+
+                $seen[$id] = true;
+
+                return [
+                    'id'          => $id,
+                    'time'        => mb_substr(trim((string) ($item['time']        ?? '')), 0, 10)  ?: null,
+                    'end_time'    => mb_substr(trim((string) ($item['end_time']    ?? '')), 0, 10)  ?: null,
+                    'title'       => mb_substr(trim((string) ($item['title']       ?? '')), 0, 255),
+                    'description' => mb_substr(trim((string) ($item['description'] ?? '')), 0, 2000) ?: null,
+                    'day'         => isset($item['day']) && (int) $item['day'] >= 1 ? (int) $item['day'] : null,
+                ];
+            })
             ->filter(fn ($item) => $item['title'] !== '')
             ->take(100)
             ->values()
