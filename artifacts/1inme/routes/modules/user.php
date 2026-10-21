@@ -936,6 +936,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-ics/{link}/reactivate', [IcsLinkController::class, 'reactivate'])->middleware('workspace.can:links.edit')->name('links.ics.reactivate')->middleware('events.enabled');
 
         // ===== Event ticketing (Task #3589): tier CRUD + sales dashboard + door check-in.
+        // The attendee list as a file. links.view, not links.edit:
+        // reading who came is not editing the event.
+        Route::get('links-ics/{link}/attendees.csv', [\App\Modules\User\Controllers\EventReportController::class, 'csv'])->middleware('workspace.can:links.view')->name('links.ics.report.csv')->middleware('events.enabled');
         Route::get('links-ics/{link}/tickets', [\App\Modules\User\Controllers\EventTicketTierController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.tickets')->middleware('events.enabled');
         Route::post('links-ics/{link}/tiers', [\App\Modules\User\Controllers\EventTicketTierController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.store')->middleware('events.enabled');
         Route::put('links-ics/{link}/tiers/{tier}', [\App\Modules\User\Controllers\EventTicketTierController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.update')->middleware('events.enabled');
