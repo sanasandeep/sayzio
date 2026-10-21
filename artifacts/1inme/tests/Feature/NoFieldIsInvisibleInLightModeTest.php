@@ -80,7 +80,14 @@ class NoFieldIsInvisibleInLightModeTest extends TestCase
             $scanned++;
             $source = file_get_contents($file->getPathname());
 
-            preg_match_all('~<(?:input|textarea|select)\b[^>]*>~s', $source, $m);
+            // [^>]* stops at the FIRST '>', and a Blade expression inside an
+        // attribute contains one: value="{{ $tier->name }}". The tag then
+        // truncates before its style attribute, the scan sees a control
+        // with no style, and passes it. That is how this guard reported
+        // "0 offenders across 579 views" while ten invisible controls sat
+        // in three files. Allowing '>' inside quoted attribute values is
+        // the fix.
+        preg_match_all('~<(?:input|textarea|select)\b(?:[^>"]|"[^"]*")*>~s', $source, $m);
 
             foreach ($m[0] as $tag) {
                 // Only the style attribute. A literal in `placeholder`

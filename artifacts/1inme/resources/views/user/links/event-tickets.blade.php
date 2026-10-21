@@ -84,9 +84,9 @@
                 </div>
                 <form method="POST" action="{{ route('user.links.ics.tiers.update', [$link, $tier]) }}" class="flex flex-wrap gap-2 items-center">
                     @csrf @method('PUT')
-                    <input type="text" name="name" value="{{ $tier->name }}" class="px-2 py-1 rounded text-xs w-32" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
-                    <input type="number" step="0.01" name="price" value="{{ $tier->price_cents / 100 }}" class="px-2 py-1 rounded text-xs w-20" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
-                    <input type="number" name="capacity" value="{{ $tier->capacity }}" placeholder="cap" class="px-2 py-1 rounded text-xs w-16" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                    <input type="text" name="name" value="{{ $tier->name }}" class="px-2 py-1 rounded text-xs w-32" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                    <input type="number" step="0.01" name="price" value="{{ $tier->price_cents / 100 }}" class="px-2 py-1 rounded text-xs w-20" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                    <input type="number" name="capacity" value="{{ $tier->capacity }}" placeholder="cap" class="px-2 py-1 rounded text-xs w-16" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                     <label class="text-xs flex items-center gap-1" style="color: var(--text-secondary);">
                         <input type="checkbox" name="is_active" value="1" @checked($tier->is_active)> Active
                     </label>
