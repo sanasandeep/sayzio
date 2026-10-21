@@ -141,6 +141,40 @@ class EventsGetTheirOwnPlaceInTheSidebarTest extends TestCase
         }
     }
 
+    public function test_the_group_is_the_first_one_in_the_list(): void
+    {
+        // Placement is the other half of "open by default". The group
+        // shipped sixth of nine, which at an ordinary window height put it
+        // below the fold even with every group above it collapsed -- an
+        // open group you have to scroll to find is not a discovery
+        // surface. Like the open default, this is a launch choice, so it
+        // should move back deliberately rather than drift.
+        [$desktop, $mobile] = $this->navRegions($this->owner());
+
+        foreach (['desktop' => $desktop, 'mobile' => $mobile] as $where => $block) {
+            // Anchor on the group-toggle button, not on "any span holding
+            // an ampersand" -- plenty of ordinary nav labels have one
+            // ("Earnings &amp; Payouts"), and matching those would compare
+            // the wrong list.
+            preg_match_all(
+                '~sidebar-group-toggle[^>]*>\s*<span>([^<]*)</span>~s',
+                $block,
+                $m
+            );
+            $headers = array_values(array_filter(
+                array_map('trim', $m[1]),
+                static fn (string $h): bool => $h !== ''
+            ));
+
+            $this->assertNotEmpty($headers, "no group headers found in the {$where} nav");
+            $this->assertSame(
+                'Events &amp; Calendar',
+                $headers[0],
+                "Events should be the first group in the {$where} nav"
+            );
+        }
+    }
+
     public function test_turning_the_module_off_hides_events_but_keeps_the_calendars(): void
     {
         AppSetting::put(EventsModule::KEY, false);
