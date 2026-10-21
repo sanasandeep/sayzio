@@ -22,10 +22,25 @@ use Illuminate\Support\Facades\Schema;
  * day she changes jobs, and anyone who saved the link sees a different
  * event than the one they attended.
  *
- * So the snapshot is what renders, the reference is what makes reuse and
- * an explicit "refresh from profile" possible, and `contact_id` is
- * nulled rather than cascaded on delete -- losing the CRM record must
- * not blank a past event's line-up.
+ * WHICH OF THE TWO RENDERS WAS REVERSED AFTER THIS TABLE WAS BUILT.
+ *
+ * The paragraph above is the argument for rendering the snapshot, and it
+ * is still a fair argument -- it is left standing rather than quietly
+ * deleted. It lost to a commoner case: most events being edited have not
+ * happened yet, and an organiser who corrects a job title in their CRM
+ * expects every event billing that person to say the new thing, not only
+ * the ones added after the correction. So the live Contact renders
+ * whenever one is linked, and the archived-page cost described above is
+ * real and accepted. EventPerson::resolved() is the single place that
+ * decides this, and it carries the exact few lines that reverse it again
+ * for past events if the cost ever outgrows the benefit.
+ *
+ * The snapshot is therefore not legacy. It is the whole story for anyone
+ * typed in rather than picked, the fallback for any field the Contact
+ * leaves blank, and what the line-up falls back to the day someone is
+ * unlinked -- which is why `contact_id` is nulled rather than cascaded
+ * on delete: losing the CRM record must not blank a past event's
+ * line-up.
  *
  * A person with no Contact at all is allowed: a one-off guest should not
  * force a CRM entry.

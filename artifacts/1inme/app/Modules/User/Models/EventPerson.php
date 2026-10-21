@@ -9,12 +9,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * A person billed on an event: host, speaker, moderator, panellist.
  *
  * Carries a reference to a reusable {@see Contact} AND a snapshot of
- * how that person should read on THIS event. See the migration for why
- * both exist; the short version is that a pure reference silently
- * rewrites a past event's line-up the day someone changes jobs.
+ * how that person read when they were billed.
  *
- * The snapshot is what renders. The reference is what makes reuse and
- * `refreshFromContact()` possible.
+ * Which of the two renders is decided in exactly one place --
+ * {@see resolved()} -- and the current answer is: the live Contact,
+ * whenever one is linked. The snapshot is the fallback, and the only
+ * source for somebody typed in rather than picked.
+ *
+ * Two consequences, both real and neither hidden:
+ *
+ * A PAST event reports what a person is today, not what they were when
+ * they spoke. See resolved() for why that is worse than it sounds and
+ * how narrowly it can be undone.
+ *
+ * And a per-event override of a linked person's billing does not
+ * survive. Typing "VP Eng" for one event against a Contact that says
+ * "CTO" shows CTO. To bill somebody differently for one event, unlink
+ * them from the Contact so the snapshot is all there is.
  */
 class EventPerson extends Model
 {
@@ -57,9 +68,33 @@ class EventPerson extends Model
         return $this->belongsTo(Link::class);
     }
 
+    /**
+     * The reusable profile, WITHOUT the workspace filter.
+     *
+     * Dropping it here rather than at each call site is the point. A
+     * Contact belongs to the workspace owner and deliberately crosses
+     * workspaces, so the scope would come back null for a billing whose
+     * profile was saved in another workspace -- and since billing now
+     * resolves through the Contact, a null relation does not error, it
+     * silently reverts to the snapshot. #516 was that bug one layer up:
+     * an eager load ran its own query and did not inherit the parent's
+     * unscoping. A constraint declared in the relation method applies to
+     * both the lazy and the eager path, so there is no call site left to
+     * forget. The cross-workspace guards in
+     * ABillingFollowsTheContactTest cover both paths.
+     *
+     * `workspace_record_access` is deliberately left ON: it only
+     * narrows things for a team MEMBER who was denied that record, and
+     * falling back to the snapshot for them is correct, not a bug.
+     *
+     * This is not a hole: contact_id is validated against the
+     * organiser's own contacts when the line-up is saved
+     * (IcsLinkController::syncEventPeople), so an id that is not theirs
+     * never reaches this column.
+     */
     public function contact(): BelongsTo
     {
-        return $this->belongsTo(Contact::class);
+        return $this->belongsTo(Contact::class)->withoutGlobalScope('workspace');
     }
 
     // ── Reading ──────────────────────────────────────────────────────
@@ -112,11 +147,80 @@ class EventPerson extends Model
         return self::ROLE_LABELS[$this->role] ?? 'Speaker';
     }
 
+    /**
+     * Where a billing's display values come from -- the ONE place that
+     * decision is made, so changing the policy means changing one
+     * condition here rather than hunting every caller.
+     *
+     * Current policy: the live Contact wins whenever one is linked. An
+     * organiser who corrects a job title expects every event billing
+     * that person to say the new thing, and most events being edited
+     * have not happened yet.
+     *
+     * The cost, stated plainly because it is real: a PAST event's page
+     * reports what the person is TODAY. "Spoke as VP Eng at Globex" on
+     * a March event they keynoted as CTO of Acme is not a stale label,
+     * it is untrue, on a public page, about a thing that happened.
+     *
+     * If that starts to matter, this is the whole fix and nothing else
+     * in the codebase changes:
+     *
+     *     \$ics = \$this->link?->icsData;
+     *     if (\$ics?->start_date && \$ics->start_date->isPast()) {
+     *         return trim((string) \$this->{\$field}) ?: null;
+     *     }
+     *
+     * An empty live value falls through to the snapshot rather than
+     * blanking the billing: a Contact with no job title should not
+     * erase a title the organiser typed.
+     */
+    protected function resolved(string $field): ?string
+    {
+        $contact = $this->contact;
+
+        if ($contact) {
+            $live = match ($field) {
+                'name'         => $contact->display_name,
+                'title'        => $contact->job_title,
+                'company'      => $contact->organization,
+                'linkedin_url' => self::linkedinFrom($contact),
+                'bio'          => $contact->notes,
+                'photo_url'    => $contact->photoUrl(),
+                default        => null,
+            };
+
+            if (trim((string) $live) !== '') {
+                return trim((string) $live);
+            }
+        }
+
+        return trim((string) $this->{$field}) ?: null;
+    }
+
+    /**
+     * How this person reads on the event. Every public surface goes
+     * through these rather than the columns, so none of them has to
+     * know the snapshot exists.
+     *
+     * displayName() never returns null: name is the one required
+     * column, and a billing with no name is not a billing.
+     */
+    public function displayName(): string
+    {
+        return $this->resolved('name') ?? (string) $this->name;
+    }
+
+    public function displayTitle(): ?string       { return $this->resolved('title'); }
+    public function displayCompany(): ?string     { return $this->resolved('company'); }
+    public function displayLinkedinUrl(): ?string { return $this->resolved('linkedin_url'); }
+    public function displayBio(): ?string         { return $this->resolved('bio'); }
+    public function displayPhotoUrl(): ?string    { return $this->resolved('photo_url'); }
+
     /** "CTO at Acme", "CTO", "Acme", or null -- whichever parts exist. */
     public function billing(): ?string
     {
-        $title   = trim((string) $this->title);
-        $company = trim((string) $this->company);
+        $title   = (string) $this->displayTitle();
+        $company = (string) $this->displayCompany();
 
         if ($title !== '' && $company !== '') {
             return "{$title} at {$company}";
@@ -156,9 +260,13 @@ class EventPerson extends Model
     }
 
     /**
-     * Re-take the snapshot from the linked profile. This is the explicit
-     * action an organiser takes; it is deliberately NOT automatic, which
-     * is the whole point of storing a snapshot.
+     * Re-take the snapshot from the linked profile.
+     *
+     * Nothing calls this while billing reads live -- a linked person is
+     * already current, so there is nothing to refresh. Kept because it
+     * and hasDrifted() are exactly what the freeze-past-events variant
+     * in resolved() needs, and because the snapshot still has to be
+     * right for the day somebody is unlinked.
      */
     public function refreshFromContact(): bool
     {
@@ -173,7 +281,10 @@ class EventPerson extends Model
         return $this->save();
     }
 
-    /** True when the linked profile has since drifted from the snapshot. */
+    /**
+     * True when the linked profile has since drifted from the snapshot.
+     * Unused while billing reads live, for the same reason as above.
+     */
     public function hasDrifted(): bool
     {
         $contact = $this->contact;

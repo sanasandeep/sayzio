@@ -15,7 +15,18 @@
     // The event line-up. Loaded once and grouped here rather than queried
     // per agenda item, which on a conference with fifty sessions would be
     // fifty queries on a public page.
-    $eventPeople    = $link->relationLoaded('eventPeople') ? $link->eventPeople : $link->eventPeople()->ordered()->get();
+    // The contact comes along too: billing now resolves through the
+    // linked Contact, so without the eager load a conference with fifty
+    // speakers is fifty extra queries on a public page. It needs no
+    // withoutGlobalScope here -- EventPerson::contact() drops the
+    // workspace filter in the relation itself, which is the one place
+    // that covers the eager path as well as the lazy one.
+    $eventPeople    = $link->relationLoaded('eventPeople')
+        ? $link->eventPeople
+        : $link->eventPeople()
+            ->with('contact')
+            ->ordered()
+            ->get();
     $peopleByItem   = $eventPeople->groupBy('agenda_item_id');
     $headlinePeople = \App\Modules\User\Models\EventPerson::billingOrder($peopleByItem->get('', collect())->merge($peopleByItem->get(null, collect())));
     $eventDocuments = $ics ? (array) $ics->documents : [];

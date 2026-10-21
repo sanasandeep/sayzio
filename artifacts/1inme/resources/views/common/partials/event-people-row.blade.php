@@ -2,9 +2,11 @@
     One row of people on an event -- under an agenda item, or as the
     event's own line-up when `full` is set.
 
-    Everything here is the SNAPSHOT taken when the person was added, not
-    a live read of their profile. That is deliberate: a past event must
-    keep billing someone the way they were billed on the day.
+    Everything here goes through the person's display* methods, never
+    the columns directly. Those resolve to the live Contact when one is
+    linked and to the stored snapshot otherwise, and this partial does
+    not need to know which -- see EventPerson::resolved() for the policy
+    and for what it costs a past event.
 
     Expects:
       people : Collection<EventPerson>, already in billing order
@@ -18,8 +20,11 @@
     <div class="event-people-row {{ $full ? 'd-flex flex-column gap-3 mt-1' : 'd-flex flex-wrap gap-2 mt-2' }}">
         @foreach($people as $person)
             @php
-                $billing = $person->billing();
-                $photo   = $person->photo_url;
+                $billing  = $person->billing();
+                $photo    = $person->displayPhotoUrl();
+                $name     = $person->displayName();
+                $linkedin = $person->displayLinkedinUrl();
+                $bio      = $person->displayBio();
             @endphp
 
             @if($full)
@@ -33,20 +38,20 @@
                              an initial reads better than a broken image. --}}
                         <div class="rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center fw-semibold"
                              style="width:48px;height:48px;background:rgba(109,95,255,0.12);color:var(--c-primary,#6d5fff);">
-                            {{ mb_strtoupper(mb_substr($person->name, 0, 1)) }}
+                            {{ mb_strtoupper(mb_substr($name, 0, 1)) }}
                         </div>
                     @endif
 
                     <div class="min-w-0">
                         <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <span class="fw-semibold" style="color:var(--text-primary,#f8fafc);">{{ $person->name }}</span>
+                            <span class="fw-semibold" style="color:var(--text-primary,#f8fafc);">{{ $name }}</span>
                             <span class="badge rounded-pill"
                                   style="background:rgba(109,95,255,0.12);color:var(--c-primary,#6d5fff);font-weight:600;">
                                 {{ $person->roleLabel() }}
                             </span>
-                            @if($person->linkedin_url)
-                                <a href="{{ $person->linkedin_url }}" target="_blank" rel="noopener nofollow"
-                                   class="small text-decoration-none" aria-label="{{ $person->name }} on LinkedIn">
+                            @if($linkedin)
+                                <a href="{{ $linkedin }}" target="_blank" rel="noopener nofollow"
+                                   class="small text-decoration-none" aria-label="{{ $name }} on LinkedIn">
                                     <i class="fab fa-linkedin"></i>
                                 </a>
                             @endif
@@ -54,8 +59,8 @@
                         @if($billing)
                             <div class="small" style="color:var(--text-muted,#94a3b8);">{{ $billing }}</div>
                         @endif
-                        @if($person->bio)
-                            <div class="small mt-1" style="color:var(--text-muted,#94a3b8);white-space:pre-line;">{{ $person->bio }}</div>
+                        @if($bio)
+                            <div class="small mt-1" style="color:var(--text-muted,#94a3b8);white-space:pre-line;">{{ $bio }}</div>
                         @endif
                     </div>
                 </div>
@@ -65,7 +70,7 @@
                     @if($photo)
                         <img src="{{ $photo }}" alt="" class="rounded-circle" style="width:20px;height:20px;object-fit:cover;">
                     @endif
-                    <span class="fw-semibold" style="color:var(--text-primary,#f8fafc);">{{ $person->name }}</span>
+                    <span class="fw-semibold" style="color:var(--text-primary,#f8fafc);">{{ $name }}</span>
                     @if($billing)
                         <span style="color:var(--text-muted,#94a3b8);">· {{ $billing }}</span>
                     @endif
