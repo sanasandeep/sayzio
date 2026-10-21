@@ -794,7 +794,7 @@
 
     function emptyMessage(mine) {
         return mine
-            ? 'You are listed. Nobody else has turned this on yet — check back as people arrive.'
+            ? 'You are listed. Nobody else has turned this on yet; check back as people arrive.'
             : 'Nobody is listed yet. Turning yourself on is how this fills up.';
     }
 

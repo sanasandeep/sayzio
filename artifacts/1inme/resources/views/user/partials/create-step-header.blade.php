@@ -40,7 +40,7 @@
     'back'       => $__csPicker,
     'chips'      => [
         ['icon' => 'fa-check', 'text' => 'Choose'],
-        ['text' => 'Step 2 of 2 — Set up'],
+        ['text' => 'Step 2 of 2: Set up'],
     ],
     'actions'    => [
         ['label' => 'Change type', 'url' => $__csPicker, 'icon' => 'fa-arrows-rotate', 'class' => 'btn-ghost'],
