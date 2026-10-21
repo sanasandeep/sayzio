@@ -7,6 +7,7 @@ use App\Modules\Common\Services\ChannelClassifier;
 use App\Modules\User\Models\Backlink;
 use App\Modules\User\Models\LinkClick;
 use App\Modules\User\Support\DashboardPresets;
+use App\Modules\User\Support\EventsHappeningSoon;
 use App\Modules\User\Support\DashboardWidgetCatalog;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\DashboardAiDesignerService;
@@ -343,7 +344,12 @@ class DashboardController extends Controller
         $inactive = (clone $links)->where('is_active', false)->count();
         $aiCoins = \App\Services\AI\AiEngineSettings::isEnabled()
             ? app(\App\Services\Billing\WalletService::class)->getBalance($user) : null;
-        return view('user.dashboard.overview', compact('user', 'counts', 'usage', 'folders', 'recentLinks', 'unfiled', 'inactive', 'aiCoins'));
+        // Anything running now or starting inside the day, as host or as
+        // guest. Usually empty, and costs one query plus two id lookups
+        // when it is.
+        $eventsSoon = EventsHappeningSoon::for($user);
+
+        return view('user.dashboard.overview', compact('user', 'counts', 'usage', 'folders', 'recentLinks', 'unfiled', 'inactive', 'aiCoins', 'eventsSoon'));
     }
 
 }

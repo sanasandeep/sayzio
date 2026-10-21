@@ -16,6 +16,11 @@
     <header class="ov-head">
         <div><p class="ov-muted">{{ now(\App\Support\PlatformTimezone::forUser(auth()->user()))->format('l, j M') }} · Your workspace</p><h1>Everything you need to keep building.</h1><p class="ov-muted">Manage your links, check your allowance, and pick up where you left off.</p></div>
     </header>
+    {{-- Above the counts, unlike the flow panel below them, and for the
+         opposite reason: this is not orientation. It is a door opening in
+         an hour. It renders only when there is something in the window,
+         so on an ordinary day the dashboard is exactly as it was. --}}
+    @include('user.dashboard.partials.events-soon', ['eventsSoon' => $eventsSoon ?? collect()])
     <div class="ov-grid">
         @foreach($counts as $label => $count)
         <article class="ov-panel ov-count" style="--ov-color: {{ $colors[$loop->index] }};--ov-tone: {{ $cardTones[$loop->index] }};--ov-number-size: {{ strlen(number_format($count)) > 7 ? '22px' : (strlen(number_format($count)) > 5 ? '30px' : '54px') }}">
