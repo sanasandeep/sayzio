@@ -128,6 +128,21 @@ protected $fillable = [
                 \App\Modules\User\Services\Contacts\ContactDuplicateDetector::flushCountCache((int) $contact->user_id);
             }
         });
+
+        // Keep this profile's billing on not-yet-started events in step
+        // with it. An event freezes a billing to its stored columns the
+        // moment it starts, so those columns have to be current right up
+        // to that point or the page jumps to a stale value mid-event.
+        // Started events are never touched. See
+        // EventPerson::syncSnapshotsForContact().
+        //
+        // `updated`, not `saved`: a brand new contact cannot be billed
+        // anywhere yet. This does cost one UPDATE per contact edit --
+        // it matches no rows for a contact that is not on any event,
+        // but the statement is still issued.
+        static::updated(function (Contact $contact): void {
+            \App\Modules\User\Models\EventPerson::syncSnapshotsForContact($contact);
+        });
     }
 
     /**

@@ -23,12 +23,20 @@ use Tests\TestCase;
  * which already carries name, job title, organization, socials, notes
  * and a photo, and is owned by the workspace owner across workspaces,
  * so one profile serves every event. The name/title/company columns
- * beside it are the snapshot, and the snapshot is what renders.
+ * beside it are the stored billing.
  *
- * The test that matters most here is the one proving a Contact can
- * change without a past event changing with it. That is the property
- * the whole shape exists for, and the one a later "simplification"
- * would quietly remove.
+ * WHICH ONE RENDERS turns on whether the event has started: the live
+ * profile before, the stored columns from the start onwards, and
+ * nothing after. The full policy and the reasoning live in
+ * ABillingFollowsTheContactTest; what is kept here is the pair that
+ * says a Contact edit reaches an upcoming event and cannot reach one
+ * that already happened.
+ *
+ * This file originally asserted the stored columns always rendered, and
+ * called that "the property the whole shape exists for". The accuracy
+ * half of it was right and is still enforced below -- but it was being
+ * bought at the price of the reuse half, on every event an organiser
+ * was still editing, which is most of them.
  */
 class AnEventCanBillItsPeopleTest extends TestCase
 {
@@ -39,7 +47,13 @@ class AnEventCanBillItsPeopleTest extends TestCase
         return User::factory()->create(['onboarded_at' => now()->subMonths(6)])->fresh();
     }
 
-    private function event(User $host, array $agenda = []): Link
+    /**
+     * `$when` is not decoration: the start date is the only input to
+     * the freeze, so a test that means "a past event" has to say so.
+     * The default stays upcoming, which is what every other test here
+     * wants.
+     */
+    private function event(User $host, array $agenda = [], string $when = '+1 day'): Link
     {
         $link = new Link([
             'user_id' => $host->id, 'type' => 'ics',
@@ -48,11 +62,13 @@ class AnEventCanBillItsPeopleTest extends TestCase
         $link->workspace_id = $host->ownedWorkspaces()->first()->id;
         $link->save();
 
+        $start = \Illuminate\Support\Carbon::parse($when);
+
         IcsData::create([
             'link_id'    => $link->id,
             'event_name' => 'Founder Sessions',
-            'start_date' => now()->addDay()->toDateTimeString(),
-            'end_date'   => now()->addDay()->addHours(4)->toDateTimeString(),
+            'start_date' => $start->toDateTimeString(),
+            'end_date'   => $start->copy()->addHours(4)->toDateTimeString(),
             'timezone'   => 'Asia/Kolkata',
             'agenda'     => $agenda,
         ]);
@@ -136,12 +152,17 @@ class AnEventCanBillItsPeopleTest extends TestCase
 
     // ── The snapshot half: a past event does not change ──────────────
 
-    public function test_changing_a_profile_does_not_rewrite_a_past_event(): void
+    public function test_changing_a_profile_does_not_rewrite_an_event_that_already_happened(): void
     {
-        // The property this whole design exists for.
+        // The accuracy half, and the one a later "simplification" would
+        // quietly remove. Note the date: this test is about a PAST
+        // event, and until the freeze landed it was asserting the same
+        // thing against an event starting TOMORROW -- so it was quietly
+        // forbidding the reuse case too, under a name that said
+        // otherwise.
         $owner   = $this->owner();
         $contact = $this->contact($owner);
-        $event   = $this->event($owner);
+        $event   = $this->event($owner, [], '-1 month');
 
         $person = EventPerson::create(array_merge(
             EventPerson::snapshotFrom($contact),
@@ -154,8 +175,34 @@ class AnEventCanBillItsPeopleTest extends TestCase
         $this->assertStringContainsString('CTO at Acme', $this->render($event));
     }
 
-    public function test_drift_is_visible_and_refreshing_is_deliberate(): void
+    public function test_changing_a_profile_does_reach_an_event_still_to_come(): void
     {
+        // The reuse half, in the same shape, so the two sit side by side
+        // and neither can be removed without the other being obviously
+        // wrong.
+        $owner   = $this->owner();
+        $contact = $this->contact($owner);
+        $event   = $this->event($owner);
+
+        EventPerson::create(array_merge(
+            EventPerson::snapshotFrom($contact),
+            ['link_id' => $event->id, 'role' => EventPerson::ROLE_SPEAKER]
+        ));
+
+        $contact->update(['job_title' => 'CEO', 'organization' => 'Beta']);
+
+        $this->assertStringContainsString('CEO at Beta', $this->render($event));
+        $this->assertStringNotContainsString('CTO at Acme', $this->render($event));
+    }
+
+    public function test_an_upcoming_event_does_not_drift_because_it_is_kept_in_step(): void
+    {
+        // hasDrifted() used to go true here, and refreshFromContact()
+        // was the organiser's manual catch-up. Neither is needed while
+        // an event is upcoming: Contact::updated mirrors the stored
+        // billing, which is what lets the freeze capture what the page
+        // was actually showing. Drift staying false IS the mirror
+        // working.
         $owner   = $this->owner();
         $contact = $this->contact($owner);
         $event   = $this->event($owner);
@@ -168,9 +215,34 @@ class AnEventCanBillItsPeopleTest extends TestCase
         $this->assertFalse($person->hasDrifted());
 
         $contact->update(['job_title' => 'CEO', 'organization' => 'Beta']);
+
+        $this->assertFalse(
+            $person->fresh()->load('contact')->hasDrifted(),
+            'the stored billing fell behind the profile on an upcoming event'
+        );
+        $this->assertSame('CEO at Beta', $person->fresh()->billing());
+    }
+
+    public function test_a_past_event_can_drift_and_refreshing_it_is_deliberate(): void
+    {
+        // Once an event has started the mirror leaves it alone, so drift
+        // is real again -- and refreshFromContact() is the only way it
+        // moves, which is the point: rewriting what a finished event
+        // said has to be somebody's decision.
+        $owner   = $this->owner();
+        $contact = $this->contact($owner);
+        $event   = $this->event($owner, [], '-1 month');
+
+        $person = EventPerson::create(array_merge(
+            EventPerson::snapshotFrom($contact),
+            ['link_id' => $event->id, 'role' => EventPerson::ROLE_SPEAKER]
+        ));
+
+        $contact->update(['job_title' => 'CEO', 'organization' => 'Beta']);
         $person->refresh()->load('contact');
 
         $this->assertTrue($person->hasDrifted(), 'the profile moved and nothing noticed');
+        $this->assertSame('CTO at Acme', $person->billing(), 'and the page is still showing the day it happened');
 
         $this->assertTrue($person->refreshFromContact());
         $this->assertSame('CEO at Beta', $person->fresh()->billing());

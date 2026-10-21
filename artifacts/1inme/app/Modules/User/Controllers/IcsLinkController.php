@@ -97,16 +97,31 @@ class IcsLinkController extends Controller
         // The line-up, in the organiser's own order. Loaded with its
         // contacts so the editor can show who is linked to a reusable
         // profile and who was typed in once.
-        $eventPeople = $link->eventPeople()->with('contact')->ordered()->get()->map(fn ($p) => [
-            'contact_id'     => $p->contact_id,
-            'agenda_item_id' => $p->agenda_item_id,
-            'role'           => $p->role,
-            'name'           => $p->name,
-            'title'          => $p->title,
-            'company'        => $p->company,
-            'linkedin_url'   => $p->linkedin_url,
-            'bio'            => $p->bio,
-            'photo_url'      => $p->photo_url,
+        //
+        // The fields carry the RESOLVED values, not the raw columns, so
+        // the editor shows what the public page shows. For a linked
+        // person on an upcoming event those are the Contact's; once the
+        // event starts they are the frozen columns.
+        //
+        // `follows_contact` is the honest part. On an upcoming event a
+        // linked person's fields are not what renders, so editing them
+        // does nothing visible -- the editor says so beside the row
+        // rather than letting the organiser type into a field that
+        // quietly has no effect.
+        $people = $link->eventPeople()->with('contact')->ordered()->get();
+        $people->each(fn ($p) => $p->setRelation('link', $link));
+
+        $eventPeople = $people->map(fn ($p) => [
+            'contact_id'      => $p->contact_id,
+            'agenda_item_id'  => $p->agenda_item_id,
+            'role'            => $p->role,
+            'name'            => $p->displayName(),
+            'title'           => $p->displayTitle(),
+            'company'         => $p->displayCompany(),
+            'linkedin_url'    => $p->displayLinkedinUrl(),
+            'bio'             => $p->displayBio(),
+            'photo_url'       => $p->displayPhotoUrl(),
+            'follows_contact' => $p->followsContact(),
         ])->values();
 
         return view('user.links.edit-ics', compact('link', 'ics', 'projects', 'timezones', 'calAccounts', 'domains', 'badges', 'eventPeople'));
