@@ -15,12 +15,6 @@
         'subtitle' => 'A public changelog where you post dated announcements. Followers get notified of each new entry.',
     ])
 
-            <h1 class="text-2xl font-bold text-white">Create an Updates Page</h1>
-        </div>
-        <p class="text-white/60 text-sm mt-1 ml-13">
-            A public changelog where you post dated announcements. Followers get notified of each new entry.
-        </p>
-    </div>
 
     @if(session('error'))
     <div class="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm">

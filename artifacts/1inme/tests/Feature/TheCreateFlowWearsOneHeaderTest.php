@@ -137,6 +137,40 @@ class TheCreateFlowWearsOneHeaderTest extends TestCase
         }
     }
 
+    public function test_every_create_view_closes_its_own_divs(): void
+    {
+        // This is the test that was missing, and it is here because its
+        // absence shipped a broken page.
+        //
+        // The migration that gave these pages a shared header removed each
+        // old header with a non-greedy regex. On text and updates the old
+        // header wrapped an inner icon tile, so the pattern stopped at
+        // THAT div's closing tag instead of the header's -- leaving an
+        // orphaned <h1>, a duplicate description, and two unmatched
+        // </div>. Those two closers ended the page container and then the
+        // layout's wrapper, so the form escaped into the top-right corner
+        // of the screen.
+        //
+        // Every other test in this file passed. The hero rendered, the
+        // step chips rendered, the old step row was gone, the width was
+        // unpinned -- all true, all beside the point. Nothing asserted
+        // that the page was still a well-formed document.
+        //
+        // Counting tags is crude and would not survive a view that opens a
+        // div in one @if branch and closes it in another. No create view
+        // does that today, and a future one that needs to should make the
+        // balance obvious rather than quietly break this.
+        foreach (glob(resource_path('views/user/links/create-*.blade.php')) as $file) {
+            $src = file_get_contents($file);
+
+            $this->assertSame(
+                preg_match_all('~<div\b~', $src),
+                preg_match_all('~</div>~', $src),
+                basename($file) . ' opens and closes a different number of divs'
+            );
+        }
+    }
+
     public function test_the_header_icons_all_exist_in_this_font_awesome_build(): void
     {
         // The icons here are passed as Blade array values, not class
