@@ -567,19 +567,39 @@
                                      listAttendees, which decides who may see it:
                                      the event must be live, the viewer must hold a
                                      ticket or a confirmed RSVP, and only people who
-                                     opted in appear. Nobody is listed by default. --}}
+                                     opted in appear. Nobody is listed by default.
+
+                                     The card shows whenever the viewer is ALLOWED
+                                     to see it, empty or not. Hiding it when the
+                                     list came back empty hid the one thing an
+                                     empty list needs to say: that appearing here
+                                     is a choice, and here is where you make it. --}}
                                 <div class="ev-card p-4 mt-4" id="ev-people" hidden
                                      data-list-url="{{ route('user.event-people.index', $link->alias) }}"
                                      data-request-url="{{ route('user.event-people.request', $link->alias) }}"
+                                     data-toggle-url="{{ route('user.event-people.toggle', $link->alias) }}"
                                      data-csrf="{{ csrf_token() }}">
                                     <div class="flex items-center gap-2 mb-3 px-1">
                                         <i class="fas fa-user-group ev-accent-text text-xs"></i>
                                         <span class="text-[11px] font-bold uppercase tracking-wide ev-section-label">Who else is here</span>
                                     </div>
                                     <div id="ev-people-list" class="space-y-2"></div>
-                                    <p id="ev-people-hint" class="text-[11px] ev-muted-lite mt-3 px-1" hidden>
-                                        You appear here only if you turned on discoverability for this event.
-                                    </p>
+                                    {{-- Opting in. Off until pressed, and pressing
+                                         it again removes you. Location is a second,
+                                         separate press: being listed and being
+                                         placed are different things to agree to. --}}
+                                    <div id="ev-people-me" class="flex items-center justify-between gap-3 mt-3 px-1" hidden>
+                                        <span id="ev-people-me-label" class="text-[11px] ev-muted-lite"></span>
+                                        <button type="button" id="ev-people-me-toggle" aria-pressed="false"
+                                                class="ev-chip text-[11px] font-semibold px-2.5 py-1.5 rounded-lg hover:opacity-80 transition flex-shrink-0"></button>
+                                    </div>
+                                    <div id="ev-people-where" class="mt-2 px-1" hidden>
+                                        <button type="button" id="ev-people-where-btn"
+                                                class="text-[11px] font-semibold ev-accent-text hover:opacity-80 transition">
+                                            <i class="fas fa-location-crosshairs mr-1"></i>Show how far away I am
+                                        </button>
+                                        <span id="ev-people-where-note" class="text-[11px] ev-muted-lite ml-1"></span>
+                                    </div>
                                 </div>
                             @endauth
 
@@ -713,17 +733,28 @@
 @auth('web')
 @push('scripts')
 <script>
-// Who else is here: the opted-in attendees of a live event, and a button to
-// ask one of them to swap contacts. Both endpoints are the mobile API's,
-// reached over the session guard, so the rules cannot drift between
-// surfaces. The card stays hidden unless somebody is actually listed.
+// Who else is here: the opted-in attendees of a live event, a button to ask
+// one of them to swap contacts, and the viewer's own opt-in. All three
+// endpoints are the mobile API's, reached over the session guard, so the
+// rules cannot drift between surfaces.
+//
+// The card is shown whenever the list call SUCCEEDS, empty or not, and
+// hidden only when it is refused. It used to hide on an empty list, which
+// meant an opt-in feature hid the place you opt in -- and on the web there
+// was no other place, since the toggle was bearer-token only.
 (function () {
     var card = document.getElementById('ev-people');
     if (!card) return;
     var listEl = document.getElementById('ev-people-list');
-    var hintEl = document.getElementById('ev-people-hint');
+    var meRow = document.getElementById('ev-people-me');
+    var meLabel = document.getElementById('ev-people-me-label');
+    var meBtn = document.getElementById('ev-people-me-toggle');
+    var whereRow = document.getElementById('ev-people-where');
+    var whereBtn = document.getElementById('ev-people-where-btn');
+    var whereNote = document.getElementById('ev-people-where-note');
     var listUrl = card.dataset.listUrl;
     var requestUrl = card.dataset.requestUrl;
+    var toggleUrl = card.dataset.toggleUrl;
     var csrf = card.dataset.csrf;
 
     function esc(s) {
@@ -742,16 +773,40 @@
         return '<button type="button" data-request-id="' + it.user.id + '" class="ev-chip text-[11px] font-semibold px-2.5 py-1.5 rounded-lg hover:opacity-80 transition flex-shrink-0">Swap contacts</button>';
     }
 
-    function render(items, locationShared) {
-        if (!items.length) { card.hidden = true; return; }
-        card.hidden = false;
-        if (hintEl) {
-            hintEl.hidden = false;
-            if (!locationShared) {
-                hintEl.textContent = 'You appear here only if you turned on discoverability for this event. '
-                    + 'Share your location when you turn it on to see roughly how far away people are.';
-            }
+    // The viewer's own state. Being LISTED and being PLACED are separate
+    // agreements, so they are separate presses: the toggle never asks the
+    // browser for a location, and sharing one is offered only once you are
+    // already listed.
+    function renderMe(mine, locationShared) {
+        meRow.hidden = false;
+        meLabel.textContent = mine
+            ? 'Other attendees here can see you.'
+            : 'You are not listed.';
+        meBtn.textContent = mine ? 'Hide me' : 'Let people see me';
+        meBtn.setAttribute('aria-pressed', mine ? 'true' : 'false');
+        meBtn.disabled = false;
+
+        whereRow.hidden = !mine || locationShared;
+        if (mine && locationShared) {
+            whereNote.textContent = '';
         }
+    }
+
+    function emptyMessage(mine) {
+        return mine
+            ? 'You are listed. Nobody else has turned this on yet — check back as people arrive.'
+            : 'Nobody is listed yet. Turning yourself on is how this fills up.';
+    }
+
+    function render(items, locationShared, mine) {
+        card.hidden = false;
+        renderMe(mine, locationShared);
+
+        if (!items.length) {
+            listEl.innerHTML = '<p class="text-[11px] ev-muted-lite px-1">' + esc(emptyMessage(mine)) + '</p>';
+            return;
+        }
+
         listEl.innerHTML = items.map(function (it) {
             var u = it.user || {};
             var name = esc(u.name || 'Attendee');
@@ -815,15 +870,80 @@
         });
     });
 
-    fetch(listUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (body) {
-            // A non-attendee, or an event that is not live, gets an error
-            // rather than an empty list. Either way there is nothing to show.
-            var data = (body && body.data) || {};
-            render(data.items || [], !!data.my_location_shared);
-        })
-        .catch(function () { /* leave the card hidden */ });
+    function load() {
+        return fetch(listUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (body) {
+                // A non-attendee, or an event that is not live, gets an
+                // error rather than an empty list -- and THAT is when the
+                // card stays hidden. "Nobody has opted in" and "this is not
+                // yours to see" are different answers and used to look the
+                // same, which is how an opt-in feature managed to hide the
+                // place you opt in.
+                if (!body) { card.hidden = true; return; }
+                var data = body.data || {};
+                render(data.items || [], !!data.my_location_shared, !!data.my_discoverable);
+            })
+            .catch(function () { /* leave the card as it is */ });
+    }
+
+    function postMe(payload) {
+        return fetch(toggleUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload),
+        });
+    }
+
+    meBtn.addEventListener('click', function () {
+        var turningOn = meBtn.getAttribute('aria-pressed') !== 'true';
+        meBtn.disabled = true;
+        meBtn.textContent = turningOn ? 'Turning on...' : 'Hiding...';
+        // No coordinates here, deliberately: this press agrees to being
+        // listed, nothing more. Turning off deletes the row outright.
+        postMe({ discoverable: turningOn })
+            .then(function (r) {
+                if (!r.ok) { throw new Error('refused'); }
+                return load();
+            })
+            .catch(function () {
+                meBtn.disabled = false;
+                meBtn.textContent = turningOn ? 'Let people see me' : 'Hide me';
+                meLabel.textContent = 'That did not go through. Try again.';
+            });
+    });
+
+    whereBtn.addEventListener('click', function () {
+        if (!navigator.geolocation) {
+            whereNote.textContent = 'This browser cannot share a location.';
+            return;
+        }
+        whereBtn.disabled = true;
+        whereNote.textContent = 'Asking your browser...';
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            // The server turns this into a band -- in the room, a short
+            // walk, across town. The coordinates are never sent back out
+            // to anybody; see Hallway::band and listAttendees.
+            postMe({ discoverable: true, lat: pos.coords.latitude, lng: pos.coords.longitude })
+                .then(function (r) {
+                    whereBtn.disabled = false;
+                    if (!r.ok) { whereNote.textContent = 'That did not go through.'; return; }
+                    whereNote.textContent = '';
+                    return load();
+                })
+                .catch(function () {
+                    whereBtn.disabled = false;
+                    whereNote.textContent = 'That did not go through.';
+                });
+        }, function () {
+            // Declined, or unavailable. Being listed does not depend on it.
+            whereBtn.disabled = false;
+            whereNote.textContent = 'No location shared. You are still listed.';
+        }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+    });
+
+    load();
 })();
 </script>
 <script>

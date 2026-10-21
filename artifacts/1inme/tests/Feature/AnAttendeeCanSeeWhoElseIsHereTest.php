@@ -216,4 +216,161 @@ class AnAttendeeCanSeeWhoElseIsHereTest extends TestCase
         $response->assertStatus(403);
         $response->assertJsonPath('error.code', 'not_discoverable');
     }
+
+    // ── Joining the list from a browser ──────────────────────────────
+
+    /**
+     * Opting in was bearer-token only (routes/api.php), so a signed-in
+     * attendee on the web could read this list and never join it -- and
+     * the page told them to turn on something it gave them no way to
+     * turn on. Same controller as the mobile route, so these tests are
+     * about the web surface enforcing the same rules, not about the
+     * rules being restated somewhere new.
+     */
+    public function test_an_attendee_can_put_themselves_on_the_list_from_the_web(): void
+    {
+        $host = $this->user('Host');
+        $link = $this->liveEvent($host);
+
+        $me   = $this->user('Priya');
+        $them = $this->user('Ravi');
+        $this->attend($me, $link);
+        $this->attend($them, $link);
+
+        $this->actingAs($me)
+            ->postJson(route('user.event-people.toggle', $link->alias), ['discoverable' => true])
+            ->assertOk()
+            ->assertJsonPath('data.discoverable', true);
+
+        // The test that matters: somebody else can now see them.
+        $this->actingAs($them)
+            ->getJson(route('user.event-people.index', $link->alias))
+            ->assertOk()
+            ->assertJsonPath('data.items.0.user.name', 'Priya');
+    }
+
+    public function test_hiding_yourself_takes_you_off_the_list(): void
+    {
+        $host = $this->user('Host');
+        $link = $this->liveEvent($host);
+
+        $me   = $this->user('Priya');
+        $them = $this->user('Ravi');
+        $this->attend($me, $link);
+        $this->attend($them, $link);
+        $this->beDiscoverable($me, $link);
+
+        $this->actingAs($me)
+            ->postJson(route('user.event-people.toggle', $link->alias), ['discoverable' => false])
+            ->assertOk();
+
+        $this->assertSame(0, EventDiscoverability::where('user_id', $me->id)
+            ->where('link_id', $link->id)->count(), 'hiding left the row behind');
+
+        $this->actingAs($them)
+            ->getJson(route('user.event-people.index', $link->alias))
+            ->assertOk()
+            ->assertJsonPath('data.total', 0);
+    }
+
+    public function test_being_listed_does_not_share_where_you_are(): void
+    {
+        // Two separate agreements, two separate presses. Turning yourself
+        // on must never carry a coordinate with it -- the second step is
+        // what does that, and this is the test that keeps them apart.
+        $host = $this->user('Host');
+        $link = $this->liveEvent($host);
+
+        $me = $this->user('Priya');
+        $this->attend($me, $link);
+
+        $this->actingAs($me)
+            ->postJson(route('user.event-people.toggle', $link->alias), ['discoverable' => true])
+            ->assertOk();
+
+        $row = EventDiscoverability::where('user_id', $me->id)->where('link_id', $link->id)->first();
+        $this->assertNotNull($row);
+        $this->assertNull($row->lat, 'opting in carried a location with it');
+        $this->assertNull($row->lng);
+
+        $this->actingAs($me)
+            ->getJson(route('user.event-people.index', $link->alias))
+            ->assertJsonPath('data.my_discoverable', true)
+            ->assertJsonPath('data.my_location_shared', false);
+
+        // The second press, explicitly.
+        $this->actingAs($me)
+            ->postJson(route('user.event-people.toggle', $link->alias), [
+                'discoverable' => true, 'lat' => 12.9716, 'lng' => 77.5946,
+            ])
+            ->assertOk();
+
+        $this->actingAs($me)
+            ->getJson(route('user.event-people.index', $link->alias))
+            ->assertJsonPath('data.my_location_shared', true);
+    }
+
+    public function test_the_list_says_whether_the_viewer_is_on_it(): void
+    {
+        // What the empty state on the page branches on: "nobody is here"
+        // and "nobody is here and you are not listed either" are different
+        // things to say, and only one of them has something to offer.
+        $host = $this->user('Host');
+        $link = $this->liveEvent($host);
+
+        $me = $this->user('Priya');
+        $this->attend($me, $link);
+
+        $this->actingAs($me)
+            ->getJson(route('user.event-people.index', $link->alias))
+            ->assertOk()
+            ->assertJsonPath('data.total', 0)
+            ->assertJsonPath('data.my_discoverable', false);
+
+        $this->beDiscoverable($me, $link);
+
+        $this->actingAs($me)
+            ->getJson(route('user.event-people.index', $link->alias))
+            ->assertOk()
+            ->assertJsonPath('data.total', 0, 'the viewer must not be listed to themselves')
+            ->assertJsonPath('data.my_discoverable', true);
+    }
+
+    public function test_somebody_with_no_seat_cannot_put_themselves_on_the_list(): void
+    {
+        $host = $this->user('Host');
+        $link = $this->liveEvent($host);
+
+        $stranger = $this->user('Nobody');
+
+        $this->actingAs($stranger)
+            ->postJson(route('user.event-people.toggle', $link->alias), ['discoverable' => true])
+            ->assertStatus(403)
+            ->assertJsonPath('error.code', 'not_attendee');
+
+        $this->assertSame(0, EventDiscoverability::where('user_id', $stranger->id)->count());
+    }
+
+    public function test_you_cannot_join_a_room_that_is_not_open_yet(): void
+    {
+        $host = $this->user('Host');
+        $link = $this->event($host, now()->addDay(), now()->addDay()->addHours(2));
+
+        $me = $this->user('Priya');
+        $this->attend($me, $link);
+
+        $this->actingAs($me)
+            ->postJson(route('user.event-people.toggle', $link->alias), ['discoverable' => true])
+            ->assertStatus(422)
+            ->assertJsonPath('error.code', 'event_not_live');
+    }
+
+    public function test_a_signed_out_visitor_cannot_put_anybody_on_the_list(): void
+    {
+        $host = $this->user('Host');
+        $link = $this->liveEvent($host);
+
+        $this->postJson(route('user.event-people.toggle', $link->alias), ['discoverable' => true])
+            ->assertStatus(401);
+    }
 }
