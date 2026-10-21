@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcessContactExportJob;
 use App\Jobs\ProcessContactImportJob;
 use App\Modules\User\Models\Contact;
+use App\Modules\User\Models\EventPerson;
 use App\Modules\User\Models\ContactEmail;
 use App\Modules\User\Models\ContactExport;
 use App\Modules\User\Models\ContactImport;
@@ -1843,5 +1844,53 @@ class ContactController extends Controller
             'link'   => $bio,
             'url'    => $bio ? url('/' . $bio->alias) : null,
         ];
+    }
+
+    /**
+     * JSON contact picker, used by the event editor to bill a speaker.
+     *
+     * Contacts carry a workspace global scope, but they belong to the
+     * workspace OWNER and deliberately cross workspaces -- a speaker
+     * saved while another workspace was active must still be findable
+     * here, or the picker is empty for exactly the people most likely to
+     * be reused. Hence withoutGlobalScope plus an explicit owner filter,
+     * which is also what keeps it scoped.
+     */
+    public function pickerSearch(Request $request)
+    {
+        $owner = workspace_owner();
+
+        if (!$owner) {
+            return response()->json(['data' => []]);
+        }
+
+        $q = trim((string) $request->get('q', ''));
+
+        $query = Contact::withoutGlobalScope('workspace')->where('user_id', $owner->id);
+
+        if ($q !== '') {
+            $needle = '%' . $q . '%';
+            // Grouped, so the owner filter above still binds. An ungrouped
+            // orWhere here would return every contact on the platform.
+            $query->where(function ($w) use ($needle) {
+                $w->where('display_name', 'ilike', $needle)
+                  ->orWhere('organization', 'ilike', $needle)
+                  ->orWhere('job_title', 'ilike', $needle);
+            });
+        }
+
+        $contacts = $query->orderBy('display_name')->limit(20)->get();
+
+        return response()->json([
+            'data' => $contacts->map(fn (Contact $c) => [
+                'contact_id'   => $c->id,
+                'name'         => $c->display_name ?: 'Unnamed contact',
+                'title'        => $c->job_title ?: null,
+                'company'      => $c->organization ?: null,
+                'linkedin_url' => EventPerson::linkedinFrom($c),
+                'bio'          => $c->notes ?: null,
+                'photo_url'    => $c->photoUrl(),
+            ])->values(),
+        ]);
     }
 }

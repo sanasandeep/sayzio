@@ -1724,6 +1724,8 @@ Route::prefix('user')->name('user.')->group(function () {
         // (CRM). Read endpoints require `settings.view`, mutations
         // `settings.edit` so non-admin members can't see or modify the
         // workspace's address book.
+        // JSON contact picker used by the event editor to bill speakers.
+        Route::get('contacts/picker-search', [\App\Modules\User\Controllers\ContactController::class, 'pickerSearch'])->middleware('workspace.can:settings.view')->name('contacts.picker-search');
         Route::get('contacts/duplicates',                   [ContactController::class, 'duplicates'])->middleware('workspace.can:settings.view')->name('contacts.duplicates');
         Route::get('contacts/duplicates/count',             [ContactController::class, 'duplicatesCount'])->middleware('workspace.can:settings.view')->name('contacts.duplicates.count');
         Route::post('contacts/duplicates/dismiss',           [ContactController::class, 'duplicatesDismiss'])->middleware('workspace.can:settings.edit')->name('contacts.duplicates.dismiss');
