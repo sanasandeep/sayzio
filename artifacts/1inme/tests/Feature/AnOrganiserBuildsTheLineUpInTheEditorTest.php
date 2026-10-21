@@ -141,6 +141,27 @@ class AnOrganiserBuildsTheLineUpInTheEditorTest extends TestCase
         $this->assertStringNotContainsString(':key="p"', str_replace(':key="p.uid"', '', $body));
     }
 
+    public function test_every_cell_in_a_result_row_states_its_position(): void
+    {
+        // Found by opening the deployed picker, not by a test. The
+        // action had grid-row set and no grid-column, so CSS grid auto
+        // placement claimed column 1 for it and pushed the contact's
+        // name into column 2: the Add button rendered to the LEFT of
+        // the person it belonged to.
+        //
+        // This is a presence check and nothing more. It cannot see a
+        // layout; it only stops the explicit placement being deleted
+        // again. The layout was checked by looking at it.
+        $owner = $this->owner();
+        $event = $this->event($owner);
+
+        $body = $this->actingAs($owner)
+            ->get(route('user.links.ics.edit', $event, false))->assertOk()->getContent();
+
+        $this->assertStringContainsString('.lineup-result-action { grid-column: 2;', $body);
+        $this->assertStringContainsString('.lineup-result .lineup-name    { grid-column: 1;', $body);
+    }
+
     public function test_the_uid_is_never_posted(): void
     {
         // It exists to key a loop. It is not part of the payload, and
