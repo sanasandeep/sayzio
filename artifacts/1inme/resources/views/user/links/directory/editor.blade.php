@@ -20,7 +20,7 @@
 <form method="post" action="{{ route('user.links.directory.save', [$link, 'settings']) }}">@csrf<input type="hidden" name="editor_pane" x-model="pane">
 <label>Introduction<textarea name="intro">{{ $s['intro'] ?? '' }}</textarea></label>
 <div class="fields">
-<label>Timezone<select name="timezone">@foreach(timezone_identifiers_list() as $tz)<option @selected(($s['timezone'] ?? 'UTC') === $tz)>{{ $tz }}</option>@endforeach</select></label>
+<label>Timezone<select name="timezone">@foreach(timezone_identifiers_list() as $tz)<option @selected(\App\Support\PlatformTimezone::resolve($s['timezone'] ?? null) === $tz)>{{ $tz }}</option>@endforeach</select></label>
 <label>Layout<select name="layout">@foreach(['list','grid','compact'] as $layout)<option @selected(($s['layout'] ?? 'list') === $layout)>{{ $layout }}</option>@endforeach</select></label>
 <label>Font<select name="font">@foreach(['sans-serif','serif','monospace'] as $font)<option @selected(($s['font'] ?? 'sans-serif') === $font)>{{ $font }}</option>@endforeach</select></label>
 @foreach(['background'=>'#f5f7fb','surface'=>'#ffffff','text_color'=>'#172033','accent'=>'#2563eb'] as $key => $default)<label>{{ ucfirst(str_replace('_',' ',$key)) }}<input type="color" name="{{ $key }}" value="{{ $s[$key] ?? $default }}"></label>@endforeach

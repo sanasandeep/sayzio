@@ -86,7 +86,11 @@
     .day-chip-off { background: var(--bg-glass); border-color: var(--border-glass); color: var(--text-muted); }
     .day-chip-on { background-color: #5c83ff; border-color: #5c83ff; color: #fff; }
     .ics-freq-off { background: var(--bg-glass); border-color: var(--border-glass); color: var(--text-muted); }
-    .ics-freq-on { background-color: rgba(92,131,255,0.15); border-color: #5c83ff; color: #fff; }
+    .ics-freq-on { background-color: color-mix(in srgb, var(--accent) 14%, transparent); border-color: var(--accent); color: var(--accent); }
+    /* The selected pill sits on a translucent tint, so it takes the ground
+       beneath it. #fff here read fine on a dark ground and was invisible on a
+       light one. The solid .day-chip-on above keeps its white text: a solid
+       accent fill is the same colour in both themes. */
     /* Light mode: white text on the pale-blue selected chip is illegible. */
     html.light-mode .ics-freq-on { color: #1d4ed8; }
     .ics-tile { background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: 0.75rem; }
@@ -347,7 +351,7 @@
                 <label class="ics-label">Time zone <span class="text-red-400">*</span></label>
                 <select name="timezone" required class="ics-input">
                     @foreach($timezones as $tz)
-                        <option value="{{ $tz }}" {{ old('timezone', $ics->timezone ?: 'UTC') === $tz ? 'selected' : '' }}>{{ $tz }}</option>
+                        <option value="{{ $tz }}" {{ old('timezone', \App\Support\PlatformTimezone::resolve($ics->timezone)) === $tz ? 'selected' : '' }}>{{ $tz }}</option>
                     @endforeach
                 </select>
             </div>
