@@ -458,6 +458,14 @@
     </div>
 @endif
 
+{{-- The attendee journey, above the generic link analytics: for an
+     event the question "how many turned up" comes before "which
+     browser did they use". Renders nothing until the event has had
+     a visitor or an RSVP. --}}
+@if($link->type === 'ics')
+    @include('user.links.partials.event-funnel', ['link' => $link])
+@endif
+
 @include('user.links.partials.analytics-tabs', ['link' => $link, 'active' => 'overview'])
 
 {{-- ===================== PERIOD CONTROLS ===================== --}}
