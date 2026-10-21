@@ -15,12 +15,6 @@
         'subtitle' => 'Paste or type any text and get a short link. Visitors see a clean page with your text, and every visit is tracked.',
     ])
 
-            <h1 class="text-2xl font-bold text-white">Create a Text Page</h1>
-        </div>
-        <p class="text-white/60 text-sm mt-1 ml-13">
-            Paste or type any text and get a short link. Visitors see a clean page with your text (selectable, with a one-tap copy button) and every visit is tracked.
-        </p>
-    </div>
 
     @if(session('error'))
     <div class="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm">
