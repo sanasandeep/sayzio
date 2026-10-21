@@ -143,6 +143,18 @@
     <script>
     document.addEventListener('alpine:init', function () {
         window.Alpine.data('icsEditForm', function () {
+            // A session's id has to survive a save. The server mints one and
+            // keeps whatever it is sent (normalizeAgenda), but it can only
+            // keep what the form posts -- and until now this form posted the
+            // title, times, day and description of each agenda item and not
+            // its id. So every save re-minted every id. Nothing noticed while
+            // nothing referred to a session; now that people are billed to
+            // one, a plain save would orphan the whole line-up.
+            var newAgendaId = function () {
+                var s = '';
+                while (s.length < 12) { s += Math.random().toString(36).slice(2); }
+                return s.slice(0, 12).replace(/[^a-z0-9]/g, '0');
+            };
             return {
                 allDay: @json((bool) $ics->all_day),
                 freq: @json($freqVal ?? ''),
@@ -175,10 +187,17 @@
                 addGalleryItem: function () { if (this.galleryItems.length < 20) this.galleryItems.push({ url: '' }); },
                 removeGalleryItem: function (i) { this.galleryItems.splice(i, 1); },
                 // Task #5023 — agenda
-                agendaItems: @json(old('agenda', (array) ($ics->agenda ?? []))),
+                // Items saved before ids existed arrive without one, so they
+                // are given one on load rather than on first save: the hidden
+                // field below has to have something to post, and x-for keys
+                // on it.
+                agendaItems: (@json(old('agenda', (array) ($ics->agenda ?? [])))).map(function (it) {
+                    if (!it.id) { it.id = newAgendaId(); }
+                    return it;
+                }),
                 addAgendaItem: function () {
                     if (this.agendaItems.length >= 100) return;
-                    this.agendaItems.push({ time: '', end_time: '', title: '', description: '', day: '' });
+                    this.agendaItems.push({ id: newAgendaId(), time: '', end_time: '', title: '', description: '', day: '' });
                 },
                 removeAgendaItem: function (i) { this.agendaItems.splice(i, 1); },
                 // Task #5023 — documents
@@ -559,7 +578,21 @@
             </div>
         </div>
 
-@php($awardBadgeSelected = old('award_badge_id', $ics->award_badge_id ?? ''))
+{{-- Block form on purpose, not style. Blade lifts raw PHP blocks out
+     before it compiles directives, and non-greedily: a one-line
+     parenthesised assignment here would pair with the next closing tag
+     anywhere below and swallow every directive in between. There is no
+     closing tag below it today, which is the only reason this file
+     renders -- adding any PHP block further down would have broken the
+     whole editor with an error pointing at the wrong line. The repo's
+     check-blade-php guard only flags the inline form once a later
+     closing tag exists, so it would have stayed quiet until the damage
+     was done. (This comment deliberately does not spell the one-line
+     form out: raw-block extraction runs before comments are stripped,
+     so writing it here would re-arm the trap.) --}}
+@php
+    $awardBadgeSelected = old('award_badge_id', $ics->award_badge_id ?? '');
+@endphp
         {{-- What attending earns. Who may register is deliberately not here:
              a gate is granted by admin or through the badge request flow,
              not set per event by the organiser. --}}
@@ -597,8 +630,9 @@
                 <p class="text-xs mb-3" style="color: var(--text-muted);">No agenda items yet. Add sessions, talks, or activities below.</p>
             </template>
             <div class="space-y-2 mb-3">
-                <template x-for="(item, i) in agendaItems" :key="i">
+                <template x-for="(item, i) in agendaItems" :key="item.id">
                     <div class="ics-tile-strong p-3 space-y-2">
+                        <input type="hidden" :name="'agenda[' + i + '][id]'" :value="item.id">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--text-muted);" x-text="'Item #' + (i + 1)"></span>
                             <button type="button" @click="removeAgendaItem(i)" class="text-red-400/70 hover:text-red-400 text-xs px-2 py-1 rounded hover:bg-red-500/10"><i class="fas fa-trash mr-1"></i>Remove</button>
