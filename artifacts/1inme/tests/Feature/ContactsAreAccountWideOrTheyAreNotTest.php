@@ -144,13 +144,21 @@ class ContactsAreAccountWideOrTheyAreNotTest extends TestCase
 
     public function test_a_contact_you_can_rename_can_also_be_deleted(): void
     {
-        // The sharpest one. A contact the API will happily show and
-        // rename cannot be removed, which leaves somebody unable to
-        // delete their own data from the surface that is showing it.
+        // The sharpest one: before the fix, a contact the API would
+        // happily show and rename could not be removed, leaving
+        // somebody unable to delete their own data from the surface
+        // showing it to them.
+        //
+        // 204, not 200 -- the endpoint answers No Content, which is
+        // right for a delete. The first draft asserted assertOk() and
+        // failed against a working delete; that was the test being
+        // wrong about the contract, not the endpoint.
         [$user, $contact, $second] = $this->contactSavedInAnotherWorkspace();
 
         $this->withToken($this->token($user))
             ->deleteJson("/api/v1/contacts/{$contact->id}", ['workspace_id' => $second->id])
-            ->assertOk();
+            ->assertNoContent();
+
+        $this->assertNull(Contact::find($contact->id), 'the delete reported success without deleting');
     }
 }

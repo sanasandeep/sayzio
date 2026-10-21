@@ -403,9 +403,23 @@ class ABillingFollowsTheContactTest extends TestCase
 
     /**
      * Put the owner in a second workspace of their own, which is the
-     * ordinary case, and prove the Contact really is filtered there --
-     * without that control these two tests would pass just as well
-     * against code that never had the bug.
+     * ordinary case.
+     *
+     * THIS CONTROL WAS INVERTED, AND THAT IS THE INTERESTING PART.
+     *
+     * It used to assert that a plain Contact::find() came back NULL
+     * here -- proving the workspace scope was live, so that these two
+     * tests could not pass against code that never had the bug they
+     * describe. When the scope came off Contact entirely (contacts are
+     * account-wide), that assertion failed, which is exactly what a
+     * control is for: it caught a change to its own premise instead of
+     * quietly going along with it.
+     *
+     * So it now asserts the new invariant rather than the old one. If
+     * anybody re-scopes Contact to the workspace, this line fails
+     * loudly -- which is better than these two tests silently reverting
+     * to green because the billing fell back to the stored snapshot
+     * and read the same either way.
      */
     private function billedThenMovedToAnotherWorkspace(): EventPerson
     {
@@ -418,9 +432,9 @@ class ABillingFollowsTheContactTest extends TestCase
 
         app()->instance('current_workspace', $this->secondWorkspace($owner));
 
-        $this->assertNull(
+        $this->assertNotNull(
             Contact::find($contact->id),
-            'the workspace scope is not active, so this test cannot detect it being bypassed'
+            'contacts are account-wide: a workspace filter is back on Contact and these tests no longer mean what they say'
         );
 
         return $person;
