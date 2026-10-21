@@ -10,7 +10,7 @@ class Rsvp extends Model
     protected $table = 'rsvps';
 
     protected $fillable = [
-        'link_id', 'name', 'email', 'phone', 'response', 'plus_ones',
+        'link_id', 'user_id', 'name', 'email', 'phone', 'response', 'plus_ones',
         'message', 'source', 'source_block_id', 'ip_address', 'user_agent',
         'status', 'occurrences', 'answers', 'company', 'role', 'manage_token',
         'waitlist_invited_at',
@@ -80,5 +80,35 @@ class Rsvp extends Model
     {
         if ($this->response !== 'yes' || $this->status === 'cancelled') return 0;
         return 1 + max(0, (int) $this->plus_ones);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Every RSVP that belongs to this account.
+     *
+     * Two ways in, because a user_id only exists from the moment that
+     * column did. An RSVP made while signed in carries the id outright.
+     * An older one, or one made signed-out, is matched on the account's
+     * own email -- the same reach EventTicketApiController::myEvents
+     * already uses for tickets, so a person sees the same set of events
+     * in the app and on the web.
+     *
+     * The email arm is deliberately grouped. Left ungrouped next to any
+     * other condition, an orWhere widens the whole query rather than this
+     * one clause, which is how a filter quietly turns into "everyone".
+     */
+    public function scopeForAccount($query, $user)
+    {
+        return $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+
+            if (!empty($user->email)) {
+                $q->orWhere('email', $user->email);
+            }
+        });
     }
 }

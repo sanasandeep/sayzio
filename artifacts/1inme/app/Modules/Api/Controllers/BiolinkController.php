@@ -785,6 +785,7 @@ class BiolinkController extends Controller
 
         $rsvp = Rsvp::create([
             'link_id'         => $link->id,
+            'user_id'         => $request->user()?->id,
             'source_block_id' => $block->id,
             'name'            => $data['name'],
             'email'           => $data['email'] ?? null,
