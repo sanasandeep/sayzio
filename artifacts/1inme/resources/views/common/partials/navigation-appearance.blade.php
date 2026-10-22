@@ -17,7 +17,7 @@
 
     SCOPES
 
-      rail   .navrail-rail - inside .sidebar-shell, so it REDEFINES the
+      rail   .navrail - inside .sidebar-shell, so it REDEFINES the
              inherited custom properties for its own subtree. That is what
              lets the two columns disagree.
       panel  the shell itself, which is also the whole of the classic
@@ -34,7 +34,7 @@
     $navStorageKey = 'sayzio_navigation_' . (auth()->id() ?? 'guest');
 
     $navScopes = [
-        'rail'   => '.navrail-rail',
+        'rail'   => '.navrail',
         'panel'  => ':is(.sidebar-shell,.navigation-mobile,.navrail-panel)',
         'topbar' => '.header-v2',
     ];
@@ -140,7 +140,7 @@ html[data-{{ $navArea }}-appearance^="gradient-"] {!! $navScope !!} { --nav-cont
 /* The rail sits inside the shell, so the divider has to come from the rail's
    own palette - otherwise a dark rail beside a light panel is separated by a
    light rule that disappears into the rail. */
-html[data-rail-appearance]:not([data-rail-appearance="theme"]) .navrail-rail {
+html[data-rail-appearance]:not([data-rail-appearance="theme"]) .navrail {
     border-right:1px solid var(--nav-line)!important;
 }
 
