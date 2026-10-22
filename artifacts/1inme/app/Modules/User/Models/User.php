@@ -732,6 +732,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Whether this account is on the rail navigation.
+     *
+     * Same shape as usesAuroraUi() above, for the same reason: the rail
+     * replaces the sidebar's whole structure, and the only honest way
+     * to judge that is to have both on real pages with real data and
+     * look at them. A separate settings key from ui_pack, so the nav
+     * and the token set can be tried one at a time.
+     *
+     * Opt in at /user/appearance/nav/rail. When the rail becomes the
+     * default, this method, its route and the classic sidebar markup
+     * come out together.
+     */
+    public function usesRailNav(): bool
+    {
+        return (($this->settings['nav_pack'] ?? 'classic') === 'rail');
+    }
+
+    /**
      * Whether any plan sits above this account's current one.
      *
      * The sidebar offered "Unlock analytics, custom domains & more" with an

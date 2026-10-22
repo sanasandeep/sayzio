@@ -210,6 +210,14 @@ Route::prefix('user')->name('user.')->group(function () {
         ->name('geo.suggest');
 
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
+    // Opt this account into (or out of) the rail navigation. Three
+    // segments, so it cannot collide with appearance/{pack} below. See
+    // User::usesRailNav() for why this is a bare URL and not a toggle.
+    Route::get('appearance/nav/{pack}', [ProfileController::class, 'appearanceNav'])
+        ->whereIn('pack', ['classic', 'rail'])
+        ->middleware(['auth', 'throttle:30,1'])
+        ->name('appearance.nav');
+
     // Opt this account into (or out of) the Aurora interface. See
     // User::usesAuroraUi() for why this is a bare URL and not a settings toggle.
     Route::get('appearance/{pack}', [ProfileController::class, 'appearance'])
