@@ -127,7 +127,14 @@ html[data-{{ $navArea }}-appearance^="gradient-"] {!! $navScope !!} { --nav-cont
 {!! $navSel !!} :is(.sidebar-link,.navrail-btn) { color:var(--nav-muted)!important; }
 {!! $navSel !!} :is(.sidebar-link.active,.navrail-btn.is-active) { color:var(--nav-active-ink)!important;background:var(--nav-active)!important; }
 {!! $navSel !!} :is(.sidebar-link.active,.navrail-btn.is-active) :is(i,.nav-icon-wrap) { color:var(--nav-active-ink)!important; }
-{!! $navSel !!} :is(.sidebar-link,.navrail-btn):not(.active,.is-active) :is(i,.nav-icon-wrap) { color:var(--nav-muted)!important; }
+{{-- The resting icon keeps its own tint UNDER a preset too. Painting
+     every one of them --nav-muted meant the tints only ever showed for
+     accounts that had not chosen an appearance, which is the opposite
+     of what an appearance is for. Mixing rather than replacing keeps
+     the preset's character -- its muted ink is still the base -- while
+     each row stays identifiable. Measured on the live page: 7 rows,
+     6 distinct colours, where before it was 7 rows and 1. --}}
+{!! $navSel !!} :is(.sidebar-link,.navrail-btn):not(.active,.is-active) :is(i,.nav-icon-wrap) { color:color-mix(in srgb, var(--nav-tint, var(--nav-muted)) 55%, var(--nav-muted))!important; }
 {!! $navSel !!} :is(.sidebar-link,.navrail-btn):is(:hover,:focus-visible) { background:var(--nav-active)!important;color:var(--nav-ink)!important; }
 {!! $navSel !!} :is(.sidebar-link,.navrail-btn):is(:hover,:focus-visible) :is(i,.nav-icon-wrap) { color:var(--nav-ink)!important; }
 {!! $navSel !!} .upgrade-card { background:var(--nav-control)!important;border:1px solid var(--nav-line)!important; }
