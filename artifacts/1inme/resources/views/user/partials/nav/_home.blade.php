@@ -15,7 +15,11 @@
                         @php
                             $__navFolders = workspace_owner()->projects()->orderBy('name')->limit(10)->get(['id', 'name', 'color']);
                         @endphp
-                        <div x-data="{ foldersOpen: {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }">
+                        <div x-data="{ foldersOpen: {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }"
+                             {{-- Same reason as the workspace switcher: the rail's
+                                  folders tile opens this group rather than rendering
+                                  a second folder list beside the rail. --}}
+                             @open-nav-folders.window="foldersOpen = true; $nextTick(() => $el.scrollIntoView({ block: 'nearest' }))">
                             <div class="flex items-center">
                                 <a href="{{ route('user.dashboard') }}#folders"
                                    class="sidebar-link flex-1 {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'active' : '' }}"

@@ -112,7 +112,11 @@
        which is how the light/dark sidebar options keep working here
        without this file knowing they exist. A colour literal in this
        block would be a hole in exactly that mechanism. */
-    .navrail-wrap { display: flex; flex: 1 1 auto; min-height: 0; }
+    /* Positioned, because the account block is a child of the wrap
+       rather than of either column: minimised it sits at the foot of
+       the rail, expanded at the foot of the panel, and it cannot be
+       inside one column and appear at the foot of the other. */
+    .navrail-wrap { position: relative; display: flex; flex: 1 1 auto; min-height: 0; }
 
     .navrail {
         flex: 0 0 56px;
@@ -233,8 +237,15 @@
         overflow-y: auto;
         overflow-x: hidden;
         overscroll-behavior: contain;
-        padding: 6px 10px 16px;
+        /* The account block floats over the panel's foot, so the last
+           links need room to clear it. 144px is the block's measured
+           height (plan strip + row + padding) with headroom, and a test
+           asserts the block never outgrows it. */
+        padding: 6px 10px 144px;
     }
+    /* Minimised, the account block is in the rail instead, so the
+       flyout gets its ordinary bottom padding back. */
+    .navrail-wrap[data-rail-min="1"] .navrail-panel-scroll { padding-bottom: 16px; }
     /* Matches the group headers the panel sits among: the classic
        markup uses text-[10px] font-bold uppercase tracking-[0.15em]
        with pt-5 pb-1.5 px-3, so Home's header has to as well or it
@@ -252,12 +263,43 @@
        Four destinations that were three stacked blocks: the plan card,
        the Switch to admin button and the avatar strip with its logout
        icon. */
+    /* Expanded it spans the panel's foot; minimised it narrows to the
+       rail and shows the avatar alone -- "login profile pic at bottom
+       should be visible just like logo on top" (Sana). One block in
+       two places rather than two blocks: a second copy would mean a
+       second account menu, and two menus drift. */
     .navrail-account {
-        position: relative;
-        flex: 0 0 auto;
+        position: absolute;
+        /* Above the minimised flyout's 60. The account block is
+           positioned, so it opens a stacking context and its menu's own
+           z-index is sealed inside it -- at 2 the menu rendered BEHIND
+           the flyout, which elementFromPoint caught and reading the
+           rule did not. */
+        z-index: 70;
+        left: 56px;
+        right: 0;
+        bottom: 0;
         padding: 8px;
         border-top: 1px solid var(--border-strong);
+        background: var(--nav-surface, var(--bg-card));
+        border-radius: 0 0 15px 0;
     }
+    .navrail-wrap[data-rail-min="1"] .navrail-account {
+        left: 0;
+        right: auto;
+        /* The card's width, not the rail's fixed 56: the same 2px
+           overhang the rail itself had, and the same answer. */
+        width: 100%;
+        padding: 6px 7px 8px;
+        border-radius: 0 0 15px 15px;
+    }
+    .navrail-wrap[data-rail-min="1"] .navrail-account-row { justify-content: center; padding: 6px; }
+    /* The name, the plan line and the chevron have nowhere to go in a
+       56px column; the avatar is the whole control there. */
+    .navrail-wrap[data-rail-min="1"] .navrail-account-row > :not(.navrail-account-avatar):not(.navrail-btn-label) {
+        display: none;
+    }
+    .navrail-account-anchor { position: relative; }
     .navrail-account-row {
         width: 100%;
         display: flex;
@@ -310,12 +352,15 @@
         text-overflow: ellipsis;
     }
     /* Opens upward: the row is at the foot of the card, so a menu
-       hanging below it would be off the bottom of the window. */
+       hanging below it would be off the bottom of the window.
+       Anchored to the row rather than to a fixed offset, so the plan
+       strip above it can come and go without moving the menu. */
     .navrail-account-menu {
         position: absolute;
-        left: 8px;
-        right: 8px;
-        bottom: 54px;
+        left: 0;
+        right: 0;
+        bottom: 100%;
+        margin-bottom: 6px;
         z-index: 70;
         padding: 6px;
         border-radius: 13px;
@@ -390,6 +435,103 @@
         margin: 4px 6px;
         padding: 0;
         background: var(--border-strong);
+    }
+    /* Minimised the menu cannot open over a 56px column, so it opens
+       beside the rail, bottom-aligned with the avatar that summoned
+       it -- the same move the section flyout makes, and measured to
+       land on the same left edge as it. The anchor goes static so the
+       offset is read from the card's width rather than from the
+       account block's padding box. */
+    .navrail-wrap[data-rail-min="1"] .navrail-account-anchor { position: static; }
+    .navrail-wrap[data-rail-min="1"] .navrail-account-menu {
+        left: calc(100% + 10px);
+        right: auto;
+        bottom: 0;
+        width: 240px;
+        margin-bottom: 0;
+    }
+
+    /* ---- the plan strip ---------------------------------------------
+       "Panel bottom can have about plan info with upgrade option"
+       (Sana). It sits above the account row when there is width for
+       it; minimised, the plan row inside the account menu takes over,
+       so the information is never only in one of the two states. */
+    .navrail-plan {
+        margin-bottom: 6px;
+        padding: 9px 10px;
+        border-radius: 11px;
+        background: var(--sidebar-active-bg);
+    }
+    .navrail-plan-top {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 6px;
+    }
+    .navrail-plan-name {
+        flex: 1;
+        min-width: 0;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .navrail-plan-gem {
+        width: 18px;
+        height: 18px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 8px;
+        color: #fff;
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    }
+    .navrail-plan-note {
+        display: block;
+        font-size: 10px;
+        line-height: 1.4;
+        color: var(--text-dimmed);
+    }
+    .navrail-plan-cta {
+        display: block;
+        margin-top: 7px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #fff;
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+        text-decoration: none;
+    }
+    .navrail-plan-cta:hover { filter: brightness(1.08); }
+
+    /* ---- the two utility tiles --------------------------------------
+       Minimised only. Expanded, the switcher is the panel's head row
+       and Folders is the first group inside Home, so a rail tile for
+       either would be the same destination twice. */
+    .navrail-util-sep {
+        width: 24px;
+        height: 1px;
+        margin: 5px 0;
+        background: var(--border-strong);
+        flex: none;
+    }
+    .navrail-util-dot {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: #fff;
     }
 
     /* The drawer turns the rail on its side. A 72px column inside a
@@ -554,6 +696,19 @@
             if (this.railMin && this.railOpen && this.railSection === key) { this.railOpen = false; return; }
             this.railSection = key;
             this.railOpen = true;
+        },
+        /* The two utility tiles do NOT get their own flyouts. The
+           workspace switcher and the folder list are single Alpine
+           components with their own ids, and a second copy beside the
+           rail would be a second #workspace-switcher on the page. So
+           the tile opens the panel these already live in and tells the
+           component to open itself. */
+        utility(what) {
+            this.railSection = 'home';
+            this.railOpen = true;
+            this.$nextTick(() => window.dispatchEvent(new CustomEvent(
+                what === 'workspace' ? 'open-workspace-switcher' : 'open-nav-folders'
+            )));
         }
      }"
      :data-rail-min="railMin ? '1' : '0'"
@@ -566,6 +721,22 @@
             <a href="{{ route('user.dashboard') }}" class="navrail-brand" title="{{ config('app.name', 'Sayzio') }}">
                 @include('common.partials.brand-logo', ['variant' => 'icon', 'height' => 'h-8'])
             </a>
+            @php $railWs = app()->bound('current_workspace') ? app('current_workspace') : null; @endphp
+            @if($railWs)
+                <button type="button" class="navrail-btn" x-show="railMin" x-cloak
+                        @click="utility('workspace')" title="Workspace: {{ $railWs->name }}">
+                    <span class="navrail-util-dot" style="background: {{ $railWs->iconColor() }}">
+                        <i class="fas {{ $railWs->iconSymbol() }}" aria-hidden="true"></i>
+                    </span>
+                    <span class="navrail-btn-label">Workspace: {{ $railWs->name }}</span>
+                </button>
+            @endif
+            <button type="button" class="navrail-btn" x-show="railMin" x-cloak
+                    @click="utility('folders')" title="Folders">
+                <i class="fas fa-folder" aria-hidden="true"></i>
+                <span class="navrail-btn-label">Folders</span>
+            </button>
+            <div class="navrail-util-sep" x-show="railMin" x-cloak aria-hidden="true"></div>
         @endif
         @foreach($railOrder as $railKey)
             @php $railItem = $railSections[$railKey]; @endphp
@@ -623,6 +794,8 @@
             @endforeach
         </div>
 
+    </div>
+
         @if($railCard && auth()->check())
             @php
                 $railUser  = auth()->user();
@@ -635,18 +808,37 @@
                  @click.outside="menu = false"
                  @keydown.escape="menu = false">
 
+                {{-- The plan strip. Which plan you are on is standing
+                     information, so it is on the surface rather than one click
+                     inside a menu. What stays conditional is the ASK:
+                     canUpgradePlan() is false only when nothing higher exists,
+                     and showing Upgrade to someone with nothing to upgrade to
+                     is a dark pattern, so that account gets the plan name and a
+                     quiet line instead. --}}
+                <div class="navrail-plan" x-show="!railMin" x-cloak>
+                    <div class="navrail-plan-top">
+                        <span class="navrail-plan-gem" aria-hidden="true"><i class="fas fa-gem"></i></span>
+                        <span class="navrail-plan-name">{{ $railPlan }} plan</span>
+                    </div>
+                    @if($railUser->canUpgradePlan())
+                        <span class="navrail-plan-note">More links, analytics and custom domains on the higher plans.</span>
+                        <a href="{{ route('user.upgrade') }}" class="navrail-plan-cta">Compare plans</a>
+                    @else
+                        <span class="navrail-plan-note">You are on the highest plan. Everything is unlocked.</span>
+                    @endif
+                </div>
+
+                <div class="navrail-account-anchor">
                 <div class="navrail-account-menu"
                      x-show="menu"
                      x-cloak
                      x-transition.opacity.duration.150ms
                      role="menu">
-                    {{-- Which plan you are on is standing information, so the
-                         row is always here. What stays conditional is the ASK:
-                         canUpgradePlan() is false only when nothing higher
-                         exists, and showing Upgrade to someone with nothing to
-                         upgrade to is a dark pattern. --}}
+                    {{-- Minimised there is no room for the strip above, so the
+                         plan moves into the menu. One of the two is always on
+                         screen and never both. --}}
                     @if($railUser->canUpgradePlan())
-                        <a href="{{ route('user.upgrade') }}" role="menuitem" class="navrail-account-row-item">
+                        <a href="{{ route('user.upgrade') }}" role="menuitem" class="navrail-account-row-item" x-show="railMin" x-cloak>
                             <i class="fas fa-gem" aria-hidden="true"></i>
                             <span class="navrail-account-stack">
                                 <span>{{ $railPlan }} plan</span>
@@ -654,7 +846,7 @@
                             </span>
                         </a>
                     @else
-                        <div role="menuitem" aria-disabled="true" class="navrail-account-row-item">
+                        <div role="menuitem" aria-disabled="true" class="navrail-account-row-item" x-show="railMin" x-cloak>
                             <i class="fas fa-gem" aria-hidden="true"></i>
                             <span class="navrail-account-stack">
                                 <span>{{ $railPlan }} plan</span>
@@ -711,7 +903,7 @@
                        aria-hidden="true"></i>
                     <span class="navrail-btn-label">Account menu</span>
                 </button>
+                </div>
             </div>
         @endif
-    </div>
 </div>

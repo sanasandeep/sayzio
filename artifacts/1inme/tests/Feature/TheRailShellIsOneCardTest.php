@@ -123,6 +123,14 @@ class TheRailShellIsOneCardTest extends TestCase
 
         // Label and status side by side in a 218px menu wrapped BOTH
         // halves onto two lines. They stack.
+        // The account block measured 135px tall; the panel's bottom
+        // padding has to clear it or the last link sits underneath.
+        $this->assertMatchesRegularExpression(
+            '/\\.navrail-panel-scroll \\{[^}]*padding: 6px 10px 144px/s',
+            $css,
+            'The panel must leave room for the account block floating over its foot.'
+        );
+
         $this->assertStringContainsString('navrail-account-stack', $css);
         $this->assertMatchesRegularExpression(
             '/\.navrail-account-stack \{[^}]*flex-direction: column/s',
@@ -222,6 +230,141 @@ class TheRailShellIsOneCardTest extends TestCase
             '/\.navrail-btn\.is-active \{[^}]*background: linear-gradient\([^)]*#[0-9a-fA-F]{3,8}/s',
             $css,
             'A hex in the active tile would not follow the theme or the appearance presets.'
+        );
+    }
+
+    /**
+     * Items 2 and 3: minimised, the rail has to carry what the panel
+     * carried. The avatar sits at its foot "just like logo on top",
+     * and the workspace and folder lists get tiles of their own rather
+     * than being two clicks inside a section nobody chose.
+     */
+    public function test_the_minimised_rail_carries_the_avatar_and_two_utility_tiles(): void
+    {
+        $sidebar = $this->desktopSidebar($this->owner());
+
+        // The tiles are server-rendered and hidden by Alpine, not the
+        // other way round, so they are in the markup to be found.
+        // Expanded, the switcher is the panel's head row and Folders is
+        // the first group in Home, so a tile for either would be the
+        // same destination twice: both are gated on railMin.
+        $this->assertMatchesRegularExpression(
+            '/<button[^>]*x-show="railMin"[^>]*title="Folders"/s',
+            $sidebar,
+            'The folders tile must exist and must be minimised-only.'
+        );
+        $this->assertStringContainsString('utility(\'folders\')', $sidebar);
+
+        // The workspace tile only exists where a workspace does, so it
+        // is pinned to the switcher rather than asserted outright --
+        // otherwise this fails for a reason that has nothing to do with
+        // the rail.
+        if (str_contains($sidebar, 'id="workspace-switcher"')) {
+            $this->assertMatchesRegularExpression(
+                '/<button[^>]*x-show="railMin"[^>]*title="Workspace: /s',
+                $sidebar,
+                'A workspace renders, so its rail tile must too.'
+            );
+            $this->assertStringContainsString('utility(\'workspace\')', $sidebar);
+        }
+
+        // The avatar moves with the block rather than being copied, so
+        // there is still exactly one of it.
+        $this->assertSame(1, substr_count($sidebar, 'navrail-account-avatar'));
+        $this->assertMatchesRegularExpression(
+            '/\.navrail-wrap\[data-rail-min="1"\] \.navrail-account \{[^}]*left: 0/s',
+            $sidebar,
+            'Minimised, the account block must move to the rail.'
+        );
+    }
+
+    /**
+     * The reason the utility tiles open the panel instead of carrying
+     * their own flyouts: the workspace switcher is a component with an
+     * id, and the folder list is one Alpine root. A second copy of
+     * either beside the rail would be a duplicate id and two states
+     * that drift apart.
+     */
+    public function test_a_utility_tile_opens_the_one_component_rather_than_a_second_copy(): void
+    {
+        $sidebar = $this->desktopSidebar($this->owner());
+
+        $this->assertSame(
+            1,
+            substr_count($sidebar, 'id="workspace-switcher"'),
+            'Two #workspace-switcher elements on one page is a broken document.'
+        );
+        $this->assertStringContainsString('open-workspace-switcher', $sidebar);
+        $this->assertStringContainsString('open-nav-folders', $sidebar);
+
+        // Both listeners have to be on the components themselves, or
+        // the events above are shouted at nobody.
+        $switcher = file_get_contents(resource_path('views/user/partials/workspace-switcher.blade.php'));
+        $home = file_get_contents(resource_path('views/user/partials/nav/_home.blade.php'));
+        $this->assertStringContainsString('@open-workspace-switcher.window', $switcher);
+        $this->assertStringContainsString('@open-nav-folders.window', $home);
+    }
+
+    /**
+     * Item 4. The plan is on the surface when there is width for it and
+     * in the menu when there is not, and never in both places at once.
+     */
+    public function test_the_plan_is_on_the_strip_or_in_the_menu_but_never_both(): void
+    {
+        $sidebar = $this->desktopSidebar($this->owner());
+
+        $this->assertMatchesRegularExpression(
+            '/<div class="navrail-plan" x-show="!railMin"/s',
+            $sidebar,
+            'The plan strip is the expanded-width form.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/class="navrail-account-row-item"[^>]*x-show="railMin"|x-show="railMin"[^>]*class="navrail-account-row-item"/s',
+            $sidebar,
+            'The menu plan row is the minimised form.'
+        );
+        // Whichever form is on screen, the route out of it is the same.
+        $this->assertStringContainsString(route('user.upgrade'), $sidebar);
+    }
+
+    /**
+     * The account block is a child of the WRAP, not of either column:
+     * it has to appear at the foot of the panel in one state and at the
+     * foot of the rail in the other, and nothing inside one column can
+     * do that. Asserted structurally, because the CSS only works if the
+     * markup is actually shaped this way.
+     */
+    public function test_the_account_block_hangs_off_the_wrap_not_the_panel(): void
+    {
+        $sidebar = $this->desktopSidebar($this->owner());
+
+        $doc = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $doc->loadHTML('<?xml encoding="utf-8" ?><div>' . $sidebar . '</div>');
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($doc);
+        $nodes = $xpath->query("//div[contains(@class,'navrail-account')]");
+        $this->assertNotNull($nodes);
+        $this->assertSame(1, $nodes->length, 'There must be exactly one account block.');
+
+        $parent = $nodes->item(0)->parentNode;
+        $this->assertStringContainsString(
+            'navrail-wrap',
+            (string) $parent->getAttribute('class'),
+            'The account block must be a sibling of the two columns, not inside one of them.'
+        );
+
+        // And it has to outrank the flyout, or opening the menu while
+        // minimised paints it behind the panel. Caught by asking the
+        // document what was on top at the menu, not by reading this.
+        $this->assertMatchesRegularExpression(
+            '/\.navrail-account \{[^}]*z-index: 70/s',
+            $sidebar
+        );
+        $this->assertMatchesRegularExpression(
+            '/\.navrail-wrap\[data-rail-min="1"\] \.navrail-panel \{[^}]*z-index: 60/s',
+            $sidebar
         );
     }
 
