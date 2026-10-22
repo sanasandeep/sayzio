@@ -142,13 +142,13 @@ class ThePageHeroLookIsChosenOnceTest extends TestCase
             'Every style in both themes needs the outer band padding.'
         );
 
-        // The plate is an opaque surface with its own edge and lift.
+        // The plate has its own edge and lift.
         $this->assertSame($selectors, preg_match_all('/\.hero-row \{[^}]*border-radius: 14px/s', $css));
         $this->assertSame($selectors, preg_match_all('/\.hero-row \{[^}]*box-shadow:/s', $css));
         $this->assertSame(
             $selectors,
-            preg_match_all('/\.hero-row \{[^}]*background: #[0-9a-f]{6}/s', $css),
-            'The plate must be opaque - the decoration sits behind it.'
+            preg_match_all('/\.hero-row \{[^}]*background: rgba\(/s', $css),
+            'The plate is glass: the wash behind it has to read through.'
         );
 
         // The band needs an opaque surface of its own. A tint would composite
@@ -160,14 +160,15 @@ class ThePageHeroLookIsChosenOnceTest extends TestCase
             'Every style needs an opaque band colour, or the plate melts into it.'
         );
 
-        // Band and plate must actually differ, per selector.
+        // One band colour per selector.
         preg_match_all('/\.page-hero \{[^}]*background-color: (#[0-9a-f]{6})/s', $css, $bands);
-        preg_match_all('/\.hero-row \{[^}]*background: (#[0-9a-f]{6})/s', $css, $plates);
         $this->assertCount($selectors, $bands[1]);
-        $this->assertCount($selectors, $plates[1]);
-        foreach ($bands[1] as $i => $band) {
-            $this->assertNotSame($band, $plates[1][$i], "Band and plate are the same colour ({$band}).");
-        }
+
+        // The plate is glass over that band, so it carries a blur and an
+        // alpha below 1. A plate that went opaque again would hide the wash.
+        $this->assertSame($selectors, preg_match_all('/\.hero-row \{[^}]*[;\s]backdrop-filter: blur\(/s', $css));
+        preg_match_all('/\.hero-row \{[^}]*background: rgba\([^)]*,\s*\.(\d+)\)/s', $css, $alphas);
+        $this->assertCount($selectors, $alphas[1], 'Every plate needs a translucent background.');
 
         // `html.aurora .page-hero` sets `border: 1px solid transparent
         // !important`, so a border-color rule here can never apply. It computed
