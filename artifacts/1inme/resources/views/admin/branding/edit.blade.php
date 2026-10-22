@@ -48,12 +48,12 @@
 
             <section class="glass rounded-xl p-5 space-y-4">
                 <h3 class="font-semibold">Workspace navigation defaults</h3>
-                <p class="text-sm ak-muted">Users can override these on their browser from Appearance.</p>
+                <p class="text-sm ak-muted">Users can override these on their browser from Appearance. The icon rail and the panel are the two columns of the rail sidebar &mdash; set them differently for a dark rail beside a light panel.</p>
                 <div class="grid md:grid-cols-3 gap-4">
-                    @foreach(['sidebar' => 'Sidebar', 'topbar' => 'Top bar'] as $area => $label)
+                    @foreach(\App\Modules\Common\Support\NavigationAppearance::AREAS as $area => $label)
                     <label>{{ $label }}
                         <select name="navigation_{{ $area }}" class="w-full rounded-lg p-2" style="background:var(--bg-card);color:var(--text-primary)">
-                            @foreach(['theme' => 'Follow page theme', 'light' => 'Light', 'dark' => 'Dark', 'gradient-light' => 'Light gradient', 'gradient-medium' => 'Medium gradient', 'gradient-dark' => 'Dark gradient'] as $value => $text)
+                            @foreach(\App\Modules\Common\Support\NavigationAppearance::PRESETS as $value => $text)
                             <option value="{{ $value }}" @selected(($navigationAppearance[$area] ?? 'theme') === $value)>{{ $text }}</option>
                             @endforeach
                         </select>
@@ -61,7 +61,7 @@
                     @endforeach
                     <label>Logo area<select name="navigation_logo" class="w-full rounded-lg p-2" style="background:var(--bg-card);color:var(--text-primary)"><option value="0" @selected(!($navigationAppearance['logo'] ?? false))>Use sidebar style</option><option value="1" @selected($navigationAppearance['logo'] ?? false)>Include in top bar</option></select></label>
                 </div>
-                @foreach(['navigation_sidebar', 'navigation_topbar', 'navigation_logo'] as $field)
+                @foreach(array_merge(array_map(fn ($a) => 'navigation_' . $a, array_keys(\App\Modules\Common\Support\NavigationAppearance::AREAS)), ['navigation_logo']) as $field)
                     @error($field)<p class="text-red-400">{{ $message }}</p>@enderror
                 @endforeach
             </section>

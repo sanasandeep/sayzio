@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Common\Support\NavigationAppearance;
 use App\Modules\Common\Support\PageHeroStyle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -32,7 +33,7 @@ class BrandingController extends Controller
             $current[$field] = AppSetting::get($key, '/' . ltrim($default, '/'));
         }
 
-        return view('admin.branding.edit', ['logos' => $current, 'navigationAppearance' => AppSetting::get('navigation_appearance', ['sidebar' => 'theme', 'topbar' => 'theme', 'color' => '#4338ca']), 'heroStyles' => PageHeroStyle::options(), 'heroStyle' => PageHeroStyle::current()]);
+        return view('admin.branding.edit', ['logos' => $current, 'navigationAppearance' => NavigationAppearance::defaults(), 'heroStyles' => PageHeroStyle::options(), 'heroStyle' => PageHeroStyle::current()]);
     }
 
     public function update(Request $request)
@@ -41,17 +42,24 @@ class BrandingController extends Controller
         foreach (self::SLOTS as $key => [$field, , $mimes, $max]) {
             $rules[$field] = ['nullable', 'file', 'mimes:' . implode(',', $mimes), 'max:' . $max];
         }
-        $rules['navigation_sidebar'] = ['sometimes', 'required', 'in:theme,light,dark,gradient-light,gradient-medium,gradient-dark'];
-        $rules['navigation_topbar'] = ['sometimes', 'required', 'in:theme,light,dark,gradient-light,gradient-medium,gradient-dark'];
+        // One rule per area, both drawn from the catalogue so validation
+        // cannot reject a preset the form offers.
+        foreach (array_keys(NavigationAppearance::AREAS) as $area) {
+            $rules['navigation_' . $area] = ['sometimes', 'required', NavigationAppearance::rule()];
+        }
         $rules['navigation_logo'] = ['sometimes', 'required', 'boolean'];
         $rules['page_hero_style'] = ['sometimes', 'required', 'in:' . implode(',', array_keys(PageHeroStyle::options()))];
         $validated = $request->validate($rules);
-        if ($request->has('navigation_sidebar') && $request->has('navigation_topbar')) {
-            AppSetting::put('navigation_appearance', [
-                'sidebar' => $validated['navigation_sidebar'],
-                'topbar' => $validated['navigation_topbar'],
-                'logo' => $request->boolean('navigation_logo'),
-            ]);
+        // The rail is the one that can be absent from an older cached form,
+        // so the panel - which every form has posted since this existed -
+        // is what decides whether this is a navigation save at all.
+        if ($request->has('navigation_panel') && $request->has('navigation_topbar')) {
+            $current = NavigationAppearance::defaults();
+            $stored = ['logo' => $request->boolean('navigation_logo')];
+            foreach (array_keys(NavigationAppearance::AREAS) as $area) {
+                $stored[$area] = $validated['navigation_' . $area] ?? $current[$area];
+            }
+            AppSetting::put(NavigationAppearance::SETTING, $stored);
         }
         if ($request->has('page_hero_style')) {
             PageHeroStyle::store($validated['page_hero_style'] ?? null);

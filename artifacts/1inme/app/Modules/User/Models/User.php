@@ -740,13 +740,19 @@ class User extends Authenticatable
      * look at them. A separate settings key from ui_pack, so the nav
      * and the token set can be tried one at a time.
      *
-     * Opt in at /user/appearance/nav/rail. When the rail becomes the
-     * default, this method, its route and the classic sidebar markup
-     * come out together.
+     * THE DEFAULT IS NOW THE RAIL.
+     *
+     * Unset means rail, so an account that never expressed a view gets
+     * the two-column layout. An account that explicitly chose either
+     * one keeps what it chose - the flip reads the absence of a key,
+     * not its value, so nobody who opted into classic is moved.
+     *
+     * The classic sidebar stays as the opt-out at
+     * /user/appearance/nav/classic, and its markup stays with it.
      */
     public function usesRailNav(): bool
     {
-        return (($this->settings['nav_pack'] ?? 'classic') === 'rail');
+        return (($this->settings['nav_pack'] ?? 'rail') === 'rail');
     }
 
     /**
