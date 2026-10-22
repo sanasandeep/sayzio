@@ -369,6 +369,94 @@ class TheRailShellIsOneCardTest extends TestCase
     }
 
     /**
+     * The account menu's two loaded rows say so at rest. A menu whose
+     * four rows are all the same grey makes you read four labels to
+     * find the one you came for, and the one you came for is sometimes
+     * Log out.
+     */
+    public function test_logging_out_reads_as_destructive_without_a_hover(): void
+    {
+        $css = $this->desktopSidebar($this->owner());
+
+        $this->assertMatchesRegularExpression(
+            '/\\.navrail-account-menu \\.navrail-account-out \\{[^}]*color: var\\(--c-danger\\)/s',
+            $css,
+            'Log out must carry the danger colour at rest, not only on hover.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/\\.navrail-account-menu \\.navrail-account-admin \\{[^}]*color: var\\(--accent\\)/s',
+            $css,
+            'Switch to admin is an elevation and must not share the logout colour.'
+        );
+        // Both are tokens, so they follow the theme. A literal here
+        // would be a hole in exactly the mechanism the appearance
+        // presets work through.
+        $this->assertDoesNotMatchRegularExpression(
+            '/\\.navrail-account-(out|admin)[^{]*\\{[^}]*#[0-9a-fA-F]{3}/s',
+            $css
+        );
+    }
+
+    /**
+     * Items 2 and 3, both measured against the reference layout rather
+     * than guessed at: its header has no surface of its own, and its
+     * collapse control sits in the header rather than on the sidebar.
+     */
+    public function test_the_top_bar_is_flush_and_owns_the_collapse_control(): void
+    {
+        $railHtml = (string) $this->actingAs($this->owner())
+            ->get('/user/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString('header-flush', $railHtml);
+        $this->assertMatchesRegularExpression(
+            '/\\.header-v2\\.header-flush \\{[^}]*background: transparent/s',
+            $railHtml,
+            'The top bar must share the page surface.'
+        );
+        // Aurora sets its own 1px rule with !important, so the flush
+        // treatment has to answer it in the same terms. Selectors that
+        // out-specify it on paper were measured losing to it.
+        $this->assertStringContainsString(
+            'html.aurora header.header-v2.header-flush { border-bottom: 0 !important; }',
+            $railHtml
+        );
+
+        // The edge handle is gone and the top bar has the control.
+        $railAside = $this->desktopSidebar($this->owner());
+        $this->assertStringNotContainsString('sidebar-edge-toggle', $railAside);
+        $this->assertStringContainsString('aria-label="Toggle sidebar"', $railHtml);
+
+        // The control. Both survive on the classic sidebar, which keeps
+        // its own edge handle and its own glass header.
+        $classicHtml = (string) $this->actingAs($this->owner(['nav_pack' => 'classic']))
+            ->get('/user/dashboard')->assertOk()->getContent();
+        $this->assertStringContainsString('sidebar-edge-toggle', $classicHtml);
+        $this->assertStringNotContainsString('header-flush', $classicHtml);
+    }
+
+    /**
+     * Item 4. The first version of the two utility tiles made the
+     * workspace one a filled colour block and left folders a bare
+     * glyph, so the pair matched neither each other nor the seven
+     * tiles below them.
+     */
+    public function test_the_utility_tiles_look_like_the_tiles_around_them(): void
+    {
+        $css = $this->desktopSidebar($this->owner());
+
+        // The workspace colour is a dot on the corner, not the tile.
+        $this->assertMatchesRegularExpression(
+            '/\\.navrail-util-dot \\{[^}]*position: absolute[^}]*width: 8px/s',
+            $css,
+            'The workspace colour belongs on a dot, not on a filled tile.'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/\\.navrail-util-dot \\{[^}]*width: 20px/s',
+            $css
+        );
+    }
+
+    /**
      * The generalised form of the .navrail-rail bug: a rule whose
      * selector names a class that nothing renders. Here the comparison
      * is against the page that actually came back, both navs included,

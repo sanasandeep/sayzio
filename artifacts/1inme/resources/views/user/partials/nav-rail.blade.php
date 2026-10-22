@@ -423,12 +423,20 @@
     .navrail-account-row-item[aria-disabled="true"] .navrail-account-aside {
         color: var(--text-dimmed);
     }
-    /* Logging out is the one destructive row, so it says so on hover.
-       --c-danger is a per-theme token, unlike the two literals the
-       classic sidebar's .logout-btn hard-codes. */
+    /* Logging out is destructive and switching to admin is an
+       elevation. Neither waits for a hover to say so: a menu where
+       every row is the same grey makes you read four labels to find
+       the one you came for. Both colours are per-theme tokens, unlike
+       the two literals the classic sidebar's .logout-btn hard-codes. */
+    .navrail-account-menu .navrail-account-out { color: var(--c-danger); }
     .navrail-account-menu .navrail-account-out:hover {
         background: var(--c-danger-soft);
         color: var(--c-danger);
+    }
+    .navrail-account-menu .navrail-account-admin { color: var(--accent); }
+    .navrail-account-menu .navrail-account-admin:hover {
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+        color: var(--accent);
     }
     .navrail-account-sep {
         height: 1px;
@@ -523,15 +531,20 @@
         background: var(--border-strong);
         flex: none;
     }
+    /* The first version made the workspace tile a filled colour block
+       and left folders a bare glyph, so the pair matched neither each
+       other nor the seven tiles below them. Both are ordinary rail
+       tiles now; the workspace's colour is a dot on the corner, which
+       is enough to tell two workspaces apart without the tile
+       becoming a different kind of object. */
     .navrail-util-dot {
-        width: 20px;
-        height: 20px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 9px;
-        color: #fff;
+        position: absolute;
+        right: 4px;
+        bottom: 4px;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        border: 2px solid var(--nav-surface, var(--bg-card));
     }
 
     /* The drawer turns the rail on its side. A 72px column inside a
@@ -725,9 +738,8 @@
             @if($railWs)
                 <button type="button" class="navrail-btn" x-show="railMin" x-cloak
                         @click="utility('workspace')" title="Workspace: {{ $railWs->name }}">
-                    <span class="navrail-util-dot" style="background: {{ $railWs->iconColor() }}">
-                        <i class="fas {{ $railWs->iconSymbol() }}" aria-hidden="true"></i>
-                    </span>
+                    <i class="fas {{ $railWs->iconSymbol() }}" aria-hidden="true"></i>
+                    <span class="navrail-util-dot" style="background: {{ $railWs->iconColor() }}" aria-hidden="true"></span>
                     <span class="navrail-btn-label">Workspace: {{ $railWs->name }}</span>
                 </button>
             @endif
@@ -865,7 +877,7 @@
                     @if($railAdmin)
                         <form action="{{ route('user.switch-to-admin') }}" method="POST">
                             @csrf
-                            <button type="submit" role="menuitem" class="navrail-account-row-item">
+                            <button type="submit" role="menuitem" class="navrail-account-row-item navrail-account-admin">
                                 <i class="fas fa-user-shield" aria-hidden="true"></i>
                                 <span>Switch to admin</span>
                             </button>
