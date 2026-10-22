@@ -51,7 +51,7 @@
         */
         .evfun-rate{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
             font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;
-            color:var(--text-muted);background:var(--bg-card);
+            color:var(--text-muted);background:var(--bg-dropdown);
             padding:1px 5px;border-radius:999px;line-height:1.5;white-space:nowrap}
         .dflow-arrow{position:relative}
         /* A stage nobody could reach is not a result. It is drawn as

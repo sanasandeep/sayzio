@@ -199,7 +199,7 @@
             font-size: 11px; font-weight: 600;
             white-space: nowrap; pointer-events: none;
             opacity: 0; transition: opacity .15s; z-index: 100;
-            background: var(--bg-sidebar); color: var(--text-primary);
+            background: var(--bg-dropdown); color: var(--text-primary);
             border: 1px solid var(--border-subtle);
             box-shadow: 0 4px 20px rgba(0,0,0,.30);
         }

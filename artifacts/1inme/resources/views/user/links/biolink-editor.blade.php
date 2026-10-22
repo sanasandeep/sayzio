@@ -80,7 +80,7 @@
     .mpp-map .leaflet-control-zoom a:hover { background:#3d6bff !important; }
     .mpp-marker { width:30px; height:40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
     .mpp-marker svg { width:100%; height:100%; display:block; }
-    .mpp-suggest { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:40; background:var(--bg-card); border:1px solid var(--border-glass); border-radius:0.75rem; overflow:hidden; box-shadow:0 12px 32px rgba(0,0,0,0.35); }
+    .mpp-suggest { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:40; background:var(--bg-dropdown); border:1px solid var(--border-glass); border-radius:0.75rem; overflow:hidden; box-shadow:0 12px 32px rgba(0,0,0,0.35); }
     html.light-mode .mpp-suggest { box-shadow:0 12px 32px rgba(15,23,42,0.15); }
     .mpp-suggest-item { display:flex; align-items:flex-start; gap:0.5rem; width:100%; text-align:left; padding:0.55rem 0.85rem; font-size:0.8125rem; color:var(--text-secondary); }
     .mpp-suggest-item:hover { background:var(--bg-glass); color:var(--text-primary); }
@@ -1218,7 +1218,7 @@ $catColors = [
             position: fixed; z-index: 70; left: 0; top: 0;
             width: 344px;
             border-radius: 14px; overflow: hidden;
-            background: var(--bg-card); border: 1px solid var(--border-glass);
+            background: var(--bg-dropdown); border: 1px solid var(--border-glass);
             box-shadow: 0 18px 50px rgba(8,12,24,0.38);
             opacity: 0; transform: translateX(-6px);
             pointer-events: none;
@@ -1387,7 +1387,15 @@ $catColors = [
                     <p class="text-[10px] mt-0.5" style="color: var(--text-faint);"><i class="fas fa-hand-pointer mr-1"></i>Drag onto your page, or click to add</p>
                     <div class="relative mt-2.5">
                         <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>
-                        <input type="text" x-model="paletteSearch" placeholder="Search sections…" class="theme-input w-full pl-7 text-xs py-1.5" aria-label="Search sections">
+                        {{-- padding-left inline, not pl-7. .theme-input sets
+                             `padding: 0.5rem 0.875rem` -- a SHORTHAND -- and
+                             theme-styles is an inline <style> in <head> while
+                             Tailwind arrives earlier via @vite. Same
+                             specificity, later wins, so pl-7 never applied and
+                             the text started at 14px underneath an icon
+                             sitting at 10px. An inline style is the one thing
+                             the shorthand cannot outrank. --}}
+                        <input type="text" x-model="paletteSearch" placeholder="Search sections…" class="theme-input w-full text-xs py-1.5" style="padding-left:2rem;" aria-label="Search sections">
                     </div>
                     <div class="palette-tabs">
                         <button type="button" class="palette-tab" :class="paletteCategory === 'all' ? 'active' : ''" @click="paletteCategory = 'all'">All</button>

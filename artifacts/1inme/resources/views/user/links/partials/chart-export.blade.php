@@ -220,6 +220,6 @@
 <div id="chart-export-toast" role="status" aria-live="polite"
      style="display:none; position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
             z-index:60; align-items:center; gap:8px; padding:9px 16px; border-radius:10px;
-            font-size:12.5px; font-weight:600; background: var(--bg-card);
+            font-size:12.5px; font-weight:600; background: var(--bg-dropdown);
             border:1px solid var(--border-glass); color: var(--text-primary);
             box-shadow: 0 12px 32px -8px rgba(9,9,16,.28);"></div>

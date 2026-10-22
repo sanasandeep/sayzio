@@ -59,7 +59,7 @@
     .special-panel { display: flex; flex-direction: column; }
 </style>
 <div class="special-panel" x-show="specialOpen" x-cloak
-     style="position:absolute; inset:0; z-index:5; background:var(--bg-sidebar); backdrop-filter:blur(24px) saturate(1.3); -webkit-backdrop-filter:blur(24px) saturate(1.3);"
+     style="position:absolute; inset:0; z-index:5; background:var(--bg-dropdown); backdrop-filter:blur(24px) saturate(1.3); -webkit-backdrop-filter:blur(24px) saturate(1.3);"
      @keydown.escape.window="specialOpen = false">
     <div class="px-3 pt-3 pb-2 flex-shrink-0" style="border-bottom:1px solid var(--border-glass);">
         <div class="flex items-center justify-between mb-2">
