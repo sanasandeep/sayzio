@@ -85,6 +85,16 @@ class ThePageHeroLookIsChosenOnceTest extends TestCase
     {
         $css = $this->renderAppearancePartial();
 
+        // Blade's {{ }} escapes the double quotes in an attribute selector to
+        // &quot;, which silently invalidates every rule in the sheet. The
+        // partial uses {!! !!} for selectors; this is the guard on that.
+        $this->assertStringNotContainsString(
+            '&quot;',
+            $css,
+            'Selectors are HTML-escaped - the stylesheet would match nothing.'
+        );
+        $this->assertStringNotContainsString('&gt;', $css, 'Child combinator was escaped.');
+
         foreach (array_keys(PageHeroStyle::options()) as $key) {
             $this->assertStringContainsString(
                 'html.light-mode[data-hero-style="' . $key . '"]',

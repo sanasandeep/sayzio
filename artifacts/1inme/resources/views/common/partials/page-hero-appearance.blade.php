@@ -36,21 +36,24 @@
 @foreach($heroStyles as $heroKey => $heroOpt)
 @foreach([['light', 'html.light-mode[data-hero-style="' . $heroKey . '"]'], ['dark', 'html:not(.light-mode)[data-hero-style="' . $heroKey . '"]']] as [$heroTheme, $heroSel])
 @php
+    // Selectors below use {!! !!}, not {{ }}: they carry double quotes, and
+    // escaping those to &quot; makes every rule in this stylesheet invalid.
+    // The keys come from PageHeroStyle::options(), never from input.
     $hues   = $heroOpt[$heroTheme];
     $isDark = $heroTheme === 'dark';
 @endphp
     /* {{ $heroOpt['label'] }} - {{ $heroTheme }} */
-    {{ $heroSel }} .page-hero > .page-hero-deco { display: block; }
-    {{ $heroSel }} .page-hero > .page-hero-deco > * { display: none; }
-    {{ $heroSel }} .page-hero { --hero-grid-line: {{ $heroTint($hues[0], $isDark ? .10 : .07) }}; }
+    {!! $heroSel !!} .page-hero > .page-hero-deco { display: block; }
+    {!! $heroSel !!} .page-hero > .page-hero-deco > * { display: none; }
+    {!! $heroSel !!} .page-hero { --hero-grid-line: {{ $heroTint($hues[0], $isDark ? .10 : .07) }}; }
 @if($heroOpt['layout'] === 'rings')
-    {{ $heroSel }} .page-hero > .page-hero-deco {
+    {!! $heroSel !!} .page-hero > .page-hero-deco {
         background-image: {!! $heroRingStack(array_map(fn ($h) => $heroTint($h, $isDark ? .34 : .26), $hues)) !!};
         -webkit-mask-image: linear-gradient(to left, #000, transparent 72%);
         mask-image: linear-gradient(to left, #000, transparent 72%);
     }
 @else
-    {{ $heroSel }} .page-hero > .page-hero-deco {
+    {!! $heroSel !!} .page-hero > .page-hero-deco {
         background-image: linear-gradient(90deg,
             {{ $heroTint($hues[0], $isDark ? .20 : .13) }} 0 25%,
             {{ $heroTint($hues[1], $isDark ? .20 : .13) }} 25% 50%,
