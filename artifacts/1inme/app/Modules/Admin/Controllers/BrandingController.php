@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Common\Support\PageHeroStyle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
@@ -31,7 +32,7 @@ class BrandingController extends Controller
             $current[$field] = AppSetting::get($key, '/' . ltrim($default, '/'));
         }
 
-        return view('admin.branding.edit', ['logos' => $current, 'navigationAppearance' => AppSetting::get('navigation_appearance', ['sidebar' => 'theme', 'topbar' => 'theme', 'color' => '#4338ca'])]);
+        return view('admin.branding.edit', ['logos' => $current, 'navigationAppearance' => AppSetting::get('navigation_appearance', ['sidebar' => 'theme', 'topbar' => 'theme', 'color' => '#4338ca']), 'heroStyles' => PageHeroStyle::options(), 'heroStyle' => PageHeroStyle::current()]);
     }
 
     public function update(Request $request)
@@ -43,6 +44,7 @@ class BrandingController extends Controller
         $rules['navigation_sidebar'] = ['sometimes', 'required', 'in:theme,light,dark,gradient-light,gradient-medium,gradient-dark'];
         $rules['navigation_topbar'] = ['sometimes', 'required', 'in:theme,light,dark,gradient-light,gradient-medium,gradient-dark'];
         $rules['navigation_logo'] = ['sometimes', 'required', 'boolean'];
+        $rules['page_hero_style'] = ['sometimes', 'required', 'in:' . implode(',', array_keys(PageHeroStyle::options()))];
         $validated = $request->validate($rules);
         if ($request->has('navigation_sidebar') && $request->has('navigation_topbar')) {
             AppSetting::put('navigation_appearance', [
@@ -50,6 +52,9 @@ class BrandingController extends Controller
                 'topbar' => $validated['navigation_topbar'],
                 'logo' => $request->boolean('navigation_logo'),
             ]);
+        }
+        if ($request->has('page_hero_style')) {
+            PageHeroStyle::store($validated['page_hero_style'] ?? null);
         }
 
         $publicDir = public_path('branding');

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="{{ (($_COOKIE['1inme_theme'] ?? null) === 'dark') ? '' : 'light-mode' }}">
+<html lang="en" class="{{ (($_COOKIE['1inme_theme'] ?? null) === 'dark') ? '' : 'light-mode' }}" data-hero-style="{{ \App\Modules\Common\Support\PageHeroStyle::current() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -614,6 +614,9 @@
             .page-hero::after { width: 3px; top: 16px; bottom: 16px; }
         }
     </style>
+
+    {{-- Admin-selected page-hero look; follows the block above --}}
+    @include('common.partials.page-hero-appearance')
     @stack('styles')
 </head>
 <body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
