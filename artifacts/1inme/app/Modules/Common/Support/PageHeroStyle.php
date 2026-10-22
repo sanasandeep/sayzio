@@ -102,6 +102,39 @@ class PageHeroStyle
         }
     }
 
+    /**
+     * White or ink on the lead hue, whichever measures higher.
+     *
+     * Not a 4.5 threshold with an ink fallback: on #6e61ff that picks ink at
+     * 4.13 over white at 4.36, the worse of the two.
+     */
+    public static function onLead(string $hex): string
+    {
+        return self::contrast('#ffffff', $hex) >= self::contrast('#071437', $hex) ? '#ffffff' : '#071437';
+    }
+
+    /** WCAG contrast ratio between two hex colours. */
+    public static function contrast(string $a, string $b): float
+    {
+        $la = self::luminance($a);
+        $lb = self::luminance($b);
+
+        return (max($la, $lb) + 0.05) / (min($la, $lb) + 0.05);
+    }
+
+    private static function luminance(string $hex): float
+    {
+        $hex = ltrim($hex, '#');
+        $out = 0.0;
+        foreach ([[0, 0.2126], [2, 0.7152], [4, 0.0722]] as [$offset, $weight]) {
+            $v = hexdec(substr($hex, $offset, 2)) / 255;
+            $v = $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4;
+            $out += $v * $weight;
+        }
+
+        return $out;
+    }
+
     /** hex + alpha -> rgba(), for the tints the CSS partial emits. */
     public static function tint(string $hex, float $alpha): string
     {
