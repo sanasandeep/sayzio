@@ -39,6 +39,25 @@
     `$railSurface` turns the rail on its side for the drawer; it does
     not change which links render.
 
+    THE DESKTOP SHELL IS ONE CARD
+
+    Direction A of the shell boards: rail and panel are two columns of a
+    single floating card, inset from the window, rather than a slab
+    pinned to the edge. That geometry is why the brand mark, the
+    workspace switcher and the account row live HERE and not in the
+    layout -- the card has no full-width strip across its top for them
+    to sit in. The layout keeps its own copies for the classic sidebar,
+    which still looks the way it did.
+
+    The account row is also the answer to three separate complaints that
+    turned out to be one: the plan card, the Switch to admin button and
+    the avatar-plus-logout strip were three stacked blocks competing for
+    the foot of the sidebar. They are four menu items now. The Account
+    group that carried a second Settings link and the badge chips is
+    gone outright -- Settings is a rail section, and badges render on
+    the dashboard and on the badges settings page, so nothing became
+    unreachable.
+
     COLLAPSING
 
     In rail mode the existing edge toggle hides the PANEL and keeps the
@@ -57,6 +76,11 @@
     $railOrder    = NavRailSections::order();
     $railActive   = NavRailSections::activeKey();
     $railSurface  = $railSurface ?? 'desktop';
+
+    // The card chrome -- brand, switcher, account row -- is the desktop
+    // shell. The drawer is already a card with its own header and
+    // footer, so adding a second set would double every one of them.
+    $railCard = $railSurface === 'desktop';
 
     // The layout resolves $__can once and both sidebars read it. This
     // partial resolves it only when nobody already has, so it can also
@@ -84,10 +108,10 @@
 <style>
     /* Tokens only. The sidebar already has its own token set --
        --sidebar-link, --sidebar-active-bg and the rest -- redefined per
-       theme and again under [data-sidebar-appearance], which is how the
-       light/dark sidebar options keep working here without this file
-       knowing they exist. A colour literal in this block would be a
-       hole in exactly that mechanism. */
+       theme and again under [data-rail-appearance] / [data-panel-appearance],
+       which is how the light/dark sidebar options keep working here
+       without this file knowing they exist. A colour literal in this
+       block would be a hole in exactly that mechanism. */
     .navrail-wrap { display: flex; flex: 1 1 auto; min-height: 0; }
 
     .navrail {
@@ -151,10 +175,11 @@
     }
     /* The active tile takes the brand accent, not --sidebar-active-bg,
        which resolved to a beige rgb(237,235,230) on the live page and
-       read as "nothing is selected". --accent is the one token that is
-       the workspace's own colour in every theme and appearance. */
+       read as "nothing is selected". The gradient is the pair the rest
+       of the app already uses for accent fills, so it tracks every
+       theme and every appearance preset the way a literal could not. */
     .navrail-btn.is-active {
-        background: var(--accent);
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
         color: #fff;
         border-color: transparent;
         box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent);
@@ -179,9 +204,32 @@
        the tile itself is already the answer to "where am I". */
     .navrail-btn.is-active.is-current::after { background: #fff; opacity: 0; }
 
+    /* The brand mark heads the rail, because the card has no full-width
+       strip for a logo row. */
+    .navrail-brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        margin-bottom: 6px;
+        border-radius: 10px;
+        flex: 0 0 auto;
+    }
+
+    /* The panel is a column, not a scroller: the switcher stays at its
+       head and the account row at its foot while the sections scroll
+       between them. */
     .navrail-panel {
         flex: 1 1 auto;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .navrail-panel-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
         overscroll-behavior: contain;
@@ -198,6 +246,130 @@
         letter-spacing: .15em;
         color: var(--text-faint);
         padding: 20px 12px 6px;
+    }
+
+    /* ---- the account row --------------------------------------------
+       Four destinations that were three stacked blocks: the plan card,
+       the Switch to admin button and the avatar strip with its logout
+       icon. */
+    .navrail-account {
+        position: relative;
+        flex: 0 0 auto;
+        padding: 8px;
+        border-top: 1px solid var(--border-strong);
+    }
+    .navrail-account-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 8px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+        transition: background .18s ease;
+    }
+    .navrail-account-row:hover,
+    .navrail-account[data-open="1"] .navrail-account-row {
+        background: var(--sidebar-link-hover-bg);
+    }
+    .navrail-account-row:focus-visible {
+        outline: 2px solid var(--sidebar-active-border);
+        outline-offset: 2px;
+    }
+    .navrail-account-avatar {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 auto;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    }
+    .navrail-account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .navrail-account-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .navrail-account-plan {
+        font-size: 10.5px;
+        color: var(--text-dimmed);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    /* Opens upward: the row is at the foot of the card, so a menu
+       hanging below it would be off the bottom of the window. */
+    .navrail-account-menu {
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        bottom: 54px;
+        z-index: 70;
+        padding: 6px;
+        border-radius: 13px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-strong);
+        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .45);
+    }
+    /* The rows are not all the same element: two are links, one is an
+       inert div, and the two POSTs have to stay forms. So the row
+       styling names the row itself in each case rather than every
+       direct child, which would have landed on the <form> and left the
+       <button> inside it unstyled. */
+    .navrail-account-menu > form { display: block; }
+    .navrail-account-row-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 11px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--sidebar-link);
+        text-align: left;
+        cursor: pointer;
+        transition: background .15s ease, color .15s ease;
+    }
+    .navrail-account-row-item:hover {
+        background: var(--sidebar-link-hover-bg);
+        color: var(--sidebar-link-hover-text);
+    }
+    .navrail-account-row-item[aria-disabled="true"] { cursor: default; }
+    .navrail-account-row-item[aria-disabled="true"]:hover {
+        background: transparent;
+        color: var(--sidebar-link);
+    }
+    .navrail-account-menu i { width: 14px; font-size: 12px; text-align: center; }
+    .navrail-account-menu .navrail-account-aside {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--accent);
+    }
+    .navrail-account-menu .navrail-account-out:hover {
+        background: rgba(239, 68, 68, .10);
+        color: #ef4444;
+    }
+    .navrail-account-sep {
+        height: 1px;
+        margin: 4px 6px;
+        padding: 0;
+        background: var(--border-strong);
     }
 
     /* The drawer turns the rail on its side. A 72px column inside a
@@ -254,22 +426,51 @@
         color: var(--text-muted);
     }
 
+    /* ---- the card ---------------------------------------------------
+       Direction A: one floating card holding both columns, inset from
+       the window. The radii are split across the two columns rather
+       than clipped by the shell, because the shell must stay
+       overflow:visible for the flyout below. */
+    .sidebar-shell.rail-card {
+        top: 14px;
+        bottom: 14px;
+        left: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--border-strong);
+        box-shadow: 0 18px 44px -24px rgba(7, 20, 55, .26);
+    }
+    html:not(.light-mode) .sidebar-shell.rail-card {
+        box-shadow: 0 26px 60px -30px rgba(0, 0, 0, .75);
+    }
+    .rail-card .navrail { border-radius: 15px 0 0 15px; }
+    .rail-card .navrail-panel { border-radius: 0 15px 15px 0; }
+    /* Minimised, the card IS the rail, so it rounds on all four. */
+    .rail-card .navrail-wrap[data-rail-min="1"] .navrail {
+        border-radius: 15px;
+        border-right: 0;
+    }
+
     /* ---- minimised: the panel becomes a flyout ----------------------
        At 72px the panel was squeezed to 20px and still rendered, so
        clicking a rail icon did nothing you could see. It now floats
-       beside the rail. This works because .sidebar-shell and
-       .navrail-wrap are both overflow:visible - verified on the live
-       page before this was written; a clipping ancestor would have
-       needed the flyout in a portal instead. */
+       beside the rail as its own card.
+
+       Positioned against the SHELL, which is position:fixed and so a
+       containing block whatever else is on it. The earlier version was
+       position:fixed with a hard left offset, which happened to land
+       correctly only because the shell carries a transform; inset the
+       card and that coincidence moves the flyout 14px. `calc(100% +
+       10px)` is read off the shell's own width, so the gap holds at
+       any rail width. */
     .navrail-wrap[data-rail-min="1"] .navrail-panel {
-        position: fixed;
-        left: 56px;
-        top: 64px;
-        bottom: 12px;
+        position: absolute;
+        left: calc(100% + 10px);
+        top: 0;
+        bottom: 0;
         width: 248px;
         background: var(--nav-surface, var(--bg-card));
         border: 1px solid var(--border-strong);
-        border-radius: 0 14px 14px 0;
+        border-radius: 15px;
         box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .45);
         z-index: 60;
         opacity: 0;
@@ -308,6 +509,8 @@
         .navrail-btn,
         .navrail-btn:active,
         .navrail-wrap[data-rail-min="1"] .navrail-panel,
+        .navrail-account-row,
+        .navrail-account-menu > *,
         .navrail-panel .sidebar-link,
         .navrail-panel .navrail-subtle-btn { transition: none; transform: none; }
     }
@@ -334,6 +537,11 @@
      @keydown.escape.window="railOpen = false">
 
     <div class="navrail" role="tablist" aria-label="Navigation sections">
+        @if($railCard)
+            <a href="{{ route('user.dashboard') }}" class="navrail-brand" title="{{ config('app.name', 'Sayzio') }}">
+                @include('common.partials.brand-logo', ['variant' => 'icon', 'height' => 'h-8'])
+            </a>
+        @endif
         @foreach($railOrder as $railKey)
             @php $railItem = $railSections[$railKey]; @endphp
             <button type="button"
@@ -351,27 +559,130 @@
         @endforeach
     </div>
 
-    {{-- Open every group the panel inherited from the classic markup.
-         Done through Alpine's own data rather than an !important that
-         fights x-show, so a group that genuinely wants to collapse
-         later still can. --}}
-    <div class="navrail-panel sidebar-nav-scroll"
-         x-init="$nextTick(() => $el.querySelectorAll('[x-data]').forEach(n => {
-            try { const d = Alpine.$data(n); if (d && 'open' in d) d.open = true; } catch (e) {}
-         }))">
-        {{-- Every section renders; the server picks which one is visible
-             so the panel is right in the first painted frame. x-cloak on
-             all seven would blank the whole nav until Alpine boots, and
-             leaving the initial state to Alpine alone would show the
-             wrong section for a frame. Alpine takes over after init. --}}
-        @foreach($railOrder as $railKey)
-            <div role="tabpanel"
-                 id="navrail-panel-{{ $railSurface }}-{{ $railKey }}"
-                 aria-labelledby="navrail-tab-{{ $railSurface }}-{{ $railKey }}"
-                 x-show="railSection === '{{ $railKey }}'"
-                 @if($railKey !== $railActive) style="display:none" @endif>
-                @include($railSections[$railKey]['partial'])
+    <div class="navrail-panel">
+        @if($railCard)
+            {{-- The switcher hides its own text on `sidebarMode === 'icons'`,
+                 which was right when it sat in a 72px column. In the panel it
+                 is never narrow: minimised, the panel is a 248px flyout. A
+                 nested x-data shadows the shell's property for this subtree
+                 only, so the switcher reads 'full' here and the rail reads the
+                 real mode two lines up. --}}
+            <div x-data="{ sidebarMode: 'full' }" class="flex-shrink-0">
+                @auth
+                    @include('user.partials.workspace-switcher')
+                @endauth
             </div>
-        @endforeach
+        @endif
+
+        {{-- Open every group the panel inherited from the classic markup.
+             Done through Alpine's own data rather than an !important that
+             fights x-show, so a group that genuinely wants to collapse
+             later still can. --}}
+        <div class="navrail-panel-scroll sidebar-nav-scroll"
+             x-init="$nextTick(() => $el.querySelectorAll('[x-data]').forEach(n => {
+                try { const d = Alpine.$data(n); if (d && 'open' in d) d.open = true; } catch (e) {}
+             }))">
+            {{-- Every section renders; the server picks which one is visible
+                 so the panel is right in the first painted frame. x-cloak on
+                 all seven would blank the whole nav until Alpine boots, and
+                 leaving the initial state to Alpine alone would show the
+                 wrong section for a frame. Alpine takes over after init. --}}
+            @foreach($railOrder as $railKey)
+                <div role="tabpanel"
+                     id="navrail-panel-{{ $railSurface }}-{{ $railKey }}"
+                     aria-labelledby="navrail-tab-{{ $railSurface }}-{{ $railKey }}"
+                     x-show="railSection === '{{ $railKey }}'"
+                     @if($railKey !== $railActive) style="display:none" @endif>
+                    @include($railSections[$railKey]['partial'])
+                </div>
+            @endforeach
+        </div>
+
+        @if($railCard && auth()->check())
+            @php
+                $railUser  = auth()->user();
+                $railPlan  = $railUser->plan->name ?? 'Free';
+                $railAdmin = !session('impersonate_user_id') && $railUser->hasActiveAdminAccount();
+            @endphp
+            <div class="navrail-account"
+                 x-data="{ menu: false }"
+                 :data-open="menu ? '1' : '0'"
+                 @click.outside="menu = false"
+                 @keydown.escape="menu = false">
+
+                <div class="navrail-account-menu"
+                     x-show="menu"
+                     x-cloak
+                     x-transition.opacity.duration.150ms
+                     role="menu">
+                    {{-- Which plan you are on is standing information, so the
+                         row is always here. What stays conditional is the ASK:
+                         canUpgradePlan() is false only when nothing higher
+                         exists, and showing Upgrade to someone with nothing to
+                         upgrade to is a dark pattern. --}}
+                    @if($railUser->canUpgradePlan())
+                        <a href="{{ route('user.upgrade') }}" role="menuitem" class="navrail-account-row-item">
+                            <i class="fas fa-gem" aria-hidden="true"></i>
+                            <span>{{ $railPlan }} plan</span>
+                            <span class="navrail-account-aside">Compare plans</span>
+                        </a>
+                    @else
+                        <div role="menuitem" aria-disabled="true" class="navrail-account-row-item">
+                            <i class="fas fa-gem" aria-hidden="true"></i>
+                            <span>{{ $railPlan }} plan</span>
+                            <span class="navrail-account-aside">Everything unlocked</span>
+                        </div>
+                    @endif
+
+                    @if($__can['settings_view'])
+                        <a href="{{ route('user.profile.edit') }}" role="menuitem" class="navrail-account-row-item" data-account-settings-link>
+                            <i class="fas fa-sliders" aria-hidden="true"></i>
+                            <span>Settings</span>
+                        </a>
+                    @endif
+
+                    @if($railAdmin)
+                        <form action="{{ route('user.switch-to-admin') }}" method="POST">
+                            @csrf
+                            <button type="submit" role="menuitem" class="navrail-account-row-item">
+                                <i class="fas fa-user-shield" aria-hidden="true"></i>
+                                <span>Switch to admin</span>
+                            </button>
+                        </form>
+                    @endif
+
+                    <div class="navrail-account-sep" aria-hidden="true"></div>
+
+                    <form action="{{ route('user.logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" role="menuitem" class="navrail-account-row-item navrail-account-out">
+                            <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+                            <span>Log out</span>
+                        </button>
+                    </form>
+                </div>
+
+                <button type="button"
+                        class="navrail-account-row"
+                        @click="menu = !menu"
+                        :aria-expanded="menu ? 'true' : 'false'"
+                        aria-haspopup="menu">
+                    <span class="navrail-account-avatar" aria-hidden="true">
+                        <img src="{{ $railUser->resolveAvatarUrl() }}"
+                             alt=""
+                             onerror="this.style.display='none';this.parentNode.textContent='{{ strtoupper(substr($railUser->name, 0, 1)) }}';">
+                    </span>
+                    <span class="min-w-0 flex-1">
+                        <span class="navrail-account-name block">{{ $railUser->name }}</span>
+                        <span class="navrail-account-plan block">{{ $railPlan }}</span>
+                    </span>
+                    <i class="fas text-[10px]"
+                       style="color: var(--text-faint);"
+                       :class="menu ? 'fa-chevron-down' : 'fa-ellipsis'"
+                       aria-hidden="true"></i>
+                    <span class="navrail-btn-label">Account menu</span>
+                </button>
+            </div>
+        @endif
     </div>
 </div>

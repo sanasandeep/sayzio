@@ -652,21 +652,35 @@
             },
             get sidebarWidth() {
                 @if($__railNav)
-                /* 72px rail + 236px panel. 'icons' drops the panel and
+                /* 56px rail + 236px panel: the card's own width. The
+                   rail has measured 56px since it stopped carrying
+                   labels, so 308 here was leaving the panel 16px wider
+                   than the markup asks for. 'icons' drops the panel and
                    keeps the rail, so the edge toggle below is already
                    the right control for it. */
-                if(this.sidebarMode === 'full') return 308;
-                if(this.sidebarMode === 'icons') return 72;
+                if(this.sidebarMode === 'full') return 292;
+                if(this.sidebarMode === 'icons') return 56;
                 return 0;
                 @else
                 if(this.sidebarMode === 'full') return 260;
                 if(this.sidebarMode === 'icons') return 72;
                 return 0;
                 @endif
+            },
+            /* The card is inset 14px from the window and leaves a 12px
+               gutter before the content. The classic sidebar is flush
+               against the edge, so it adds nothing. Hidden is hidden in
+               both. */
+            get shellGap() {
+                @if($__railNav)
+                return this.sidebarMode === 'hidden' ? 0 : 26;
+                @else
+                return 0;
+                @endif
             }
          }">
 
-        <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2 sidebar-shell dash-glass"
+        <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2 sidebar-shell dash-glass{{ $__railNav ? ' rail-card' : '' }}"
                @if(!$__railNav) :class="sidebarMode === 'icons' ? 'collapsed' : ''" @endif
                :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')">
 
@@ -678,6 +692,11 @@
                 <i class="fas" :class="sidebarMode === 'icons' ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
             </button>
 
+            {{-- The card has no full-width strip across its top, so under
+                 the rail the brand sits at the head of the rail column and
+                 the switcher at the head of the panel. Both live in
+                 user.partials.nav-rail; these are the classic sidebar's. --}}
+            @if(!$__railNav)
             <div class="navigation-logo flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-start'" style="height: 64px; border-bottom: 1px solid var(--border-strong);">
                 <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
                     @include('common.partials.brand-logo', ['height' => 'h-8'])
@@ -691,6 +710,7 @@
             @auth
                 @include('user.partials.workspace-switcher')
             @endauth
+            @endif
 
             @php
                 use App\Modules\User\Services\WorkspacePermissions as WP;
@@ -1374,6 +1394,15 @@
             </nav>
             @endif
 
+            {{-- Under the rail these three blocks -- the plan card, the
+                 Switch to admin button and the avatar strip -- are four rows
+                 of the account menu at the foot of the panel, and the Account
+                 group that sat among them is gone: it carried a second
+                 Settings link (Settings is a rail section) and the badge
+                 chips (which render on the dashboard and on the badges
+                 settings page). Nothing below is reachable only from here.
+                 The classic sidebar keeps all of it. --}}
+            @if(!$__railNav)
             {{-- The plan card is always in the rail now: which plan you are on
                  is standing information, not a prompt, and hiding the whole
                  card on the top tier meant the one place that answered "what
@@ -1501,10 +1530,11 @@
                     </form>
                 </div>
             </div>
+            @endif
         </aside>
 
         <div class="flex-1 flex flex-col min-w-0 min-h-0 main-content-v2"
-             :style="'margin-left:' + (isDesktop ? sidebarWidth : 0) + 'px'">
+             :style="'margin-left:' + (isDesktop ? sidebarWidth + shellGap : 0) + 'px'">
 
             <header class="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative dash-glass !rounded-none"
                     style="height: var(--app-header-h);">

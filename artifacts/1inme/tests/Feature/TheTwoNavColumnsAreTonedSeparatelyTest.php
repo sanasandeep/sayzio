@@ -177,6 +177,40 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
         $this->assertGreaterThan(0, substr_count($css, '.navrail'));
     }
 
+    /**
+     * The two navs spell "selected" differently, and the preset rules
+     * only knew one of the spellings.
+     *
+     * A classic .sidebar-link takes `active`; a rail tile takes
+     * `is-active`. The chrome block paints every .navrail-btn with the
+     * muted ink and then overrides the selected one -- but the override
+     * named `.active`, so on the rail it matched nothing and the
+     * selected tile kept the muted ink. It was invisible while the rail
+     * scope was wrong, because none of these rules reached the rail at
+     * all; correcting the scope is what made it show.
+     */
+    public function test_the_chrome_rules_use_the_active_class_the_rail_renders(): void
+    {
+        $css = $this->renderAppearancePartial();
+        $markup = file_get_contents(resource_path('views/user/partials/nav-rail.blade.php'));
+
+        $this->assertStringContainsString(
+            'is-active',
+            $markup,
+            'The rail stopped using is-active, so the rule below now names the wrong class.'
+        );
+        $this->assertStringContainsString(
+            '.navrail-btn.is-active',
+            $css,
+            'No preset rule reaches the rail tile that is actually selected.'
+        );
+        $this->assertStringNotContainsString(
+            '.navrail-btn).active',
+            $css,
+            'A preset rule is still waiting for a class the rail never sets.'
+        );
+    }
+
     public function test_the_rail_is_the_default_and_an_explicit_choice_is_kept(): void
     {
         $fresh = new User(['settings' => []]);

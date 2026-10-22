@@ -111,10 +111,16 @@ html[data-{{ $navArea }}-appearance^="gradient-"] {!! $navScope !!} { --nav-cont
     --bg-dropdown:var(--nav-control);--bg-card:var(--nav-control);--bg-card-hover:var(--nav-active);--sidebar-bg:var(--nav-surface);--sidebar-link:var(--nav-muted);--sidebar-link-hover-bg:var(--nav-active);--sidebar-link-hover-text:var(--nav-ink);--bg-sidebar:var(--nav-surface);--bg-sidebar-mobile:var(--nav-surface);--bg-header:var(--nav-surface);--text-primary:var(--nav-ink);--text-secondary:var(--nav-muted);--text-muted:var(--nav-muted);--text-dimmed:var(--nav-muted);--text-faint:var(--nav-muted);--border-subtle:var(--nav-line);--border-glass:var(--nav-line);--border-strong:var(--nav-line);--sidebar-active-bg:var(--nav-active);--sidebar-active-text:var(--nav-active-ink);
 }
 @if(in_array($navArea, $navChromeAreas, true))
+{{-- The two navs spell "active" differently: a classic .sidebar-link
+     takes `.active`, a rail tile takes `.is-active`. These rules named
+     only the first, so every preset painted the rail's selected tile
+     with the muted ink meant for the unselected ones -- invisible until
+     the rail scope was corrected, because before that none of this
+     block reached the rail at all. --}}
 {!! $navSel !!} :is(.sidebar-link,.navrail-btn) { color:var(--nav-muted)!important; }
-{!! $navSel !!} :is(.sidebar-link,.navrail-btn).active { color:var(--nav-active-ink)!important;background:var(--nav-active)!important; }
-{!! $navSel !!} :is(.sidebar-link,.navrail-btn).active :is(i,.nav-icon-wrap) { color:var(--nav-active-ink)!important; }
-{!! $navSel !!} :is(.sidebar-link,.navrail-btn):not(.active) :is(i,.nav-icon-wrap) { color:var(--nav-muted)!important; }
+{!! $navSel !!} :is(.sidebar-link.active,.navrail-btn.is-active) { color:var(--nav-active-ink)!important;background:var(--nav-active)!important; }
+{!! $navSel !!} :is(.sidebar-link.active,.navrail-btn.is-active) :is(i,.nav-icon-wrap) { color:var(--nav-active-ink)!important; }
+{!! $navSel !!} :is(.sidebar-link,.navrail-btn):not(.active,.is-active) :is(i,.nav-icon-wrap) { color:var(--nav-muted)!important; }
 {!! $navSel !!} :is(.sidebar-link,.navrail-btn):is(:hover,:focus-visible) { background:var(--nav-active)!important;color:var(--nav-ink)!important; }
 {!! $navSel !!} :is(.sidebar-link,.navrail-btn):is(:hover,:focus-visible) :is(i,.nav-icon-wrap) { color:var(--nav-ink)!important; }
 {!! $navSel !!} .upgrade-card { background:var(--nav-control)!important;border:1px solid var(--nav-line)!important; }
