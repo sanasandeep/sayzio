@@ -24,7 +24,9 @@ use App\Modules\Admin\Models\AppSetting;
  */
 class LinkTypeCategories
 {
-    /** Optional admin override for the figure public copy quotes. */
+    /** Optional admin override for the figure public copy quotes.
+     *  Read by SitePagesContent::marketingLinkTypeCount(); the copy number
+     *  tracks the marketing showcase, not this catalogue. */
     public const MARKETING_COUNT_SETTING = 'link_type_marketing_count';
 
     /**
@@ -198,24 +200,6 @@ class LinkTypeCategories
         }
 
         return $n;
-    }
-
-    /**
-     * The figure public copy should quote, resolved into {{link_type_count}}.
-     *
-     * Defaults to the real catalogue count. An admin can override it when
-     * marketing counts something the picker does not (a bundle, or a type that
-     * ships behind a flag); a blank or non-positive override falls back rather
-     * than printing a nonsense number.
-     */
-    public static function marketingCount(): int
-    {
-        $override = AppSetting::get(self::MARKETING_COUNT_SETTING);
-        if (is_numeric($override) && (int) $override > 0) {
-            return (int) $override;
-        }
-
-        return self::catalogueCount();
     }
 
     public static function types(): array
