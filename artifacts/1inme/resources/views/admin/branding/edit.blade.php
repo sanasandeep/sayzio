@@ -16,6 +16,37 @@
             @csrf
 
             <section class="glass rounded-xl p-5 space-y-4">
+                <h3 class="font-semibold">Page header look</h3>
+                <p class="text-sm ak-muted">Applies to every page that uses the shared page header.</p>
+                <div class="grid md:grid-cols-2 gap-4 items-end">
+                    <label>Style
+                        <select name="page_hero_style" class="w-full rounded-lg p-2" style="background:var(--bg-card);color:var(--text-primary)">
+                            @foreach($heroStyles as $heroKey => $heroOption)
+                            <option value="{{ $heroKey }}" @selected($heroKey === $heroStyle)>{{ $heroOption['label'] }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    @php $heroPreview = $heroStyles[$heroStyle] ?? null; @endphp
+                    @if($heroPreview)
+                        <div class="space-y-1">
+                            <div class="flex rounded-lg overflow-hidden" style="height:22px;border:1px solid var(--border-glass)">
+                                @foreach($heroPreview['dark'] as $heroHue)
+                                    <div style="flex:1;background:{{ $heroHue }}"></div>
+                                @endforeach
+                            </div>
+                            <div class="flex rounded-lg overflow-hidden" style="height:22px;border:1px solid var(--border-glass)">
+                                @foreach($heroPreview['light'] as $heroHue)
+                                    <div style="flex:1;background:{{ $heroHue }}"></div>
+                                @endforeach
+                            </div>
+                            <p class="text-xs ak-muted">dark ramp above, light below &mdash; shown at full strength; the header uses them as tints</p>
+                        </div>
+                    @endif
+                </div>
+                @error('page_hero_style')<p class="text-red-400">{{ $message }}</p>@enderror
+            </section>
+
+            <section class="glass rounded-xl p-5 space-y-4">
                 <h3 class="font-semibold">Workspace navigation defaults</h3>
                 <p class="text-sm ak-muted">Users can override these on their browser from Appearance.</p>
                 <div class="grid md:grid-cols-3 gap-4">
