@@ -26,19 +26,24 @@
 @endphp
 
 @section('content')
-    <div class="page-hero mb-6">
-        <div class="flex items-center gap-3">
-            <div class="nav-icon-wrap" style="width:2.5rem;height:2.5rem;">
-                <i class="fas fa-sliders text-lg"></i>
-            </div>
-            <div>
-                <h1 class="text-xl sm:text-2xl font-bold" style="color: var(--text-strong);">Settings</h1>
-                <p class="text-xs sm:text-sm mt-0.5" style="color: var(--text-muted);">
-                    Manage your profile, security, connections and account preferences in one place.
-                </p>
-            </div>
-        </div>
-    </div>
+    {{-- Settings hand-rolled its own header: a bare .page-hero with an icon
+         and two lines in it. That skipped .page-hero-deco and the card
+         ribbon, which is the whole decorated treatment, so the one hub every
+         account passes through was the one page without the header design
+         every other page has. It uses the shared partial now, like Links,
+         Dashboard and every settings SUB-page already did.
+
+         The chip names the section you are in, from the tab that is already
+         resolved two lines up -- the hero was the only place on the page that
+         did not say where you were. --}}
+    @include('user.partials.page-hero', [
+        'title'    => 'Settings',
+        'subtitle' => 'Manage your profile, security, connections and account preferences in one place.',
+        'icon'     => 'fa-sliders',
+        'chips'    => $__activeTab
+            ? [['icon' => $__activeTab['icon'], 'text' => $__activeTab['label']]]
+            : [],
+    ])
 
     {{-- Primary tab strip --}}
     <nav aria-label="Settings" class="settings-tabs mb-4">
