@@ -258,6 +258,31 @@
             transition: margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 1px 2px rgba(0,0,0,0.04);
         }
+        /* The top bar shares the page's surface instead of floating on
+           it. Measured against the reference layout, whose header has
+           no background, no border and no shadow at all; ours was a
+           near-white gradient with a 1px rule under it, and that rule
+           is the seam. The body is already plain white, so removing
+           the panel leaves one continuous surface rather than a hole.
+
+           No !important here on purpose: a chosen top bar appearance
+           paints with !important and has to keep winning, so the flush
+           treatment is only what the default theme looks like. */
+        .header-v2.header-flush {
+            background: transparent;
+            background-image: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            box-shadow: none;
+            border: 0;
+        }
+        /* Aurora adds its own 1px rule under the header with
+           !important, so the flush treatment has to answer it in the
+           same terms. MEASURED: selectors that out-specify it on paper
+           -- html[data-topbar-appearance="theme"] .header-v2.header-flush,
+           header.header-v2.header-flush -- both lost; mirroring
+           aurora's own shape and adding one class is what wins. */
+        html.aurora header.header-v2.header-flush { border-bottom: 0 !important; }
         html.light-mode .header-v2 {
             box-shadow: 0 1px 3px rgba(7,20,55,0.04);
         }
@@ -684,13 +709,19 @@
                @if(!$__railNav) :class="sidebarMode === 'icons' ? 'collapsed' : ''" @endif
                :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')">
 
-            {{-- Edge-mounted collapse handle (sits 50% in / 50% out of sidebar) --}}
+            {{-- Edge-mounted collapse handle (sits 50% in / 50% out of sidebar).
+                 The card has no edge to mount it on: half of it would hang
+                 outside the rounded corner, belonging to neither the card nor
+                 the page. Under the rail the control is in the top bar
+                 instead, which is where the reference layout puts it. --}}
+            @if(!$__railNav)
             <button @click="setSidebar(sidebarMode === 'icons' ? 'full' : 'icons')"
                     class="sidebar-edge-toggle"
                     title="Toggle sidebar"
                     aria-label="Toggle sidebar">
                 <i class="fas" :class="sidebarMode === 'icons' ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
             </button>
+            @endif
 
             {{-- The card has no full-width strip across its top, so under
                  the rail the brand sits at the head of the rail column and
@@ -1536,7 +1567,7 @@
         <div class="flex-1 flex flex-col min-w-0 min-h-0 main-content-v2"
              :style="'margin-left:' + (isDesktop ? sidebarWidth + shellGap : 0) + 'px'">
 
-            <header class="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative dash-glass !rounded-none"
+            <header class="flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative !rounded-none{{ $__railNav ? ' header-flush' : ' dash-glass' }}"
                     style="height: var(--app-header-h);">
                 <div class="header-glow"></div>
 
@@ -1545,10 +1576,25 @@
                         <i class="fas fa-bars" style="font-size: 13px;"></i>
                     </button>
 
+                    {{-- One control covers all three states: it opens a hidden
+                         sidebar, and otherwise swaps the panel in and out. Under
+                         the classic sidebar it stays what it was -- a button that
+                         only appears when the sidebar is hidden -- because that
+                         layout still has its own edge handle. --}}
+                    @if($__railNav)
+                    <button @click="setSidebar(sidebarMode === 'full' ? 'icons' : 'full')"
+                            class="hidden lg:flex header-icon-btn flex-shrink-0"
+                            :title="sidebarMode === 'full' ? 'Collapse sidebar' : 'Expand sidebar'"
+                            aria-label="Toggle sidebar"
+                            style="width: 34px; height: 34px;">
+                        <i class="fas fa-table-columns" style="font-size: 12px;"></i>
+                    </button>
+                    @else
                     <button @click="setSidebar('full')" class="hidden lg:flex header-icon-btn flex-shrink-0" x-show="sidebarMode === 'hidden'" x-cloak title="Expand sidebar"
                             style="width: 34px; height: 34px;">
                         <i class="fas fa-angles-right" style="font-size: 11px;"></i>
                     </button>
+                    @endif
 
                     <div class="header-breadcrumb min-w-0">
                         @hasSection('breadcrumb_parent')
