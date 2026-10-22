@@ -56,14 +56,60 @@ class NavigationAppearance
         'gradient-dark'   => 'Dark gradient',
     ];
 
-    /** preset => [surface, ink, muted]. Shared with the JS by @json(). */
+    /**
+     * preset => token => value. The one place a preset's colours live.
+     *
+     * WHY THIS GREW FROM A THREE-TUPLE
+     *
+     * The same facts were written down in three places: here, as literals
+     * in the preset rules of navigation-appearance.blade.php, and again as
+     * hand-written swatch CSS on the user's Design page. Nothing held them
+     * together, and two of the three had already drifted.
+     *
+     * Measured on the live Design page: the Dark swatch painted #111827 --
+     * the navy from before the preset was neutralised, two colour changes
+     * stale. And this array still said #18181b after the preset itself
+     * moved to #0b0a11, so the palette was a generation behind the CSS it
+     * is supposed to describe. Neither drift broke anything loudly; the
+     * picker simply showed a colour the product had stopped using.
+     *
+     * So the blade now emits the preset rules from these values and the
+     * swatches are generated from them too. Adding a preset is one entry.
+     *
+     * The gradient presets carry only the three tokens the shared
+     * `[appearance^="gradient-"]` rule needs; it derives line, active and
+     * active-ink from the ink by colour-mix, which a literal cannot do.
+     * `tokens()` is what tells the two kinds apart.
+     *
+     * Shared with the JS by @json().
+     */
     public const PALETTES = [
-        'light'           => ['#ffffff', '#172033', '#566176'],
-        'dark'            => ['#18181b', '#fafafa', '#a1a1aa'],
-        'gradient-light'  => ['linear-gradient(135deg,#edf4ff 0%,#f0eaff 55%,#e4f6f5 100%)', '#172033', '#49556c'],
-        'gradient-medium' => ['linear-gradient(135deg,#4f46b5 0%,#6751bb 55%,#296d88 100%)', '#ffffff', '#ede9fe'],
-        'gradient-dark'   => ['linear-gradient(135deg,#111c38 0%,#2b1d48 55%,#12383c 100%)', '#ffffff', '#d9e1f2'],
+        'light' => [
+            'surface' => '#ffffff', 'ink' => '#172033', 'muted' => '#566176',
+            'control' => '#ffffff', 'line' => '#dce2ed',
+            'active' => '#e8edff', 'active-ink' => '#2948d5',
+        ],
+        'dark' => [
+            'surface' => '#0b0a11', 'ink' => '#f3f1f7', 'muted' => '#9b97ac',
+            'control' => '#100f17', 'line' => '#191823',
+            'active' => '#201f2e', 'active-ink' => '#f3f1f7',
+        ],
+        'gradient-light' => [
+            'surface' => 'linear-gradient(135deg,#edf4ff 0%,#f0eaff 55%,#e4f6f5 100%)',
+            'ink' => '#172033', 'muted' => '#49556c', 'control' => '#f2f1fc',
+        ],
+        'gradient-medium' => [
+            'surface' => 'linear-gradient(135deg,#4f46b5 0%,#6751bb 55%,#296d88 100%)',
+            'ink' => '#ffffff', 'muted' => '#ede9fe', 'control' => '#352f70',
+        ],
+        'gradient-dark' => [
+            'surface' => 'linear-gradient(135deg,#111c38 0%,#2b1d48 55%,#12383c 100%)',
+            'ink' => '#ffffff', 'muted' => '#d9e1f2', 'control' => '#171f35',
+        ],
     ];
+
+    /** The tokens every solid preset defines, in the order the rule writes them. */
+    public const TOKENS = ['control', 'surface', 'ink', 'muted', 'line', 'active', 'active-ink'];
 
     /** The presets whose ink is light, so the dark logo is the readable one. */
     public const DARK_PRESETS = ['dark', 'gradient-medium', 'gradient-dark'];
@@ -113,5 +159,47 @@ class NavigationAppearance
     public static function wantsDarkLogo(string $preset): bool
     {
         return in_array($preset, self::DARK_PRESETS, true);
+    }
+
+    /**
+     * A preset's full token set, or [] when it does not define one.
+     *
+     * A preset either states all seven tokens and is emitted as literals,
+     * or states only surface/ink/muted and lets the shared gradient rule
+     * derive the rest. Asking this question here means the blade does not
+     * have to know which presets are which.
+     *
+     * @return array<string, string>
+     */
+    public static function tokens(string $preset): array
+    {
+        $palette = self::PALETTES[$preset] ?? [];
+
+        foreach (self::TOKENS as $token) {
+            if (!isset($palette[$token])) {
+                return [];
+            }
+        }
+
+        return $palette;
+    }
+
+    /**
+     * What a preset looks like in a picker swatch.
+     *
+     * The surface alone, because that is what the preset paints. 'theme'
+     * has no palette -- it means "leave the surface to the page theme" --
+     * so it gets a split of the two grounds a theme can be, built from the
+     * two solid presets rather than from a pair of literals that can go
+     * stale the way the last pair did.
+     */
+    public static function swatch(string $preset): string
+    {
+        if ($preset === 'theme' || $preset === '') {
+            return 'linear-gradient(90deg,' . self::PALETTES['light']['surface'] . ' 50%,'
+                . self::PALETTES['dark']['surface'] . ' 50%)';
+        }
+
+        return self::PALETTES[$preset]['surface'] ?? 'transparent';
     }
 }
