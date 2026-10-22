@@ -153,25 +153,49 @@ class TheNavIconsComeFromOneSpriteTest extends TestCase
     }
 
     /**
-     * The conversion must not have dropped a glyph on the floor: the
-     * only Font Awesome left in the desktop sidebar is the one that
-     * cannot be mapped.
+     * The conversion must not have dropped a glyph on the floor.
+     *
+     * The claim is narrower than "no Font Awesome in the sidebar", and
+     * an earlier version of this test got that wrong: the workspace
+     * switcher is a whole component of webfont glyphs -- an icon PICKER
+     * offering twelve symbols, with a tick on the chosen one -- and it
+     * is deliberately untouched, because the symbol it writes is a
+     * stored value that no sprite can promise an id for. Counting
+     * `class="fas"` across the aside therefore counts the one thing
+     * this change was never going to convert.
+     *
+     * What is actually true, and what is asserted: a NAV LINK's icon
+     * slot holds an <svg>, never an <i>.
      */
-    public function test_the_only_webfont_glyph_left_in_the_rail_is_the_one_that_cannot_be_mapped(): void
+    public function test_no_nav_link_still_carries_a_webfont_glyph(): void
     {
         $html = $this->dashboard();
         $start = strpos($html, 'sidebar-v2 sidebar-shell');
         $this->assertNotFalse($start);
         $aside = substr($html, $start, strpos($html, '</aside>', $start) - $start);
 
-        $this->assertGreaterThan(20, substr_count($aside, 'class="nav-icon'), 'The rail lost its icons.');
+        // Every icon slot is counted, and the two counts have to add
+        // back up to the number of slots -- otherwise a slot written a
+        // third way would simply go missing from both tallies and the
+        // test would pass by not looking. Two of the slots carry an
+        // inline style, so the match cannot assume the tag follows the
+        // class attribute immediately.
+        $slots = preg_match_all('/class="nav-icon-wrap"[^>]*>\s*</', $aside);
+        preg_match_all('/class="nav-icon-wrap"[^>]*>\s*<(svg|i)\b/', $aside, $m);
 
-        preg_match_all('/class="fas ([a-z0-9- ]*)"/', $aside, $m);
-        $left = array_values(array_filter(array_map('trim', $m[1])));
-        $this->assertLessThanOrEqual(
-            1,
-            count($left),
-            'Unconverted webfont glyphs in the rail: ' . implode(', ', $left)
+        $sprite = count(array_filter($m[1], fn ($t) => $t === 'svg'));
+        $webfont = count(array_filter($m[1], fn ($t) => $t === 'i'));
+
+        $this->assertGreaterThan(20, $sprite, 'The rail lost its icons.');
+        $this->assertSame(
+            0,
+            $webfont,
+            $webfont . ' nav link icon slots still hold a webfont glyph.'
+        );
+        $this->assertSame(
+            $slots,
+            $sprite + $webfont,
+            'An icon slot holds neither an <svg> nor an <i>, so the counts above miss it.'
         );
     }
 }

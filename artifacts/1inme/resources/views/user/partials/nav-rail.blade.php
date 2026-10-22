@@ -310,6 +310,13 @@
        the panel while it is open, in the top bar once it is not. One
        control in two places rather than one that is always in the same
        place and sometimes points at nothing. */
+    /* MEASURED: the toggle's 26px box and the switcher's chevron
+       overlapped by 12px -- two controls occupying the same corner, one
+       of them invisible under the other. The switcher gives up the
+       width rather than the toggle moving, because the toggle belongs
+       on the panel's corner and the switcher has room to spare. */
+    .rail-card .navrail-panel #workspace-switcher { padding-right: 40px; }
+
     .navrail-panel-toggle {
         position: absolute;
         top: 15px;
@@ -721,7 +728,14 @@
     }
     .navrail-panel .sidebar-group-toggle :is(i, svg) { display: none; }
 
-    .navrail-panel .sidebar-link { transition: background .18s ease, color .18s ease; }
+    /* MEASURED: the rows sat 2px apart, which reads as one block of
+       text rather than a list of destinations. The nav partials set
+       their own space-y-0.5, so the margin adds to it rather than
+       fighting it: 2 + 6 = 7px between 46px rows. */
+    .navrail-panel .sidebar-link {
+        margin-bottom: 6px;
+        transition: background .18s ease, color .18s ease;
+    }
 
     @media (prefers-reduced-motion: reduce) {
         .navrail-btn,
