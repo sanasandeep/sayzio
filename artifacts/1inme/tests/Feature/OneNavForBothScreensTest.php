@@ -194,17 +194,33 @@ class OneNavForBothScreensTest extends TestCase
 
     // ── The flag ─────────────────────────────────────────────────────
 
-    public function test_the_rail_is_off_until_an_account_opts_in(): void
+    public function test_the_rail_is_the_default_and_classic_is_the_opt_out(): void
     {
+        // This used to assert the opposite. The default flipped deliberately,
+        // so the premise flipped with it - but the part that matters is
+        // unchanged: a choice, once made, has to survive.
         $user = $this->host();
 
-        $this->assertFalse($user->usesRailNav(), 'the rail was on for an account that never asked');
-
-        $this->actingAs($user)->get('/user/appearance/nav/rail');
-        $this->assertTrue($user->fresh()->usesRailNav());
+        $this->assertTrue($user->usesRailNav(), 'an account that never asked should get the rail');
 
         $this->actingAs($user)->get('/user/appearance/nav/classic');
-        $this->assertFalse($user->fresh()->usesRailNav(), 'switching back did not switch back');
+        $this->assertFalse($user->fresh()->usesRailNav(), 'opting out did not opt out');
+
+        $this->actingAs($user)->get('/user/appearance/nav/rail');
+        $this->assertTrue($user->fresh()->usesRailNav(), 'switching back did not switch back');
+    }
+
+    public function test_an_explicit_classic_choice_survives_the_default_flip(): void
+    {
+        // The flip reads the ABSENCE of nav_pack, not its value. An account
+        // that had already chosen classic must not be moved by it.
+        $user = $this->host();
+        $settings = (array) ($user->settings ?? []);
+        $settings['nav_pack'] = 'classic';
+        $user->settings = $settings;
+        $user->save();
+
+        $this->assertFalse($user->fresh()->usesRailNav());
     }
 
     public function test_the_nav_flag_and_the_aurora_flag_do_not_touch_each_other(): void

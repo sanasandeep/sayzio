@@ -91,13 +91,13 @@
     .navrail-wrap { display: flex; flex: 1 1 auto; min-height: 0; }
 
     .navrail {
-        flex: 0 0 72px;
-        width: 72px;
+        flex: 0 0 56px;
+        width: 56px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
-        padding: 10px 0 14px;
+        gap: 2px;
+        padding: 8px 0 12px;
         overflow-y: auto;
         overflow-x: hidden;
         overscroll-behavior: contain;
@@ -108,28 +108,38 @@
        inventing a grey here would be a colour literal that the sidebar
        appearance options could not override. */
 
+    /* A square icon tile. It was a 56x45 rounded rectangle carrying a
+       9.5px label, which reads as a box rather than an icon - "its more
+       like rounded corner rectangle" (Sana, against the reference). The
+       label becomes the accessible name and the tooltip instead of
+       shipping two type sizes in a 56px column. */
     .navrail-btn {
         position: relative;
-        width: 56px;
-        padding: 8px 2px 6px;
+        width: 40px;
+        height: 40px;
+        padding: 0;
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 4px;
+        justify-content: center;
         background: transparent;
         border: 1px solid transparent;
-        border-radius: 12px;
+        border-radius: 10px;
         color: var(--sidebar-link);
         cursor: pointer;
-        transition: background .18s ease, color .18s ease, border-color .18s ease;
+        transition: background .2s cubic-bezier(.4, 0, .2, 1),
+                    color .2s cubic-bezier(.4, 0, .2, 1),
+                    transform .12s ease;
     }
-    .navrail-btn i { font-size: 15px; line-height: 1; }
+    .navrail-btn:active { transform: scale(.94); }
+    .navrail-btn i { font-size: 16px; line-height: 1; }
+    /* Kept in the DOM: it is the button's accessible name. */
     .navrail-btn-label {
-        font-size: 9.5px;
-        font-weight: 700;
-        letter-spacing: .02em;
-        line-height: 1.1;
-        text-align: center;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
     }
     .navrail-btn:hover {
         background: var(--sidebar-link-hover-bg);
@@ -139,11 +149,17 @@
         outline: 2px solid var(--sidebar-active-border);
         outline-offset: 2px;
     }
+    /* The active tile takes the brand accent, not --sidebar-active-bg,
+       which resolved to a beige rgb(237,235,230) on the live page and
+       read as "nothing is selected". --accent is the one token that is
+       the workspace's own colour in every theme and appearance. */
     .navrail-btn.is-active {
-        background: var(--sidebar-active-bg);
-        color: var(--sidebar-active-text);
-        border-color: var(--sidebar-active-border);
+        background: var(--accent);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent);
     }
+    .navrail-btn.is-active i { color: #fff; }
     /* is-current marks the section the CURRENT PAGE lives in. It stays
        marked while you browse another section's panel, so the rail can
        answer "where am I" and "what am I looking at" at the same time
@@ -155,10 +171,13 @@
         top: 50%;
         transform: translateY(-50%);
         width: 3px;
-        height: 18px;
+        height: 14px;
         border-radius: 999px;
         background: var(--accent);
     }
+    /* On the active tile the accent marker would sit on the accent, so
+       the tile itself is already the answer to "where am I". */
+    .navrail-btn.is-active.is-current::after { background: #fff; opacity: 0; }
 
     .navrail-panel {
         flex: 1 1 auto;
@@ -196,7 +215,8 @@
         border-right: 0;
         border-bottom: 1px solid var(--border-strong);
     }
-    .navrail-mobile .navrail-btn { flex: 0 0 auto; width: 64px; }
+    /* 64px was room for the label; the label is the tooltip now. */
+    .navrail-mobile .navrail-btn { flex: 0 0 auto; width: 40px; }
     .navrail-mobile .navrail-btn.is-current::after {
         left: 50%;
         top: auto;
@@ -234,15 +254,84 @@
         color: var(--text-muted);
     }
 
+    /* ---- minimised: the panel becomes a flyout ----------------------
+       At 72px the panel was squeezed to 20px and still rendered, so
+       clicking a rail icon did nothing you could see. It now floats
+       beside the rail. This works because .sidebar-shell and
+       .navrail-wrap are both overflow:visible - verified on the live
+       page before this was written; a clipping ancestor would have
+       needed the flyout in a portal instead. */
+    .navrail-wrap[data-rail-min="1"] .navrail-panel {
+        position: fixed;
+        left: 56px;
+        top: 64px;
+        bottom: 12px;
+        width: 248px;
+        background: var(--nav-surface, var(--bg-card));
+        border: 1px solid var(--border-strong);
+        border-radius: 0 14px 14px 0;
+        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .45);
+        z-index: 60;
+        opacity: 0;
+        transform: translateX(-8px);
+        pointer-events: none;
+        transition: opacity .18s ease, transform .22s cubic-bezier(.4, 0, .2, 1);
+    }
+    .navrail-wrap[data-rail-min="1"][data-rail-open="1"] .navrail-panel {
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+    }
+    /* The drawer is already a flyout; it must not get a second one. */
+    .navrail-mobile[data-rail-min="1"] .navrail-panel {
+        position: static; width: auto; opacity: 1; transform: none;
+        pointer-events: auto; border: 0; box-shadow: none; border-radius: 0;
+    }
+
+    /* ---- the groups inside a panel ----------------------------------
+       Each panel IS one section, and the classic group partials wrap
+       their links in an accordion on top of that. On the live page 16
+       of 18 groups were collapsed, so most links sat behind a second
+       click inside a section you had already chosen. The headers stay
+       as headers; they just stop being buttons. */
+    .navrail-panel .sidebar-group-toggle {
+        pointer-events: none;
+        cursor: default;
+        padding-top: 14px;
+        padding-bottom: 4px;
+    }
+    .navrail-panel .sidebar-group-toggle :is(i, svg) { display: none; }
+
+    .navrail-panel .sidebar-link { transition: background .18s ease, color .18s ease; }
+
     @media (prefers-reduced-motion: reduce) {
         .navrail-btn,
-        .navrail-panel .navrail-subtle-btn { transition: none; }
+        .navrail-btn:active,
+        .navrail-wrap[data-rail-min="1"] .navrail-panel,
+        .navrail-panel .sidebar-link,
+        .navrail-panel .navrail-subtle-btn { transition: none; transform: none; }
     }
 </style>
 @endonce
 
+{{-- `sidebarMode` comes from the shell's x-data above; reading it through
+     `this` lets the drawer, which has no such parent, resolve undefined
+     instead of throwing. --}}
 <div class="navrail-wrap navrail-{{ $railSurface }}"
-     x-data="{ railSection: '{{ $railActive }}' }">
+     x-data="{
+        railSection: '{{ $railActive }}',
+        railOpen: false,
+        get railMin() { return this.sidebarMode === 'icons'; },
+        pick(key) {
+            if (this.railMin && this.railOpen && this.railSection === key) { this.railOpen = false; return; }
+            this.railSection = key;
+            this.railOpen = true;
+        }
+     }"
+     :data-rail-min="railMin ? '1' : '0'"
+     :data-rail-open="railOpen ? '1' : '0'"
+     @click.outside="railOpen = false"
+     @keydown.escape.window="railOpen = false">
 
     <div class="navrail" role="tablist" aria-label="Navigation sections">
         @foreach($railOrder as $railKey)
@@ -252,7 +341,7 @@
                     id="navrail-tab-{{ $railSurface }}-{{ $railKey }}"
                     aria-controls="navrail-panel-{{ $railSurface }}-{{ $railKey }}"
                     :aria-selected="railSection === '{{ $railKey }}' ? 'true' : 'false'"
-                    @click="railSection = '{{ $railKey }}'"
+                    @click="pick('{{ $railKey }}')"
                     class="navrail-btn {{ $railKey === $railActive ? 'is-active is-current' : '' }}"
                     :class="railSection === '{{ $railKey }}' ? 'is-active' : ''"
                     title="{{ $railItem['label'] }}">
@@ -262,7 +351,14 @@
         @endforeach
     </div>
 
-    <div class="navrail-panel sidebar-nav-scroll">
+    {{-- Open every group the panel inherited from the classic markup.
+         Done through Alpine's own data rather than an !important that
+         fights x-show, so a group that genuinely wants to collapse
+         later still can. --}}
+    <div class="navrail-panel sidebar-nav-scroll"
+         x-init="$nextTick(() => $el.querySelectorAll('[x-data]').forEach(n => {
+            try { const d = Alpine.$data(n); if (d && 'open' in d) d.open = true; } catch (e) {}
+         }))">
         {{-- Every section renders; the server picks which one is visible
              so the panel is right in the first painted frame. x-cloak on
              all seven would blank the whole nav until Alpine boots, and

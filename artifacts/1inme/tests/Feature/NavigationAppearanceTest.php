@@ -16,12 +16,24 @@ class NavigationAppearanceTest extends TestCase
     public function test_admin_can_save_defaults_and_invalid_colors_do_not_replace_them(): void
     {
         $this->actingAs($this->administrator(), 'admin');
-        $data = ['navigation_sidebar'=>'dark','navigation_topbar'=>'gradient-dark','navigation_logo'=>'1'];
-        $this->post(route('admin.branding.update'),$data)->assertRedirect()->assertSessionHasNoErrors();
-        $expected = ['sidebar'=>'dark','topbar'=>'gradient-dark','logo'=>true];
+        // A form cached before the sidebar split posts one field for both
+        // columns. It still saves, and it seeds the rail and the panel.
+        $legacy = ['navigation_sidebar'=>'dark','navigation_topbar'=>'gradient-dark','navigation_logo'=>'1'];
+        $this->post(route('admin.branding.update'),$legacy)->assertRedirect()->assertSessionHasNoErrors();
+        $expected = ['logo'=>true,'rail'=>'dark','panel'=>'dark','topbar'=>'gradient-dark'];
         $this->assertEquals($expected, AppSetting::get('navigation_appearance'));
+
+        // The current form posts a column at a time, and they can differ -
+        // which is the whole point of the split.
+        $data = ['navigation_rail'=>'dark','navigation_panel'=>'light','navigation_topbar'=>'gradient-dark','navigation_logo'=>'1'];
+        $this->post(route('admin.branding.update'),$data)->assertRedirect()->assertSessionHasNoErrors();
+        $expected = ['logo'=>true,'rail'=>'dark','panel'=>'light','topbar'=>'gradient-dark'];
+        $this->assertEquals($expected, AppSetting::get('navigation_appearance'));
+
         $this->get(route('admin.branding.edit'))->assertOk()->assertSee('Workspace navigation defaults');
         $this->post(route('admin.branding.update'),array_replace($data,['navigation_topbar'=>'unknown']))->assertSessionHasErrors('navigation_topbar');
+        $this->assertEquals($expected, AppSetting::get('navigation_appearance'));
+        $this->post(route('admin.branding.update'),array_replace($data,['navigation_rail'=>'unknown']))->assertSessionHasErrors('navigation_rail');
         $this->assertEquals($expected, AppSetting::get('navigation_appearance'));
     }
     public function test_design_settings_are_accessible_in_the_settings_hub(): void
@@ -33,7 +45,7 @@ class NavigationAppearanceTest extends TestCase
     public function test_user_cannot_change_site_defaults(): void
     {
         $this->actingAs(\App\Modules\User\Models\User::factory()->create());
-        $this->post(route('admin.branding.update'),['navigation_sidebar'=>'dark','navigation_topbar'=>'dark','navigation_color'=>'#123456'])->assertRedirect();
+        $this->post(route('admin.branding.update'),['navigation_rail'=>'dark','navigation_panel'=>'dark','navigation_topbar'=>'dark','navigation_color'=>'#123456'])->assertRedirect();
         $this->assertNull(AppSetting::get('navigation_appearance'));
     }
 }
