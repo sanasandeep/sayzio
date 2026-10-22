@@ -14,7 +14,7 @@
 @endphp
 <div class="ov-wrap">
     <header class="ov-head">
-        <div><p class="ov-muted">{{ now(\App\Support\PlatformTimezone::forUser(auth()->user()))->format('l, j M') }} · Your workspace</p><h1>Everything you need to keep building.</h1><p class="ov-muted">Manage your links, check your allowance, and pick up where you left off.</p></div>
+        <div><p class="ov-muted">{{ now(\App\Support\PlatformTimezone::forUser(auth()->user()))->format('l, j M') }} · Your workspace</p></div>
     </header>
     {{-- Above the counts, unlike the flow panel below them, and for the
          opposite reason: this is not orientation. It is a door opening in
