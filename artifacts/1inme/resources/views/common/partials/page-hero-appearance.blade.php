@@ -32,8 +32,9 @@
     $heroTint   = [\App\Modules\Common\Support\PageHeroStyle::class, 'tint'];
     $heroOn     = [\App\Modules\Common\Support\PageHeroStyle::class, 'onLead'];
 
-    // Ring radii / widths, outermost last.
-    $heroRings = [[58, 2.4], [86, 2.2], [114, 2.0], [142, 1.8], [170, 1.6], [198, 1.5]];
+    // Ring radii / widths, outermost last. The arcs are hairlines: at 2.4px
+    // the innermost read as a drawn band rather than a trace (Sana, live).
+    $heroRings = [[58, 1.4], [86, 1.3], [114, 1.2], [142, 1.1], [170, 1.0], [198, 1.0]];
 
     $heroRingStack = static function (array $hues, float $alpha) use ($heroRings, $heroTint): string {
         $layers = [];
@@ -59,7 +60,14 @@
     $onLead = $heroOn($lead);
     $rings  = $heroOpt['layout'] === 'rings';
 
-    $plateBg     = $isDark ? '#12121a' : '#ffffff';
+    // The band and the plate are two surfaces. Without this the theme paints
+    // .page-hero #ffffff in light and rgb(16,15,23) in dark, against a plate of
+    // #ffffff / rgb(18,18,26) - the same colour and two levels apart - so the
+    // card melted into the band and only the gutters showed any decoration.
+    $bandBg      = $isDark
+        ? \App\Modules\Common\Support\PageHeroStyle::mix($lead, '#07070c', .95)
+        : \App\Modules\Common\Support\PageHeroStyle::mix($lead, '#f1f3f9', .95);
+    $plateBg     = $isDark ? '#181824' : '#ffffff';
     $plateBorder = $isDark ? 'rgba(255,255,255,.09)' : 'rgba(15,23,42,.07)';
     $plateShadow = $isDark
         ? '0 14px 34px -20px rgba(0,0,0,.75)'
@@ -67,15 +75,19 @@
 
     $wash = sprintf(
         'radial-gradient(130%% 190%% at 0%% 0%%, %s 0%%, %s 36%%, %s 64%%, rgba(255,255,255,0) 84%%)',
-        $heroTint($hues[0], $isDark ? .30 : .26),
-        $heroTint($hues[1], $isDark ? .19 : .15),
-        $heroTint($hues[0], $isDark ? .07 : .05)
+        $heroTint($hues[0], $isDark ? .22 : .22),
+        $heroTint($hues[1], $isDark ? .13 : .13),
+        $heroTint($hues[0], $isDark ? .04 : .04)
     );
 @endphp
     /* {{ $heroOpt['label'] }} - {{ $heroTheme }} */
+    {{-- No border-color here. `html.aurora .page-hero` (among others) sets
+         `border: 1px solid transparent !important`, so a border-color rule at
+         this specificity is dead on arrival - it computed rgba(0,0,0,0) on
+         every page. The band/plate contrast carries the edge instead. --}}
     {!! $heroSel !!} .page-hero {
         padding: {{ $rings ? '14px 14px 14px 150px' : '14px' }};
-        border-color: {{ $heroTint($lead, $isDark ? .26 : .22) }};
+        background-color: {{ $bandBg }};
     }
     {!! $heroSel !!} .page-hero > .page-hero-deco {
         display: block;
@@ -85,7 +97,7 @@
         border-radius: inherit;
         pointer-events: none;
 @if($rings)
-        background-image: {!! $heroRingStack($hues, $isDark ? .50 : .42) !!}, {!! $wash !!};
+        background-image: {!! $heroRingStack($hues, $isDark ? .40 : .34) !!}, {!! $wash !!};
         -webkit-mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.6) 34%, transparent 62%);
         mask-image: linear-gradient(to right, #000 0%, rgba(0,0,0,.6) 34%, transparent 62%);
 @else

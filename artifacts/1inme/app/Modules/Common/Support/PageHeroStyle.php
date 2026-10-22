@@ -135,6 +135,28 @@ class PageHeroStyle
         return $out;
     }
 
+    /**
+     * $hex blended into $base, $weight being how much of $base survives.
+     *
+     * The band under the plate needs an OPAQUE surface, not a tint: an rgba()
+     * band would composite against whatever the theme painted on .page-hero,
+     * which in light mode is #ffffff - the same colour as the plate - so the
+     * double card disappeared and only the gutters read as decoration.
+     */
+    public static function mix(string $hex, string $base, float $weight): string
+    {
+        $hex = ltrim($hex, '#');
+        $base = ltrim($base, '#');
+        $out = '#';
+        foreach ([0, 2, 4] as $offset) {
+            $a = hexdec(substr($hex, $offset, 2));
+            $b = hexdec(substr($base, $offset, 2));
+            $out .= sprintf('%02x', (int) round($a * (1 - $weight) + $b * $weight));
+        }
+
+        return $out;
+    }
+
     /** hex + alpha -> rgba(), for the tints the CSS partial emits. */
     public static function tint(string $hex, float $alpha): string
     {

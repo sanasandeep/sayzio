@@ -147,8 +147,37 @@ class ThePageHeroLookIsChosenOnceTest extends TestCase
         $this->assertSame($selectors, preg_match_all('/\.hero-row \{[^}]*box-shadow:/s', $css));
         $this->assertSame(
             $selectors,
-            preg_match_all('/\.hero-row \{[^}]*background: #(?:ffffff|12121a)/s', $css),
+            preg_match_all('/\.hero-row \{[^}]*background: #[0-9a-f]{6}/s', $css),
             'The plate must be opaque - the decoration sits behind it.'
+        );
+
+        // The band needs an opaque surface of its own. A tint would composite
+        // against whatever the theme painted on .page-hero - #ffffff in light,
+        // the same colour as the plate - and the double card would vanish.
+        $this->assertSame(
+            $selectors,
+            preg_match_all('/\.page-hero \{[^}]*background-color: #[0-9a-f]{6}/s', $css),
+            'Every style needs an opaque band colour, or the plate melts into it.'
+        );
+
+        // Band and plate must actually differ, per selector.
+        preg_match_all('/\.page-hero \{[^}]*background-color: (#[0-9a-f]{6})/s', $css, $bands);
+        preg_match_all('/\.hero-row \{[^}]*background: (#[0-9a-f]{6})/s', $css, $plates);
+        $this->assertCount($selectors, $bands[1]);
+        $this->assertCount($selectors, $plates[1]);
+        foreach ($bands[1] as $i => $band) {
+            $this->assertNotSame($band, $plates[1][$i], "Band and plate are the same colour ({$band}).");
+        }
+
+        // `html.aurora .page-hero` sets `border: 1px solid transparent
+        // !important`, so a border-color rule here can never apply. It computed
+        // rgba(0,0,0,0) on every page before this was removed.
+        // (The emblem and button legitimately set border-color; this is only
+        // about the band rule itself.)
+        $this->assertDoesNotMatchRegularExpression(
+            '/\.page-hero \{[^}]*border-color:/s',
+            $css,
+            'A border-color on .page-hero loses to an !important aurora rule - use the band colour.'
         );
 
         // The decoration is drawn by this stylesheet, so whatever the partial
