@@ -85,7 +85,7 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
         $css = $this->renderAppearancePartial();
 
         $scopes = [
-            'rail'   => '.navrail-rail',
+            'rail'   => '.navrail',
             'panel'  => ':is(.sidebar-shell,.navigation-mobile,.navrail-panel)',
             'topbar' => '.header-v2',
         ];
@@ -107,7 +107,7 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
         // The rail must redefine the tokens for its own subtree. Without this
         // it inherits the panel's and the two columns can never disagree.
         $this->assertMatchesRegularExpression(
-            '/html\[data-rail-appearance\]:not\(\[data-rail-appearance="theme"\]\) \.navrail-rail \{[^}]*--nav-surface/s',
+            '/html\[data-rail-appearance\]:not\(\[data-rail-appearance="theme"\]\) \.navrail \{[^}]*--nav-surface/s',
             $css,
             'The rail must set its own surface tokens.'
         );
@@ -115,6 +115,46 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
         // Blade escaping would void every rule carrying an attribute selector.
         $this->assertStringNotContainsString('&quot;', $css);
         $this->assertStringNotContainsString('&gt;', $css);
+    }
+
+    /**
+     * The check this suite was missing, and the reason the rail's colours did
+     * nothing from the day they shipped.
+     *
+     * Every rail rule was scoped to `.navrail-rail`, a class that appears
+     * ZERO times in the markup - the element is `.navrail`. The stylesheet
+     * was correct, well-formed and complete, and matched nothing. The old
+     * assertions all passed, because they only ever asked what the sheet
+     * SAYS; none asked whether anything on the page could hear it.
+     *
+     * So this one reads both files: every class the appearance partial
+     * scopes a navigation surface to has to exist in the markup that
+     * surface is made of.
+     */
+    public function test_every_scope_matches_a_class_the_markup_actually_renders(): void
+    {
+        $css = $this->renderAppearancePartial();
+        $markup = file_get_contents(resource_path('views/user/partials/nav-rail.blade.php'))
+            . file_get_contents(resource_path('views/user/layouts/app.blade.php'));
+
+        preg_match_all('/\.(navrail[\w-]*|sidebar-shell|navigation-mobile|header-v2)\b/', $css, $found);
+        $scoped = array_values(array_unique($found[1]));
+        $this->assertNotEmpty($scoped, 'No scopes found - the sheet changed shape.');
+
+        $orphans = [];
+        foreach ($scoped as $class) {
+            // Must appear inside a class attribute. A comment naming it is
+            // not markup, which is exactly how the old name survived review.
+            if (!preg_match('/class="[^"]*\b' . preg_quote($class, '/') . '\b/', $markup)) {
+                $orphans[] = $class;
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $orphans,
+            'Styled but never rendered, so these rules match nothing: ' . implode(', ', $orphans)
+        );
     }
 
     /**
@@ -134,7 +174,7 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
             );
         }
         // The rail is the new one, so it is the one most likely to be missing.
-        $this->assertGreaterThan(0, substr_count($css, '.navrail-rail'));
+        $this->assertGreaterThan(0, substr_count($css, '.navrail'));
     }
 
     public function test_the_rail_is_the_default_and_an_explicit_choice_is_kept(): void
