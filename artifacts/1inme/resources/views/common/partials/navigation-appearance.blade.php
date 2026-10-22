@@ -37,9 +37,26 @@
         'rail'   => '.navrail',
         'panel'  => ':is(.sidebar-shell,.navigation-mobile,.navrail-panel)',
         'topbar' => '.header-v2',
+        'page'   => 'body',
     ];
     // The areas that carry sidebar chrome - links, logo, upgrade card.
     $navChromeAreas = ['rail', 'panel'];
+
+    /* The page is a BACKGROUND and nothing else, and it emits no custom
+       properties at all. Two reasons, both of which bite:
+
+       The token block the other areas get redefines --bg-card,
+       --text-primary and the rest for its own subtree. That is right for
+       a column of chrome and wrong for the ground: on `body` it would
+       repaint every card on every screen.
+
+       And custom properties INHERIT. nav-rail reads
+       `var(--nav-surface, var(--bg-card))` in three places -- the
+       account block, the presence dot, the minimised flyout -- all of
+       which rely on that fallback when no preset is chosen. Setting
+       --nav-surface on body would hand them the page's colour instead,
+       so a light page would repaint the flyout inside a dark rail. */
+    $navSurfaceOnly = NavAppearance::SURFACE_ONLY_AREAS;
 
     $navOn = static fn (string $a): string => 'html[data-' . $a . '-appearance]:not([data-' . $a . '-appearance="theme"])';
     $navIs = static fn (string $a, string $p): string => 'html[data-' . $a . '-appearance="' . $p . '"]';
@@ -104,6 +121,11 @@
 @foreach($navScopes as $navArea => $navScope)
 @php($navSel = $navOn($navArea) . ' ' . $navScope)
 /* ---------------- {{ $navArea }} ---------------- */
+@if(in_array($navArea, $navSurfaceOnly, true))
+@foreach(NavAppearance::PALETTES as $navPreset => $navPalette)
+{!! $navIs($navArea, $navPreset) !!} {!! $navScope !!} { background:{{ $navPalette['surface'] }}!important; }
+@endforeach
+@else
 {{-- The solid presets are written out from NavigationAppearance::PALETTES
      rather than typed here. They used to be literals, and the same facts
      were also written as swatch CSS on the Design page, so a preset's
@@ -165,6 +187,7 @@ html[data-{{ $navArea }}-appearance^="gradient-"] {!! $navScope !!} { --nav-cont
 {!! $navOn($navArea) !!}[data-{{ $navArea }}-logo="light"] {!! $navScope !!} .brand-logo--dark { display:none!important; }
 @else
 {!! $navSel !!} .header-icon-btn { background:var(--nav-active)!important;color:var(--nav-ink)!important;border-color:var(--nav-line)!important; }
+@endif
 @endif
 @endforeach
 

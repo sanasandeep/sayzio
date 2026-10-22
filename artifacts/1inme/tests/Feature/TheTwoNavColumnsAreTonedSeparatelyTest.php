@@ -21,9 +21,16 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_there_are_three_areas_and_every_preset_has_a_palette(): void
+    public function test_there_are_four_areas_and_every_preset_has_a_palette(): void
     {
-        $this->assertSame(['rail', 'panel', 'topbar'], array_keys(NavigationAppearance::AREAS));
+        $this->assertSame(['rail', 'panel', 'topbar', 'page'], array_keys(NavigationAppearance::AREAS));
+
+        // The page is the ground, not chrome: it takes a background and
+        // none of the token redefinitions. Asserted here because the
+        // pickers and the validator both build themselves from AREAS,
+        // so a fourth area arriving without that distinction would be
+        // offered the same block as the other three.
+        $this->assertSame(['page'], NavigationAppearance::SURFACE_ONLY_AREAS);
 
         foreach (array_keys(NavigationAppearance::PRESETS) as $preset) {
             if ($preset === 'theme') {
