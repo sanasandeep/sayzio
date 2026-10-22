@@ -104,7 +104,12 @@
     .rm-mode-toggle input { display:none; }
     .rm-mode-toggle input:checked + span { color:#5c83ff; }
     .rm-modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:60; padding:16px; }
-    .rm-modal { background:var(--bg-card); border:1px solid var(--border-glass); border-radius:1rem; padding:22px; width:100%; max-width:480px; max-height:90vh; overflow:auto; }
+    /* --bg-card is the GLASS token: rgba(255,255,255,0.04) in the base dark
+       theme. It only looks solid here because html.aurora happens to redefine
+       it as #100f17, so without that class the dialog was 4% white and the
+       page read straight through it. --lg-bg-opaque is the app's own
+       "near-opaque modal/bar surface" and is solid in every theme. */
+    .rm-modal { background:var(--lg-bg-opaque, rgba(24,28,40,0.96)); -webkit-backdrop-filter:var(--lg-blur, none); backdrop-filter:var(--lg-blur, none); border:1px solid var(--border-glass); border-radius:1rem; padding:22px; width:100%; max-width:480px; max-height:90vh; overflow:auto; }
 </style>
 
 @php
@@ -139,13 +144,6 @@
                 'meSoldKey'   => 'is_out_of_stock',
                 'meEmpty'     => 'No sections yet. Add one to start building your catalog.',
             ])
-                </div>
-            </template>
-        </div>
-
-        <!-- Settings -->
-        {{-- The support bubble is fixed to the bottom-right, which is where
-             this column ends. Without the gutter it sits on the last control
         </div>
 
         {{-- HOW IT LOOKS ------------------------------------------------ --}}

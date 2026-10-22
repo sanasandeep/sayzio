@@ -116,7 +116,12 @@
         padding: 18px 22px;
         box-shadow: {{ $plateShadow }};
     }
-    {!! $heroSel !!} .page-hero { --hero-grid-line: {{ $heroTint($lead, $isDark ? .10 : .07) }}; }
+    {{-- The 46px lattice on ::before is switched off wherever a style is
+         chosen. The arcs are the decoration now, and two geometries over one
+         another read as a grid of boxes behind the arcs - "checkbox behind
+         arcs" (Sana, live). ::before itself is left alone; only its colour
+         goes, so nothing here has to touch that rule. --}}
+    {!! $heroSel !!} .page-hero { --hero-grid-line: transparent; }
     {!! $heroSel !!} .page-hero .hero-emblem.has-letter {
         background: {{ $lead }};
         border-color: transparent;
