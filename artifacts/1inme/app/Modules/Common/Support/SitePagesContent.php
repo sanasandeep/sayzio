@@ -15,6 +15,41 @@ class SitePagesContent
      * Pages already authored with multi-section content (workspace-team,
      * buzz, error pages, home) keep the copy already shipped in the seeder.
      */
+    /**
+     * How many link types the marketing showcase advertises.
+     *
+     * This is NOT LinkTypeCategories::catalogueCount(). They count different
+     * things and are not even subsets: the showcase carries QR Code, Forms and
+     * Paid Page, which are not links.type rows at all, and omits eight types
+     * the picker ships. The copy says "all N link types" about the N cards on
+     * the page, each of which must have a /demos explainer, so the number has
+     * to track the showcase or MarketingLinkTypeShowcaseSyncTest is right to
+     * fail.
+     */
+    public static function showcaseLinkTypeCount(): int
+    {
+        return count(self::homeLinkTypesDefault());
+    }
+
+    /**
+     * The figure public copy quotes, resolved into {{link_type_count}}.
+     *
+     * Defaults to the showcase length. An admin can override it, and a blank,
+     * zero, negative or non-numeric override falls back rather than printing
+     * a nonsense number.
+     */
+    public static function marketingLinkTypeCount(): int
+    {
+        $override = \App\Modules\Admin\Models\AppSetting::get(
+            \App\Modules\User\Support\LinkTypeCategories::MARKETING_COUNT_SETTING
+        );
+        if (is_numeric($override) && (int) $override > 0) {
+            return (int) $override;
+        }
+
+        return self::showcaseLinkTypeCount();
+    }
+
     public static function richDefaults(): array
     {
         return [

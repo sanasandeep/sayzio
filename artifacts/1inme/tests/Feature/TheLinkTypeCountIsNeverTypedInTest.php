@@ -21,6 +21,26 @@ class TheLinkTypeCountIsNeverTypedInTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_the_marketing_number_tracks_the_showcase_not_the_catalogue(): void
+    {
+        // These count different things and are not subsets. The showcase
+        // carries QR Code, Forms and Paid Page, which are not links.type rows,
+        // and omits eight types the picker ships. Copy says "all N link types"
+        // about the N cards on /features, so it must track the showcase -
+        // MarketingLinkTypeShowcaseSyncTest guards the same invariant from the
+        // other side, and quoting the catalogue here broke it.
+        AppSetting::put(LinkTypeCategories::MARKETING_COUNT_SETTING, null);
+
+        $this->assertSame(
+            SitePagesContent::showcaseLinkTypeCount(),
+            SitePagesContent::marketingLinkTypeCount()
+        );
+        $this->assertSame(
+            (string) SitePagesContent::showcaseLinkTypeCount(),
+            CompanyIdentity::tokens()['link_type_count'] ?? null
+        );
+    }
+
     public function test_the_catalogue_is_the_source_of_the_number(): void
     {
         $this->assertSame(
@@ -42,7 +62,7 @@ class TheLinkTypeCountIsNeverTypedInTest extends TestCase
     {
         AppSetting::put(LinkTypeCategories::MARKETING_COUNT_SETTING, null);
 
-        $expected = (string) LinkTypeCategories::catalogueCount();
+        $expected = (string) SitePagesContent::showcaseLinkTypeCount();
 
         $this->assertSame($expected, CompanyIdentity::tokens()['link_type_count'] ?? null);
         $this->assertSame(
@@ -54,13 +74,13 @@ class TheLinkTypeCountIsNeverTypedInTest extends TestCase
     public function test_an_admin_override_wins_but_junk_does_not(): void
     {
         AppSetting::put(LinkTypeCategories::MARKETING_COUNT_SETTING, 31);
-        $this->assertSame(31, LinkTypeCategories::marketingCount());
+        $this->assertSame(31, SitePagesContent::marketingLinkTypeCount());
 
         foreach ([null, '', '0', '-4', 'twelve'] as $junk) {
             AppSetting::put(LinkTypeCategories::MARKETING_COUNT_SETTING, $junk);
             $this->assertSame(
-                LinkTypeCategories::catalogueCount(),
-                LinkTypeCategories::marketingCount(),
+                SitePagesContent::showcaseLinkTypeCount(),
+                SitePagesContent::marketingLinkTypeCount(),
                 'A blank or nonsense override must fall back to the catalogue, not print itself.'
             );
         }

@@ -193,10 +193,11 @@ class CompanyIdentity
             'company_email_grievance'    => self::value('company_email_grievance'),
             'company_website_url'        => self::value('company_website_url'),
             'app_name'                   => (string) config('app.name', 'Sayzio'),
-            // Derived from the link-type catalogue, so copy quoting a count
-            // cannot go stale when a type is added. See
-            // LinkTypeCategories::marketingCount().
-            'link_type_count'            => (string) \App\Modules\User\Support\LinkTypeCategories::marketingCount(),
+            // Derived from the marketing SHOWCASE, not the picker catalogue:
+            // the copy says "all N link types" about the N cards on /features,
+            // each of which needs a /demos explainer. See
+            // SitePagesContent::marketingLinkTypeCount().
+            'link_type_count'            => (string) \App\Modules\Common\Support\SitePagesContent::marketingLinkTypeCount(),
         ];
     }
 
