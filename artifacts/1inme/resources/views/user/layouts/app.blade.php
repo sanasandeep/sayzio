@@ -619,6 +619,14 @@
 <body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
     <div class="particles" id="particles"></div>
 
+    @php
+        // Resolved once. The rail changes the sidebar's width, its
+        // collapse behaviour and its markup, so three places below read
+        // this and they must not disagree.
+        $__railNav = auth()->check()
+            && auth()->user() instanceof \App\Modules\User\Models\User
+            && auth()->user()->usesRailNav();
+    @endphp
     <div class="flex h-screen relative z-10 overflow-hidden"
          x-data="{
             sidebarMode: localStorage.getItem('1inme_sidebar') || 'full',
@@ -640,14 +648,23 @@
                 localStorage.setItem('1inme_sidebar', mode);
             },
             get sidebarWidth() {
+                @if($__railNav)
+                /* 72px rail + 236px panel. 'icons' drops the panel and
+                   keeps the rail, so the edge toggle below is already
+                   the right control for it. */
+                if(this.sidebarMode === 'full') return 308;
+                if(this.sidebarMode === 'icons') return 72;
+                return 0;
+                @else
                 if(this.sidebarMode === 'full') return 260;
                 if(this.sidebarMode === 'icons') return 72;
                 return 0;
+                @endif
             }
          }">
 
         <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2 sidebar-shell dash-glass"
-               :class="sidebarMode === 'icons' ? 'collapsed' : ''"
+               @if(!$__railNav) :class="sidebarMode === 'icons' ? 'collapsed' : ''" @endif
                :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')">
 
             {{-- Edge-mounted collapse handle (sits 50% in / 50% out of sidebar) --}}
@@ -696,6 +713,9 @@
                  programmatically scroll an overflow:hidden box, blanking the whole
                  nav with no scrollbar to recover it. clip is unscrollable by spec;
                  the onscroll reset is the fallback for engines without clip. --}}
+            @if($__railNav)
+                @include('user.partials.nav-rail', ['railSurface' => 'desktop'])
+            @else
             <nav class="flex-1 relative overflow-hidden" style="overflow:clip"
                  onscroll="this.scrollTop=0;this.scrollLeft=0">
             <div class="absolute inset-0 overflow-y-auto overflow-x-hidden sidebar-nav-scroll py-4" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
@@ -1349,6 +1369,7 @@
 
             </div>{{-- /.sidebar-nav-scroll --}}
             </nav>
+            @endif
 
             {{-- The plan card is always in the rail now: which plan you are on
                  is standing information, not a prompt, and hiding the whole
@@ -1696,7 +1717,10 @@
                     </div>
                     @auth
                         @include('user.partials.workspace-switcher')
-                        @if($__can['links_view'])
+                        {{-- In rail mode the Home panel carries the folders
+                             tree, so this copy would be the second one on the
+                             same screen. --}}
+                        @if($__can['links_view'] && !$__railNav)
                                 <div x-data="{ mFoldersOpen: {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }">
                                     <div class="flex items-center">
                                         <a href="{{ route('user.dashboard') }}#folders" class="sidebar-link flex-1 {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Folders</span></a>
@@ -1723,6 +1747,30 @@
                         @endif
 
                     @endauth
+                    @if($__railNav)
+                    {{-- Search and Quick Shorten have only ever existed in the
+                         drawer. They are actions, not places, so they sit above
+                         the rail instead of being wedged into a section. --}}
+                    <div class="flex-1 flex flex-col min-h-0">
+                        <div class="py-3 px-3 space-y-0.5" style="border-bottom: 1px solid var(--border-subtle);">
+                            <button type="button"
+                                    @click="mobileMenu = false; $nextTick(() => window.dispatchEvent(new CustomEvent('open-full-search')))"
+                                    class="sidebar-link w-full text-left"
+                                    style="color: var(--text-muted);">
+                                <div class="nav-icon-wrap"><i class="fas fa-search"></i></div>
+                                <span>Search</span>
+                            </button>
+                            @if($__can['links_create'])
+                            <button type="button"
+                                    @click="mobileMenu = false; $nextTick(() => window.dispatchEvent(new CustomEvent('open-quick-shorten')))"
+                                    class="sidebar-link w-full text-left" style="color: var(--text-muted);">
+                                <div class="nav-icon-wrap"><i class="fas fa-bolt"></i></div> <span>Quick Shorten</span>
+                            </button>
+                            @endif
+                        </div>
+                        @include('user.partials.nav-rail', ['railSurface' => 'mobile'])
+                    </div>
+                    @else
                     <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto overscroll-contain" style="-webkit-overflow-scrolling: touch;">
                         {{-- Search button (opens full-screen overlay) --}}
                         <button type="button"
@@ -2002,6 +2050,7 @@
                         @endif
 
                     </nav>
+                    @endif
                     {{-- ========== ACCOUNT (collapsible) — coins + assigned badges ==========
                          Mirror of the desktop section so the mobile drawer shows the
                          same wallet balance + account badges. Kept in lockstep. --}}

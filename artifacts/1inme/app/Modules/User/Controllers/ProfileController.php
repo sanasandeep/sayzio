@@ -426,6 +426,44 @@ class ProfileController extends Controller
         );
     }
 
+    /**
+     * Switch this account between the classic sidebar and the rail.
+     *
+     * A GET with no UI attached, exactly like appearance() above and
+     * for the same reason. Writes nav_pack rather than ui_pack so
+     * opting into one does not quietly move the other; the two flags
+     * share a settings array and a clobber would surface only as
+     * somebody's theme reverting on its own.
+     */
+    public function appearanceNav(Request $request, string $pack)
+    {
+        $user = $request->user();
+        $settings = (array) ($user->settings ?? []);
+        $settings['nav_pack'] = $pack === 'rail' ? 'rail' : 'classic';
+        $user->settings = $settings;
+        $user->save();
+
+        // Same referer handling as appearance(): url()->previous() is
+        // not this, and a bare address-bar visit sends no Referer at
+        // all, which is how switching by typing the URL used to land
+        // people on an unrelated page from earlier in the day.
+        $back = route('user.dashboard');
+        $referer = (string) $request->headers->get('referer', '');
+        if ($referer !== '' && !str_contains($referer, '/user/appearance/')) {
+            $host = parse_url($referer, PHP_URL_HOST);
+            if ($host !== null && $host === $request->getHost()) {
+                $back = $referer;
+            }
+        }
+
+        return redirect()->to($back)->with(
+            'success',
+            $settings['nav_pack'] === 'rail'
+                ? 'Rail navigation on. Switch back at /user/appearance/nav/classic.'
+                : 'Back to the classic sidebar.'
+        );
+    }
+
     public function sendSample(Request $request)
     {
         $user = Auth::user();
