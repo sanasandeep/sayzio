@@ -42,23 +42,31 @@ class BrandingController extends Controller
         foreach (self::SLOTS as $key => [$field, , $mimes, $max]) {
             $rules[$field] = ['nullable', 'file', 'mimes:' . implode(',', $mimes), 'max:' . $max];
         }
-        // One rule per area, both drawn from the catalogue so validation
-        // cannot reject a preset the form offers.
-        foreach (array_keys(NavigationAppearance::AREAS) as $area) {
+        // One rule per area, drawn from the catalogue so validation cannot
+        // reject a preset the form offers. The legacy single field is still
+        // accepted: a form cached before the split posts navigation_sidebar
+        // and nothing else, and refusing it would save nothing at all.
+        foreach ([...array_keys(NavigationAppearance::AREAS), NavigationAppearance::LEGACY_AREA] as $area) {
             $rules['navigation_' . $area] = ['sometimes', 'required', NavigationAppearance::rule()];
         }
         $rules['navigation_logo'] = ['sometimes', 'required', 'boolean'];
         $rules['page_hero_style'] = ['sometimes', 'required', 'in:' . implode(',', array_keys(PageHeroStyle::options()))];
         $validated = $request->validate($rules);
-        // The rail is the one that can be absent from an older cached form,
-        // so the panel - which every form has posted since this existed -
-        // is what decides whether this is a navigation save at all.
-        if ($request->has('navigation_panel') && $request->has('navigation_topbar')) {
+        // A navigation save is anything that posts the top bar, which every
+        // version of this form has. The columns may arrive as `panel`/`rail`
+        // or, from a form cached before the split, as the single `sidebar`
+        // field - which then seeds both, exactly as the stored legacy value
+        // does on read.
+        if ($request->has('navigation_topbar')) {
             $current = NavigationAppearance::defaults();
+            $legacy = NavigationAppearance::normalise($validated['navigation_' . NavigationAppearance::LEGACY_AREA] ?? null);
             $stored = ['logo' => $request->boolean('navigation_logo')];
+
             foreach (array_keys(NavigationAppearance::AREAS) as $area) {
-                $stored[$area] = $validated['navigation_' . $area] ?? $current[$area];
+                $seed = $area === 'topbar' ? null : $legacy;
+                $stored[$area] = $validated['navigation_' . $area] ?? $seed ?? $current[$area];
             }
+
             AppSetting::put(NavigationAppearance::SETTING, $stored);
         }
         if ($request->has('page_hero_style')) {
