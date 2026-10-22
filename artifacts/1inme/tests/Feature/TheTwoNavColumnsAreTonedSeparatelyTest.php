@@ -211,6 +211,57 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
         );
     }
 
+    /**
+     * "in dark mode, why its showing in blue color.. i need it in black
+     * shade" (Sana). It was painting rgb(17,24,39) -- blue brightest by
+     * 22 points -- and every token in the set came from the same slate
+     * family, so the cast compounded across ground, rule and active
+     * fill. The assertion is on the CHANNELS rather than on the hex,
+     * because the point is the absence of a hue, not one particular
+     * value.
+     */
+    public function test_the_dark_preset_is_a_dark_and_not_a_navy(): void
+    {
+        $css = $this->renderAppearancePartial();
+
+        preg_match_all('/#([0-9a-f]{6})/i', $css, $all);
+        $this->assertNotEmpty($all[1], 'No colours found; the sheet did not render.');
+
+        // Every opaque colour the dark preset declares.
+        $line = null;
+        foreach (explode("\n", $css) as $row) {
+            if (str_contains($row, "appearance=\"dark\"") && str_contains($row, '--nav-surface')) {
+                $line = $row;
+                break;
+            }
+        }
+        $this->assertNotNull($line, 'The dark preset block is missing.');
+
+        preg_match_all('/#([0-9a-f]{6})/i', $line, $hexes);
+        $casts = [];
+        foreach (array_unique($hexes[1]) as $hex) {
+            [$r, $g, $b] = [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
+            $spread = max($r, $g, $b) - min($r, $g, $b);
+            // A neutral is allowed a couple of points of drift; a navy
+            // is blue-brightest by a wide margin.
+            if ($b === max($r, $g, $b) && $spread > 8) {
+                $casts[] = '#' . $hex . ' (spread ' . $spread . ')';
+            }
+        }
+        $this->assertSame([], $casts, 'Blue-cast colours in the dark preset: ' . implode(', ', $casts));
+    }
+
+    /** The admin swatch has to show what the preset actually paints. */
+    public function test_the_dark_swatch_agrees_with_the_dark_preset(): void
+    {
+        $surface = NavigationAppearance::PALETTES['dark'][0];
+        $this->assertStringContainsString(
+            $surface,
+            $this->renderAppearancePartial(),
+            'The admin preview swatch and the rendered preset disagree.'
+        );
+    }
+
     public function test_the_rail_is_the_default_and_an_explicit_choice_is_kept(): void
     {
         $fresh = new User(['settings' => []]);

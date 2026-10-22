@@ -59,7 +59,7 @@ class NavigationAppearance
     /** preset => [surface, ink, muted]. Shared with the JS by @json(). */
     public const PALETTES = [
         'light'           => ['#ffffff', '#172033', '#566176'],
-        'dark'            => ['#111827', '#f8fafc', '#cbd5e1'],
+        'dark'            => ['#18181b', '#fafafa', '#a1a1aa'],
         'gradient-light'  => ['linear-gradient(135deg,#edf4ff 0%,#f0eaff 55%,#e4f6f5 100%)', '#172033', '#49556c'],
         'gradient-medium' => ['linear-gradient(135deg,#4f46b5 0%,#6751bb 55%,#296d88 100%)', '#ffffff', '#ede9fe'],
         'gradient-dark'   => ['linear-gradient(135deg,#111c38 0%,#2b1d48 55%,#12383c 100%)', '#ffffff', '#d9e1f2'],

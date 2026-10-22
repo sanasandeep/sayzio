@@ -642,6 +642,11 @@
 
     {{-- Admin-selected page-hero look; follows the block above --}}
     @include('common.partials.page-hero-appearance')
+    {{-- One copy of the nav icon geometry per page. Emitted here rather
+         than inside nav-rail because the drawer and the desktop rail both
+         reference it, and @once would otherwise tie which one renders it
+         to which one happens to be included first. --}}
+    @include('common.partials.icon-sprite')
     @stack('styles')
 </head>
 <body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
@@ -1581,13 +1586,18 @@
                          the classic sidebar it stays what it was -- a button that
                          only appears when the sidebar is hidden -- because that
                          layout still has its own edge handle. --}}
+                    {{-- Only while the panel is away. Expanded, the control is
+                         in the panel's own head, which is the surface you are
+                         looking at; two of them on screen at once would be two
+                         controls for one thing. --}}
                     @if($__railNav)
-                    <button @click="setSidebar(sidebarMode === 'full' ? 'icons' : 'full')"
+                    <button @click="setSidebar('full')"
                             class="hidden lg:flex header-icon-btn flex-shrink-0"
-                            :title="sidebarMode === 'full' ? 'Collapse sidebar' : 'Expand sidebar'"
+                            x-show="sidebarMode !== 'full'" x-cloak
+                            title="Expand sidebar"
                             aria-label="Toggle sidebar"
                             style="width: 34px; height: 34px;">
-                        <i class="fas fa-table-columns" style="font-size: 12px;"></i>
+                        <svg class="nav-icon" style="width:14px;height:14px" aria-hidden="true"><use href="#i-panel-left"></use></svg>
                     </button>
                     @else
                     <button @click="setSidebar('full')" class="hidden lg:flex header-icon-btn flex-shrink-0" x-show="sidebarMode === 'hidden'" x-cloak title="Expand sidebar"
