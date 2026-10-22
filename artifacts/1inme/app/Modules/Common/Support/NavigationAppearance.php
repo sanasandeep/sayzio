@@ -39,7 +39,30 @@ class NavigationAppearance
         'rail'   => 'Icon rail',
         'panel'  => 'Panel',
         'topbar' => 'Top bar',
+        'page'   => 'Page background',
     ];
+
+    /**
+     * Areas that take ONLY a background, and none of the chrome tokens.
+     *
+     * The rail, panel and topbar are chrome: a preset there redefines
+     * --bg-card, --text-primary and the rest for that subtree, so the
+     * links and controls inside it follow the preset. The page is the
+     * ground everything else sits on. Giving it the same block would
+     * redefine those tokens for the whole document and repaint every
+     * card on every screen, which is not what choosing a page background
+     * means.
+     */
+    public const SURFACE_ONLY_AREAS = ['page'];
+
+    /**
+     * Areas that do NOT inherit the legacy `sidebar` choice.
+     *
+     * `sidebar` meant the nav, so it seeds the rail and the panel. An
+     * account that once chose a dark sidebar must not wake up with a
+     * dark page or a dark top bar because the key was reused.
+     */
+    public const NO_LEGACY_SEED = ['topbar', 'page'];
 
     /**
      * preset => [label, surface, ink, muted].
@@ -130,8 +153,9 @@ class NavigationAppearance
 
         foreach (array_keys(self::AREAS) as $area) {
             $own = self::normalise($stored[$area] ?? null);
-            // rail and panel inherit the old sidebar choice; topbar never did.
-            $seed = $area === 'topbar' ? null : $legacy;
+            // rail and panel inherit the old sidebar choice; the top bar
+            // and the page never did, and must not start now.
+            $seed = in_array($area, self::NO_LEGACY_SEED, true) ? null : $legacy;
             $out[$area] = $own ?? $seed ?? 'theme';
         }
 

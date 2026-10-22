@@ -4,7 +4,7 @@
 <div x-data="{prefs:window.sayzioNavigation.read(),save(){window.sayzioNavigation.save(this.prefs)},setTheme(value){document.documentElement.classList.toggle('light-mode',value==='light');try{localStorage.setItem('1inme_theme',value);document.cookie='1inme_theme='+value+'; path=/; max-age=31536000; SameSite=Lax'}catch(e){}window.dispatchEvent(new CustomEvent('1inme:theme-change',{detail:{theme:value}}))}}" class="space-y-6">
     <div><h1 class="text-2xl font-bold">Design</h1><p class="mt-2" style="color:var(--text-muted)">Choose your page theme and navigation style. Changes apply immediately and are saved for this account on this browser.</p></div>
     <section class="glass rounded-2xl p-6"><h2 class="font-semibold mb-4">Page theme</h2><div class="flex gap-3"><button type="button" class="settings-tab" @click="setTheme('light')">☀ Light</button><button type="button" class="settings-tab" @click="setTheme('dark')">☾ Dark</button></div></section>
-    <div class="grid md:grid-cols-3 gap-6">
+    <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-6">
     @foreach(\App\Modules\Common\Support\NavigationAppearance::AREAS as $area=>$label)
     <section class="glass rounded-2xl p-6">
         <h2 class="font-semibold mb-4">{{ $label }}</h2>
