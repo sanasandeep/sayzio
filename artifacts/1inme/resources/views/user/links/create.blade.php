@@ -107,6 +107,23 @@
 }
 .create-premium .cl-steps{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:-6px 0 18px}
 .create-premium .cl-steps .create-progress{margin-bottom:0}
+
+/* The step indicator rendered as the literal string "1Choose2Set up".
+   Its markup -- .create-progress with .step-dot and .progress-line --
+   has been in this view all along, but those three classes were never
+   defined ANYWHERE in the codebase: not in this file, not in a partial,
+   not in a stylesheet. So the spans laid out inline with no dot, no gap
+   and a zero-width line, and each number ran straight into its label.
+   There was nothing overriding anything; the rules did not exist. */
+.create-premium .create-progress{display:inline-flex;align-items:center;gap:10px;font-size:12px;color:var(--text-faint);white-space:nowrap}
+.create-premium .create-progress > span{display:inline-flex;align-items:center;gap:6px}
+.create-premium .create-progress .step-dot{display:grid;place-items:center;width:18px;height:18px;flex:none;border:1px solid var(--border-glass);border-radius:999px;font-size:10px;font-weight:700;line-height:1;color:var(--text-faint)}
+.create-premium .create-progress .active{color:var(--text-primary);font-weight:600}
+/* white on the accent fill, exactly as .cl-continue does above: the
+   ground here is the accent, not the page, so it is right in every
+   theme rather than a light-mode hole. */
+.create-premium .create-progress .active .step-dot{background:var(--accent);border-color:var(--accent);color:white}
+.create-premium .create-progress .progress-line{display:inline-block;width:22px;height:1px;flex:none;background:var(--border-glass)}
 .create-premium .cl-ask{font-size:17px;font-weight:700;letter-spacing:-.02em;color:var(--text-primary);margin:0}
 
 .create-premium .cl-bulk{border:1px solid var(--border-glass);background:var(--bg-card);border-radius:20px;padding:0;margin-top:32px;overflow:hidden}
