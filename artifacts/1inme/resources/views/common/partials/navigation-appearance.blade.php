@@ -102,7 +102,14 @@
 @php($navSel = $navOn($navArea) . ' ' . $navScope)
 /* ---------------- {{ $navArea }} ---------------- */
 {!! $navIs($navArea, 'light') !!} {!! $navScope !!} { --nav-control:#fff;--nav-surface:#fff;--nav-ink:#172033;--nav-muted:#566176;--nav-line:#dce2ed;--nav-active:#e8edff;--nav-active-ink:#2948d5; }
-{!! $navIs($navArea, 'dark') !!} {!! $navScope !!} { --nav-control:#111827;--nav-surface:#111827;--nav-ink:#f8fafc;--nav-muted:#b8c3d5;--nav-line:#334155;--nav-active:#293955;--nav-active-ink:#fff; }
+{{-- MEASURED, not chosen by eye: the dark preset was painting
+     rgb(17,24,39) -- blue is the brightest channel by 22 points, which is
+     why it read as navy rather than as a dark sidebar. Every token in the
+     set was from the same slate family, so the cast compounded: a navy
+     ground, a navy rule and a navy active fill. The replacements are the
+     neutral equivalents at the same lightness, so the preset is the same
+     DARK, just without the hue. --}}
+{!! $navIs($navArea, 'dark') !!} {!! $navScope !!} { --nav-control:#18181b;--nav-surface:#18181b;--nav-ink:#fafafa;--nav-muted:#a1a1aa;--nav-line:#2e2e33;--nav-active:#303036;--nav-active-ink:#fff; }
 html[data-{{ $navArea }}-appearance^="gradient-"] {!! $navScope !!} { --nav-control:#352f70;--nav-surface:var(--navigation-{{ $navArea }}-surface);--nav-ink:var(--navigation-{{ $navArea }}-ink);--nav-muted:var(--navigation-{{ $navArea }}-muted);--nav-line:color-mix(in srgb,var(--nav-ink) 22%,transparent);--nav-active:color-mix(in srgb,var(--nav-ink) 14%,transparent);--nav-active-ink:var(--nav-ink); }
 {!! $navIs($navArea, 'gradient-light') !!} {!! $navScope !!} { --nav-control:#f2f1fc; }
 {!! $navIs($navArea, 'gradient-dark') !!} {!! $navScope !!} { --nav-control:#171f35; }

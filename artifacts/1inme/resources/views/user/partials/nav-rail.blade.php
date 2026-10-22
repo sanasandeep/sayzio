@@ -159,7 +159,11 @@
                     transform .12s ease;
     }
     .navrail-btn:active { transform: scale(.94); }
+    /* The tile glyph is a sprite reference now, so it is sized in px
+       rather than by font-size. The <i> rule stays for the workspace
+       tile, whose symbol still comes from the database. */
     .navrail-btn i { font-size: 16px; line-height: 1; }
+    .navrail-btn .nav-icon { width: 16px; height: 16px; }
     /* Kept in the DOM: it is the button's accessible name. */
     .navrail-btn-label {
         position: absolute;
@@ -188,7 +192,7 @@
         border-color: transparent;
         box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent);
     }
-    .navrail-btn.is-active i { color: #fff; }
+    .navrail-btn.is-active :is(i, .nav-icon) { color: #fff; }
     /* is-current marks the section the CURRENT PAGE lives in. It stays
        marked while you browse another section's panel, so the rail can
        answer "where am I" and "what am I looking at" at the same time
@@ -225,6 +229,7 @@
        head and the account row at its foot while the sections scroll
        between them. */
     .navrail-panel {
+        position: relative;
         flex: 1 1 auto;
         min-width: 0;
         display: flex;
@@ -300,6 +305,38 @@
         display: none;
     }
     .navrail-account-anchor { position: relative; }
+
+    /* The collapse control lives in whichever surface is on screen: in
+       the panel while it is open, in the top bar once it is not. One
+       control in two places rather than one that is always in the same
+       place and sometimes points at nothing. */
+    .navrail-panel-toggle {
+        position: absolute;
+        top: 15px;
+        right: 10px;
+        z-index: 3;
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-faint);
+        font-size: 14px;
+        cursor: pointer;
+        transition: background .15s ease, color .15s ease;
+    }
+    .navrail-panel-toggle:hover {
+        background: var(--sidebar-link-hover-bg);
+        color: var(--sidebar-link-hover-text);
+    }
+    .navrail-panel-toggle:focus-visible {
+        outline: 2px solid var(--sidebar-active-border);
+        outline-offset: 2px;
+    }
     .navrail-account-row {
         width: 100%;
         display: flex;
@@ -400,6 +437,7 @@
         color: var(--sidebar-link);
     }
     .navrail-account-menu i { width: 14px; font-size: 12px; text-align: center; }
+    .navrail-account-menu .nav-icon { width: 14px; height: 14px; flex: none; }
     /* The plan row carries a label AND a status, and side by side in a
        218px menu both of them wrapped to two lines -- measured on the
        live page, not guessed. They stack instead, which also makes the
@@ -738,6 +776,10 @@
             @if($railWs)
                 <button type="button" class="navrail-btn" x-show="railMin" x-cloak
                         @click="utility('workspace')" title="Workspace: {{ $railWs->name }}">
+                    {{-- Stays on Font Awesome on purpose: iconSymbol() is a
+                         stored value and nothing constrains what it can be, so
+                         a sprite reference would render an empty box for any
+                         symbol the map has never seen. --}}
                     <i class="fas {{ $railWs->iconSymbol() }}" aria-hidden="true"></i>
                     <span class="navrail-util-dot" style="background: {{ $railWs->iconColor() }}" aria-hidden="true"></span>
                     <span class="navrail-btn-label">Workspace: {{ $railWs->name }}</span>
@@ -745,7 +787,7 @@
             @endif
             <button type="button" class="navrail-btn" x-show="railMin" x-cloak
                     @click="utility('folders')" title="Folders">
-                <i class="fas fa-folder" aria-hidden="true"></i>
+                <svg class="nav-icon" aria-hidden="true" aria-hidden="true"><use href="#i-folder"></use></svg>
                 <span class="navrail-btn-label">Folders</span>
             </button>
             <div class="navrail-util-sep" x-show="railMin" x-cloak aria-hidden="true"></div>
@@ -761,7 +803,7 @@
                     class="navrail-btn {{ $railKey === $railActive ? 'is-active is-current' : '' }}"
                     :class="railSection === '{{ $railKey }}' ? 'is-active' : ''"
                     title="{{ $railItem['label'] }}">
-                <i class="fas {{ $railItem['icon'] }}" aria-hidden="true"></i>
+                <svg class="nav-icon" aria-hidden="true"><use href="#i-{{ \App\Modules\User\Support\NavIcons::lucide($railItem['icon']) }}"></use></svg>
                 <span class="navrail-btn-label">{{ $railItem['label'] }}</span>
             </button>
         @endforeach
@@ -769,6 +811,15 @@
 
     <div class="navrail-panel">
         @if($railCard)
+            {{-- Deliberately OUTSIDE the wrapper below: that wrapper shadows
+                 `sidebarMode` so the switcher always reads 'full', and a
+                 collapse control that cannot see the real mode would be
+                 reading a lie. --}}
+            <button type="button" class="navrail-panel-toggle" x-show="!railMin" x-cloak
+                    @click="setSidebar('icons')"
+                    title="Collapse sidebar" aria-label="Collapse sidebar">
+                <svg class="nav-icon" aria-hidden="true"><use href="#i-panel-left"></use></svg>
+            </button>
             {{-- The switcher hides its own text on `sidebarMode === 'icons'`,
                  which was right when it sat in a 72px column. In the panel it
                  is never narrow: minimised, the panel is a 248px flyout. A
@@ -829,7 +880,7 @@
                      quiet line instead. --}}
                 <div class="navrail-plan" x-show="!railMin" x-cloak>
                     <div class="navrail-plan-top">
-                        <span class="navrail-plan-gem" aria-hidden="true"><i class="fas fa-gem"></i></span>
+                        <span class="navrail-plan-gem" aria-hidden="true"><svg class="nav-icon" aria-hidden="true"><use href="#i-gem"></use></svg></span>
                         <span class="navrail-plan-name">{{ $railPlan }} plan</span>
                     </div>
                     @if($railUser->canUpgradePlan())
@@ -851,7 +902,7 @@
                          screen and never both. --}}
                     @if($railUser->canUpgradePlan())
                         <a href="{{ route('user.upgrade') }}" role="menuitem" class="navrail-account-row-item" x-show="railMin" x-cloak>
-                            <i class="fas fa-gem" aria-hidden="true"></i>
+                            <svg class="nav-icon" aria-hidden="true" aria-hidden="true"><use href="#i-gem"></use></svg>
                             <span class="navrail-account-stack">
                                 <span>{{ $railPlan }} plan</span>
                                 <span class="navrail-account-aside">Compare plans</span>
@@ -859,7 +910,7 @@
                         </a>
                     @else
                         <div role="menuitem" aria-disabled="true" class="navrail-account-row-item" x-show="railMin" x-cloak>
-                            <i class="fas fa-gem" aria-hidden="true"></i>
+                            <svg class="nav-icon" aria-hidden="true" aria-hidden="true"><use href="#i-gem"></use></svg>
                             <span class="navrail-account-stack">
                                 <span>{{ $railPlan }} plan</span>
                                 <span class="navrail-account-aside">Everything unlocked</span>
@@ -869,7 +920,7 @@
 
                     @if($__can['settings_view'])
                         <a href="{{ route('user.profile.edit') }}" role="menuitem" class="navrail-account-row-item" data-account-settings-link>
-                            <i class="fas fa-sliders" aria-hidden="true"></i>
+                            <svg class="nav-icon" aria-hidden="true" aria-hidden="true"><use href="#i-sliders-horizontal"></use></svg>
                             <span>Settings</span>
                         </a>
                     @endif
@@ -878,7 +929,7 @@
                         <form action="{{ route('user.switch-to-admin') }}" method="POST">
                             @csrf
                             <button type="submit" role="menuitem" class="navrail-account-row-item navrail-account-admin">
-                                <i class="fas fa-user-shield" aria-hidden="true"></i>
+                                <svg class="nav-icon" aria-hidden="true" aria-hidden="true"><use href="#i-shield-user"></use></svg>
                                 <span>Switch to admin</span>
                             </button>
                         </form>
@@ -889,7 +940,7 @@
                     <form action="{{ route('user.logout') }}" method="POST">
                         @csrf
                         <button type="submit" role="menuitem" class="navrail-account-row-item navrail-account-out">
-                            <i class="fas fa-right-from-bracket" aria-hidden="true"></i>
+                            <svg class="nav-icon" aria-hidden="true" aria-hidden="true"><use href="#i-log-out"></use></svg>
                             <span>Log out</span>
                         </button>
                     </form>
@@ -909,10 +960,11 @@
                         <span class="navrail-account-name block">{{ $railUser->name }}</span>
                         <span class="navrail-account-plan block">{{ $railPlan }}</span>
                     </span>
-                    <i class="fas text-[10px]"
-                       style="color: var(--text-faint);"
-                       :class="menu ? 'fa-chevron-down' : 'fa-ellipsis'"
-                       aria-hidden="true"></i>
+                    {{-- Alpine swaps the symbol rather than the class: with a
+                         sprite the glyph is the href, not the class name. --}}
+                    <svg class="nav-icon text-[10px]"
+                         style="color: var(--text-faint);"
+                         aria-hidden="true"><use :href="menu ? '#i-chevron-down' : '#i-ellipsis'" href="#i-ellipsis"></use></svg>
                     <span class="navrail-btn-label">Account menu</span>
                 </button>
                 </div>

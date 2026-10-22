@@ -699,18 +699,25 @@
         background: color-mix(in srgb, var(--accent) 9%, transparent);
         color: var(--text-primary);
     }
-    html.aurora .sidebar-link.active .nav-icon-wrap { color: var(--accent); }
+    html.aurora .sidebar-link.active .nav-icon-wrap { color: var(--nav-tint, var(--accent)); }
     html.aurora .sidebar-link:hover:not(.active) {
         background: transparent;
         color: var(--text-primary);
     }
-    html.aurora .sidebar-link:hover:not(.active) .nav-icon-wrap { color: var(--text-primary); }
+    html.aurora .sidebar-link:hover:not(.active) .nav-icon-wrap { color: var(--nav-tint, var(--text-primary)); }
 
     /* Resting rows sit a step back from the active one rather than all
        competing at --text-muted, which is what made the rail read as a flat
        list of equals with one grey box on it. */
     html.aurora .sidebar-link:not(.active) { color: var(--text-dimmed); }
-    html.aurora .sidebar-link:not(.active) .nav-icon-wrap { color: var(--text-faint); }
+    /* Aurora muted every resting icon to --text-faint so the active row
+       would stand out, which also meant the tints never showed at all --
+       not even on hover. The ROW TEXT still sits a step back, which was
+       the point of that rule; only the icon gains its colour, mixed most
+       of the way toward the faint ink it used to be. */
+    html.aurora .sidebar-link:not(.active) .nav-icon-wrap {
+        color: color-mix(in srgb, var(--nav-tint, var(--text-faint)) 55%, var(--text-faint));
+    }
     html.aurora .sidebar-link.active::before {
         background: linear-gradient(var(--accent), var(--accent-light));
         height: 18px;
@@ -1096,6 +1103,37 @@
         font-size: 1.15rem;
         line-height: 1;
         color: inherit;
+    }
+    /* The stroke attributes live here, not on the sprite: <use> clones a
+       symbol into a shadow tree whose inherited context is the <use>
+       element, so presentation attributes on the sprite's own <svg>
+       never reach the cloned paths. Width and height are in `em` so a
+       Tailwind text-size class on the icon still sizes it. */
+    .nav-icon {
+        width: 1em;
+        height: 1em;
+        display: inline-block;
+        vertical-align: -0.125em;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .nav-icon-sprite { display: none; }
+    .sidebar-link .nav-icon-wrap { font-size: 1.15rem; }
+    .sidebar-link .nav-icon-wrap .nav-icon { width: 1em; height: 1em; display: block; }
+
+    /* Every row has carried its own --nav-tint since the nav was built;
+       it only ever showed on hover. At rest the tint is mixed back
+       toward the sidebar's own ink, so fifty-five colours read as a
+       colour-coded list rather than a fruit salad -- "make it unique
+       color effects" (Sana), without the nav becoming the loudest thing
+       on the page. A row with no tint resolves to exactly what it had
+       before, because both halves of the mix are then the same colour. */
+    .sidebar-link .nav-icon-wrap {
+        color: color-mix(in srgb, var(--nav-tint, var(--text-muted)) 55%, var(--text-muted));
     }
     .sidebar-link:hover .nav-icon-wrap {
         color: var(--nav-tint, var(--accent));

@@ -457,6 +457,40 @@ class TheRailShellIsOneCardTest extends TestCase
     }
 
     /**
+     * "when expanded mode, minimize icon should be shown in panel and
+     * hidden in topbar... it will be visible only on topbar and hidden
+     * in panel when minimized" (Sana). One control, in whichever
+     * surface is on screen -- never two of them at once, and never one
+     * sitting on a surface that is not there.
+     */
+    public function test_the_collapse_control_follows_the_surface_that_is_on_screen(): void
+    {
+        $html = (string) $this->actingAs($this->owner())
+            ->get('/user/dashboard')->assertOk()->getContent();
+
+        // In the panel while the panel is open.
+        $this->assertMatchesRegularExpression(
+            '/class="navrail-panel-toggle"[^>]*x-show="!railMin"/s',
+            $html,
+            'The panel must carry the control while it is open.'
+        );
+        // In the top bar only once it is not.
+        $this->assertMatchesRegularExpression(
+            '/header-icon-btn[^>]*x-show="sidebarMode !== \'full\'"/s',
+            $html,
+            'The top bar control must be hidden while the panel is open.'
+        );
+        // And the panel's own copy cannot read a shadowed sidebarMode:
+        // the switcher wrapper forces it to 'full', so a control inside
+        // that wrapper would be reading a lie.
+        $panelToggle = strpos($html, 'navrail-panel-toggle');
+        $shadow = strpos($html, "x-data=\"{ sidebarMode: 'full' }\"");
+        $this->assertNotFalse($panelToggle);
+        $this->assertNotFalse($shadow);
+        $this->assertLessThan($shadow, $panelToggle, 'The panel toggle must sit outside the shadowing wrapper.');
+    }
+
+    /**
      * The generalised form of the .navrail-rail bug: a rule whose
      * selector names a class that nothing renders. Here the comparison
      * is against the page that actually came back, both navs included,

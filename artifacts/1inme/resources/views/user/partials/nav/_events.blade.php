@@ -28,14 +28,14 @@
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
                         <span>Events &amp; Calendar</span>
-                        <i class="fas fa-chevron-down grp-chevron"></i>
+                        <svg class="nav-icon grp-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
                         @if($__eventsOn && $__can['links_view'])
                         <a href="{{ route('user.links.index', ['type' => 'ics']) }}"
                            class="sidebar-link {{ nav_route_is('user.links.index') && request('type') === 'ics' ? 'active' : '' }}"
                            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-calendar-check"></i></div>
+                            <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-check"></use></svg></div>
                             <span class="nav-label">My Events</span>
                             <span class="sidebar-tooltip">My Events</span>
                         </a>
@@ -44,7 +44,7 @@
                         <a href="{{ route('user.links.ics.create') }}"
                            class="sidebar-link {{ nav_route_is('user.links.ics.create') ? 'active' : '' }}"
                            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-circle-plus"></i></div>
+                            <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-circle-plus"></use></svg></div>
                             <span class="nav-label">Create Event</span>
                             <span class="sidebar-tooltip">Create Event</span>
                         </a>
@@ -53,7 +53,7 @@
                         <a href="{{ route('user.events.index') }}"
                            class="sidebar-link {{ nav_route_is('user.events.*') ? 'active' : '' }}"
                            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-calendar-week"></i></div>
+                            <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-range"></use></svg></div>
                             <span class="nav-label">Events Calendar</span>
                             <span class="sidebar-tooltip">Events Calendar</span>
                         </a>
@@ -62,7 +62,7 @@
                         <a href="{{ route('user.calendars.mine') }}"
                            class="sidebar-link {{ nav_route_is('user.calendars.*') ? 'active' : '' }}"
                            style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div>
+                            <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-days"></use></svg></div>
                             <span class="nav-label">My Calendar</span>
                             <span class="sidebar-tooltip">My Calendar</span>
                         </a>
@@ -71,7 +71,7 @@
                         <a href="{{ route('user.calendar.index') }}"
                            class="sidebar-link {{ nav_route_is('user.calendar.*') ? 'active' : '' }}"
                            style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-rotate"></i></div>
+                            <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-rotate-cw"></use></svg></div>
                             <span class="nav-label">Connected Calendars</span>
                             <span class="sidebar-tooltip">Connected Calendars</span>
                         </a>
