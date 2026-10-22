@@ -26,7 +26,7 @@
     .sortable-ghost { opacity: 0.4; }
     .sortable-chosen { box-shadow: 0 8px 24px rgba(0,0,0,.25); }
     .drawer { position: fixed; right: 0; top: 0; bottom: 0; width: 100%; max-width: 560px;
-              background: var(--bg-card); border-left: 1px solid var(--border-strong);
+              background: var(--bg-dropdown); border-left: 1px solid var(--border-strong);
               box-shadow: -8px 0 32px rgba(0,0,0,.25); z-index: 60;
               transform: translateX(100%); transition: transform .25s ease; overflow-y: auto; }
     .drawer.open { transform: translateX(0); }
