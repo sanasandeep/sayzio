@@ -229,7 +229,6 @@
     .ev-card-date-chip { background:rgba(11,14,22,0.82); backdrop-filter:blur(4px); }
     .ev-cat-pill { display:inline-flex; align-items:center; gap:.3rem; font-size:.65rem; font-weight:700; padding:.2rem .55rem; border-radius:999px; color:#fff; }
     .ev-price-badge { box-shadow:0 6px 16px -4px rgba(0,0,0,0.35); }
-</style>
 
     /* ── Results beside the map ────────────────────────────────────── */
     .events-page-wide { max-width: 1680px; }
@@ -290,6 +289,7 @@
         background: linear-gradient(to top, rgba(255,255,255,.95), rgba(255,255,255,0));
     }
 
+</style>
 @endpush
 
 @section('content')
