@@ -81,8 +81,11 @@
             root.dataset[area + 'Appearance'] = selected;
             const palette = presets[selected] || presets.light;
             root.dataset[area + 'Logo'] = darkInk.includes(selected) ? 'dark' : 'light';
-            ['surface', 'ink', 'muted'].forEach((token, index) =>
-                root.style.setProperty('--navigation-' + area + '-' + token, palette[index]));
+            // By name, not by index: the palette is a token map now, so a
+            // preset can carry more than three values without every
+            // reader having to agree on their order.
+            ['surface', 'ink', 'muted'].forEach(token =>
+                root.style.setProperty('--navigation-' + area + '-' + token, palette[token]));
         });
         root.dataset.topbarIncludesLogo = String(typeof prefs.logo === 'boolean' ? prefs.logo : defaults.logo === true);
     }
@@ -101,34 +104,23 @@
 @foreach($navScopes as $navArea => $navScope)
 @php($navSel = $navOn($navArea) . ' ' . $navScope)
 /* ---------------- {{ $navArea }} ---------------- */
-{!! $navIs($navArea, 'light') !!} {!! $navScope !!} { --nav-control:#fff;--nav-surface:#fff;--nav-ink:#172033;--nav-muted:#566176;--nav-line:#dce2ed;--nav-active:#e8edff;--nav-active-ink:#2948d5; }
-{{-- MEASURED, not chosen by eye: the dark preset was painting
-     rgb(17,24,39) -- blue is the brightest channel by 22 points, which is
-     why it read as navy rather than as a dark sidebar. Every token in the
-     set was from the same slate family, so the cast compounded: a navy
-     ground, a navy rule and a navy active fill. The replacements are the
-     neutral equivalents at the same lightness, so the preset is the same
-     DARK, just without the hue. --}}
-{{-- "sidebar should sync with body colors" (Sana). It did not, and the
-     reason was measurable: every surface this product paints carries a
-     violet lean and runs dark -- body #07060b, hero #0e0e18, cards
-     #100f17 -- while this preset was Tailwind zinc, neutral and at
-     luminance 24 the BRIGHTEST plane on the page. The chrome was
-     sitting above the content instead of under it.
+{{-- The solid presets are written out from NavigationAppearance::PALETTES
+     rather than typed here. They used to be literals, and the same facts
+     were also written as swatch CSS on the Design page, so a preset's
+     colour lived in three places with nothing holding them together.
+     Both copies had drifted: the swatch still painted the navy from
+     before the preset was neutralised, and the palette still said
+     #18181b after this rule had moved to #0b0a11.
 
-     These values come from the app's own ramp rather than from a
-     generic scale: --nav-surface is aurora's --bg-sidebar, --nav-control
-     is its --bg-card, and the inks are its --text-primary and
-     --text-muted. Measured after, on the live page: body 6.6, sidebar
-     10.7, hero 14.7, cards 15.8 -- a stack that descends to the chrome,
-     with the violet lean shared all the way down. The base dark theme's
-     body is #0a0a0f, so the same literals sit right there too.
-
-     They are literals and must stay literals: the scope block below
-     defines --bg-card, --bg-sidebar and --text-primary FROM these, so
-     reading them back here would be a custom-property cycle, and a
-     cycle computes to nothing rather than to the fallback. --}}
-{!! $navIs($navArea, 'dark') !!} {!! $navScope !!} { --nav-control:#100f17;--nav-surface:#0b0a11;--nav-ink:#f3f1f7;--nav-muted:#9b97ac;--nav-line:#191823;--nav-active:#201f2e;--nav-active-ink:#f3f1f7; }
+     The gradient presets below are not in this loop. They state only
+     surface, ink and muted, and the shared rule derives line, active and
+     active-ink from the ink by colour-mix -- which a literal cannot do.
+     tokens() is what tells the two kinds apart. --}}
+@foreach(array_keys(NavAppearance::PRESETS) as $navPreset)
+@php($navTokens = NavAppearance::tokens($navPreset))
+@continue($navTokens === [])
+{!! $navIs($navArea, $navPreset) !!} {!! $navScope !!} { @foreach(NavAppearance::TOKENS as $navToken)--nav-{{ $navToken }}:{{ $navTokens[$navToken] }};@endforeach }
+@endforeach
 html[data-{{ $navArea }}-appearance^="gradient-"] {!! $navScope !!} { --nav-control:#352f70;--nav-surface:var(--navigation-{{ $navArea }}-surface);--nav-ink:var(--navigation-{{ $navArea }}-ink);--nav-muted:var(--navigation-{{ $navArea }}-muted);--nav-line:color-mix(in srgb,var(--nav-ink) 22%,transparent);--nav-active:color-mix(in srgb,var(--nav-ink) 14%,transparent);--nav-active-ink:var(--nav-ink); }
 {!! $navIs($navArea, 'gradient-light') !!} {!! $navScope !!} { --nav-control:#f2f1fc; }
 {!! $navIs($navArea, 'gradient-dark') !!} {!! $navScope !!} { --nav-control:#171f35; }

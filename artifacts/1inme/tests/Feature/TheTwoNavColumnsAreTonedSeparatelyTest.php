@@ -36,7 +36,19 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
                 NavigationAppearance::PALETTES,
                 "{$preset} is offered but has no palette, so it would fall back to light."
             );
-            $this->assertCount(3, NavigationAppearance::PALETTES[$preset]);
+            // The palette is a token map, not a three-tuple: a solid
+            // preset states all seven tokens and is emitted as literals,
+            // a gradient states the three the shared rule needs and lets
+            // it derive the rest. Both shapes are legal; a preset that
+            // is neither would fall back to light without saying so.
+            $palette = NavigationAppearance::PALETTES[$preset];
+            foreach (['surface', 'ink', 'muted'] as $token) {
+                $this->assertArrayHasKey($token, $palette, "{$preset} has no {$token}.");
+            }
+            $this->assertTrue(
+                NavigationAppearance::tokens($preset) !== [] || str_starts_with($preset, 'gradient-'),
+                "{$preset} states neither a full token set nor a gradient's three."
+            );
         }
 
         // Validation is built from the catalogue, so it cannot reject a
@@ -240,25 +252,66 @@ class TheTwoNavColumnsAreTonedSeparatelyTest extends TestCase
         preg_match_all('/#([0-9a-f]{6})/i', $line, $hexes);
         $casts = [];
         foreach (array_unique($hexes[1]) as $hex) {
-            [$r, $g, $b] = [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
-            $spread = max($r, $g, $b) - min($r, $g, $b);
-            // A neutral is allowed a couple of points of drift; a navy
-            // is blue-brightest by a wide margin.
-            if ($b === max($r, $g, $b) && $spread > 8) {
-                $casts[] = '#' . $hex . ' (spread ' . $spread . ')';
+            if (self::navyness($hex) > 0.7) {
+                $casts[] = '#' . $hex . ' (navyness ' . round(self::navyness($hex), 2) . ')';
             }
         }
-        $this->assertSame([], $casts, 'Blue-cast colours in the dark preset: ' . implode(', ', $casts));
+        $this->assertSame([], $casts, 'Navy in the dark preset: ' . implode(', ', $casts));
+
+        // The control. The measure has to reject the colour this guard
+        // was written for, or it is not measuring anything.
+        $this->assertGreaterThan(
+            0.7,
+            self::navyness('111827'),
+            'The original navy now passes, so this test no longer discriminates.'
+        );
     }
 
-    /** The admin swatch has to show what the preset actually paints. */
-    public function test_the_dark_swatch_agrees_with_the_dark_preset(): void
+    /**
+     * How navy a colour is: its blue excess relative to its own
+     * brightness.
+     *
+     * THIS MEASURE REPLACED A WRONG ONE, AND THE STORY MATTERS
+     *
+     * The first version asked whether blue was the brightest channel by
+     * more than 8 points. That was right while the dark preset was meant
+     * to be neutral. Then the preset was deliberately given the page's
+     * violet lean, so it would stop reading as a grey slab beside a
+     * violet-black page -- and this guard went red on three of the seven
+     * tokens for doing exactly what it was asked to do.
+     *
+     * A test that fails because the product changed its mind is not
+     * catching a bug; it is holding a requirement nobody holds any more.
+     * The requirement that survives is narrower: the preset may be
+     * tinted, it may not be a navy. A navy's blue excess is comparable
+     * to its own brightness (#111827 scores 0.93); a tinted neutral's is
+     * a fraction of it (nothing in the current preset passes 0.56).
+     */
+    private static function navyness(string $hex): float
     {
-        $surface = NavigationAppearance::PALETTES['dark'][0];
+        [$r, $g, $b] = [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
+        $luminance = 0.2126 * $r + 0.7152 * $g + 0.0722 * $b;
+
+        return max(0, $b - $r) / max($luminance, 1);
+    }
+
+    /**
+     * The partial renders the dark preset at all.
+     *
+     * This used to be the check that the swatch and the preset agreed.
+     * They cannot disagree any more -- the rule is emitted from the
+     * palette -- so what survives here is the weaker structural claim.
+     * The real agreement check, against the Design page's swatches, is
+     * in ThePresetColoursAreWrittenDownOnceTest, which is where the
+     * drift it was written for actually happened.
+     */
+    public function test_the_dark_preset_reaches_the_rendered_partial(): void
+    {
+        $surface = NavigationAppearance::PALETTES['dark']['surface'];
         $this->assertStringContainsString(
             $surface,
             $this->renderAppearancePartial(),
-            'The admin preview swatch and the rendered preset disagree.'
+            'The dark preset does not reach the rendered partial at all.'
         );
     }
 

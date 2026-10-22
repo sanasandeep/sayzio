@@ -36,10 +36,15 @@
 <style>
 .design-choice {padding:12px;border:1px solid var(--border-strong);border-radius:14px;text-align:left;color:var(--text-primary);background:var(--bg-card);font-size:14px;}
 .design-choice.selected {border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
-.design-swatch {display:block;height:44px;border-radius:8px;margin-bottom:10px;border:1px solid #80808030;background:linear-gradient(90deg,#fff 50%,#111827 50%);}
-.design-swatch-light {background:#fff}.design-swatch-dark {background:#111827}
-.design-swatch-gradient-light {background:linear-gradient(135deg,#edf4ff,#f0eaff,#e4f6f5)}
-.design-swatch-gradient-medium {background:linear-gradient(135deg,#4f46b5,#6751bb,#296d88)}
-.design-swatch-gradient-dark {background:linear-gradient(135deg,#111c38,#2b1d48,#12383c)}
+{{-- Generated from NavigationAppearance::PALETTES, not typed out. The
+     hand-written version painted Dark as #111827 -- the navy from before
+     the preset was neutralised, two colour changes stale -- and nothing
+     would ever have reported it, because a swatch showing the wrong
+     colour still looks like a swatch. --}}
+.design-swatch {display:block;height:44px;border-radius:8px;margin-bottom:10px;border:1px solid #80808030;background:{!! \App\Modules\Common\Support\NavigationAppearance::swatch('theme') !!};}
+.design-swatch-default {background:{!! \App\Modules\Common\Support\NavigationAppearance::swatch('') !!}}
+@foreach(array_keys(\App\Modules\Common\Support\NavigationAppearance::PRESETS) as $swatchPreset)
+.design-swatch-{{ $swatchPreset }} {background:{!! \App\Modules\Common\Support\NavigationAppearance::swatch($swatchPreset) !!}}
+@endforeach
 </style>
 @endsection
