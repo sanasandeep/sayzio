@@ -312,20 +312,52 @@ class OneNavForBothScreensTest extends TestCase
         $this->assertStringNotContainsString('navrail-tab-desktop-', $mobile);
     }
 
+    /**
+     * The sidebar's light/dark options work by overriding the
+     * --sidebar-* tokens, so a hex or rgba() in the rail's stylesheet is
+     * a spot those options cannot reach -- which is how the classic
+     * sidebar ended up with 36 of them.
+     *
+     * Two narrowings, both because the rule as first written could not
+     * hold and was therefore red rather than useful:
+     *
+     *   - COMMENTS are stripped. The sheet's comments quote the colours
+     *     they exist to explain ("resolved to a beige rgb(237,235,230)"),
+     *     and the whole value of that comment is the number in it.
+     *   - `#fff` is allowed. Three rules put white ink on an accent
+     *     fill, which is correct in every theme and every appearance
+     *     preset precisely BECAUSE it does not follow them; a token
+     *     there would make the selected tile's label follow the ground
+     *     it is sitting on top of.
+     *
+     * Nothing else is allowed, and the control below proves the search
+     * can still fail.
+     */
     public function test_the_rail_adds_no_colour_literals_of_its_own(): void
     {
-        // The sidebar's light/dark options work by overriding the
-        // --sidebar-* tokens. A hex or rgba() in the rail's stylesheet
-        // is a spot those options cannot reach, which is how the
-        // classic sidebar ended up with 36 of them.
         $css = file_get_contents(resource_path('views/user/partials/nav-rail.blade.php'));
 
         preg_match_all('/<style>(.*?)<\/style>/s', (string) $css, $m);
         $this->assertNotEmpty($m[1], 'no style block found, so this test checked nothing');
 
+        $literals = [];
         foreach ($m[1] as $block) {
-            $this->assertSame(0, preg_match('/#[0-9a-fA-F]{3,8}\b|rgba?\(/', $block),
-                'the rail stylesheet has a colour literal in it; use a --sidebar-* token');
+            $code = preg_replace('/\/\*.*?\*\//s', '', $block);
+            preg_match_all('/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)/', (string) $code, $found);
+            $literals = array_merge($literals, $found[0]);
         }
+
+        $this->assertSame(
+            [],
+            array_values(array_diff(array_unique($literals), ['#fff', '#ffffff'])),
+            'the rail stylesheet has a colour literal in it; use a --sidebar-*, '
+            . '--c-* or --card-shadow token'
+        );
+
+        // The control: a sheet that really does carry one must be caught,
+        // or the stripping above could be deleting everything.
+        $planted = preg_replace('/\/\*.*?\*\//s', '', $m[1][0] . ' .x { color: #bada55; }');
+        preg_match_all('/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)/', (string) $planted, $found);
+        $this->assertContains('#bada55', $found[0], 'the search cannot see a literal at all');
     }
 }
