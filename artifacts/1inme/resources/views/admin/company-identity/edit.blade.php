@@ -62,6 +62,33 @@ html.light-mode .ci-divider        { border-color: #e2e8f0; }
                 </div>
             @endforeach
 
+            <div class="pt-3 border-t border-white/10">
+                <label for="{{ $linkTypeCountKey }}" class="ci-label block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">
+                    Link types quoted in public copy
+                </label>
+                <input type="number" min="1" max="999"
+                       id="{{ $linkTypeCountKey }}"
+                       name="{{ $linkTypeCountKey }}"
+                       value="{{ old($linkTypeCountKey, $linkTypeCountOverride) }}"
+                       placeholder="{{ $linkTypeCatalogue }}"
+                       class="ci-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                <p class="ci-help mt-1 text-xs text-white/40 ak-note">
+                    Fills <code>&#123;&#123;link_type_count&#125;&#125;</code> wherever public copy uses it. Leave blank to
+                    track the catalogue automatically.
+                </p>
+                @if(blank($linkTypeCountOverride))
+                    <p class="ci-fallback mt-1 text-xs text-white/40 ak-note">
+                        Currently using the catalogue: <span class="ci-fallback-val text-blue-300 ak-blue">{{ $linkTypeCatalogue }} types</span>
+                        @if($linkTypeVisible !== $linkTypeCatalogue)
+                            <span class="text-white/30">({{ $linkTypeVisible }} selectable right now)</span>
+                        @endif
+                    </p>
+                @endif
+                @error($linkTypeCountKey)
+                    <p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div class="ci-divider pt-3 border-t border-white/10">
                 <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Save company identity</button>
             </div>

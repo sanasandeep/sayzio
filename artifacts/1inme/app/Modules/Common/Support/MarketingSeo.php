@@ -395,8 +395,15 @@ class MarketingSeo
     {
         $appName = config('app.name', 'Sayzio');
 
+        // Site-page copy is admin-editable and may carry {{tokens}} - including
+        // {{link_type_count}}, which is why the defaults can quote a count
+        // without baking a number into the row. Resolved here because this is
+        // the one funnel every site page's SEO passes through.
         $title = trim((string) $page->title) !== '' ? (string) $page->title : $appName;
-        $description = (string) ($page->meta_description ?? '');
+        $title = \App\Modules\Common\Support\CompanyIdentity::substitute($title);
+        $description = \App\Modules\Common\Support\CompanyIdentity::substitute(
+            (string) ($page->meta_description ?? '')
+        );
 
         $keywords = trim((string) ($page->meta_keywords ?? ''));
         if ($keywords === '') {

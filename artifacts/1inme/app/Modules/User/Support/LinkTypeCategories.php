@@ -2,6 +2,8 @@
 
 namespace App\Modules\User\Support;
 
+use App\Modules\Admin\Models\AppSetting;
+
 /**
  * Single source of truth for the grouped link-type catalog shown on the
  * "Create Link" type picker.
@@ -22,6 +24,9 @@ namespace App\Modules\User\Support;
  */
 class LinkTypeCategories
 {
+    /** Optional admin override for the figure public copy quotes. */
+    public const MARKETING_COUNT_SETTING = 'link_type_marketing_count';
+
     /**
      * @return array<int, array{label:string, desc:string, types:array<int, array{value:string, icon:string, badge:string, label:string, desc:string}>}>
      */
@@ -171,6 +176,48 @@ class LinkTypeCategories
      *
      * @return array<string, array{value:string, icon:string, badge:string, label:string, desc:string}>
      */
+    /**
+     * How many link types the catalogue actually ships. This is the number the
+     * marketing copy means, and it is derived - never typed - so it cannot
+     * drift the way the hardcoded "18"/"19" in the page defaults had.
+     */
+    public static function catalogueCount(): int
+    {
+        return count(self::types());
+    }
+
+    /**
+     * How many a user can actually pick right now, which is lower than
+     * catalogueCount() while the Events module is off.
+     */
+    public static function visibleCount(): int
+    {
+        $n = 0;
+        foreach (self::categories() as $cat) {
+            $n += count($cat['types']);
+        }
+
+        return $n;
+    }
+
+    /**
+     * The figure public copy should quote, resolved into {{link_type_count}}.
+     *
+     * Defaults to the real catalogue count. An admin can override it when
+     * marketing counts something the picker does not (a bundle, or a type that
+     * ships behind a flag); a blank or non-positive override falls back rather
+     * than printing a nonsense number.
+     */
+    public static function marketingCount(): int
+    {
+        $override = AppSetting::get(self::MARKETING_COUNT_SETTING);
+        if (is_numeric($override) && (int) $override > 0) {
+            return (int) $override;
+        }
+
+        return self::catalogueCount();
+    }
+
     public static function types(): array
     {
         $out = [];
