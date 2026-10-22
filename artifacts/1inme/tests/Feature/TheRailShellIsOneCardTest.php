@@ -103,6 +103,34 @@ class TheRailShellIsOneCardTest extends TestCase
         $this->assertStringContainsString('.rail-card .navrail-panel { border-radius: 0 15px 15px 0; }', $css);
     }
 
+    /**
+     * Two facts that were MEASURED on the rendered page and can only be
+     * kept by being written down, because nothing about reading the
+     * stylesheet would tell you either one.
+     */
+    public function test_the_minimised_card_and_the_plan_row_keep_what_was_measured(): void
+    {
+        $css = $this->desktopSidebar($this->owner());
+
+        // The rail is 56px, and a 56px card's content box is 54px, so a
+        // rail left at its fixed width hangs 2px past the border it is
+        // supposed to sit inside. It takes the card's width instead.
+        $this->assertMatchesRegularExpression(
+            '/\.rail-card \.navrail-wrap\[data-rail-min="1"\] \.navrail \{[^}]*width: 100%/s',
+            $css,
+            'The minimised rail must take the card width, or it overhangs the card border by 2px.'
+        );
+
+        // Label and status side by side in a 218px menu wrapped BOTH
+        // halves onto two lines. They stack.
+        $this->assertStringContainsString('navrail-account-stack', $css);
+        $this->assertMatchesRegularExpression(
+            '/\.navrail-account-stack \{[^}]*flex-direction: column/s',
+            $css,
+            'The plan row stacks its label and status; side by side they both wrap.'
+        );
+    }
+
     public function test_the_account_row_carries_all_four_destinations(): void
     {
         $sidebar = $this->desktopSidebar($this->owner());

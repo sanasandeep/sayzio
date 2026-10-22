@@ -321,7 +321,7 @@
         border-radius: 13px;
         background: var(--bg-card);
         border: 1px solid var(--border-strong);
-        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .45);
+        box-shadow: var(--card-shadow-hover);
     }
     /* The rows are not all the same element: two are links, one is an
        inert div, and the two POSTs have to stay forms. So the row
@@ -355,15 +355,35 @@
         color: var(--sidebar-link);
     }
     .navrail-account-menu i { width: 14px; font-size: 12px; text-align: center; }
+    /* The plan row carries a label AND a status, and side by side in a
+       218px menu both of them wrapped to two lines -- measured on the
+       live page, not guessed. They stack instead, which also makes the
+       row read the same way as the account row below it. */
+    .navrail-account-stack {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        line-height: 1.35;
+    }
+    .navrail-account-stack > span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     .navrail-account-menu .navrail-account-aside {
-        margin-left: auto;
-        font-size: 11px;
+        font-size: 10.5px;
         font-weight: 600;
         color: var(--accent);
     }
+    .navrail-account-row-item[aria-disabled="true"] .navrail-account-aside {
+        color: var(--text-dimmed);
+    }
+    /* Logging out is the one destructive row, so it says so on hover.
+       --c-danger is a per-theme token, unlike the two literals the
+       classic sidebar's .logout-btn hard-codes. */
     .navrail-account-menu .navrail-account-out:hover {
-        background: rgba(239, 68, 68, .10);
-        color: #ef4444;
+        background: var(--c-danger-soft);
+        color: var(--c-danger);
     }
     .navrail-account-sep {
         height: 1px;
@@ -437,17 +457,22 @@
         left: 14px;
         border-radius: 16px;
         border: 1px solid var(--border-strong);
-        box-shadow: 0 18px 44px -24px rgba(7, 20, 55, .26);
-    }
-    html:not(.light-mode) .sidebar-shell.rail-card {
-        box-shadow: 0 26px 60px -30px rgba(0, 0, 0, .75);
+        /* Per-theme, including aurora's, rather than one shadow plus a
+           dark-mode override that the third theme would never reach. */
+        box-shadow: var(--card-shadow-hover);
     }
     .rail-card .navrail { border-radius: 15px 0 0 15px; }
     .rail-card .navrail-panel { border-radius: 0 15px 15px 0; }
-    /* Minimised, the card IS the rail, so it rounds on all four. */
+    /* Minimised, the card IS the rail: it rounds on all four, drops the
+       divider it no longer divides anything from, and takes the card's
+       own width rather than its fixed 56. Measured: at a fixed 56 the
+       rail is 2px wider than the card's content box, so it bleeds past
+       the border it is supposed to sit inside. */
     .rail-card .navrail-wrap[data-rail-min="1"] .navrail {
         border-radius: 15px;
         border-right: 0;
+        flex-basis: 100%;
+        width: 100%;
     }
 
     /* ---- minimised: the panel becomes a flyout ----------------------
@@ -471,7 +496,7 @@
         background: var(--nav-surface, var(--bg-card));
         border: 1px solid var(--border-strong);
         border-radius: 15px;
-        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .45);
+        box-shadow: var(--card-shadow-hover);
         z-index: 60;
         opacity: 0;
         transform: translateX(-8px);
@@ -623,14 +648,18 @@
                     @if($railUser->canUpgradePlan())
                         <a href="{{ route('user.upgrade') }}" role="menuitem" class="navrail-account-row-item">
                             <i class="fas fa-gem" aria-hidden="true"></i>
-                            <span>{{ $railPlan }} plan</span>
-                            <span class="navrail-account-aside">Compare plans</span>
+                            <span class="navrail-account-stack">
+                                <span>{{ $railPlan }} plan</span>
+                                <span class="navrail-account-aside">Compare plans</span>
+                            </span>
                         </a>
                     @else
                         <div role="menuitem" aria-disabled="true" class="navrail-account-row-item">
                             <i class="fas fa-gem" aria-hidden="true"></i>
-                            <span>{{ $railPlan }} plan</span>
-                            <span class="navrail-account-aside">Everything unlocked</span>
+                            <span class="navrail-account-stack">
+                                <span>{{ $railPlan }} plan</span>
+                                <span class="navrail-account-aside">Everything unlocked</span>
+                            </span>
                         </div>
                     @endif
 
