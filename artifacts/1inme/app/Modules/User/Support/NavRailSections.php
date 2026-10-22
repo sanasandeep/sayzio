@@ -115,7 +115,16 @@ class NavRailSections
                 'user.ai-personas.*',
                 'user.ai-companions.*',
                 'user.brand-kits.*',
+                // AI Marketing Studio resolves its href at runtime:
+                // Route::has('user.marketing-studio.index') ? that :
+                // 'user.brand-studio.index'. Both names have to be here or
+                // the rail lights the wrong icon for whichever half of that
+                // branch an environment actually has. Caught by
+                // test_every_route_in_a_section_partial, which is the whole
+                // reason that test reads the partials instead of trusting
+                // this list.
                 'user.marketing-studio.*',
+                'user.brand-studio.*',
                 'user.marketing-plan.*',
             ],
         ],

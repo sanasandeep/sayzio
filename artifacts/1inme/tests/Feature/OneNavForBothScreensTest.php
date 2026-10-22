@@ -58,12 +58,21 @@ class OneNavForBothScreensTest extends TestCase
         return resource_path('views/' . str_replace('.', '/', $partial) . '.blade.php');
     }
 
-    /** @return array<int, string> route names named in a section's partial */
+    /**
+     * @return array<int, string> route names named in a section's partial
+     *
+     * The lookbehind is load-bearing. `request()->route('project')` reads a
+     * route PARAMETER, and the folders markup in _home does exactly that to
+     * decide which folder is current. A bare /route\(/ swallows it and the
+     * scan reports a destination named "project" that no pattern can ever
+     * match. Only a `route(` that is not preceded by a word character or an
+     * arrow is the global route() helper.
+     */
     private function routesIn(string $key): array
     {
         $source = file_get_contents($this->partialPath($key));
 
-        preg_match_all("/route\(\s*'([^']+)'/", (string) $source, $m);
+        preg_match_all("/(?<![\w>])route\(\s*'([^']+)'/", (string) $source, $m);
 
         return array_values(array_unique($m[1]));
     }
@@ -120,8 +129,16 @@ class OneNavForBothScreensTest extends TestCase
                     continue;
                 }
 
-                $this->assertArrayNotHasKey($route, $seen,
-                    "{$route} is in both the {$seen[$route]} and {$key} panels");
+                // Not assertArrayNotHasKey with an interpolated message:
+                // PHP builds the message string before the assertion runs,
+                // so "{$seen[$route]}" raised an undefined-key warning on
+                // every route that was NOT a duplicate, which is to say on
+                // the passing path. The message has to be built only where
+                // it is true.
+                if (isset($seen[$route])) {
+                    $this->fail("{$route} is in both the {$seen[$route]} and {$key} panels");
+                }
+
                 $seen[$route] = $key;
             }
         }
