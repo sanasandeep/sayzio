@@ -66,6 +66,18 @@ class ThePageHeroLookIsChosenOnceTest extends TestCase
 
         $this->assertStringContainsString('.page-hero-deco', $css);
 
+        // The wrapper must carry its own geometry. `.page-hero > *` resets it
+        // to position:relative at equal specificity, which collapses it to
+        // zero height - the styles then render but paint into nothing, which
+        // is exactly how this shipped the first time.
+        foreach (['position: absolute', 'inset: 0', 'overflow: hidden'] as $needed) {
+            $this->assertStringContainsString(
+                $needed,
+                $css,
+                "The deco wrapper must declare \"{$needed}\" or it collapses to zero height."
+            );
+        }
+
         // The card must never be clipped by this stylesheet.
         $this->assertDoesNotMatchRegularExpression(
             '/\.page-hero\s*\{[^}]*overflow\s*:\s*hidden/',

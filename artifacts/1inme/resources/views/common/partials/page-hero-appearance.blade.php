@@ -43,7 +43,19 @@
     $isDark = $heroTheme === 'dark';
 @endphp
     /* {{ $heroOpt['label'] }} - {{ $heroTheme }} */
-    {!! $heroSel !!} .page-hero > .page-hero-deco { display: block; }
+    {!! $heroSel !!} .page-hero > .page-hero-deco {
+        display: block;
+        /* The geometry is asserted here, not inherited. `.page-hero-deco` does
+           declare position:absolute;inset:0, but `.page-hero > *` resets it to
+           relative at equal specificity and later in the cascade, so the
+           wrapper collapses to zero height and anything painted on it is
+           invisible. This selector out-specifies both. */
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        border-radius: inherit;
+        pointer-events: none;
+    }
     {!! $heroSel !!} .page-hero > .page-hero-deco > * { display: none; }
     {!! $heroSel !!} .page-hero { --hero-grid-line: {{ $heroTint($hues[0], $isDark ? .10 : .07) }}; }
 @if($heroOpt['layout'] === 'rings')
