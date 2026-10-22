@@ -30,7 +30,7 @@ class SitePageController extends Controller
                 ['slug' => 'features'],
                 [
                     'title' => 'Features',
-                    'meta_description' => 'A complete tour of every capability inside Sayzio — all 18 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, store menus, file shares, events, calendars, contact cards, resume / portfolio pages, Bizs Profiles, reviews, brand / press kits, paid pages, QR codes, forms), plus analytics, inboxes, teams, billing, and more.',
+                    'meta_description' => 'A complete tour of every capability inside Sayzio — all {{link_type_count}} link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, store menus, file shares, events, calendars, contact cards, resume / portfolio pages, Bizs Profiles, reviews, brand / press kits, paid pages, QR codes, forms), plus analytics, inboxes, teams, billing, and more.',
                     'sections' => SitePagesContent::featuresCategoriesDefault(),
                 ]
             );
@@ -255,7 +255,7 @@ class SitePageController extends Controller
     {
         // Showcase copy source (admin-editable). Passing the saved features
         // sections — or an empty array — lets the helper fall back to the
-        // built-in 18 link types when nothing has been customised.
+        // built-in link types when nothing has been customised.
         // cachedBySlug keeps the warm path query-free; admin saves flush it.
         $featuresPage = SitePage::cachedBySlug('features');
         $sections = is_array($featuresPage?->sections) ? $featuresPage->sections : [];
