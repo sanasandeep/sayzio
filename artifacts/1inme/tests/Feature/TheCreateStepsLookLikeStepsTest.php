@@ -21,7 +21,15 @@ use Tests\TestCase;
  */
 class TheCreateStepsLookLikeStepsTest extends TestCase
 {
-    private function view(): string
+    /**
+     * NOT view(). Illuminate\Foundation\Testing\TestCase already declares
+     * `protected function view()`, and a private override narrows the
+     * visibility, which PHP rejects at CLASS LOAD time with a fatal. That
+     * killed the whole suite at bootstrap, not just this file, and php -l
+     * cannot see it: the file is syntactically perfect and the clash only
+     * exists against the parent class.
+     */
+    private function source(): string
     {
         return (string) file_get_contents(
             resource_path('views/user/links/create.blade.php')
@@ -30,7 +38,7 @@ class TheCreateStepsLookLikeStepsTest extends TestCase
 
     public function test_every_class_the_step_indicator_uses_is_actually_styled(): void
     {
-        $source = $this->view();
+        $source = $this->source();
 
         // The control first: if the markup ever moves or is renamed,
         // the rest of this test would pass by checking nothing.
@@ -54,7 +62,7 @@ class TheCreateStepsLookLikeStepsTest extends TestCase
         // it rather than the whole rule, which is free to change.
         $this->assertMatchesRegularExpression(
             '/\.create-progress\s*\{[^}]*display:\s*inline-flex/',
-            $this->view(),
+            $this->source(),
             'the step indicator is not laid out, so its numbers will run into its labels again'
         );
     }
@@ -66,7 +74,7 @@ class TheCreateStepsLookLikeStepsTest extends TestCase
         // correct in every theme. Anywhere else it is a light-mode hole.
         preg_match_all(
             '/\.create-progress[^{]*\{([^}]*)\}/',
-            $this->view(),
+            $this->source(),
             $rules
         );
 
