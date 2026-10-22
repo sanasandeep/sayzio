@@ -10,6 +10,11 @@
 <div x-data="{ open:false, creating:false, name:'', icon:'users', color:'#10b981' }"
      x-init="if (new URLSearchParams(window.location.search).get('create_workspace') === '1') { open = true; creating = {{ $canCreateWs ? 'true' : 'false' }}; $nextTick(() => $el.scrollIntoView({ block: 'nearest' })) }"
      id="workspace-switcher"
+     {{-- Minimised, the rail's workspace tile cannot show a second copy of
+          this component -- it carries an id, and two of them on one page is
+          a broken document. It opens the panel this one already lives in and
+          asks it to open itself. --}}
+     @open-workspace-switcher.window="open = true; $nextTick(() => $el.scrollIntoView({ block: 'nearest' }))"
      class="px-3 py-2 border-b" style="border-color: var(--border-strong);">
     <button type="button" @click="open = !open" :aria-expanded="open.toString()"
             class="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-xl transition-colors hover:bg-black/5"
