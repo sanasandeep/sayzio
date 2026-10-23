@@ -290,7 +290,7 @@ class CreatorProfileController extends Controller
             'creator_avatar_asset' => 'nullable|string|max:300',
             'creator_avatar_remove' => 'nullable|in:0,1',
             'cover_image'         => 'nullable|image|max:5120',
-            'cover_image_url'     => 'nullable|string|max:1024',
+            'cover_image_url'     => 'nullable|url:http,https|max:1024',
             'niche_tags'          => 'nullable|array|max:8',
             'niche_tags.*'        => 'string|max:32',
             'socials'             => 'nullable|array',

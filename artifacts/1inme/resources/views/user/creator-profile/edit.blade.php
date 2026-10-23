@@ -50,7 +50,7 @@
              pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; },
              pvField(n) { const fields = Array.from(document.getElementsByName(n)); const el = fields.find(el => el.type !== 'radio' || el.checked); return el ? el.value : null; },
              pvLive() {
-                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color'), avatarUrl: document.querySelector('[data-creator-avatar-preview]')?.src || null, profileTheme: this.pvField('presentation[theme]'), profileLayout: this.pvField('presentation[layout]'), profileMode: this.pvField('presentation[mode]'), avatarShape: this.pvField('presentation[avatar_shape]'), avatarSize: this.pvField('presentation[avatar_size]'), avatarX: this.pvField('presentation[avatar_x]'), avatarY: this.pvField('presentation[avatar_y]'), density: this.pvMode === 'full' ? 'large' : this.pvMode, theme: this.pvTheme };
+                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color'), coverUrl: document.querySelector('[data-creator-cover-preview]')?.getAttribute('src') || '', avatarUrl: document.querySelector('[data-creator-avatar-preview]')?.src || null, profileTheme: this.pvField('presentation[theme]'), profileLayout: this.pvField('presentation[layout]'), profileMode: this.pvField('presentation[mode]'), avatarShape: this.pvField('presentation[avatar_shape]'), avatarSize: this.pvField('presentation[avatar_size]'), avatarX: this.pvField('presentation[avatar_x]'), avatarY: this.pvField('presentation[avatar_y]'), density: this.pvMode === 'full' ? 'large' : this.pvMode, theme: this.pvTheme };
                  [this.$refs.pvFrame, this.$refs.pvFrameFull].forEach(f => { try { if (f && f.contentWindow) f.contentWindow.postMessage(msg, window.location.origin); } catch (e) {} });
              }
          }">
@@ -111,7 +111,7 @@
 
     {{-- ── Main editor ──────────────────────────────────── --}}
     <nav class="cp-editor-tabs" aria-label="Profile editor sections">
-        @foreach(['design'=>'Design','about'=>'About you','links'=>'Links & contact','visibility'=>'Visibility','settings'=>'Publish & safety','all'=>'All options'] as $key=>$label)
+        @foreach(['design'=>'Design','about'=>'About you','links'=>'Links & contact','visibility'=>'Visibility','verification'=>'Verification','settings'=>'Publish & safety','all'=>'All options'] as $key=>$label)
         <button type="button" :aria-pressed="editorTab === '{{ $key }}'" @click="editorTab = '{{ $key }}'">{{ $label }}</button>
         @endforeach
     </nav>
@@ -121,6 +121,7 @@
         @include('user.creator-profile.presentation-controls')
 
         @include('user.creator-profile.destination-controls')
+        @include('user.creator-profile.verification-controls')
         {{-- Hero --}}
         <fieldset x-show="editorTab === 'design' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" id="cp-photo" style="color: var(--text-primary);">Photo & cover</legend>
@@ -209,20 +210,16 @@
                         </div>
                     </div>
                 </div>
-                <div>
-                    <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Cover image</label>
+                <div x-data="{ image: @js($user->cover_image ? \App\Support\PublicStorageUrl::resolve($user->cover_image) : '') }">
+                    <label for="creator-cover-upload" class="text-sm font-semibold block mb-2">Cover photo</label>
+                    <template x-if="image"><img :src="image" data-creator-cover-preview alt="Cover photo preview" class="w-full h-40 object-cover rounded-xl mb-3"></template>
+                    <input id="creator-cover-upload" type="file" name="cover_image" accept="image/jpeg,image/png,image/webp,image/gif" class="text-xs" @change="const file = $event.target.files[0]; if(file && file.size <= 5242880){ const reader = new FileReader(); reader.onload = e => { image = e.target.result; $nextTick(() => pvLive()); }; reader.readAsDataURL(file); }">
+                    <p class="text-xs mt-2" style="color:var(--text-dimmed)">Upload a JPG, PNG, WebP or GIF up to 5 MB, or use an image URL. The photo replaces your gradient cover.</p>
+                    <label for="creator-cover-url" class="text-xs block mt-3 mb-1">Cover image URL</label>
+                    <input id="creator-cover-url" type="url" name="cover_image_url" value="{{ old('cover_image_url') }}" placeholder="https://…" maxlength="1024" @input="image = $event.target.value || @js($user->cover_image ? \App\Support\PublicStorageUrl::resolve($user->cover_image) : '')" class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg-input);border:1px solid var(--border-soft)">
                     @if($user->cover_image)
-                        <div class="mb-2 relative">
-                            <img src="{{ \App\Support\PublicStorageUrl::resolve($user->cover_image) }}" class="w-full h-32 object-cover rounded-lg">
-                            <label class="absolute top-2 right-2 text-[11px] px-2 py-1 rounded bg-white/90 text-slate-700 cursor-pointer">
-                                <input type="checkbox" name="cover_image_remove" value="1" class="mr-1"> Remove
-                            </label>
-                        </div>
+                    <label class="flex items-center gap-2 mt-3 text-xs"><input type="checkbox" name="cover_image_remove" value="1" @change="image = $event.target.checked ? '' : @js(\App\Support\PublicStorageUrl::resolve($user->cover_image))">Remove saved cover and use gradient</label>
                     @endif
-                    <input type="file" name="cover_image" accept="image/*" class="text-xs">
-                    <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Or paste a URL:</p>
-                    <input type="url" name="cover_image_url" placeholder="https://…" maxlength="1024"
-                           class="w-full px-3 py-2 rounded-lg text-sm mt-1" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 </div>
 
             </div>

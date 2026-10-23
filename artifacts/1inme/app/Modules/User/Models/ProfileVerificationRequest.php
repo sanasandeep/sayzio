@@ -12,12 +12,13 @@ class ProfileVerificationRequest extends Model
         'user_id', 'tick_type_id', 'official_name', 'purpose',
         'logo_path', 'proof_files', 'status', 'kind',
         'admin_notes', 'prev_verified_name', 'new_name', 'new_avatar',
-        'reviewed_at', 'reviewed_by', 'updates',
+        'reviewed_at', 'reviewed_by', 'updates', 'supporting_urls', 'additional_info',
     ];
 
     protected $casts = [
         'proof_files' => 'array',
         'updates'     => 'array',
+        'supporting_urls' => 'array',
         'reviewed_at' => 'datetime',
     ];
 

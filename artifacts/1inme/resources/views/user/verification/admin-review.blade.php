@@ -109,6 +109,8 @@
                 </div>
             </div>
 
+            @include('user.verification.evidence-review')
+
             {{-- Proof documents --}}
             @if($req->proof_files && count($req->proof_files) > 0)
             <div class="card-premium p-6">
@@ -181,6 +183,7 @@
                         <option value="{{ $tt->id }}" {{ $req->tick_type_id == $tt->id ? 'selected' : '' }}>{{ $tt->name }}</option>
                         @endforeach
                     </select>
+                    <p class="text-xs mb-3" style="color:var(--text-muted)">You choose the final badge type. <a href="{{ route('user.profile-verification.admin.tick-types') }}" class="underline">Manage grey, green and other badge colors</a>.</p>
                     <textarea name="admin_notes" rows="3" class="theme-input w-full text-xs mb-3" placeholder="Admin notes (optional)..."></textarea>
                     <button type="submit" class="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #10b981, #34d399);">
                         <i class="fas fa-check mr-1.5"></i>Approve

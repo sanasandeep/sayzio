@@ -129,6 +129,11 @@
     </div>
     @endif
 
+    @php $evidenceRequest = $requests->first(); @endphp
+    @if($evidenceRequest)
+        @include('user.verification.evidence-review', ['req'=>$evidenceRequest])
+    @endif
+
     {{-- Follow-up message / attachments to the review team (pending only) --}}
     @php $pendingReq = $requests->firstWhere('status', 'pending'); @endphp
     @if($pendingReq)

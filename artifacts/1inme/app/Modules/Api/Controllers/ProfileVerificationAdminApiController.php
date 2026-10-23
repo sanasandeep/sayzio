@@ -135,6 +135,8 @@ class ProfileVerificationAdminApiController extends Controller
         if ($detailed) {
             $base += [
                 'logo_path'   => $r->logo_path,
+                'additional_info' => $r->additional_info,
+                'supporting_urls' => $r->supporting_urls ?? [],
                 'proof_files' => $r->proof_files ?? [],
                 'new_name'    => $r->new_name,
                 'new_avatar'  => $r->new_avatar,
