@@ -709,6 +709,16 @@
         pointer-events: auto;
     }
     /* The drawer is already a flyout; it must not get a second one. */
+    /* On the drawer the wrap is a column and the account block is the
+       last thing in it, so it sits in flow rather than pinned to the
+       bottom of a card. The menu still opens upward from its anchor. */
+    .navrail-mobile .navrail-account {
+        position: static;
+        left: auto; right: auto; bottom: auto;
+        width: 100%;
+        border-top: 1px solid var(--border-subtle);
+    }
+
     .navrail-mobile[data-rail-min="1"] .navrail-panel {
         position: static; width: auto; opacity: 1; transform: none;
         pointer-events: auto; border: 0; box-shadow: none; border-radius: 0;
@@ -873,7 +883,16 @@
 
     </div>
 
-        @if($railCard && auth()->check())
+        {{-- Not $railCard any more. That flag means "this surface is the
+             inset desktop card", and it was doing double duty as "this
+             surface gets an account block" -- so the drawer was left with
+             the pre-#553 layout: a duplicate Settings link, the badge
+             chips, a standalone Switch to admin button and a theme row,
+             all stacked and clipping. "bottom avatar and settings menu
+             how sit in sidebar in large screen isnt in mobile screen"
+             (Sana). One block, both surfaces; the positioning differs in
+             CSS below, not here. --}}
+        @if(auth()->check())
             @php
                 $railUser  = auth()->user();
                 $railPlan  = $railUser->plan->name ?? 'Free';
