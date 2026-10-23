@@ -261,7 +261,7 @@ class CreatorProfileController extends Controller
             $sectionsIn = (array) ($data['sections'] ?? []);
             $sections = [];
             foreach (User::PROFILE_DEFAULT_VISIBILITY as $sectionKey => $default) {
-                $sections[$sectionKey] = filter_var($sectionsIn[$sectionKey] ?? $default, FILTER_VALIDATE_BOOLEAN);
+                $sections[$sectionKey] = filter_var($sectionsIn[$sectionKey] ?? (($target->profile_section_visibility ?? [])[$sectionKey] ?? $default), FILTER_VALIDATE_BOOLEAN);
             }
             $target->profile_section_visibility = $sections;
         }
@@ -298,6 +298,13 @@ class CreatorProfileController extends Controller
             'sections'            => 'nullable|array',
             'sections.*'          => 'nullable|in:0,1,true,false',
             'profile_published'   => 'nullable|in:0,1,true,false',
+            'primary_biolink_id' => 'nullable|integer|min:1',
+            'presentation' => 'nullable|array',
+            'presentation.theme' => 'nullable|in:paper,midnight,warm,mint',
+            'presentation.avatar_shape' => 'nullable|in:circle,rounded,square',
+            'presentation.avatar_size' => 'nullable|integer|in:80,96,128',
+            'presentation.avatar_x' => 'nullable|integer|min:0|max:100',
+            'presentation.avatar_y' => 'nullable|integer|min:0|max:100',
             'profile_theme_color' => ['nullable', 'string', 'max:7', 'regex:/^#[0-9a-fA-F]{6}$/'],
             // Showcase — Task #5431.
             'featured_links'            => 'nullable|array|max:8',
@@ -493,6 +500,16 @@ class CreatorProfileController extends Controller
             ->pluck('id')
             ->all();
 
+        $previous = (array) ($target->profile_showcase ?? []);
+        $primaryId = $previous['primary_biolink_id'] ?? null;
+        if (array_key_exists('primary_biolink_id', $data)) {
+            $primaryId = !empty($data['primary_biolink_id']) ? (int) $data['primary_biolink_id'] : null;
+            if ($primaryId && (!in_array($primaryId, $ownerLinkIds, true) || !\App\Modules\User\Models\Link::withoutGlobalScope('workspace')->whereKey($primaryId)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->exists())) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['primary_biolink_id' => 'Choose an active biolink from this workspace.']);
+            }
+        }
+        $presentation = \App\Modules\User\Support\CreatorProfilePresentation::resolve(array_merge((array) ($previous['presentation'] ?? []), (array) ($data['presentation'] ?? [])));
+
         $rawFeaturedLinks = (array) ($data['featured_links'] ?? []);
         $featuredLinks = [];
         foreach ($rawFeaturedLinks as $item) {
@@ -557,6 +574,8 @@ class CreatorProfileController extends Controller
         if (!in_array($chosenStyle, $validStyles, true)) $chosenStyle = 'classic';
 
         $target->profile_showcase = [
+            'primary_biolink_id' => $primaryId,
+            'presentation' => $presentation,
             'featured_links'       => $featuredLinks,
             'featured_links_style' => $chosenStyle,
             'show_link_stats'      => filter_var($data['showcase_show_link_stats'] ?? false, FILTER_VALIDATE_BOOLEAN),

@@ -612,6 +612,11 @@ Route::get('/@{handle}', [\App\Modules\Common\Controllers\CreatorProfilePublicCo
     ->where('handle', '[A-Za-z0-9_]+')
     ->name('creator-profile.show');
 
+Route::get('/@{handle}/contact.vcf', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'contactCard'])
+    ->where('handle', '[A-Za-z0-9_]+')->middleware('throttle:60,1')->name('creator-profile.vcard');
+Route::get('/@{handle}/share-qr.svg', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'shareQr'])
+    ->where('handle', '[A-Za-z0-9_]+')->middleware('throttle:60,1')->name('creator-profile.share-qr');
+
 // Lightweight JSON hover-card summary for the mini-profile popover.
 // Public, no auth, rate-limited per IP.  Returns 404 for unpublished
 // or unknown handles so the popover JS can silently no-op.
