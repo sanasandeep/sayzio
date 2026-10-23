@@ -110,7 +110,12 @@ class NavigationAppearance
         'light' => [
             'surface' => '#ffffff', 'ink' => '#172033', 'muted' => '#566176',
             'control' => '#ffffff', 'line' => '#dce2ed',
-            'active' => '#e8edff', 'active-ink' => '#2948d5',
+            // MEASURED: #e8edff against a white panel is contrast 1.17 --
+            // the selected row was drawn and simply could not be seen
+            // ("active button css missing on light mode"). 1.41 reads as
+            // a selection while the accent ink on top stays at 5.01,
+            // comfortably past AA.
+            'active' => '#ccd9ff', 'active-ink' => '#2948d5',
         ],
         'dark' => [
             'surface' => '#0b0a11', 'ink' => '#f3f1f7', 'muted' => '#9b97ac',

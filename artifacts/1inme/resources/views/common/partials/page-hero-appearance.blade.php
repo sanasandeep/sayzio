@@ -111,6 +111,21 @@
         padding: {{ $rings ? '18px 22px 18px 150px' : '18px 22px' }};
         background-color: {{ $bandBg }};
     }
+    {{-- The narrow-screen padding has to be emitted HERE, carrying the
+         same $heroSel, because specificity decides this and the old
+         global override lost it silently.
+
+              this rule   html.light-mode[data-hero-style="..."] .page-hero   (0,3,1)
+              the old one html[data-hero-style] .page-hero                    (0,2,1)
+
+         So `@media (max-width: 900px)` never applied, and on a 360px
+         phone the hero kept a 150px left inset -- leaving about 190px for
+         the title, the chips and the buttons, which is why the subtitle
+         wrapped one word per line. The inset exists to clear the rings,
+         and the rings are decoration: on a small screen the content wins. --}}
+    @media (max-width: 900px) {
+        {!! $heroSel !!} .page-hero { padding: 14px; }
+    }
     {!! $heroSel !!} .page-hero > .page-hero-deco {
         display: block;
         position: absolute;
@@ -161,7 +176,4 @@
     }
 @endforeach
 @endforeach
-@media (max-width: 900px) {
-    html[data-hero-style] .page-hero { padding: 14px; }
-}
 </style>
