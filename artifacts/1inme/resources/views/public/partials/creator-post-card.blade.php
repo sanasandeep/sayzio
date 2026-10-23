@@ -223,7 +223,8 @@
             {{-- Tip button is always available — even on locked / paid
                  posts. Tipping is independent of access; fans can show
                  appreciation regardless of whether they've subscribed. --}}
-            <button type="button"
+            @if($creator->isSectionVisible('monetization'))
+                <button type="button"
                     data-cp-open-tip
                     data-cp-tip-creator="{{ $creator->id }}"
                     data-cp-tip-handle="{{ $creator->handle }}"
@@ -231,6 +232,7 @@
                     class="text-xs text-slate-500 hover:text-rose-600 font-semibold whitespace-nowrap">
                 <i class="far fa-heart mr-1"></i> Tip
             </button>
+                @endif
             <button type="button" data-cp-toggle-comments="#cp-comments-{{ $post->id }}"
                     class="text-xs text-slate-500 hover:text-slate-700 font-semibold whitespace-nowrap">
                 <i class="far fa-comment mr-1"></i> {{ (int) $post->comments_count }} comment{{ (int) $post->comments_count === 1 ? '' : 's' }}

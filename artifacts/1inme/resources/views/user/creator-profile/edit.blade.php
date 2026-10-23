@@ -5,7 +5,7 @@
     <div class="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Creator Profile</h1>
-            <p class="text-sm mt-1" style="color: var(--text-dimmed);">Your public page at <code>{{ '/@' . ($user->handle ?? 'handle') }}</code></p>
+            <p class="text-sm mt-1" style="color: var(--text-dimmed);">Your public identity: <strong>{{ '@' . ($user->handle ?? 'handle') }}</strong></p>
         </div>
         @if($profileUrl)
             <a href="{{ $profileUrl }}" target="_blank" rel="noopener" class="text-xs font-semibold px-3 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
@@ -13,6 +13,10 @@
             </a>
         @endif
     </div>
+
+    @if($profileUrl)
+        @include('public.partials.creator-profile-share', ['shareUrl'=>$profileUrl, 'shareHandle'=>$user->handle, 'shareName'=>$user->name])
+    @endif
 
     @if(session('success'))
         <div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>
@@ -29,7 +33,7 @@
     @endif
 
     <div class="xl:flex xl:items-start xl:gap-6"
-         @input.debounce.300ms="pvLive()" @change.debounce.150ms="pvLive()" @click.debounce.300ms="pvLive()"
+         @creator-avatar-ready="pvLive()" @input.debounce.300ms="pvLive()" @change.debounce.150ms="pvLive()" @click.debounce.300ms="pvLive()"
          x-data="{
              pvMode: (function (m) { if (m === 'mini') return 'small'; return ['small','medium','large','full'].includes(m) ? m : 'medium'; })(localStorage.getItem('cp_pv_mode')),
              pvTheme: ['light','dark'].includes(localStorage.getItem('cp_pv_theme')) ? localStorage.getItem('cp_pv_theme') : (document.documentElement.classList.contains('light-mode') ? 'light' : 'dark'),
@@ -42,9 +46,9 @@
              setMode(m) { this.pvMode = m; localStorage.setItem('cp_pv_mode', m); this.$nextTick(() => this.pvLive()); },
              pvToggleTheme() { this.pvTheme = this.pvTheme === 'light' ? 'dark' : 'light'; localStorage.setItem('cp_pv_theme', this.pvTheme); this.pvLive(); },
              pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; },
-             pvField(n) { const el = document.querySelector('[name=' + n + ']'); return el ? el.value : null; },
+             pvField(n) { const el = document.getElementsByName(n)[0]; return el ? el.value : null; },
              pvLive() {
-                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color'), density: this.pvMode === 'full' ? 'large' : this.pvMode, theme: this.pvTheme };
+                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color'), avatarUrl: document.querySelector('[data-creator-avatar-preview]')?.src || null, profileTheme: this.pvField('presentation[theme]'), avatarShape: this.pvField('presentation[avatar_shape]'), avatarSize: this.pvField('presentation[avatar_size]'), avatarX: this.pvField('presentation[avatar_x]'), avatarY: this.pvField('presentation[avatar_y]'), density: this.pvMode === 'full' ? 'large' : this.pvMode, theme: this.pvTheme };
                  [this.$refs.pvFrame, this.$refs.pvFrameFull].forEach(f => { try { if (f && f.contentWindow) f.contentWindow.postMessage(msg, window.location.origin); } catch (e) {} });
              }
          }">
@@ -58,7 +62,7 @@
         <div class="h-2 w-full rounded-full overflow-hidden" style="background: rgba(61,107,255,0.1);">
             <div class="h-full bg-gradient-to-r from-blue-500 to-fuchsia-500 transition-all" style="width: {{ $completeness }}%;"></div>
         </div>
-        <p class="text-[11px] mt-2" style="color: var(--text-dimmed);">Add a cover, tagline, niche tags, socials, and your first post to reach 100%.</p>
+        <p class="text-[11px] mt-2" style="color: var(--text-dimmed);">Add a cover, tagline, niche tags, socials, to complete your profile. Posts are optional.</p>
     </div>
 
     {{-- ── Handle claim / change ────────────────────────── --}}
@@ -82,7 +86,7 @@
             <div class="flex items-center gap-3 flex-wrap">
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-bold" style="color: var(--text-primary);">Handle</p>
-                    <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Your profile lives at <code>/@{{ $user->handle }}</code>. Changing it changes your public URL; old links to the previous handle stop working.</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Your profile lives at <a href="{{ $profileUrl }}" target="_blank" rel="noopener" class="font-semibold break-all" style="color:var(--accent)">{{ '@'.$user->handle }}</a>. Changing it changes your public URL; old links to the previous handle stop working.</p>
                 </div>
                 <button type="button" @click="editing = !editing"
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
@@ -104,12 +108,17 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="display: grid; column-gap: 2rem; row-gap: 3.5rem;">
+    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="display: grid; column-gap: 1.5rem; row-gap: 1.5rem;">
         @csrf
 
+        @include('user.creator-profile.presentation-controls')
+
+        <nav class="lg:col-span-2 flex flex-wrap gap-2" aria-label="Profile editor sections">
+            <a href="#cp-photo" class="cp-share-button">Photo & cover</a><a href="#cp-about" class="cp-share-button">About</a><a href="#cp-sections" class="cp-share-button">Visible sections</a>
+        </nav>
         {{-- Hero --}}
         <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
-            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Hero</legend>
+            <legend class="text-sm font-bold px-2" id="cp-photo" style="color: var(--text-primary);">Photo & cover</legend>
             <div class="space-y-4">
                 <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Profile accent color</label>
@@ -154,9 +163,13 @@
                     </div>
                 </div>
                 <div>
-                    <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Profile avatar</label>
+                    @php
+                        $avatarDesign = \App\Modules\User\Support\CreatorProfilePresentation::forUser($user);
+                    @endphp
+                    <div x-data="{image: @js($user->resolveCreatorAvatarUrl()), shape: @js(old('presentation.avatar_shape', $avatarDesign['avatar_shape'])), x: @js(old('presentation.avatar_x', $avatarDesign['avatar_x'])), y: @js(old('presentation.avatar_y', $avatarDesign['avatar_y']))}">
+                    <label class="text-sm font-semibold mb-3 block" style="color: var(--text-primary);">Profile photo</label>
                     <div class="flex items-center gap-3 mb-2">
-                        <img src="{{ $user->resolveCreatorAvatarUrl() }}" alt="" class="w-16 h-16 rounded-xl object-cover" style="border: 1px solid var(--border-soft); background: var(--bg-soft);">
+                        <img src="{{ $user->resolveCreatorAvatarUrl() }}" alt="" data-creator-avatar-preview :src="image" :style="{borderRadius: shape === 'circle' ? '50%' : (shape === 'square' ? '4px' : '20px'), objectPosition: x + '% ' + y + '%'}" class="w-24 h-24 object-cover shadow-sm" style="border: 1px solid var(--border-soft); background: var(--bg-soft);">
                         <div class="min-w-0">
                             @if(!empty($user->creator_avatar))
                                 <p class="text-[11px]" style="color: var(--text-dimmed);">Custom avatar for your creator profile. Remove it to fall back to your account profile photo.</p>
@@ -170,7 +183,12 @@
                             <i class="fas fa-lock mr-1"></i> Your profile is verified, so avatar changes are locked. Contact support to update your photo.
                         </p>
                     @else
-                        <input type="file" name="creator_avatar" accept="image/*" class="text-xs">
+                        <label class="block rounded-xl p-4 border border-dashed cursor-pointer" style="border-color:var(--border-strong);background:var(--bg-glass-input)">
+                            <span class="block text-sm font-semibold">Upload a profile photo</span>
+                            <span class="block text-xs mb-2" style="color:var(--text-muted)">JPG, PNG, WebP or GIF · up to 2 MB. Adjust shape and framing below.</span>
+                            <input type="file" name="creator_avatar" accept="image/jpeg,image/png,image/webp,image/gif" class="block text-xs w-full" @change="const file = $event.target.files[0]; if(file &amp;&amp; file.type.startsWith('image/') &amp;&amp; file.size &lt;= 2097152) { const reader = new FileReader(); reader.onload = e => { image = e.target.result; $nextTick(() => $dispatch('creator-avatar-ready')); }; reader.readAsDataURL(file); }">
+                        </label>
+
                         @if(!empty($user->creator_avatar))
                             <label class="flex items-center gap-1.5 mt-1 text-[11px] cursor-pointer" style="color: var(--text-muted);">
                                 <input type="checkbox" name="creator_avatar_remove" value="1"> Remove custom avatar (use account profile photo)
@@ -178,6 +196,13 @@
                         @endif
                         @include('user.partials.avatar-gallery-picker', ['inputName' => 'creator_avatar_asset'])
                     @endif
+                        <div class="grid grid-cols-2 gap-3 mt-3">
+                            <label class="text-xs">Photo shape<select name="presentation[avatar_shape]" x-model="shape" class="w-full rounded-lg p-2 mt-1" style="background:var(--bg-input);border:1px solid var(--border-soft)"><option value="circle">Circle</option><option value="rounded">Rounded</option><option value="square">Square</option></select></label>
+                            <label class="text-xs">Photo size<select name="presentation[avatar_size]" class="w-full rounded-lg p-2 mt-1" style="background:var(--bg-input);border:1px solid var(--border-soft)">@foreach([80=>'Small',96=>'Medium',128=>'Large'] as $size=>$label)<option value="{{ $size }}" @selected((int)old('presentation.avatar_size',$avatarDesign['avatar_size']) === $size)>{{ $label }}</option>@endforeach</select></label>
+                            <label class="text-xs">Horizontal framing<input type="range" name="presentation[avatar_x]" x-model="x" min="0" max="100" class="w-full mt-2"></label>
+                            <label class="text-xs">Vertical framing<input type="range" name="presentation[avatar_y]" x-model="y" min="0" max="100" class="w-full mt-2"></label>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Cover image</label>
@@ -209,7 +234,7 @@
 
         {{-- About --}}
         <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
-            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">About</legend>
+            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);" id="cp-about">About</legend>
             <div class="space-y-4">
                 <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Bio</label>
@@ -264,16 +289,16 @@
 
         {{-- Section visibility --}}
         <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
-            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Sections shown</legend>
-            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Toggle the chunks you want on your public page.</p>
+            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);" id="cp-sections">Visible sections</legend>
+            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Choose what your visitors see. Turn off Posts or Subscriptions, tips & paid posts for a simple professional profile. Existing subscriptions and purchases are unchanged.</p>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 @foreach($sectionDefaults as $key => $default)
                     <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
                         <input type="hidden" name="sections[{{ $key }}]" value="0">
                         <input type="checkbox" name="sections[{{ $key }}]" value="1"
-                               {{ ($sections[$key] ?? $default) ? 'checked' : '' }}
+                               @checked(filter_var(old('sections.'.$key, $sections[$key] ?? $default), FILTER_VALIDATE_BOOLEAN))
                                class="rounded text-blue-600 focus:ring-blue-500" style="border-color: var(--border-glass);">
-                        <span class="text-xs font-semibold capitalize" style="color: var(--text-primary);">{{ $key }}</span>
+                        <span class="text-xs font-semibold capitalize" style="color: var(--text-primary);">{{ $key === 'monetization' ? 'Subscriptions, tips & paid posts' : Str::headline($key) }}</span>
                     </label>
                 @endforeach
             </div>
@@ -923,9 +948,11 @@
 
         <div class="flex justify-end items-center gap-2 lg:col-span-2 sticky bottom-0 z-40 rounded-xl px-4 py-3 -mx-1"
              style="background: color-mix(in srgb, var(--bg-card) 82%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-soft); box-shadow: 0 -6px 24px rgba(0,0,0,0.18); margin-top: -1.5rem;">
+            @if($sections['posts'] ?? true)
             <a href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 Manage posts
             </a>
+            @endif
             <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">
                 <i class="fas fa-save mr-1"></i> Save profile
             </button>

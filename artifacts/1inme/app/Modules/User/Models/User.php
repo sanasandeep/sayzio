@@ -371,6 +371,7 @@ class User extends Authenticatable
         'stats'          => true,
         'about'          => true,
         'posts'          => true,
+        'monetization'   => true,
         'socials'        => true,
         'biolink'        => true,
         'contact'        => true,
@@ -487,16 +488,16 @@ class User extends Authenticatable
     {
         $checks = [
             !empty($this->handle),
-            !empty($this->avatar),
+            !empty($this->creatorAvatarRaw()),
             !empty($this->cover_image),
             !empty($this->tagline),
             !empty($this->bio),
             !empty($this->location),
             is_array($this->niche_tags) && count($this->niche_tags) > 0,
             is_array($this->socials) && count($this->socials) > 0,
-            (int) ($this->posts_count ?? 0) > 0,
             (bool) $this->profile_published,
         ];
+        if ($this->isSectionVisible('posts')) $checks[] = (int) ($this->posts_count ?? 0) > 0;
         $done = count(array_filter($checks));
         return (int) round(($done / count($checks)) * 100);
     }

@@ -1,4 +1,5 @@
 @php
+    $__presentation = \App\Modules\User\Support\CreatorProfilePresentation::forUser($creator);
     $__cpProfileUrl = route('creator-profile.show', $creator->handle);
     $__cpTitle = $creator->name . ' (@' . $creator->handle . ') - ' . config('app.name');
     $__cpDescription = Str::limit($creator->tagline ?: $creator->bio ?: ($creator->name . ' on Sayzio'), 180);
@@ -110,7 +111,7 @@
     );
 @endphp
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-profile-theme="{{ $__presentation['theme'] }}">
 <head>
     @include('common.partials.toolbar-theme-color')
 <meta charset="UTF-8">
@@ -225,6 +226,7 @@
     html.cp-pv-dark .cp-fl--classic p[style*="color:#0f172a"]{color:#f1f5f9!important}
     @endif
 </style>
+    @include('public.partials.creator-profile-design')
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900">
 @if($ageGateRequired ?? false)
@@ -237,7 +239,7 @@
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <header class="cp-card overflow-hidden mt-4">
-        <div class="h-40 sm:h-56 relative" data-cp-cover style="background: linear-gradient(135deg, var(--cp-accent, #3b82f6), var(--cp-accent-mid, #a855f7));">
+        <div class="h-40 sm:h-56 relative" data-cp-cover style="background: {{ $creator->profile_theme_color ? 'linear-gradient(135deg, var(--cp-accent), var(--cp-accent-mid))' : 'var(--cp-cover,linear-gradient(135deg,#3b82f6,#a855f7))' }};">
             @if($creator->cover_image)
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @endif
@@ -246,9 +248,9 @@
             <div class="flex items-end justify-between gap-3 flex-wrap">
                 <div class="flex items-end gap-4">
                     @if($creator->creatorAvatarRaw())
-                        <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()) }}" alt="{{ $creator->name }}" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
+                        <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()) }}" alt="{{ $creator->name }}" data-cp-avatar class="object-cover border-4 border-white shadow-md bg-white cp-avatar">
                     @else
-                        <div class="w-24 h-24 rounded-2xl border-4 border-white shadow-md bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-2xl">
+                        <div data-cp-avatar class="cp-avatar border-4 border-white shadow-md bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-2xl">
                             {{ $creator->getInitials() }}
                         </div>
                     @endif
@@ -258,14 +260,16 @@
                         <a href="{{ route('user.creator-profile.edit') }}" class="px-3.5 py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-700">
                             <i class="fas fa-pen mr-1"></i> Edit profile
                         </a>
+                        @if($sectionsVisible['monetization'] ?? true)
                         <a href="{{ route('user.monetization.earnings') }}" class="px-3.5 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100">
                             <i class="fas fa-gem mr-1"></i> Monetization
                         </a>
+                        @endif
                     @else
                         @include('public.partials.follow-button', ['creator' => $creator, 'viewer' => $viewer, 'isFollowing' => $isFollowing])
 
                         {{-- ── Monetization CTAs (Task #1209) ──────────────── --}}
-                        @if($tiers->count())
+                        @if(($sectionsVisible['monetization'] ?? true) && $tiers->count())
                             @if($viewerSubscription && $viewerSubscription->isCurrent())
                                 <a href="{{ route('creator-profile.subscription.manage', ['handle' => $creator->handle]) }}"
                                    class="px-3.5 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold hover:bg-blue-100">
@@ -279,6 +283,7 @@
                             @endif
                         @endif
                         @if($creator->canAcceptTips ?? true)
+                            @if($sectionsVisible['monetization'] ?? true)
                             <button type="button"
                                     data-cp-open-tip
                                     data-cp-tip-creator="{{ $creator->id }}"
@@ -287,6 +292,7 @@
                                 <i class="fas fa-heart mr-1"></i> Tip
                             </button>
 
+                            @endif
                             {{-- Task #1211 — Block / report kebab. Visible only to
                                  logged-in viewers (otherwise both endpoints would
                                  require auth and bounce them through OTP). --}}
@@ -401,6 +407,8 @@
         </div>
     </header>
 
+    @include('public.partials.creator-profile-share', ['shareUrl'=>$__cpProfileUrl, 'shareHandle'=>$creator->handle, 'shareName'=>$creator->name])
+
     {{-- ── Highlights strip (Task #5431) ──────────────────── --}}
     @php
         $__hl = $showcase['highlights'] ?? [];
@@ -513,7 +521,7 @@
     <div x-show="activeTab === 'about'" x-cloak>
 
         {{-- ── Stats strip ─────────────────────────────────────── --}}
-        @if(($sectionsVisible['stats'] ?? true))
+        @if(($sectionsVisible['stats'] ?? true) && !$__showHl)
             <div class="cp-card mt-3 px-5 py-4 grid grid-cols-3 text-center divide-x divide-slate-100" data-cpd="m">
                 <div>
                     <div class="text-xl font-extrabold">{{ number_format($creator->posts_count ?? 0) }}</div>
@@ -851,6 +859,13 @@
         var d = e.data || {};
         if (d.type !== 'cpLive') return;
         var root = document.documentElement;
+        if (['paper','midnight','warm','mint'].includes(d.profileTheme)) root.dataset.profileTheme = d.profileTheme;
+        document.querySelectorAll('[data-cp-avatar]').forEach(avatar => {
+            if (avatar.tagName === 'IMG' && typeof d.avatarUrl === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/.test(d.avatarUrl) && d.avatarUrl.length < 3000000) avatar.src = d.avatarUrl;
+            if (['circle','rounded','square'].includes(d.avatarShape)) avatar.style.borderRadius = d.avatarShape === 'circle' ? '50%' : (d.avatarShape === 'square' ? '4px' : '20px');
+            if ([80,96,128].includes(Number(d.avatarSize))) { avatar.style.width = d.avatarSize + 'px'; avatar.style.height = d.avatarSize + 'px'; }
+            if (d.avatarX !== null && d.avatarY !== null) avatar.style.objectPosition = Math.max(0,Math.min(100,Number(d.avatarX))) + '% ' + Math.max(0,Math.min(100,Number(d.avatarY))) + '%';
+        });
         if (typeof d.density === 'string') {
             root.classList.toggle('cp-d-small', d.density === 'small');
             root.classList.toggle('cp-d-medium', d.density === 'medium');
@@ -873,6 +888,7 @@
                 r.setProperty('--cp-accent', d.color);
                 r.setProperty('--cp-accent-soft', d.color + '33');
                 r.setProperty('--cp-accent-mid', d.color + '88');
+                document.querySelector('[data-cp-cover]')?.style.setProperty('background', 'linear-gradient(135deg,' + d.color + ',' + d.color + '88)');
             } else if (d.color === '') {
                 // Cleared in the editor: drop the inline overrides so the
                 // preview falls back to the server-rendered value (or the
@@ -880,6 +896,7 @@
                 r.removeProperty('--cp-accent');
                 r.removeProperty('--cp-accent-soft');
                 r.removeProperty('--cp-accent-mid');
+                document.querySelector('[data-cp-cover]')?.style.setProperty('background', 'var(--cp-cover,linear-gradient(135deg,#3b82f6,#a855f7))');
             }
         }
     });

@@ -87,14 +87,16 @@ class CreatorProfilePublicController extends Controller
             ? static::upcomingEventsQuery($creator)->limit(3)->get()
             : collect();
 
-        $feed = $this->buildFeedViewData($creator, $viewer, $isOwner);
+        $feed = $this->buildFeedViewData($creator, $viewer, $isOwner, true);
 
+        $primaryId = (int) (($creator->profile_showcase ?? [])['primary_biolink_id'] ?? 0);
         $primaryBiolink = Link::query()
-            ->where('user_id', $creator->id)
-            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
+            ->withoutGlobalScope('workspace')
+            ->tap($this->workspaceLinkScope($creator))
+            ->whereIn('type', Link::BIOLINK_FAMILY)
             ->where('is_active', true)
-            ->orderBy('id')
-            ->first();
+            ->when($primaryId, fn ($q) => $q->whereKey($primaryId))
+            ->orderBy('id')->first();
 
         // Task #1211 — related creators by overlapping niche tags. Cheap
         // static helper on CreatorsController so the directory and the
@@ -131,6 +133,29 @@ class CreatorProfilePublicController extends Controller
             'showcaseCards'   => $showcaseCards,
             'totalPublicLinks'=> $totalPublicLinks,
         ]));
+    }
+
+    /** Sharing resources use the same publication, block and region gates as the page. */
+    public function contactCard(string $handle, Request $request)
+    {
+        $page = $this->show($handle, $request);
+        if (!$page instanceof \Illuminate\Contracts\View\View) return $page;
+        $data = $page->getData();
+        abort_if($data['ageGateRequired'], 403);
+        return response(\App\Modules\User\Support\CreatorProfilePresentation::vcard($data['creator']))
+            ->header('Content-Type', 'text/vcard; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="'.$data['creator']->handle.'.vcf"')
+            ->header('Cache-Control', 'private, no-store');
+    }
+
+    public function shareQr(string $handle, Request $request)
+    {
+        $page = $this->show($handle, $request);
+        if (!$page instanceof \Illuminate\Contracts\View\View) return $page;
+        $data = $page->getData();
+        abort_if($data['ageGateRequired'], 403);
+        $svg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(320)->margin(2)->generate(route('creator-profile.show', $data['creator']->handle));
+        return response($svg)->header('Content-Type', 'image/svg+xml')->header('Cache-Control', 'private, no-store');
     }
 
     /**
@@ -241,12 +266,13 @@ class CreatorProfilePublicController extends Controller
      *
      * @return array<string,mixed>
      */
-    public function buildFeedViewData(User $creator, ?User $viewer, bool $isOwner): array
+    public function buildFeedViewData(User $creator, ?User $viewer, bool $isOwner, bool $respectProfileSections = false): array
     {
         $posts = CreatorPost::query()
             ->withoutGlobalScope('workspace')
             ->where('user_id', $creator->id)
             ->whereNotNull('published_at')
+            ->when($respectProfileSections && !$creator->isSectionVisible('monetization'), fn ($q) => $q->where(fn ($v) => $v->where('visibility', 'free')->orWhereNull('visibility')))
             ->orderByDesc('pinned_at')
             ->orderByDesc('published_at')
             ->paginate(10);
