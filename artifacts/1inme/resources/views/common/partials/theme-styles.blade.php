@@ -1293,7 +1293,11 @@
         transition: opacity 0.3s;
     }
     .btn-primary:hover {
-        background: #2342c7;
+        /* Derived, not typed. These were literals -- #2342c7 here and
+           #2139a1 in light -- so the button left its own hue family on
+           hover, and an admin who changes --accent got a hover that
+           went somewhere unrelated to it. */
+        background: color-mix(in srgb, var(--accent) 82%, #000);
         box-shadow: 0 2px 4px rgba(0,0,0,0.12);
         transform: translateY(-1px);
     }
@@ -1303,7 +1307,7 @@
         box-shadow: 0 1px 2px rgba(61,107,255,0.20), inset 0 1px 0 rgba(255,255,255,0.18);
     }
     html.light-mode .btn-primary:hover {
-        background: #2139a1;
+        background: color-mix(in srgb, var(--accent) 82%, #000);
         box-shadow: 0 4px 12px -2px rgba(61,107,255,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
     }
 
