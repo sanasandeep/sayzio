@@ -160,6 +160,8 @@ class UserRoleController extends Controller
             return back()->with('error', 'That is not a valid admin role.');
         }
 
+        \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable(auth('admin')->user(), $role);
+
         // Back-office accounts are keyed by email. A mobile/WhatsApp-only
         // sign-up has no users.email yet — the user must add + verify an
         // email in Account Settings (Linked identifiers) first.
@@ -179,6 +181,7 @@ class UserRoleController extends Controller
             ->first();
 
         if ($admin) {
+            if ($admin->role) \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable(auth('admin')->user(), $admin->role);
             $admin->update([
                 'role_id' => $role->id,
                 'status'  => 'active',
@@ -222,6 +225,8 @@ class UserRoleController extends Controller
      */
     public function revokeAdminAccess(User $user)
     {
+        $targetAdmin = $user->adminAccount();
+        if ($targetAdmin?->role) \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable(auth('admin')->user(), $targetAdmin->role);
         $admin = $user->adminAccount();
 
         if (! $admin) {

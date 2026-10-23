@@ -24,6 +24,7 @@ class SubscriptionController extends Controller
 {
     public function show(Request $request, Subscription $subscription)
     {
+        abort_unless(auth('admin')->user()?->hasPermission('finance.invoices.view') && auth('admin')->user()?->hasPermission('finance.refunds.view'), 403);
         $subscription->load(['user', 'plan']);
 
         // Scope strictly to this subscription: direct subscription_id

@@ -127,6 +127,7 @@ class StaffController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
+        \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable(Auth::guard('admin')->user(), Role::findOrFail($validated['role_id']));
         $validated['password'] = Hash::make($validated['password']);
 
         Admin::create($validated);
@@ -157,6 +158,9 @@ class StaffController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
+        \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable(Auth::guard('admin')->user(), $staff->role);
+        \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable(Auth::guard('admin')->user(), Role::findOrFail($validated['role_id']));
+
         // Deactivating a protected staff account is a suspend — block it.
         if ($validated['status'] === 'inactive'
             && $staff->status !== 'inactive'
@@ -181,6 +185,7 @@ class StaffController extends Controller
 
     public function destroy(Admin $staff, AdminActionLogger $audit)
     {
+        \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable(Auth::guard('admin')->user(), $staff->role);
         if ($staff->id === Auth::guard('admin')->id()) {
             return back()->with('error', 'You cannot delete your own account.');
         }

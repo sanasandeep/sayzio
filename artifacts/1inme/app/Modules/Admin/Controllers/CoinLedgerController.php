@@ -94,6 +94,7 @@ class CoinLedgerController extends Controller
 
     public function export(Request $request)
     {
+        abort_unless(auth('admin')->user()?->hasPermission('finance.ledger.view'), 403);
         $query = $this->filtered($request)
             ->with('user:id,name,email')
             ->orderByDesc('created_at')->orderByDesc('id');

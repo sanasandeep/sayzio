@@ -43,6 +43,7 @@ class CoinPackageController extends Controller
      */
     public function allocations(Request $request)
     {
+        abort_unless(auth('admin')->user()?->hasPermission('finance.margin.view'), 403);
         $data = $request->validate([
             'from' => 'nullable|date',
             'to'   => 'nullable|date',

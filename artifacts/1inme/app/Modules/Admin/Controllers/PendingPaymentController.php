@@ -71,7 +71,7 @@ class PendingPaymentController extends Controller
             [
                 'invoice_id'            => $invoice->id,
                 'status'                => 'succeeded',
-                'raw_response'          => ['admin_id' => $request->user()?->id, 'note' => $data['note'] ?? null],
+                'raw_response'          => ['admin_id' => $request->user('admin')?->id, 'note' => $data['note'] ?? null],
                 'signature_verified_at' => now(),
             ]
         );
@@ -84,7 +84,7 @@ class PendingPaymentController extends Controller
         Log::info('Admin marked invoice paid', [
             'invoice_id'     => $invoice->id,
             'invoice_number' => $invoice->number,
-            'admin_id'       => $request->user()?->id,
+            'admin_id'       => $request->user('admin')?->id,
             'reference'      => $reference,
             'subscription'   => $subscription->id,
         ]);

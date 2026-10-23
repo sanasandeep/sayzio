@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Role;
 use App\Modules\Admin\Models\Permission;
 use Illuminate\Http\Request;
+use App\Modules\Admin\Support\StaffPermissionCatalog;
 
 class RoleController extends Controller
 {
     public function index()
     {
-        $roles = Role::withCount(['admins', 'permissions'])->get();
+        $roles = Role::where('guard', 'admin')->withCount(['admins', 'permissions'])->get();
         return view('admin.roles.index', compact('roles'));
     }
 
@@ -23,7 +24,7 @@ class RoleController extends Controller
 
     public function create()
     {
-        $permissions = Permission::orderBy('group')->get()->groupBy('group');
+        $permissions = Permission::orderBy('group')->orderBy('name')->get()->groupBy('group');
         return view('admin.roles.create', compact('permissions'));
     }
 
@@ -37,7 +38,10 @@ class RoleController extends Controller
             'permissions.*' => 'exists:permissions,id',
         ]);
 
+        abort_if($validated['slug'] === 'super-admin', 422, 'This slug is reserved.');
+        $this->assertPermissions($validated['permissions'] ?? []);
         $role = Role::create([
+            'guard' => 'admin',
             'name' => $validated['name'],
             'slug' => $validated['slug'],
             'description' => $validated['description'] ?? null,
@@ -52,13 +56,15 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
-        $permissions = Permission::orderBy('group')->get()->groupBy('group');
+        StaffPermissionCatalog::assertAssignable(auth('admin')->user(), $role);
+        $permissions = Permission::orderBy('group')->orderBy('name')->get()->groupBy('group');
         $rolePermissions = $role->permissions->pluck('id')->toArray();
         return view('admin.roles.edit', compact('role', 'permissions', 'rolePermissions'));
     }
 
     public function update(Request $request, Role $role)
     {
+        StaffPermissionCatalog::assertAssignable(auth('admin')->user(), $role);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -66,6 +72,7 @@ class RoleController extends Controller
             'permissions.*' => 'exists:permissions,id',
         ]);
 
+        $this->assertPermissions($validated['permissions'] ?? []);
         $role->update([
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
@@ -78,6 +85,7 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        StaffPermissionCatalog::assertAssignable(auth('admin')->user(), $role);
         if ($role->slug === 'super-admin') {
             return back()->with('error', 'Cannot delete the Super Admin role.');
         }
@@ -88,5 +96,13 @@ class RoleController extends Controller
 
         $role->delete();
         return redirect()->route('admin.roles.index')->with('success', 'Role deleted successfully.');
+    }
+    private function assertPermissions(array $ids): void
+    {
+        $actor = auth('admin')->user();
+        if ($actor->isSuperAdmin()) return;
+        foreach (Permission::whereIn('id', $ids)->get() as $permission) {
+            abort_unless($actor->hasPermission($permission->slug), 403, 'Cannot delegate permissions you do not hold.');
+        }
     }
 }

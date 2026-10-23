@@ -8,10 +8,14 @@
             <h1 class="text-2xl font-semibold ak-strong">Coin Ledger</h1>
             <p class="text-sm ak-muted">Day-by-day coin flow across all user wallets.</p>
         </div>
+
+@if(auth('admin')->user()?->hasPermission('finance.ledger.export'))
         <a href="{{ route('admin.coin-ledger.export', request()->only(['type','from','to','q','user_id'])) }}"
            class="px-4 py-2 rounded-lg border text-sm ak-soft hover:bg-white/5" style="border-color: var(--border);">
             <i class="fas fa-file-csv mr-1.5"></i>Export CSV
         </a>
+@endif
+
     </div>
 
     @if($drillUser)

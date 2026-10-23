@@ -23,155 +23,92 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserManagementController extends Controller
 {
+    use \App\Modules\Admin\Controllers\Concerns\SuperAdminAccountViews;
+
     public function index(Request $request)
     {
-        $query = User::with('plan');
-
+        $actor = Auth::guard('admin')->user();
+        $actor->loadMissing('role.permissions');
+        if ($actor->isSuperAdmin() && ! $request->boolean('workbench')) return $this->superAdminIndex($request);
+        $data = $request->validate([
+            'search' => 'nullable|string|max:190', 'field' => 'nullable|in:id,name,email,handle,phone',
+            'status' => 'nullable|in:active,inactive,banned,suspended', 'plan' => 'nullable|integer',
+            'badge' => 'nullable|integer', 'joined_from' => 'nullable|date', 'joined_to' => 'nullable|date',
+            'sort' => 'nullable|in:id,name,email,created_at', 'direction' => 'nullable|in:asc,desc',
+            'per_page' => 'nullable|integer|in:15,30,50,100',
+        ]);
+        if ($request->filled('joined_from') && $request->filled('joined_to')) $request->validate(['joined_to' => 'after_or_equal:joined_from']);
+        $query = User::query()->with('plan', 'accountBadges');
+        $field = $data['field'] ?? 'id';
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('email', 'ilike', "%{$search}%");
-            });
+            abort_unless($actor->hasPermission('users.search'), 403);
+            if ($field === 'id') {
+                $query->where('id', ctype_digit($data['search']) ? (int) $data['search'] : -1);
+            } else {
+                $visibility = match ($field) {
+                    'email' => 'users.email.view', 'phone' => 'users.phone.view', default => 'users.identity.view',
+                };
+                abort_unless($actor->hasPermission('users.search_identity') && $actor->hasPermission($visibility), 403);
+                $query->where($field, 'ilike', '%'.$data['search'].'%');
+            }
         }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        foreach (['status' => 'status', 'plan' => 'plan_id', 'badge' => null, 'joined_from' => null, 'joined_to' => null] as $key => $column) {
+            if (! $request->filled($key)) continue;
+            abort_unless($actor->hasPermission('users.filter'), 403);
+            $permission = match ($key) {
+                'status' => 'users.status.view', 'plan' => 'users.plan.view', 'badge' => 'users.badges.view', default => 'users.joined.view',
+            };
+            abort_unless($actor->hasPermission($permission), 403);
+            if ($key === 'status') {
+                if ($data[$key] === 'suspended') $query->where(fn ($q) => $q->whereNotNull('suspended_at')->orWhere('status', 'suspended'));
+                else $query->whereNull('suspended_at')->where('status', $data[$key]);
+            }
+            elseif ($column) $query->where($column, $data[$key]);
+            elseif ($key === 'badge') $query->whereHas('accountBadges', fn ($q) => $q->where('account_badges.id', $data[$key]));
+            else $query->whereDate('created_at', $key === 'joined_from' ? '>=' : '<=', $data[$key]);
         }
-
-        if ($request->filled('plan')) {
-            $query->where('plan_id', $request->plan);
-        }
-
-        if ($request->filled('badge')) {
-            $badgeId = (int) $request->badge;
-            $query->whereHas('accountBadges', fn ($q) => $q->where('account_badges.id', $badgeId));
-        }
-
-        $query->with('accountBadges');
-
-        // Column sorting happens in the query, not in the browser: the table
-        // only ever holds one page of this result, so sorting it client-side
-        // would order fifteen rows and call it the account list.
-        $sort = \App\Support\TableSort::apply($query, $request, [
-            'user'   => ['name', 'email'],
-            // Sorting by plan_id would order by an internal id nobody sees.
-            // The subquery sorts by the plan's own name instead.
-            'plan'   => Plan::select('name')->whereColumn('plans.id', 'users.plan_id'),
-            'status' => 'status',
-            'joined' => 'created_at',
-        ], defaultKey: 'joined', defaultDir: 'desc');
-
-        $users = $query->paginate(15)->withQueryString();
-        $plans = Plan::active()->ordered()->get();
-        $badges = \App\Modules\Admin\Models\AccountBadge::orderBy('name')->get();
-
-        // Admin status for the current page, in one query. The admin pool
-        // is a separate table linked to a user by email, so we batch-load
-        // matching admin records keyed by lowercased email rather than
-        // firing one lookup per row.
-        $emails = $users->getCollection()
-            ->pluck('email')
-            ->filter()
-            ->map(fn ($e) => strtolower(trim((string) $e)))
-            ->unique()
-            ->values()
-            ->all();
-
-        $adminAccounts = collect();
-        if (! empty($emails)) {
-            $adminAccounts = \App\Modules\Admin\Models\Admin::query()
-                ->with('role')
-                ->where(function ($q) use ($emails) {
-                    foreach ($emails as $email) {
-                        $q->orWhereRaw('lower(email) = ?', [$email]);
-                    }
-                })
-                ->get()
-                ->keyBy(fn ($a) => strtolower(trim((string) $a->email)));
-        }
-
-        $operator = Auth::guard('admin')->user();
-        $canManageAdminAccess = $operator && (
-            $operator->hasPermission('users.grant_admin')
-            || $operator->hasPermission('users.revoke_admin')
-        );
-
-        // Lowercased set of protected emails on this page so the view can
-        // hide delete/suspend controls for protected accounts.
-        $protectedEmails = ProtectedAccount::query()
-            ->whereIn('email', $emails)
-            ->pluck('email')
-            ->map(fn ($e) => strtolower(trim((string) $e)))
-            ->flip();
-
-        // Id-keyed protected entries (email-less accounts) on this page.
-        $protectedUserIds = ProtectedAccount::query()
-            ->whereIn('user_id', collect($users->items())->pluck('id')->all())
-            ->pluck('user_id')
-            ->flip();
-
-        return view('admin.users.index', compact('users', 'plans', 'badges', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails', 'protectedUserIds', 'sort'));
+        $sort = $data['sort'] ?? 'id';
+        $sortPermission = match ($sort) {
+            'name' => 'users.identity.view', 'email' => 'users.email.view', 'created_at' => 'users.joined.view', default => null,
+        };
+        if ($sortPermission) abort_unless($actor->hasPermission($sortPermission), 403);
+        $accounts = $query->orderBy($sort, $data['direction'] ?? 'desc')->orderBy('id')
+            ->paginate($data['per_page'] ?? 30)->withQueryString();
+        $accounts->through(fn ($user) => \App\Modules\Admin\Support\StaffPermissionCatalog::userRow($actor, $user));
+        $plans = $actor->hasPermission('users.plan.view') || $actor->hasPermission('users.bulk_plan')
+            ? Plan::active()->ordered()->get(['id', 'name']) : collect();
+        $badges = $actor->hasPermission('users.badges.view') || $actor->hasPermission('users.badges.bulk')
+            ? \App\Modules\Admin\Models\AccountBadge::orderBy('name')->get(['id', 'name']) : collect();
+        return view('admin.users.staff-index', compact('accounts', 'plans', 'badges', 'actor'));
     }
 
     public function show(Request $request, User $user)
     {
-        $user->load('plan', 'accountBadges');
-        $plans = Plan::active()->ordered()->get();
-        $badges = \App\Modules\Admin\Models\AccountBadge::orderBy('name')->get();
-        $userBadgeIds = $user->accountBadges->pluck('id')->all();
-        $wallet = app(WalletService::class)->walletFor($user);
-        $walletEnabled = WalletService::isEnabled();
-        $walletTransactions = $wallet->transactions()->limit(10)->get();
-
-        // Latest role grants/revokes against this user. The route is
-        // gated by `users.view`, but the task restricts visibility of
-        // role-change audits to operators with `users.edit` (the same
-        // permission required to mutate roles). We skip the query
-        // entirely for read-only viewers so the data never reaches
-        // the response body — the view also hides the panel.
-        //
-        // Same simple filter inputs (date range, actor, role, action,
-        // source) the per-user back-office roles page exposes — kept
-        // in sync via the shared shape so the panel's CSV export
-        // download matches what the reviewer is looking at.
-        $admin = Auth::guard('admin')->user();
-        $canSeeRoleAudits = $admin && $admin->hasPermission('users.edit');
-
-        $auditFilters = $this->panelAuditFilters($request);
-
-        $roleAudits = $canSeeRoleAudits
-            ? UserRoleAudit::query()
-                ->with(['actorUser:id,name,email', 'actorAdmin:id,name,email'])
-                ->where('target_user_id', $user->id)
-                ->bySourceFilter(UserRoleAudit::normaliseSourceFilter($auditFilters['audit_source']))
-                ->betweenDates(
-                    UserRoleAudit::normaliseRangePreset($auditFilters['audit_range']),
-                    $auditFilters['audit_from'],
-                    $auditFilters['audit_to'],
-                )
-                ->filtered([
-                    'actor'  => $auditFilters['actor'],
-                    'role'   => $auditFilters['role'],
-                    'action' => $auditFilters['action'],
-                ])
-                ->orderByDesc('created_at')
-                ->limit(20)
-                ->get()
-            : collect();
-
-        $auditRoleSlugs = $canSeeRoleAudits ? UserRoleAudit::distinctRoleSlugs() : [];
-        $auditActions   = UserRoleAudit::actionLabels();
-        $auditSources   = UserRoleAudit::sourceFilters();
-        $auditRanges    = UserRoleAudit::rangeFilters();
-
-        $isProtected = ProtectedAccount::isProtected($user);
-
-        return view('admin.users.show', compact(
-            'user', 'plans', 'badges', 'userBadgeIds', 'wallet', 'walletEnabled', 'walletTransactions',
-            'roleAudits', 'auditFilters', 'auditRoleSlugs', 'auditActions',
-            'auditSources', 'auditRanges', 'isProtected'
-        ));
+        $actor = Auth::guard('admin')->user();
+        $actor->loadMissing('role.permissions');
+        if ($actor->isSuperAdmin() && ! $request->boolean('workbench')) return $this->superAdminShow($request, $user);
+        $user->load('plan');
+        $account = \App\Modules\Admin\Support\StaffPermissionCatalog::userRow($actor, $user);
+        if ($actor->hasPermission('users.profile.edit') && \App\Modules\Admin\Support\StaffPermissionCatalog::fullIdentity($actor)) $account['timezone'] = $user->timezone;
+        if ($actor->hasPermission('users.activity.view')) {
+            $account['last_login'] = $user->last_login_at?->toIso8601String();
+            $account['timezone'] = $user->timezone;
+        }
+        if ($actor->hasPermission('users.plan.view')) $account['plan_expires_at'] = $user->plan_expires_at;
+        $plans = $actor->hasPermission('users.assign_plan') ? Plan::active()->ordered()->get(['id', 'name']) : collect();
+        $badges = $actor->hasPermission('users.badges.assign')
+            ? \App\Modules\Admin\Models\AccountBadge::orderBy('name')->get(['id', 'name']) : collect();
+        $assignedBadges = $actor->hasPermission('users.badges.view') || $actor->hasPermission('users.badges.assign')
+            ? $user->accountBadges()->pluck('account_badges.id')->all() : [];
+        $balance = $actor->hasPermission('users.wallet.view')
+            ? (\App\Modules\User\Models\Wallet::where('user_id', $user->id)->value('balance') ?? 0) : null;
+        $transactions = $actor->hasPermission('users.wallet.history')
+            ? \App\Modules\User\Models\WalletTransaction::where('user_id', $user->id)->latest('id')->limit(20)
+                ->get(['created_at', 'type', 'delta_coins'])->map(fn ($tx) => [
+                    'date' => $tx->created_at, 'type' => $tx->type, 'coins' => $tx->delta_coins,
+                ]) : collect();
+        // Free-text reasons, email snapshots and balances are not passed with history permission.
+        return view('admin.users.staff-show', compact('account', 'plans', 'badges', 'assignedBadges', 'balance', 'transactions', 'actor'));
     }
 
     /**
@@ -201,6 +138,7 @@ class UserManagementController extends Controller
             'delta'  => 'required|integer|not_in:0',
             'reason' => 'required|string|max:255',
         ]);
+        \App\Modules\Admin\Support\StaffPermissionCatalog::assertCoins(Auth::guard('admin')->user(), (int) $data['delta']);
         try {
             $delta = (int) $data['delta'];
             // WalletService::adjust() already fires the user-facing
@@ -263,6 +201,11 @@ class UserManagementController extends Controller
             'role_id'        => 'required_if:create_staff,1|nullable|exists:roles,id',
         ]);
 
+        if (! empty($validated['plan_id'])) abort_unless($operator->hasPermission('users.assign_plan'), 403);
+        if (! empty($validated['starting_coins'])) \App\Modules\Admin\Support\StaffPermissionCatalog::assertCoins($operator, (int) $validated['starting_coins']);
+        if ($request->boolean('create_staff') && ! empty($validated['role_id'])) {
+            \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable($operator, Role::findOrFail($validated['role_id']));
+        }
         $wantsStaff = $request->boolean('create_staff');
         if ($wantsStaff && ! $canCreateStaff) {
             return back()->withInput()->with('error', 'You do not have permission to create staff accounts.');
@@ -347,6 +290,7 @@ class UserManagementController extends Controller
         $plan = Plan::findOrFail($data['plan_id']);
         $previousPlanId = $user->plan_id;
         $compDays = $data['comp_days'] ?? null;
+        if ($compDays) abort_unless(Auth::guard('admin')->user()?->hasPermission('users.plan.comp'), 403);
 
         $attrs = ['plan_id' => $plan->id];
         if ($compDays) {
@@ -490,7 +434,7 @@ class UserManagementController extends Controller
     ) {
         $data = $request->validate([
             'action'      => 'required|in:assign_plan,grant_coins,assign_badge,remove_badge',
-            'user_ids'    => 'required|array|min:1',
+            'user_ids'    => 'required|array|min:1|max:500',
             'user_ids.*'  => 'integer|exists:users,id',
             'plan_id'     => 'required_if:action,assign_plan|nullable|exists:plans,id',
             'coins'       => 'required_if:action,grant_coins|nullable|integer|min:1|max:1000000',
@@ -506,7 +450,7 @@ class UserManagementController extends Controller
         $needed = match ($data['action']) {
             'assign_plan'                  => 'users.bulk_plan',
             'grant_coins'                  => 'users.bulk_credits',
-            'assign_badge', 'remove_badge' => 'users.edit',
+            'assign_badge', 'remove_badge' => 'users.badges.bulk',
         };
         if (! $operator || ! $operator->hasPermission($needed)) {
             abort(403, 'Unauthorized action.');

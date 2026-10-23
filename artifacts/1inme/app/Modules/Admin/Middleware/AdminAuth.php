@@ -20,6 +20,8 @@ class AdminAuth
             return redirect()->route('admin.login')->with('error', 'Your account has been deactivated.');
         }
 
+        \App\Modules\Admin\Support\StaffPrivacy::enforce($admin, $request);
+
         return $next($request);
     }
 }

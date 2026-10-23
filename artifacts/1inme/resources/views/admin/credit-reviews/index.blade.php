@@ -88,7 +88,9 @@
 
                 @if($review->status === 'pending')
                     <div class="flex flex-col gap-3 w-full sm:w-auto sm:min-w-[260px]">
-                        <form method="POST" action="{{ route('admin.credit-reviews.approve', $review) }}" class="space-y-2">
+
+@if(auth('admin')->user()?->hasPermission('finance.credit_reviews.approve'))
+<form method="POST" action="{{ route('admin.credit-reviews.approve', $review) }}" class="space-y-2">
                             @csrf
                             <div>
                                 <label class="text-[11px] uppercase tracking-wider text-white/40 ak-note">Days to grant</label>
@@ -105,13 +107,19 @@
                                 <i class="fas fa-check mr-1"></i> Approve credit
                             </button>
                         </form>
-                        <form method="POST" action="{{ route('admin.credit-reviews.dismiss', $review) }}">
+@endif
+
+
+@if(auth('admin')->user()?->hasPermission('finance.credit_reviews.dismiss'))
+<form method="POST" action="{{ route('admin.credit-reviews.dismiss', $review) }}">
                             @csrf
                             <button type="submit"
                                     class="w-full px-4 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 ak-strong">
                                 <i class="fas fa-xmark mr-1"></i> Dismiss
                             </button>
                         </form>
+@endif
+
                     </div>
                 @endif
             </div>

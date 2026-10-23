@@ -80,71 +80,46 @@ class AdminAccessController extends Controller
             return $this->forbidden('You are not allowed to view users.');
         }
 
+        $request->validate(['search' => 'nullable|string|max:190']);
         $search  = trim((string) $request->get('search', ''));
         $perPage = 20;
 
         $query = User::query()->with('plan');
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('email', 'ilike', "%{$search}%")
-                  ->orWhere('handle', 'ilike', "%{$search}%");
-            });
+            abort_unless($admin->hasPermission('users.search'), 403);
+            if (ctype_digit($search)) $query->where('id', (int) $search);
+            else {
+                abort_unless($admin->hasPermission('users.search_identity'), 403);
+                $fields = [];
+                if ($admin->hasPermission('users.identity.view')) $fields = ['name', 'handle'];
+                if ($admin->hasPermission('users.email.view')) $fields[] = 'email';
+                if ($admin->hasPermission('users.phone.view')) $fields[] = 'phone';
+                abort_if(empty($fields), 403);
+                $query->where(function ($q) use ($fields, $search) {
+                    foreach ($fields as $field) $q->orWhere($field, 'ilike', '%'.$search.'%');
+                });
+            }
         }
 
         $paginator = $query->latest()->paginate($perPage)->withQueryString();
 
-        // Resolve linked admin accounts in one query rather than per-row so
-        // the list can flag who already has back-office access.
-        $emails = collect($paginator->items())
-            ->map(fn (User $u) => strtolower(trim((string) $u->email)))
-            ->filter()
-            ->values()
-            ->all();
-
+        $fullIdentity = \App\Modules\Admin\Support\StaffPermissionCatalog::fullIdentity($admin);
         $adminsByEmail = [];
-        if (! empty($emails)) {
-            $adminsByEmail = Admin::query()
-                ->whereIn('email', $emails)
-                ->get()
-                ->keyBy(fn (Admin $a) => strtolower(trim((string) $a->email)));
+        if ($fullIdentity) {
+            $emails = collect($paginator->items())->pluck('email')->filter()->all();
+            $adminsByEmail = Admin::whereIn('email', $emails)->get()->keyBy(fn ($a) => strtolower(trim((string) $a->email)))->all();
         }
-
-        // Lowercased set of protected emails on this page so the mobile UI
-        // can flag protected accounts and hide their delete/suspend controls
-        // (defense in depth — the server also refuses regardless of the UI).
-        $protectedEmails = [];
-        if (! empty($emails)) {
-            $protectedEmails = ProtectedAccount::query()
-                ->whereIn('email', $emails)
-                ->pluck('email')
-                ->map(fn ($e) => strtolower(trim((string) $e)))
-                ->flip()
-                ->all();
-        }
-
-        // Id-keyed protected entries (email-less accounts) on this page.
-        $protectedUserIds = ProtectedAccount::query()
-            ->whereIn('user_id', collect($paginator->items())->pluck('id')->all())
-            ->pluck('user_id')
-            ->flip()
-            ->all();
-
-        $rows = collect($paginator->items())->map(function (User $u) use ($adminsByEmail, $protectedEmails, $protectedUserIds) {
-            $key = strtolower(trim((string) $u->email));
-            $linked = $adminsByEmail[$key] ?? null;
-            return [
-                'id'           => $u->id,
-                'name'         => $u->name,
-                'email'        => $u->email,
-                'handle'       => $u->handle,
-                'avatar'       => \App\Support\PublicStorageUrl::resolve($u->avatar),
-                'status'       => $u->status,
-                'plan'         => $u->plan?->name,
-                'is_admin'     => $linked !== null,
-                'admin_status' => $linked?->status,
-                'is_protected' => isset($protectedEmails[$key]) || isset($protectedUserIds[$u->id]),
-            ];
+        $rows = collect($paginator->items())->map(function (User $user) use ($admin, $fullIdentity, $adminsByEmail) {
+            $row = \App\Modules\Admin\Support\StaffPermissionCatalog::userRow($admin, $user) + ['name' => 'Account #'.$user->id];
+            if ($fullIdentity) {
+                $linked = $adminsByEmail[strtolower(trim((string) $user->email))] ?? null;
+                $row += [
+                    'avatar' => \App\Support\PublicStorageUrl::resolve($user->avatar),
+                    'is_admin' => $linked !== null, 'admin_status' => $linked?->status,
+                    'is_protected' => ProtectedAccount::isProtected($user),
+                ];
+            }
+            return $row;
         })->all();
 
         return $this->ok([
@@ -165,7 +140,7 @@ class AdminAccessController extends Controller
     public function userRoles(Request $request, int $userId)
     {
         $admin = $this->activeAdmin($request);
-        if (! $admin || ! $admin->hasPermission('users.edit')) {
+        if (! $admin || ! $admin->hasAnyPermission(['users.assign_roles', 'users.grant_admin', 'users.revoke_admin'])) {
             return $this->forbidden('You are not allowed to manage roles.');
         }
 
@@ -227,8 +202,8 @@ class AdminAccessController extends Controller
                     'slug' => $p->slug,
                 ])->all(),
             ])->all(),
-            'can_grant_admin'  => $admin->hasPermission('staff.create'),
-            'can_revoke_admin' => $admin->hasPermission('staff.delete'),
+            'can_grant_admin'  => $admin->hasPermission('users.grant_admin'),
+            'can_revoke_admin' => $admin->hasPermission('users.revoke_admin'),
         ]);
     }
 
@@ -239,7 +214,7 @@ class AdminAccessController extends Controller
     public function updateRoles(Request $request, int $userId, UserRoleAuditLogger $auditLogger)
     {
         $admin = $this->activeAdmin($request);
-        if (! $admin || ! $admin->hasPermission('users.edit')) {
+        if (! $admin || ! $admin->hasPermission('users.assign_roles')) {
             return $this->forbidden('You are not allowed to manage roles.');
         }
 
@@ -293,7 +268,7 @@ class AdminAccessController extends Controller
     public function grantAdminAccess(Request $request, int $userId)
     {
         $admin = $this->activeAdmin($request);
-        if (! $admin || ! $admin->hasPermission('staff.create')) {
+        if (! $admin || ! $admin->hasPermission('users.grant_admin')) {
             return $this->forbidden('You are not allowed to grant admin access.');
         }
 
@@ -314,6 +289,8 @@ class AdminAccessController extends Controller
             return $this->fail('That is not a valid admin role.', 422, 'invalid_admin_role');
         }
 
+        \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable($admin, $role);
+
         // Back-office accounts are keyed by email. A mobile/WhatsApp-only
         // sign-up has no users.email yet — the user must add + verify an
         // email (Linked identifiers) before they can be promoted.
@@ -328,6 +305,7 @@ class AdminAccessController extends Controller
         $linked = $user->adminAccount();
 
         if ($linked) {
+            if ($linked->role) \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable($admin, $linked->role);
             $linked->update(['role_id' => $role->id, 'status' => 'active']);
         } else {
             Admin::create([
@@ -353,7 +331,7 @@ class AdminAccessController extends Controller
     public function revokeAdminAccess(Request $request, int $userId, AdminActionLogger $audit)
     {
         $admin = $this->activeAdmin($request);
-        if (! $admin || ! $admin->hasPermission('staff.delete')) {
+        if (! $admin || ! $admin->hasPermission('users.revoke_admin')) {
             return $this->forbidden('You are not allowed to revoke admin access.');
         }
 
@@ -387,6 +365,7 @@ class AdminAccessController extends Controller
             );
         }
 
+        if ($linked->role) \App\Modules\Admin\Support\StaffPermissionCatalog::assertAssignable($admin, $linked->role);
         $linked->delete();
         $user->flushAdminAccountCache();
 
@@ -436,7 +415,7 @@ class AdminAccessController extends Controller
     public function setUserPassword(Request $request, int $userId)
     {
         $admin = $this->activeAdmin($request);
-        if (! $admin || ! $admin->hasPermission('users.edit')) {
+        if (! $admin || ! $admin->hasPermission('users.password.set')) {
             return $this->forbidden('You are not allowed to set user passwords.');
         }
 
@@ -476,7 +455,12 @@ class AdminAccessController extends Controller
         }
 
         $admin = $user->adminAccount();
-        return ($admin && $admin->status === 'active') ? $admin : null;
+        if (! $admin || $admin->status !== 'active') return null;
+        $admin->loadMissing('role.permissions');
+        if (! in_array($request->route()?->getActionMethod(), ['context', 'users'], true)) {
+            abort_unless(\App\Modules\Admin\Support\StaffPermissionCatalog::fullIdentity($admin), 403);
+        }
+        return $admin;
     }
 
     /**
@@ -487,20 +471,24 @@ class AdminAccessController extends Controller
      */
     protected function capabilities(?Admin $admin): array
     {
+        $identity = \App\Modules\Admin\Support\StaffPermissionCatalog::fullIdentity($admin);
         return [
             'view_users'       => (bool) $admin?->hasPermission('users.view'),
-            'manage_roles'     => (bool) $admin?->hasPermission('users.edit'),
-            'grant_admin'      => (bool) $admin?->hasPermission('staff.create'),
-            'revoke_admin'     => (bool) $admin?->hasPermission('staff.delete'),
-            'impersonate'      => (bool) $admin?->hasPermission('users.impersonate'),
+            'manage_roles'     => $identity && (bool) $admin?->hasPermission('users.assign_roles'),
+            'grant_admin'      => $identity && (bool) $admin?->hasPermission('users.grant_admin'),
+            'revoke_admin'     => $identity && (bool) $admin?->hasPermission('users.revoke_admin'),
+            'impersonate'      => $identity && (bool) $admin?->hasPermission('users.impersonate'),
             // Protected-accounts list: staff with users.view may read it,
             // only a super-admin may add/remove entries (mirrors the web).
-            'view_protected'   => (bool) $admin?->hasPermission('users.view'),
+            'view_protected'   => $identity && (bool) $admin?->hasPermission('users.view'),
             'manage_protected' => (bool) ($admin && $admin->isSuperAdmin()),
+            'reveal_identity' => (bool) $admin?->hasPermission('users.identity.view'),
+            'reveal_email' => (bool) $admin?->hasPermission('users.email.view'),
+            'reveal_phone' => (bool) $admin?->hasPermission('users.phone.view'),
             // Analytics-storage panel + mail/platform settings parity.
-            'manage_settings'  => (bool) $admin?->hasPermission('settings.manage'),
+            'manage_settings'  => $identity && (bool) $admin?->hasPermission('settings.manage'),
             // Set / replace a user's password so they can sign in at /login.
-            'set_user_password' => (bool) $admin?->hasPermission('users.edit'),
+            'set_user_password' => $identity && (bool) $admin?->hasPermission('users.password.set'),
         ];
     }
 }

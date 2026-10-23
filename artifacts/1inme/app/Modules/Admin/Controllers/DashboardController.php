@@ -24,12 +24,15 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        if (! \App\Modules\Admin\Support\StaffPermissionCatalog::fullIdentity(Auth::guard('admin')->user())) {
+            return view('admin.staff-home');
+        }
         $stats = [
             'total_users' => User::count(),
             'active_users' => User::where('status', 'active')->count(),
             'total_staff' => Admin::count(),
             'total_plans' => Plan::where('status', 'active')->count(),
-            'recent_users' => User::latest()->take(5)->get(),
+            'recent_users' => Auth::guard('admin')->user()?->hasPermission('users.view') ? User::latest()->take(5)->get() : collect(),
             'users_today' => User::whereDate('created_at', today())->count(),
             'users_this_month' => User::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
         ];

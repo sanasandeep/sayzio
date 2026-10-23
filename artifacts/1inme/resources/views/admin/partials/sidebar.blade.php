@@ -32,6 +32,7 @@
         {{-- ============ Overview ============ --}}
         <div class="section-header pt-2 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Overview</div>
 
+        @if($staffNavigation->allows('admin.dashboard'))
         <a href="{{ route('admin.dashboard') }}"
            class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
@@ -39,10 +40,15 @@
             <span class="nav-label">Dashboard</span>
             <span class="sidebar-tooltip">Dashboard</span>
         </a>
+        @endif
 
+        @if(auth('admin')->user()?->hasAnyPermission(['finance.invoices.totals','finance.coins.totals','finance.invoices.view','finance.coins.view', ...\App\Modules\Admin\Support\StaffPermissionCatalog::aiSlugs()]))
+        <a href="{{ route('admin.finance.index') }}" class="sidebar-link"><div class="nav-icon-wrap"><i class="fas fa-chart-pie"></i></div><span class="nav-label">Financial reports</span></a>
+        @endif
         {{-- ============ People & Access ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">People &amp; Access</div>
 
+        @if($staffNavigation->allows('admin.users.index'))
         <a href="{{ route('admin.users.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.users.*') && ! request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"
            style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
@@ -50,7 +56,9 @@
             <span class="nav-label">Users</span>
             <span class="sidebar-tooltip">Users</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.users.activity-log.index'))
         <a href="{{ route('admin.users.activity-log.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.users.activity-log.*') ? 'active' : '' }}"
            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
@@ -58,7 +66,9 @@
             <span class="nav-label">Activity log</span>
             <span class="sidebar-tooltip">Activity log</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.staff.index'))
         <a href="{{ route('admin.staff.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}"
            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
@@ -66,7 +76,9 @@
             <span class="nav-label">Staff</span>
             <span class="sidebar-tooltip">Staff</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.roles.index'))
         <a href="{{ route('admin.roles.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
            style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">
@@ -74,7 +86,9 @@
             <span class="nav-label">Roles &amp; Permissions</span>
             <span class="sidebar-tooltip">Roles &amp; Permissions</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.protected-accounts.index'))
         <a href="{{ route('admin.protected-accounts.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.protected-accounts.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -82,7 +96,9 @@
             <span class="nav-label">Protected accounts</span>
             <span class="sidebar-tooltip">Protected accounts</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.badges.index'))
         <a href="{{ route('admin.badges.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.badges.*') ? 'active' : '' }}"
            style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
@@ -90,9 +106,11 @@
             <span class="nav-label">Account badges</span>
             <span class="sidebar-tooltip">Account badges</span>
         </a>
+        @endif
 
         @if(auth('admin')->user()?->hasPermission('badge_requests.review'))
-            <a href="{{ route('admin.badge-requests.index') }}"
+            @if($staffNavigation->allows('admin.badge-requests.index'))
+        <a href="{{ route('admin.badge-requests.index') }}"
                class="sidebar-link {{ request()->routeIs('admin.badge-requests.*') ? 'active' : '' }}"
                style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
                 <div class="nav-icon-wrap"><i class="fas fa-award"></i></div>
@@ -100,7 +118,9 @@
                 <span class="sidebar-tooltip">Badge requests</span>
             </a>
         @endif
+        @endif
 
+        @if($staffNavigation->allows('admin.privacy-requests.index'))
         <a href="{{ route('admin.privacy-requests.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.privacy-requests.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -108,9 +128,11 @@
             <span class="nav-label">Privacy Requests</span>
             <span class="sidebar-tooltip">Privacy Requests</span>
         </a>
+        @endif
 
         @if(auth('admin')->user()?->isSuperAdmin())
-            <a href="{{ route('admin.users.role-audit-exports.index') }}"
+            @if($staffNavigation->allows('admin.users.role-audit-exports.index'))
+        <a href="{{ route('admin.users.role-audit-exports.index') }}"
                class="sidebar-link {{ request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"
                style="--nav-tint:#64748b; --nav-tint-soft:rgba(100,116,139,0.12);">
                 <div class="nav-icon-wrap"><i class="fas fa-file-csv"></i></div>
@@ -118,10 +140,12 @@
                 <span class="sidebar-tooltip">Audit downloads</span>
             </a>
         @endif
+        @endif
 
         {{-- ============ Content & Links ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Content &amp; Links</div>
 
+        @if($staffNavigation->allows('admin.links.index'))
         <a href="{{ route('admin.links.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.links.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -129,7 +153,9 @@
             <span class="nav-label">All Links</span>
             <span class="sidebar-tooltip">All Links</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.templates.index'))
         <a href="{{ route('admin.templates.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}"
            style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
@@ -137,7 +163,9 @@
             <span class="nav-label">Templates</span>
             <span class="sidebar-tooltip">Templates</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.bg-templates.index'))
         <a href="{{ route('admin.bg-templates.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.bg-templates.*') ? 'active' : '' }}"
            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
@@ -145,15 +173,20 @@
             <span class="nav-label">Background Templates</span>
             <span class="sidebar-tooltip">Background Templates</span>
         </a>
+        @endif
 
-        <a href="{{ route('admin.bg-catalog.index', 'preset') }}"
+        @if($staffNavigation->allows('admin.bg-catalog.index'))
+<a href="{{ route('admin.bg-catalog.index', 'preset') }}"
            class="sidebar-link {{ request()->routeIs('admin.bg-catalog.*') ? 'active' : '' }}"
            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-swatchbook"></i></div>
             <span class="nav-label">Background Library</span>
             <span class="sidebar-tooltip">Background Library</span>
         </a>
+@endif
 
+
+        @if($staffNavigation->allows('admin.onboarding-slides.index'))
         <a href="{{ route('admin.onboarding-slides.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.onboarding-slides.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -161,7 +194,9 @@
             <span class="nav-label">Onboarding Slides</span>
             <span class="sidebar-tooltip">Onboarding Slides</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.event-categories.index'))
         <a href="{{ route('admin.event-categories.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.event-categories.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -169,7 +204,9 @@
             <span class="nav-label">Event Categories</span>
             <span class="sidebar-tooltip">Event Categories</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.event-hashtags.index'))
         <a href="{{ route('admin.event-hashtags.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.event-hashtags.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -177,7 +214,9 @@
             <span class="nav-label">Event Hashtags</span>
             <span class="sidebar-tooltip">Event Hashtags</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.demo-content.index'))
         <a href="{{ route('admin.demo-content.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.demo-content.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -185,7 +224,9 @@
             <span class="nav-label">Demo Content</span>
             <span class="sidebar-tooltip">Demo Content</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.assets.index'))
         <a href="{{ route('admin.assets.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"
            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
@@ -193,7 +234,9 @@
             <span class="nav-label">Asset Vault</span>
             <span class="sidebar-tooltip">Asset Vault</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.platform-gallery.index'))
         <a href="{{ route('admin.platform-gallery.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.platform-gallery.*') ? 'active' : '' }}"
            style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -201,7 +244,9 @@
             <span class="nav-label">Gallery Images</span>
             <span class="sidebar-tooltip">Curated Gallery Images</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.site-pages.index'))
         <a href="{{ route('admin.site-pages.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.site-pages.*') ? 'active' : '' }}"
            style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
@@ -209,9 +254,11 @@
             <span class="nav-label">Site Pages</span>
             <span class="sidebar-tooltip">Site Pages</span>
         </a>
+        @endif
 
         @if(auth('admin')->user() && auth('admin')->user()->hasAnyPermission(['blogs.view','blogs.manage','blogs.publish','blogs.comments.moderate']))
-            <a href="{{ route('admin.blogs.posts.index') }}"
+            @if($staffNavigation->allows('admin.blogs.posts.index'))
+        <a href="{{ route('admin.blogs.posts.index') }}"
                class="sidebar-link {{ request()->routeIs('admin.blogs.*') ? 'active' : '' }}"
                style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
                 <div class="nav-icon-wrap"><i class="fas fa-feather-pointed"></i></div>
@@ -219,10 +266,12 @@
                 <span class="sidebar-tooltip">Blog</span>
             </a>
         @endif
+        @endif
 
         {{-- ============ Moderation & Safety ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Moderation &amp; Safety</div>
 
+        @if($staffNavigation->allows('admin.biolink-reports.index'))
         <a href="{{ route('admin.biolink-reports.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.biolink-reports.*') ? 'active' : '' }}"
            style="--nav-tint:#dc2626; --nav-tint-soft:rgba(220,38,38,0.12);">
@@ -230,7 +279,9 @@
             <span class="nav-label">Link in Bio Reports</span>
             <span class="sidebar-tooltip">Link in Bio Reports</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.moderation-queue.index'))
         <a href="{{ route('admin.moderation-queue.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.moderation-queue.*') ? 'active' : '' }}"
            style="--nav-tint:#f43f5e; --nav-tint-soft:rgba(244,63,94,0.12);">
@@ -238,7 +289,9 @@
             <span class="nav-label">Reports &amp; DMCA</span>
             <span class="sidebar-tooltip">Reports &amp; DMCA</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.adult-moderation.index'))
         <a href="{{ route('admin.adult-moderation.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.adult-moderation.*') ? 'active' : '' }}"
            style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
@@ -246,7 +299,9 @@
             <span class="nav-label">18+ moderation</span>
             <span class="sidebar-tooltip">18+ moderation</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.spam-rules.index'))
         <a href="{{ route('admin.spam-rules.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.spam-rules.*') ? 'active' : '' }}"
            style="--nav-tint:#ef4444; --nav-tint-soft:rgba(239,68,68,0.12);">
@@ -254,7 +309,9 @@
             <span class="nav-label">Spam Rules</span>
             <span class="sidebar-tooltip">Spam Rules</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.zio-adblock-policy.index'))
         <a href="{{ route('admin.zio-adblock-policy.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.zio-adblock-policy.*') ? 'active' : '' }}"
            style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
@@ -262,7 +319,9 @@
             <span class="nav-label">Zio Ad-Block Policy</span>
             <span class="sidebar-tooltip">Zio Browser Ad-Block Policy</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.banned-names.index'))
         <a href="{{ route('admin.banned-names.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.banned-names.*') ? 'active' : '' }}"
            style="--nav-tint:#ef4444; --nav-tint-soft:rgba(239,68,68,0.12);">
@@ -270,7 +329,9 @@
             <span class="nav-label">Banned Names</span>
             <span class="sidebar-tooltip">Banned Names</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.file-scan-queue.index'))
         <a href="{{ route('admin.file-scan-queue.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.file-scan-queue.*') ? 'active' : '' }}"
            style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
@@ -278,7 +339,9 @@
             <span class="nav-label">File Scans</span>
             <span class="sidebar-tooltip">File Scan Queue</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.cookie-consent.edit'))
         <a href="{{ route('admin.cookie-consent.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.cookie-consent.*') ? 'active' : '' }}"
            style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">
@@ -286,10 +349,12 @@
             <span class="nav-label">Cookie Consent</span>
             <span class="sidebar-tooltip">Cookie Consent</span>
         </a>
+        @endif
 
         {{-- ============ Billing & Plans ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Billing &amp; Plans</div>
 
+        @if($staffNavigation->allows('admin.plans.index'))
         <a href="{{ route('admin.plans.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -297,7 +362,9 @@
             <span class="nav-label">Plans</span>
             <span class="sidebar-tooltip">Plans</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.custom-plan-requests.index'))
         <a href="{{ route('admin.custom-plan-requests.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.custom-plan-requests.*') ? 'active' : '' }}"
            style="--nav-tint:var(--color-primary-500,#3d6bff); --nav-tint-soft:rgba(61,107,255,0.12);">
@@ -311,7 +378,9 @@
             <span class="nav-label">Custom Requests</span>
             <span class="sidebar-tooltip">Custom Plan Requests</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.coin-packages.index'))
         <a href="{{ route('admin.coin-packages.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.coin-packages.*') ? 'active' : '' }}"
            style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">
@@ -319,7 +388,9 @@
             <span class="nav-label">Coin Packages</span>
             <span class="sidebar-tooltip">Coin Packages</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.monetization.index'))
         <a href="{{ route('admin.monetization.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.monetization.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -327,7 +398,9 @@
             <span class="nav-label">Monetization</span>
             <span class="sidebar-tooltip">Monetization Overview</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.wallet-settings.edit'))
         <a href="{{ route('admin.wallet-settings.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.wallet-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -335,7 +408,9 @@
             <span class="nav-label">Wallet Settings</span>
             <span class="sidebar-tooltip">Wallet Settings</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.addons.index'))
         <a href="{{ route('admin.addons.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.addons.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -343,7 +418,9 @@
             <span class="nav-label">Addons</span>
             <span class="sidebar-tooltip">Addons</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.credit-reviews.index'))
         <a href="{{ route('admin.credit-reviews.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.credit-reviews.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -351,7 +428,9 @@
             <span class="nav-label">Credit Reviews</span>
             <span class="sidebar-tooltip">Credit Reviews</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.referrals.index'))
         <a href="{{ route('admin.referrals.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.referrals.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -359,7 +438,9 @@
             <span class="nav-label">Referrals</span>
             <span class="sidebar-tooltip">Referrals</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.starter-renewals.index'))
         <a href="{{ route('admin.starter-renewals.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.starter-renewals.*') ? 'active' : '' }}"
            style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
@@ -367,10 +448,12 @@
             <span class="nav-label">Renewal Reminders</span>
             <span class="sidebar-tooltip">Free Renewal Reminders</span>
         </a>
+        @endif
 
         {{-- ============ AI ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">AI</div>
 
+        @if($staffNavigation->allows('admin.ai-engine.edit'))
         <a href="{{ route('admin.ai-engine.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-engine.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -378,7 +461,9 @@
             <span class="nav-label">AI Engine</span>
             <span class="sidebar-tooltip">AI Engine</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.ai-usage.index'))
         <a href="{{ route('admin.ai-usage.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-usage.*') ? 'active' : '' }}"
            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
@@ -386,7 +471,9 @@
             <span class="nav-label">AI Usage</span>
             <span class="sidebar-tooltip">AI Usage</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.ai-minds.index'))
         <a href="{{ route('admin.ai-minds.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"
            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
@@ -394,7 +481,9 @@
             <span class="nav-label">AI Minds</span>
             <span class="sidebar-tooltip">AI Minds</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.ai-personas.index'))
         <a href="{{ route('admin.ai-personas.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-personas.*') ? 'active' : '' }}"
            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
@@ -402,7 +491,9 @@
             <span class="nav-label">AI Personas</span>
             <span class="sidebar-tooltip">AI Personas</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.site-assistant.edit'))
         <a href="{{ route('admin.site-assistant.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.site-assistant.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -410,7 +501,9 @@
             <span class="nav-label">Site Assistant</span>
             <span class="sidebar-tooltip">Site Assistant</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.ask-coach.index'))
         <a href="{{ route('admin.ask-coach.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.ask-coach.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -418,7 +511,9 @@
             <span class="nav-label">AI Coach</span>
             <span class="sidebar-tooltip">AI Coach</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.ai-companions.index'))
         <a href="{{ route('admin.ai-companions.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-companions.*') ? 'active' : '' }}"
            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
@@ -426,7 +521,9 @@
             <span class="nav-label">AI Companions</span>
             <span class="sidebar-tooltip">AI Companions</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.coach-defaults.edit'))
         <a href="{{ route('admin.coach-defaults.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -434,7 +531,9 @@
             <span class="nav-label">Score Presets</span>
             <span class="sidebar-tooltip">Score Presets</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.block-defaults.index'))
         <a href="{{ route('admin.block-defaults.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.block-defaults.*') ? 'active' : '' }}"
            style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -442,7 +541,9 @@
             <span class="nav-label">Block Defaults</span>
             <span class="sidebar-tooltip">Block First-Paint Defaults</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.block-designs.index'))
         <a href="{{ route('admin.block-designs.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.block-designs.*') ? 'active' : '' }}"
            style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
@@ -450,10 +551,12 @@
             <span class="nav-label">Block Designs</span>
             <span class="sidebar-tooltip">Designs Gallery &amp; Theme Presets</span>
         </a>
+        @endif
 
         {{-- ============ Marketing & Comms ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing &amp; Comms</div>
 
+        @if($staffNavigation->allows('admin.marketing-settings.index'))
         <a href="{{ route('admin.marketing-settings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -461,7 +564,9 @@
             <span class="nav-label">Marketing</span>
             <span class="sidebar-tooltip">Marketing</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.link-type-pairings.index'))
         <a href="{{ route('admin.link-type-pairings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.link-type-pairings.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -469,7 +574,9 @@
             <span class="nav-label">Perfect Pairings</span>
             <span class="sidebar-tooltip">Perfect Pairings</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.marketing-seo.index'))
         <a href="{{ route('admin.marketing-seo.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-seo.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -477,7 +584,9 @@
             <span class="nav-label">Marketing SEO</span>
             <span class="sidebar-tooltip">Marketing SEO</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.marketing-events.index'))
         <a href="{{ route('admin.marketing-events.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-events.*') ? 'active' : '' }}"
            style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
@@ -485,7 +594,9 @@
             <span class="nav-label">Marketing Events</span>
             <span class="sidebar-tooltip">Marketing Events</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.site-stats.index'))
         <a href="{{ route('admin.site-stats.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.site-stats.*') ? 'active' : '' }}"
            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
@@ -493,7 +604,9 @@
             <span class="nav-label">Marketing Stats</span>
             <span class="sidebar-tooltip">Marketing Stats</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.zio-lines.index'))
         <a href="{{ route('admin.zio-lines.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.zio-lines.*') ? 'active' : '' }}"
            style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
@@ -501,7 +614,9 @@
             <span class="nav-label">Zio&rsquo;s lines</span>
             <span class="sidebar-tooltip">Zio&rsquo;s lines</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.testimonials.index'))
         <a href="{{ route('admin.testimonials.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.testimonials.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -509,7 +624,9 @@
             <span class="nav-label">Testimonials</span>
             <span class="sidebar-tooltip">Testimonials</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.announcements.index'))
         <a href="{{ route('admin.announcements.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -517,7 +634,9 @@
             <span class="nav-label">Announcements</span>
             <span class="sidebar-tooltip">Announcements</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.newsletter.index'))
         <a href="{{ route('admin.newsletter.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.newsletter.*') ? 'active' : '' }}"
            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
@@ -525,7 +644,9 @@
             <span class="nav-label">Newsletter</span>
             <span class="sidebar-tooltip">Newsletter</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.zio-digests.index'))
         <a href="{{ route('admin.zio-digests.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.zio-digests.*') ? 'active' : '' }}"
            style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
@@ -533,7 +654,9 @@
             <span class="nav-label">Zio Digest</span>
             <span class="sidebar-tooltip">Zio Digest</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.app-launch.index'))
         <a href="{{ route('admin.app-launch.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.app-launch.*') ? 'active' : '' }}"
            style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
@@ -541,7 +664,9 @@
             <span class="nav-label">App Launch Signups</span>
             <span class="sidebar-tooltip">App Launch Signups</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.notifications.index'))
         <a href="{{ route('admin.notifications.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -549,7 +674,9 @@
             <span class="nav-label">Notifications</span>
             <span class="sidebar-tooltip">Notifications</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.social-links.edit'))
         <a href="{{ route('admin.social-links.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.social-links.*') ? 'active' : '' }}"
            style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
@@ -557,7 +684,9 @@
             <span class="nav-label">Social Links</span>
             <span class="sidebar-tooltip">Social Links</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.company-identity.edit'))
         <a href="{{ route('admin.company-identity.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.company-identity.*') ? 'active' : '' }}"
            style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -565,7 +694,9 @@
             <span class="nav-label">Company Identity</span>
             <span class="sidebar-tooltip">Company Identity</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.contact-inbox.index'))
         <a href="{{ route('admin.contact-inbox.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.contact-inbox.*') ? 'active' : '' }}"
            style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
@@ -573,10 +704,12 @@
             <span class="nav-label">Contact Inbox</span>
             <span class="sidebar-tooltip">Contact Inbox</span>
         </a>
+        @endif
 
         {{-- ============ System ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">System</div>
 
+        @if($staffNavigation->allows('admin.menu-item-marks.index'))
         <a href="{{ route('admin.menu-item-marks.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.menu-item-marks.*') ? 'active' : '' }}"
            style="--nav-tint:#0a8f3c; --nav-tint-soft:rgba(10,143,60,0.12);">
@@ -584,7 +717,9 @@
             <span class="nav-label">Menu Marks</span>
             <span class="sidebar-tooltip">Menu Marks</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.domains.index'))
         <a href="{{ route('admin.domains.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.domains.*') ? 'active' : '' }}"
            style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
@@ -592,7 +727,9 @@
             <span class="nav-label">Domains</span>
             <span class="sidebar-tooltip">Domains</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.integrations.index'))
         <a href="{{ route('admin.integrations.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.integrations.*') ? 'active' : '' }}"
            style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -600,7 +737,9 @@
             <span class="nav-label">Integrations</span>
             <span class="sidebar-tooltip">Integrations</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.feature-states.index'))
         <a href="{{ route('admin.feature-states.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.feature-states.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -608,7 +747,9 @@
             <span class="nav-label">Feature States</span>
             <span class="sidebar-tooltip">Feature States</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.auth-settings.index'))
         <a href="{{ route('admin.auth-settings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.auth-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
@@ -616,8 +757,10 @@
             <span class="nav-label">Login &amp; OTP</span>
             <span class="sidebar-tooltip">Login &amp; OTP</span>
         </a>
+        @endif
 
         @if(auth('admin')->user()?->isSuperAdmin())
+        @if($staffNavigation->allows('admin.master-password.index'))
         <a href="{{ route('admin.master-password.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.master-password.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
@@ -626,7 +769,9 @@
             <span class="sidebar-tooltip">Master Password</span>
         </a>
         @endif
+        @endif
 
+        @if($staffNavigation->allows('admin.email-verification-reminders.index'))
         <a href="{{ route('admin.email-verification-reminders.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.email-verification-reminders.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -634,7 +779,9 @@
             <span class="nav-label">Verify Reminders</span>
             <span class="sidebar-tooltip">Verification Reminders</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.maintenance.index'))
         <a href="{{ route('admin.maintenance.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.maintenance.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -642,7 +789,9 @@
             <span class="nav-label">Maintenance Mode</span>
             <span class="sidebar-tooltip">Maintenance Mode</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.cron-jobs.index'))
         <a href="{{ route('admin.cron-jobs.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.cron-jobs.*') ? 'active' : '' }}"
            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
@@ -650,7 +799,9 @@
             <span class="nav-label">Scheduled Jobs</span>
             <span class="sidebar-tooltip">Scheduled Jobs</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.schema.repair-audits'))
         <a href="{{ route('admin.schema.repair-audits') }}"
            class="sidebar-link {{ request()->routeIs('admin.schema.repair-audits') ? 'active' : '' }}"
            style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
@@ -658,7 +809,9 @@
             <span class="nav-label">Schema Repairs</span>
             <span class="sidebar-tooltip">Schema Repairs</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.versions.index'))
         <a href="{{ route('admin.versions.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.versions.*') ? 'active' : '' }}"
            style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
@@ -666,7 +819,9 @@
             <span class="nav-label">Versions &amp; Releases</span>
             <span class="sidebar-tooltip">Versions &amp; Releases</span>
         </a>
+        @endif
 
+        @if($staffNavigation->allows('admin.branding.edit'))
         <a href="{{ route('admin.branding.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.branding.*') ? 'active' : '' }}"
            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
@@ -674,6 +829,7 @@
             <span class="nav-label">Branding</span>
             <span class="sidebar-tooltip">Branding</span>
         </a>
+        @endif
     </div>{{-- /.sidebar-nav-scroll --}}
     </nav>
 

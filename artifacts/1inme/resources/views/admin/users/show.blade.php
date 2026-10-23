@@ -12,6 +12,9 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
 @endpush
 
 @section('content')
+@if(auth('admin')->user()?->isSuperAdmin())
+<a class="inline-block underline mb-4" href="{{ request()->fullUrlWithQuery(['workbench' => 1]) }}">Open the detailed staff workbench</a>
+@endif
 @php
     $showOperator = auth('admin')->user();
     $canAssignPlan = $showOperator?->hasPermission('users.assign_plan');

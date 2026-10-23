@@ -40,6 +40,7 @@
                     <input type="text" name="handle" value="{{ old('handle') }}" placeholder="letters, numbers, . _ -"
                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                 </div>
+                @if(auth('admin')->user()?->hasPermission('users.assign_plan'))
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Plan</label>
                     <select name="plan_id"
@@ -52,14 +53,17 @@
                         @endforeach
                     </select>
                 </div>
+                @endif
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                @if(auth('admin')->user()?->hasPermission('users.coins.grant'))
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Starting coins <span class="text-white/40 ak-note">(optional)</span></label>
                     <input type="number" name="starting_coins" value="{{ old('starting_coins') }}" min="1" max="1000000" placeholder="0"
                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                 </div>
+                @endif
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Password <span class="text-white/40 ak-note">(blank = auto-generate)</span></label>
                     <input type="text" name="password" autocomplete="off" placeholder="Min 8 chars, or leave blank"

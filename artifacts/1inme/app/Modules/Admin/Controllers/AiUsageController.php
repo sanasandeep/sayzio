@@ -153,6 +153,7 @@ class AiUsageController extends Controller
             'delta'  => 'required|integer|not_in:0',
             'reason' => 'required|string|max:500',
         ]);
+        \App\Modules\Admin\Support\StaffPermissionCatalog::assertCoins(auth('admin')->user(), (int) $data['delta']);
         try {
             $this->wallets->adjust(
                 $user,

@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Log;
  */
 class AdminActionLogger
 {
+    public const LINK_ASSIGNED       = 'link.assigned';
     public const PLAN_ASSIGNED       = 'plan.assigned';
     public const COINS_GRANTED       = 'coins.granted';
     public const COINS_DEDUCTED      = 'coins.deducted';

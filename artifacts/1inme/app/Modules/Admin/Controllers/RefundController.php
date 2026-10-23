@@ -35,7 +35,7 @@ class RefundController extends Controller
             $refund = $refunds->issue($invoice, $amountMinor, [
                 'reason'               => $data['reason'] ?? '',
                 'user_initiated'       => false,
-                'admin_id'             => $request->user()->id,
+                'admin_id'             => $request->user('admin')->id,
                 'downgrade_on_success' => (bool) ($data['downgrade'] ?? true),
             ]);
         } catch (\Throwable $e) {
@@ -55,7 +55,7 @@ class RefundController extends Controller
             'gateway_ref' => 'required|string|max:255',
         ]);
         try {
-            $refunds->confirmManual($refund, $data['gateway_ref'], $request->user()->id);
+            $refunds->confirmManual($refund, $data['gateway_ref'], $request->user('admin')->id);
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
