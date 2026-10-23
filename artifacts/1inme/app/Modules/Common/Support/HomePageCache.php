@@ -57,8 +57,16 @@ class HomePageCache
      * payload has no features, so without the bump the paid tile would keep
      * rendering an empty list beside its price for the rest of its TTL --
      * which is the bug, served from cache.
+     *
+     * v5 is the currency. The payload is cached PER currency, but it was
+     * BUILT by re-deriving the currency from the ambient request instead of
+     * from the `$currency` argument -- and the scheduled warmer that writes
+     * these keys runs on the CLI, with no session and no IP to resolve from,
+     * so it resolved to the default and wrote USD figures into the INR key.
+     * Without the bump, those USD-priced INR payloads keep being served for
+     * the rest of their TTL after the deploy that fixes them.
      */
-    public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:v4:';
+    public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:v5:';
 
     /** Featured blog-post carousel rows (plain attribute arrays). */
     public const FEATURED_CACHE_KEY = 'home:featured_blog_posts';
@@ -269,6 +277,22 @@ class HomePageCache
         // the generator leaves every variant is_popular = false, so the
         // anchor still wins firstWhere() below. Safe by accident is how the
         // ladder came to be inverted; make it safe by construction.
+        // The currency this payload is FOR: the argument, not whatever the
+        // ambient request happens to resolve to.
+        //
+        // Every price below came from `PricingResolver::priceFor($p, $user)`,
+        // which calls `currencyForUser($user)` and, with the null $user every
+        // caller passes, falls through to session, cookie and geo. On the
+        // request path that lands on the visitor's own currency by luck. The
+        // scheduled warmer is where it breaks: it runs on the CLI, with no
+        // session and no IP, so it resolved to the default and wrote USD
+        // figures into the INR-keyed entry -- which is then what the homepage
+        // quoted an Indian visitor, against a catalogue starting at Rs 167.
+        //
+        // $user is no longer read here at all. The currency is the only thing
+        // it ever decided, and the caller has already decided that.
+        $payloadCurrency = $currency ?: 'USD';
+
         $allPlans = PlanVariantResolver::defaults(
             Plan::where('status', 'active')
                 ->where('is_archived', false)
@@ -278,15 +302,20 @@ class HomePageCache
                 ->get()
         );
 
-        $isFree = fn ($p) => (int) PricingResolver::priceFor($p, $user, 'monthly')['amount_minor'] === 0;
+        // Freeness is decided on USD, not on the payload's currency: a plan
+        // with no row in that currency resolves to zero, and reading that as
+        // "free" would promote a paid plan into the free tile. /pricing
+        // decides it the same way, so the two pages agree on which plan is
+        // the free one whatever currency either is rendered in.
+        $isFree = fn ($p) => (int) PricingResolver::priceForCurrency($p, 'USD', 'monthly')['amount_minor'] === 0;
         $freePlan = $allPlans->first($isFree);
         $popularPlan = $allPlans->firstWhere('is_popular', true)
             ?? $allPlans->first(fn ($p) => !$isFree($p)); // Fallback if none flagged.
 
         $plans = collect([$freePlan, $popularPlan])->filter()->unique('id')->values()
-            ->map(function ($p) use ($user, $billing, $hasAddress, $currency) {
-                $monthly = PricingResolver::priceFor($p, $user, 'monthly');
-                $annual = PricingResolver::priceFor($p, $user, 'annual');
+            ->map(function ($p) use ($billing, $hasAddress, $currency, $payloadCurrency) {
+                $monthly = PricingResolver::priceForCurrency($p, $payloadCurrency, 'monthly');
+                $annual = PricingResolver::priceForCurrency($p, $payloadCurrency, 'annual');
                 // Annual teaser payload: surfaced whenever both monthly AND
                 // annual rows exist for the resolved currency. The savings
                 // percentage is only meaningful when the annual price is
@@ -334,7 +363,7 @@ class HomePageCache
                     'name'        => $p->name,
                     'description' => $p->description,
                     'features'    => $p->features ?? [],
-                    'is_free'     => $monthly['amount_minor'] <= 0,
+                    'is_free'     => (int) ($pricesByCur['USD']['monthly']['amount_minor'] ?? 0) <= 0,
                     'is_popular'  => (bool) $p->is_popular,
                     'monthly'     => $monthly,
                     'annual_teaser' => $annualTeaser,
@@ -348,7 +377,7 @@ class HomePageCache
         // catalogue, single seeded plan, or every paid plan archived —
         // top up the missing card(s) with sensible static defaults so
         // the section is never blank or lopsided.
-        $fallbackCurrency = $currency ?: 'USD';
+        $fallbackCurrency = $payloadCurrency;
         $hasFree = $plans->contains(fn ($p) => !empty($p['is_free']));
         $hasPaid = $plans->contains(fn ($p) => empty($p['is_free']));
         if (!$hasFree) {
@@ -403,11 +432,17 @@ class HomePageCache
         $cheapestPaid = null;
         $cheapestMinor = PHP_INT_MAX;
         foreach ($allPlans as $p) {
-            $monthly = PricingResolver::priceFor($p, $user, 'monthly');
-            $minor = (int) $monthly['amount_minor'];
+            // Ranked on USD, quoted in the payload's currency. Which plan the
+            // catalogue starts at is a fact about the catalogue, not about the
+            // currency a visitor reads it in -- and ranking on the payload
+            // currency would drop any plan with no row in it (resolved zero,
+            // read as free) out of the minimum entirely.
+            $base = PricingResolver::priceForCurrency($p, 'USD', 'monthly');
+            $minor = (int) $base['amount_minor'];
             if ($minor <= 0 || $minor >= $cheapestMinor) {
                 continue;
             }
+            $monthly = PricingResolver::priceForCurrency($p, $payloadCurrency, 'monthly');
             // BOTH cadences, in every currency.
             //
             // This held monthly only, while the comment above claimed the
