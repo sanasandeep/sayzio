@@ -240,9 +240,7 @@
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <header class="cp-card cp-profile-hero overflow-hidden mt-4">
         <div class="h-40 sm:h-56 relative" data-cp-cover style="background: {{ $creator->profile_theme_color ? 'linear-gradient(135deg, var(--cp-accent), var(--cp-accent-mid))' : 'var(--cp-cover,linear-gradient(135deg,#3b82f6,#a855f7))' }};">
-            @if($creator->cover_image)
-                <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
-            @endif
+            <img data-cp-cover-image @if($creator->cover_image) src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" @else style="display:none" @endif alt="" class="absolute inset-0 w-full h-full object-cover">
         </div>
         <div class="cp-hero-content px-5 sm:px-7 pb-6 -mt-12 relative z-10">
             <div class="cp-hero-top flex items-end justify-between gap-3 flex-wrap">
@@ -379,7 +377,7 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 flex-wrap">
                     {{ $creator->name }}
                     @if(method_exists($creator, 'isVerified') && $creator->isVerified())
-                        <span data-cpd="m">
+                        <span class="inline-flex items-center">
                         @if($creator->verificationTickType)
                             {!! $creator->verificationTickType->tickHtml('text-xl') !!}
                         @else
@@ -868,6 +866,11 @@
             if ([80,96,128].includes(Number(d.avatarSize))) { avatar.style.width = d.avatarSize + 'px'; avatar.style.height = d.avatarSize + 'px'; }
             if (d.avatarX !== null && d.avatarY !== null) avatar.style.objectPosition = Math.max(0,Math.min(100,Number(d.avatarX))) + '% ' + Math.max(0,Math.min(100,Number(d.avatarY))) + '%';
         });
+        if (typeof d.coverUrl === 'string') {
+            const cover = document.querySelector('[data-cp-cover-image]');
+            const allowed = /^https?:\/\//i.test(d.coverUrl) || (/^data:image\/(png|jpeg|webp|gif);base64,/.test(d.coverUrl) && d.coverUrl.length < 7500000);
+            if (cover) { if (allowed) cover.src = d.coverUrl; cover.style.display = allowed ? '' : 'none'; }
+        }
         if (typeof d.density === 'string') {
             root.classList.toggle('cp-d-small', d.density === 'small');
             root.classList.toggle('cp-d-medium', d.density === 'medium');

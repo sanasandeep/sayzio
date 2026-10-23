@@ -75,11 +75,13 @@ class ProfileVerificationController extends Controller
         $tickTypes = VerificationTickType::publicRequestable()->pluck('id')->all();
 
         $data = $request->validate([
+            ...\App\Modules\User\Support\VerificationEvidence::rules(),
             'tick_type_id'  => 'required|integer|in:' . implode(',', $tickTypes),
             'official_name' => 'required|string|max:200',
             'purpose'       => 'required|string|max:3000',
             'message'       => 'nullable|string|max:2000',
             'logo'          => \App\Services\UploadPolicy::rule('verification.logo', $user),
+            'proof_files' => 'nullable|array|max:5',
             'proof_files.*' => \App\Services\UploadPolicy::rule('verification.proof', $user),
         ]);
 
@@ -91,6 +93,7 @@ class ProfileVerificationController extends Controller
         }
 
         $req = ProfileVerificationRequest::create([
+            ...\App\Modules\User\Support\VerificationEvidence::fields($data),
             'user_id'       => $user->id,
             'tick_type_id'  => $data['tick_type_id'],
             'official_name' => $data['official_name'],
@@ -305,7 +308,7 @@ class ProfileVerificationController extends Controller
     // Helpers
     // ------------------------------------------------------------------
 
-    private function uploadLogo(Request $request, $user): ?string
+    private function uploadLogo(Request $request, $user): string|false|null
     {
         if (!$request->hasFile('logo')) return null;
         try {

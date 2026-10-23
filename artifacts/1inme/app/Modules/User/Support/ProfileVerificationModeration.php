@@ -26,14 +26,14 @@ class ProfileVerificationModeration
         $user = $req->user;
 
         DB::transaction(function () use ($req, $user, $data, $reviewerId) {
+            $tickId = $data['tick_type_id'] ?? $req->tick_type_id;
             $req->update([
+                'tick_type_id' => $tickId,
                 'status'       => 'approved',
                 'admin_notes'  => $data['admin_notes'] ?? null,
                 'reviewed_at'  => now(),
                 'reviewed_by'  => $reviewerId,
             ]);
-
-            $tickId = $data['tick_type_id'] ?? $req->tick_type_id;
 
             $updates = [
                 'profile_verification_status'   => 'verified',

@@ -54,12 +54,27 @@ class ProfileVerificationApiController extends Controller
         $tickTypes = VerificationTickType::publicRequestable()->pluck('id')->all();
 
         $data = $request->validate([
+            ...\App\Modules\User\Support\VerificationEvidence::rules(),
             'tick_type_id'  => 'required|integer|in:' . implode(',', $tickTypes),
             'official_name' => 'required|string|max:200',
             'purpose'       => 'required|string|max:3000',
+            'message' => 'nullable|string|max:2000',
+            'proof_files' => 'nullable|array|max:5',
+            'proof_files.*' => \App\Services\UploadPolicy::rule('verification.proof', $user),
         ]);
 
+        $proofPaths = [];
+        foreach ($request->file('proof_files', []) as $file) {
+            try {
+                $proof = \App\Modules\User\Models\UserFile::createFromUpload($file, $user, ['enforce_allowlist'=>false,'upload_key'=>'verification.proof']);
+                $proofPaths[] = $proof->url_path;
+            } catch (\RuntimeException) {
+                return $this->fail('File upload failed. Please try again.', 400, 'bad_request');
+            }
+        }
+
         $req = ProfileVerificationRequest::create([
+            ...\App\Modules\User\Support\VerificationEvidence::fields($data),
             'user_id'       => $user->id,
             'tick_type_id'  => $data['tick_type_id'],
             'official_name' => $data['official_name'],
@@ -67,6 +82,9 @@ class ProfileVerificationApiController extends Controller
             'status'        => 'pending',
             'kind'          => 'new',
         ]);
+
+        $req->update(['proof_files'=>$proofPaths]);
+        if (trim((string) ($data['message'] ?? '')) !== '') $req->appendUpdate(trim($data['message']));
 
         $user->update(['profile_verification_status' => 'pending']);
 
@@ -187,10 +205,13 @@ class ProfileVerificationApiController extends Controller
             'tick_type'    => $r->tickType ? $this->transformTickType($r->tickType) : null,
             'official_name'=> $r->official_name,
             'purpose'      => $r->purpose,
+            'additional_info' => $r->additional_info,
+            'supporting_urls' => $r->supporting_urls ?? [],
             'status'       => $r->status,
             'kind'         => $r->kind,
             'admin_notes'  => $r->admin_notes,
             'updates'      => $r->updates ?? [],
+            'proof_files'  => $r->proof_files ?? [],
             'reviewed_at'  => optional($r->reviewed_at)->toIso8601String(),
             'created_at'   => optional($r->created_at)->toIso8601String(),
         ];

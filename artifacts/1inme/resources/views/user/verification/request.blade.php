@@ -8,7 +8,7 @@
             <i class="fas fa-arrow-left mr-1"></i>Back to Verification
         </a>
         <h2 class="text-lg font-bold mt-2" style="color: var(--text-primary);">Apply for Creator Profile Verification</h2>
-        <p class="text-sm mt-1" style="color: var(--text-muted);">Your profile name and avatar will be locked once verified to protect your identity.</p>
+        <p class="text-sm mt-1" style="color: var(--text-muted);">An admin reviews your evidence and chooses the final badge type and color. Your profile name and avatar will be locked once verified to protect your identity.</p>
     </div>
 
     @if($errors->any())
@@ -66,6 +66,8 @@
             </div>
         </div>
 
+        @include('user.verification.evidence-fields')
+
         {{-- Avatar (profile photo) --}}
         <div class="card-premium p-6">
             <h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);"><i class="fas fa-image mr-2 text-emerald-400"></i>Verified Profile Photo (optional)</h3>
@@ -81,7 +83,7 @@
         {{-- Proof documents --}}
         <div class="card-premium p-6">
             <h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);"><i class="fas fa-file-alt mr-2 text-amber-400"></i>Proof Documents</h3>
-            <p class="text-xs mb-4" style="color: var(--text-muted);">Upload any documents that confirm your identity or organization: government ID, business registration, verified social media screenshots, press articles, etc.</p>
+            <p class="text-xs mb-4" style="color: var(--text-muted);">Attach up to five files that confirm your identity or organization: government ID, business registration, verified social media screenshots, press articles, etc.</p>
             @include('user.partials.dropzone-input', [
                 'name'        => 'proof_files',
                 'policy'      => \App\Services\UploadPolicy::for('verification.proof', auth()->user()),
