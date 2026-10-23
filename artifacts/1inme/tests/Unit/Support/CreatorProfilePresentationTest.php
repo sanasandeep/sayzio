@@ -46,8 +46,17 @@ class CreatorProfilePresentationTest extends TestCase
     public function test_design_is_allowlisted_and_constrained(): void
     {
         $design = Presentation::resolve(['theme'=>'javascript:bad','avatar_shape'=>'url(bad)','avatar_size'=>900,'avatar_x'=>-10,'avatar_y'=>999]);
-        $this->assertSame(['theme'=>'paper','avatar_shape'=>'rounded','avatar_size'=>96,'avatar_x'=>0,'avatar_y'=>100],$design);
+        $this->assertSame(['theme'=>'paper','layout'=>'classic','mode'=>'light','avatar_shape'=>'rounded','avatar_size'=>96,'avatar_x'=>0,'avatar_y'=>100],$design);
         $this->assertSame('midnight',Presentation::resolve(['theme'=>'midnight'])['theme']);
+        $this->assertSame('dark',Presentation::resolve(['theme'=>'midnight'])['mode']);
+        foreach (array_keys(Presentation::LAYOUTS) as $layout) {
+            foreach (['light','dark'] as $mode) {
+                $resolved=Presentation::resolve(['layout'=>$layout,'mode'=>$mode]);
+                $this->assertSame($layout,$resolved['layout']); $this->assertSame($mode,$resolved['mode']);
+            }
+        }
+        $this->assertSame('classic',Presentation::resolve(['layout'=>'bad'])['layout']);
+        $this->assertSame('light',Presentation::resolve(['mode'=>'bad'])['mode']);
     }
     public function test_vcard_never_uses_account_contacts_and_escapes_lines(): void
     {
@@ -69,12 +78,14 @@ class CreatorProfilePresentationTest extends TestCase
     public function test_biolink_selection_is_scoped_and_presentation_survives_partial_saves(): void
     {
         $user=$this->creator();$profile=new CreatorProfile(['workspace_id'=>10,'user_id'=>7]);
-        CreatorProfileController::saveShowcaseFields($user,['primary_biolink_id'=>1,'presentation'=>['theme'=>'mint','avatar_shape'=>'circle']],$profile);
+        CreatorProfileController::saveShowcaseFields($user,['primary_biolink_id'=>1,'presentation'=>['theme'=>'mint','layout'=>'editorial','mode'=>'dark','avatar_shape'=>'circle']],$profile);
         $this->assertSame(1,$profile->profile_showcase['primary_biolink_id']);
         $this->assertSame('mint',$profile->profile_showcase['presentation']['theme']);
         CreatorProfileController::saveShowcaseFields($user,[],$profile);
         $this->assertSame(1,$profile->profile_showcase['primary_biolink_id']);
         $this->assertSame('circle',$profile->profile_showcase['presentation']['avatar_shape']);
+        $this->assertSame('editorial',$profile->profile_showcase['presentation']['layout']);
+        $this->assertSame('dark',$profile->profile_showcase['presentation']['mode']);
         foreach([2,3,4,5] as $invalid) {
             try { CreatorProfileController::saveShowcaseFields($user,['primary_biolink_id'=>$invalid],$profile);$this->fail('Must reject unavailable or other workspace link'); }
             catch(\Illuminate\Validation\ValidationException $e){$this->assertArrayHasKey('primary_biolink_id',$e->errors());}

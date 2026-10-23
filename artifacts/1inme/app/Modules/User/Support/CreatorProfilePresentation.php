@@ -8,10 +8,14 @@ final class CreatorProfilePresentation
 {
     public const THEMES = ['paper' => 'Paper', 'midnight' => 'Midnight', 'warm' => 'Warm studio', 'mint' => 'Fresh mint'];
 
+    public const LAYOUTS = ['classic' => 'Classic', 'centered' => 'Spotlight', 'editorial' => 'Editorial', 'minimal' => 'Compact'];
+
     public static function resolve(array $value): array
     {
         return [
             'theme' => is_string($value['theme'] ?? null) && array_key_exists($value['theme'], self::THEMES) ? $value['theme'] : 'paper',
+            'layout' => in_array($value['layout'] ?? '', array_keys(self::LAYOUTS), true) ? $value['layout'] : 'classic',
+            'mode' => in_array($value['mode'] ?? '', ['light', 'dark'], true) ? $value['mode'] : (($value['theme'] ?? '') === 'midnight' ? 'dark' : 'light'),
             'avatar_shape' => in_array($value['avatar_shape'] ?? '', ['circle', 'rounded', 'square'], true) ? $value['avatar_shape'] : 'rounded',
             'avatar_size' => in_array((int) ($value['avatar_size'] ?? 96), [80, 96, 128], true) ? (int) ($value['avatar_size'] ?? 96) : 96,
             'avatar_x' => max(0, min(100, (int) ($value['avatar_x'] ?? 50))),

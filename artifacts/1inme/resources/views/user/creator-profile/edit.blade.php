@@ -1,6 +1,7 @@
 @extends('user.layouts.settings')
 @section('title', 'Creator Profile')
 @section('settings-content')
+@include('user.creator-profile.editor-design')
 <div>
     <div class="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
@@ -15,7 +16,7 @@
     </div>
 
     @if($profileUrl)
-        @include('public.partials.creator-profile-share', ['shareUrl'=>$profileUrl, 'shareHandle'=>$user->handle, 'shareName'=>$user->name])
+        <details class="cp-editor-share"><summary>Share profile &amp; contact card</summary>@include('public.partials.creator-profile-share', ['shareUrl'=>$profileUrl, 'shareHandle'=>$user->handle, 'shareName'=>$user->name])</details>
     @endif
 
     @if(session('success'))
@@ -33,10 +34,11 @@
     @endif
 
     <div class="xl:flex xl:items-start xl:gap-6"
-         @creator-avatar-ready="pvLive()" @input.debounce.300ms="pvLive()" @change.debounce.150ms="pvLive()" @click.debounce.300ms="pvLive()"
+         @creator-avatar-ready="pvLive()" @input.debounce.300ms="pvLive()" @change.debounce.150ms="if ($event.target.name === 'presentation[mode]') pvTheme = null; pvLive()" @click.debounce.300ms="pvLive()"
          x-data="{
+             editorTab: {{ $errors->any() ? "'all'" : "'design'" }},
              pvMode: (function (m) { if (m === 'mini') return 'small'; return ['small','medium','large','full'].includes(m) ? m : 'medium'; })(localStorage.getItem('cp_pv_mode')),
-             pvTheme: ['light','dark'].includes(localStorage.getItem('cp_pv_theme')) ? localStorage.getItem('cp_pv_theme') : (document.documentElement.classList.contains('light-mode') ? 'light' : 'dark'),
+             pvTheme: null,
              pvSizes: { small: 300, medium: 350, large: 430 },
              pvHeights: { small: 440, medium: 620, large: 760 },
              pvBase: 390,
@@ -44,17 +46,17 @@
              get pvBaseH() { return this.pvHeights[this.pvMode] || 760; },
              get pvScale() { return (this.pvPaneW - 26) / this.pvBase; },
              setMode(m) { this.pvMode = m; localStorage.setItem('cp_pv_mode', m); this.$nextTick(() => this.pvLive()); },
-             pvToggleTheme() { this.pvTheme = this.pvTheme === 'light' ? 'dark' : 'light'; localStorage.setItem('cp_pv_theme', this.pvTheme); this.pvLive(); },
+             pvToggleTheme() { this.pvTheme = (this.pvTheme || this.pvField('presentation[mode]')) === 'light' ? 'dark' : 'light'; this.pvLive(); },
              pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; },
-             pvField(n) { const el = document.getElementsByName(n)[0]; return el ? el.value : null; },
+             pvField(n) { const fields = Array.from(document.getElementsByName(n)); const el = fields.find(el => el.type !== 'radio' || el.checked); return el ? el.value : null; },
              pvLive() {
-                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color'), avatarUrl: document.querySelector('[data-creator-avatar-preview]')?.src || null, profileTheme: this.pvField('presentation[theme]'), avatarShape: this.pvField('presentation[avatar_shape]'), avatarSize: this.pvField('presentation[avatar_size]'), avatarX: this.pvField('presentation[avatar_x]'), avatarY: this.pvField('presentation[avatar_y]'), density: this.pvMode === 'full' ? 'large' : this.pvMode, theme: this.pvTheme };
+                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color'), avatarUrl: document.querySelector('[data-creator-avatar-preview]')?.src || null, profileTheme: this.pvField('presentation[theme]'), profileLayout: this.pvField('presentation[layout]'), profileMode: this.pvField('presentation[mode]'), avatarShape: this.pvField('presentation[avatar_shape]'), avatarSize: this.pvField('presentation[avatar_size]'), avatarX: this.pvField('presentation[avatar_x]'), avatarY: this.pvField('presentation[avatar_y]'), density: this.pvMode === 'full' ? 'large' : this.pvMode, theme: this.pvTheme };
                  [this.$refs.pvFrame, this.$refs.pvFrameFull].forEach(f => { try { if (f && f.contentWindow) f.contentWindow.postMessage(msg, window.location.origin); } catch (e) {} });
              }
          }">
     <div class="flex-1 min-w-0">
     {{-- ── Completeness meter ───────────────────────────── --}}
-    <div class="rounded-2xl p-5 mb-6" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+    <div class="rounded-2xl p-3 mb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
         <div class="flex items-center justify-between mb-2">
             <p class="text-xs uppercase tracking-wider font-semibold" style="color: var(--text-dimmed);">Profile completeness</p>
             <p class="text-sm font-bold" style="color: var(--text-primary);">{{ $completeness }}%</p>
@@ -62,7 +64,7 @@
         <div class="h-2 w-full rounded-full overflow-hidden" style="background: rgba(61,107,255,0.1);">
             <div class="h-full bg-gradient-to-r from-blue-500 to-fuchsia-500 transition-all" style="width: {{ $completeness }}%;"></div>
         </div>
-        <p class="text-[11px] mt-2" style="color: var(--text-dimmed);">Add a cover, tagline, niche tags, socials, to complete your profile. Posts are optional.</p>
+
     </div>
 
     {{-- ── Handle claim / change ────────────────────────── --}}
@@ -81,7 +83,7 @@
             @error('handle')<p class="mt-2 text-sm text-red-400">{{ $message }}</p>@enderror
         </div>
     @else
-        <div class="rounded-2xl p-5 mb-6" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <div x-show="editorTab === 'about' || editorTab === 'settings' || editorTab === 'all'" class="rounded-2xl p-5 mb-6" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
              x-data="{ editing: {{ $errors->has('handle') ? 'true' : 'false' }} }">
             <div class="flex items-center gap-3 flex-wrap">
                 <div class="flex-1 min-w-0">
@@ -108,21 +110,24 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="display: grid; column-gap: 1.5rem; row-gap: 1.5rem;">
+    <nav class="cp-editor-tabs" aria-label="Profile editor sections">
+        @foreach(['design'=>'Design','about'=>'About you','links'=>'Links & contact','visibility'=>'Visibility','settings'=>'Publish & safety','all'=>'All options'] as $key=>$label)
+        <button type="button" :aria-pressed="editorTab === '{{ $key }}'" @click="editorTab = '{{ $key }}'">{{ $label }}</button>
+        @endforeach
+    </nav>
+    <form @invalid.capture="editorTab = 'all'" action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="cp-editor-form">
         @csrf
 
         @include('user.creator-profile.presentation-controls')
 
-        <nav class="lg:col-span-2 flex flex-wrap gap-2" aria-label="Profile editor sections">
-            <a href="#cp-photo" class="cp-share-button">Photo & cover</a><a href="#cp-about" class="cp-share-button">About</a><a href="#cp-sections" class="cp-share-button">Visible sections</a>
-        </nav>
+        @include('user.creator-profile.destination-controls')
         {{-- Hero --}}
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset x-show="editorTab === 'design' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" id="cp-photo" style="color: var(--text-primary);">Photo & cover</legend>
             <div class="space-y-4">
                 <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Profile accent color</label>
-                    <p class="text-[11px] mb-2" style="color: var(--text-dimmed);">Used as the hero gradient and accent on your public profile page. Leave blank to use the platform default (blue → fuchsia).</p>
+                    <p class="text-[11px] mb-2" style="color: var(--text-dimmed);">Used as the hero gradient and accent on your public profile page. Leave blank to use your selected gradient.</p>
                     @php $__themeColor = old('profile_theme_color', $user->profile_theme_color ?? ''); @endphp
                     <div class="flex items-center gap-3 flex-wrap"
                          x-data="{
@@ -154,7 +159,7 @@
                         </label>
                         {{-- Clear --}}
                         <button type="button" @click="clear()" x-show="color" class="text-[11px] px-2 py-1 rounded" style="background: var(--bg-soft); color: var(--text-muted);">
-                            Reset to default
+                            Use selected gradient
                         </button>
                         {{-- Live preview swatch --}}
                         <div x-show="color"
@@ -219,6 +224,14 @@
                     <input type="url" name="cover_image_url" placeholder="https://…" maxlength="1024"
                            class="w-full px-3 py-2 rounded-lg text-sm mt-1" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 </div>
+
+            </div>
+        </fieldset>
+
+        {{-- About --}}
+        <fieldset x-show="editorTab === 'about' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);" id="cp-about">About</legend>
+            <div class="space-y-4">
                 <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Tagline (one-line headline)</label>
                     <input type="text" name="tagline" value="{{ old('tagline', $user->tagline) }}" maxlength="200" placeholder="e.g. Designer & cat collector"
@@ -229,13 +242,6 @@
                     <input type="text" name="location" value="{{ old('location', $user->location) }}" maxlength="120" placeholder="City, Country"
                            class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 </div>
-            </div>
-        </fieldset>
-
-        {{-- About --}}
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
-            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);" id="cp-about">About</legend>
-            <div class="space-y-4">
                 <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Bio</label>
                     <textarea name="bio" rows="4" maxlength="2000" placeholder="Tell people who you are."
@@ -270,7 +276,7 @@
         </fieldset>
 
         {{-- Socials --}}
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset x-show="editorTab === 'links' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Socials</legend>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 @foreach($platforms as $key => $p)
@@ -288,7 +294,7 @@
         </fieldset>
 
         {{-- Section visibility --}}
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset x-show="editorTab === 'visibility' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);" id="cp-sections">Visible sections</legend>
             <p class="text-xs mb-3" style="color: var(--text-dimmed);">Choose what your visitors see. Turn off Posts or Subscriptions, tips & paid posts for a simple professional profile. Existing subscriptions and purchases are unchanged.</p>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -310,7 +316,7 @@
              silently discard input — show an upgrade hint instead. Legacy
              plans without the key (and plan-less users) default ON. --}}
         @if(! $user->getPlanFeature('special_dates', true))
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);" data-testid="special-dates-upgrade-hint">
+        <fieldset x-show="editorTab === 'about' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);" data-testid="special-dates-upgrade-hint">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Special dates</legend>
             <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Birthday, anniversaries and product release days on your public profile, with follower wishes and a followable calendar.</p>
             <div class="rounded-lg p-4 flex items-start gap-3" style="background: rgba(61,107,255,0.06); border: 1px dashed rgba(61,107,255,0.35);">
@@ -325,7 +331,7 @@
             </div>
         </fieldset>
         @else
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset x-show="editorTab === 'about' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       kinds: @js((object) $specialDateKindsJs),
                       rows: @js($specialDateRowsJs),
@@ -395,7 +401,7 @@
              details shown on the public event detail page and on
              /@handle/events. Not per-event; there is one profile per
              account. --}}
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset x-show="editorTab === 'about' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Organizer profile</legend>
             <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Shown on all of your events, the public event page and your events listing. Everything here is optional; blank fields simply don't render.</p>
 
@@ -488,7 +494,7 @@
             $cBlock     = is_array($user->country_block_list) ? implode(', ', $user->country_block_list) : '';
             $cAllow     = is_array($user->country_allow_list) ? implode(', ', $user->country_allow_list) : '';
         @endphp
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset x-show="editorTab === 'settings' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Safety &amp; moderation</legend>
             <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Mute words, watermarking on shared images, and per-region availability.</p>
 
@@ -586,7 +592,7 @@
                 'card_heading' => 'background:#fff;border-left:3px solid #3d6bff;border-radius:0 6px 6px 0;padding:4px 6px;color:#3d6bff;text-align:left;',
             ];
         @endphp
-        <fieldset class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset x-show="editorTab === 'links' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       featured: {{ Js::from($showcaseFeaturedLinks) }},
                       style: {{ Js::from($featuredLinksStyle) }},
@@ -705,7 +711,7 @@
         </fieldset>
 
         {{-- ── Task #5431: Showcase ─────────────────────────────── --}}
-        <fieldset class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset x-show="editorTab === 'links' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       items: {{ Js::from(array_values($showcase['showcase_items'] ?? [])) }},
                       showcaseTypes: {{ Js::from($showcaseItemTypes) }},
@@ -794,7 +800,7 @@
         </fieldset>
 
         {{-- ── Task #5431: Highlights strip ────────────────────── --}}
-        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset x-show="editorTab === 'visibility' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">
                 <i class="fas fa-chart-bar mr-1 text-sky-500"></i> Highlights strip
             </legend>
@@ -827,7 +833,7 @@
         </fieldset>
 
         {{-- ── Task #5431: CTA / Contact block ─────────────────── --}}
-        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset x-show="editorTab === 'links' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       primary: {{ Js::from($showcase['cta']['primary'] ?? null) }},
                       secondary: {{ Js::from(array_values($showcase['cta']['secondary'] ?? [])) }},
@@ -838,6 +844,7 @@
                       },
                       removeSecondary(idx) { this.secondary.splice(idx, 1); },
                       setPrimary(kind) {
+                          if (!kind) { this.primary = null; return; }
                           if (!this.primary) this.primary = { kind, label: '', value: '' };
                           else this.primary.kind = kind;
                       }
@@ -852,7 +859,7 @@
                 <label class="text-xs font-semibold block mb-1" style="color: var(--text-primary);">Primary button</label>
                 <div class="flex gap-2 flex-wrap">
                     <select name="cta_primary_kind"
-                            x-model="primary && primary.kind"
+                            :value="primary ? primary.kind : ''"
                             @change="setPrimary($event.target.value)"
                             class="w-40 px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
                         <option value="">None</option>
@@ -932,7 +939,7 @@
         </fieldset>
 
         {{-- Publish --}}
-        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset x-show="editorTab === 'settings' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Publish</legend>
             <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
                 <input type="hidden" name="profile_published" value="0">
@@ -947,7 +954,7 @@
         </fieldset>
 
         <div class="flex justify-end items-center gap-2 lg:col-span-2 sticky bottom-0 z-40 rounded-xl px-4 py-3 -mx-1"
-             style="background: color-mix(in srgb, var(--bg-card) 82%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-soft); box-shadow: 0 -6px 24px rgba(0,0,0,0.18); margin-top: -1.5rem;">
+             style="background: color-mix(in srgb, var(--bg-card) 82%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-soft); box-shadow: 0 -6px 24px rgba(0,0,0,0.18);">
             @if($sections['posts'] ?? true)
             <a href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 Manage posts
