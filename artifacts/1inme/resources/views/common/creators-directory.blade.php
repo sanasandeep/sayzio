@@ -1,39 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="csrf-token" content="{{ csrf_token() }}">
-{{-- Safari uses theme-color to tint the browser toolbar. Always dark so the
-     tab bar matches the brand regardless of the site's light/dark mode. --}}
-<meta name="theme-color" content="#0a0a14">
+@extends('public.layouts.site')
 @php
-    $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView(['seoKey' => 'creators']);
+    $seoKey = 'creators';
 @endphp
-<title>{{ \App\Modules\Common\Support\MarketingSeo::documentTitle($__seo['title'], ': ') }}</title>
-<meta name="description" content="{{ $__seo['description'] }}">
-@if(($__seo['keywords'] ?? '') !== '')
-<meta name="keywords" content="{{ $__seo['keywords'] }}">
-@endif
-@php
-    $__schema = \App\Modules\Common\Support\MarketingSchema::forView([
-        'seoKey' => 'creators',
-        'title'  => $__seo['title'] ?? null,
-        'url'    => \App\Modules\Common\Support\PlatformHosts::canonicalUrl(),
-    ]);
-@endphp
-<script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-@include('public.partials.marketing-share-meta')
-@vite(['resources/css/app.css', 'resources/js/app.js'])
-@include('common.partials.fontawesome')
-<script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
-<script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
-<style>[x-cloak]{display:none!important}</style>
-</head>
+@section('title', 'Discover creators')
+@section('content')
 @php
     $viewerNow = \App\Modules\Common\Services\ViewerSession::user();
 @endphp
-<body class="bg-gradient-to-br from-slate-50 via-white to-blue-50 min-h-screen">
+<div data-mkt-directory x-data="{}">
 <div class="max-w-6xl mx-auto px-4 py-10">
     <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
         <div>
@@ -57,15 +31,16 @@
     </div>
 
     <form method="GET" class="flex flex-wrap gap-2 mb-4">
-        <input type="text" name="q" value="{{ $q }}" placeholder="Search name, handle, bio or #tag..."
+        <label class="sr-only" for="creator-search">Search creators</label>
+        <input id="creator-search" type="search" name="q" value="{{ $q }}" placeholder="Search name, handle, bio or #tag..."
                class="flex-1 min-w-[240px] px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-        <select name="sort" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">
+        <select aria-label="Sort creators" name="sort" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">
             <option value="trending"      {{ $sort === 'trending' ? 'selected' : '' }}>Trending (7d)</option>
             <option value="most_followed" {{ $sort === 'most_followed' ? 'selected' : '' }}>Most followed</option>
             <option value="most_active"   {{ $sort === 'most_active' ? 'selected' : '' }}>Most active</option>
             <option value="newest"        {{ $sort === 'newest' ? 'selected' : '' }}>Newest</option>
         </select>
-        <select name="tier" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">
+        <select aria-label="Membership filter" name="tier" class="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm">
             <option value="">All creators</option>
             <option value="free" {{ ($tier ?? '') === 'free' ? 'selected' : '' }}>Free tier available</option>
             <option value="paid" {{ ($tier ?? '') === 'paid' ? 'selected' : '' }}>Paid tiers</option>
@@ -431,5 +406,5 @@ function creatorChatOverlay(initialLoggedIn) {
     };
 }
 </script>
-</body>
-</html>
+</div>
+@endsection

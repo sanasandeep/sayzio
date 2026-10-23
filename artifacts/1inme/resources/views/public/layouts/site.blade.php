@@ -15,9 +15,25 @@
             'shareTitle'       => $shareTitle ?? null,
             'shareDescription' => $shareDescription ?? null,
         ]);
+        $__marketingStandard = \App\Modules\Common\Support\MarketingPageStandards::page(request()->path());
+        if ($__marketingStandard) {
+            if ($__marketingStandard['key'] === 'blog-detail' && trim($__env->yieldContent('title')) !== '') {
+                $__marketingStandard['label'] = strip_tags(trim($__env->yieldContent('title')));
+            }
+            $shareUrl = $shareUrl ?? \App\Modules\Common\Support\MarketingPageStandards::canonical(
+                $__marketingStandard['key'] === 'privacy/request' ? url('/privacy/request') : \App\Modules\Common\Support\PlatformHosts::canonicalUrl(), request()->query()
+            );
+        }
+        $__seo = \App\Modules\Common\Support\MarketingPageStandards::seo($__seo, $__marketingStandard, [
+            'description' => trim($__env->yieldContent('meta_description')),
+            'sections' => is_array($page->sections ?? null) ? $page->sections : [],
+        ]);
     @endphp
     <title>{{ \App\Modules\Common\Support\MarketingSeo::documentTitle($__seo['title'], ' | ') }}</title>
     <meta name="description" content="{{ $__seo['description'] }}">
+    @if($__marketingStandard && ($__robots = \App\Modules\Common\Support\MarketingPageStandards::robots('/' . request()->path(), request()->query())))
+        <meta name="robots" content="{{ $__robots }}">
+    @endif
     @if(($__seo['keywords'] ?? '') !== '')
         <meta name="keywords" content="{{ $__seo['keywords'] }}">
     @endif
@@ -31,9 +47,15 @@
             // 404, say) does not hand JSON-LD a different URL from the one
             // its <link rel="canonical"> declares.
             'url'    => $shareUrl ?? \App\Modules\Common\Support\PlatformHosts::canonicalUrl(),
+            'extra' => $__marketingStandard ? [[
+                '@type' => 'WebPage',
+                'name' => $__seo['title'],
+                'description' => $__seo['description'],
+                'url' => $shareUrl ?? \App\Modules\Common\Support\PlatformHosts::canonicalUrl(),
+            ]] : [],
         ]);
     @endphp
-    <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_UNICODE) !!}</script>
+    <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
     @include('common.partials.default-icons')
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')
@@ -54,7 +76,7 @@
                 if (m) pref = decodeURIComponent(m[1]);
             }
             if (pref === 'light' || pref === 'dark') {
-                if (pref === 'light') document.documentElement.classList.add('light-mode');
+                document.documentElement.classList.toggle('light-mode', pref === 'light');
             } else {
                 try {
                     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
@@ -151,12 +173,22 @@
          theme-styles, so every var() in there needs a fallback and has
          one. --}}
     @include('common.partials.button-system')
+    @if($__marketingStandard)
+        <link rel="stylesheet" href="{{ asset('css/marketing-page-standards.css') }}?v=1">
+        <meta name="color-scheme" content="light dark">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    @endif
 </head>
 {{-- data-site-layout scopes the button system's retint of hand-painted
      blue to the MARKETING pages. A visitor's own biolink page is also
      served from the public side and must keep every colour its owner
      chose, so the retint must never reach it. --}}
-<body class="min-h-screen flex flex-col" data-site-layout>
+<body class="min-h-screen flex flex-col" data-site-layout @if($__marketingStandard) data-marketing-standard @endif>
+
+@if($__marketingStandard)
+    <a class="mkt-skip-link" href="#marketing-main">Skip to main content</a>
+@endif
 
 {{-- The page rails: a hairline under the nav and two vertical rules running
      the full height, landing on the same columns the navbar's edges do.
@@ -184,8 +216,16 @@
     @include('common.partials.events-hero-band')
 @endunless
 
-<main class="relative z-10 flex-1 mkt-site-main">
-    @yield('content')
+<main id="marketing-main" tabindex="-1" class="relative z-10 flex-1 mkt-site-main">
+    @if($__marketingStandard)
+        @include('public.partials.marketing-breadcrumbs', ['standard' => $__marketingStandard])
+        <div class="mkt-page-body">
+            @yield('content')
+        </div>
+        @include('public.partials.marketing-related', ['standard' => $__marketingStandard])
+    @else
+        @yield('content')
+    @endif
 </main>
 
 @include('public.partials.footer')

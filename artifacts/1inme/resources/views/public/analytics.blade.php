@@ -82,13 +82,13 @@
                         <i class="fas fa-map-location-dot"></i>
                     </div>
                     <div>
-                        <div class="text-sm font-semibold text-white">247 visitors right now</div>
-                        <div class="text-xs text-gray-400">12 countries · live pins</div>
+                        <div class="text-sm font-semibold text-white">Example · 247 visitors</div>
+                        <div class="text-xs text-gray-400">Illustrative visitor map</div>
                     </div>
                 </div>
                 <div class="absolute -top-5 -right-4 bg-[#11101c] border border-white/10 rounded-2xl p-3 flex items-center gap-2 shadow-2xl float-y" style="animation-delay:-3s">
                     <span class="w-2.5 h-2.5 rounded-full pulse-dot" style="background: {{ $accent }};"></span>
-                    <span class="text-xs font-semibold text-gray-200">Coach score · 87</span>
+                    <span class="text-xs font-semibold text-gray-200">Example score · 87</span>
                 </div>
             </div>
         </div>
