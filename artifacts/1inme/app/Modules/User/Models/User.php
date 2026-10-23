@@ -265,12 +265,12 @@ class User extends Authenticatable
         if ($this->isDirty('profile_verification_status') && $this->profile_verification_status === 'verified') return false;
         $this->profile_verification_status = 'unverified';
         if ($this->exists) {
-            ProfileVerificationRequest::where('user_id', $this->id)->where('status', 'pending')->update(['status'=>'superseded']);
+            ProfileVerificationRequest::where('user_id', $this->id)->whereNull('creator_profile_id')->where('status', 'pending')->update(['status'=>'superseded']);
         }
         return true;
     }
 
-    /** True when the user's profile name/avatar are locked (they are verified). */
+    /** Legacy method name: verified profile photo replacement is locked. Name changes invalidate verification. */
     public function isNameAvatarLocked(): bool
     {
         return $this->isVerified();

@@ -17,6 +17,7 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto">
+    <a class="inline-flex rounded-xl border px-4 py-2 mb-4 font-semibold" href="{{ route('user.verified-directory.index') }}">Verified profiles &amp; links · manage and revoke</a>
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Link Verification</h1>

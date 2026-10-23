@@ -24,7 +24,7 @@ class ProfileVerificationApiController extends Controller
         $user = $request->user();
         $user->load('verificationTickType');
 
-        $requests = ProfileVerificationRequest::where('user_id', $user->id)
+        $requests = ProfileVerificationRequest::where('user_id', $user->id)->whereNull('creator_profile_id')
             ->with('tickType')
             ->orderByDesc('created_at')
             ->get()
@@ -99,7 +99,7 @@ class ProfileVerificationApiController extends Controller
     {
         $user = $request->user();
 
-        $req = ProfileVerificationRequest::where('user_id', $user->id)
+        $req = ProfileVerificationRequest::where('user_id', $user->id)->whereNull('creator_profile_id')
             ->where('status', 'pending')
             ->orderByDesc('created_at')
             ->first();
@@ -164,7 +164,7 @@ class ProfileVerificationApiController extends Controller
             return $this->fail('No changes detected.', 400, 'bad_request');
         }
 
-        ProfileVerificationRequest::where('user_id', $user->id)
+        ProfileVerificationRequest::where('user_id', $user->id)->whereNull('creator_profile_id')
             ->where('status', 'pending')
             ->where('kind', 'reverification')
             ->update(['status' => 'superseded']);

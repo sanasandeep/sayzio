@@ -2,6 +2,10 @@
 @section('title', 'Verification & Badges')
 
 @section('settings-content')
+@if($user->relationLoaded('activeCreatorProfile'))
+<p class="text-sm mb-4" style="color:var(--text-muted)">Verification for workspace: {{ $user->activeCreatorProfile->workspace->name }}. Approval applies only to this creator profile.</p>
+@endif
+
 @php
     $canApply = !in_array($user->profile_verification_status, ['pending','verified','pending_reverification'], true);
     $statusMeta = [
@@ -135,7 +139,7 @@
             </button>
         </div>
         <form x-show="openUpdate" x-cloak action="{{ route('user.profile-verification.updates.store') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4">
-            @csrf
+            @csrf<input type="hidden" name="creator_profile_id" value="{{ $user->relationLoaded('activeCreatorProfile') ? $user->activeCreatorProfile->id : 0 }}">
             <div>
                 <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Message to reviewer</label>
                 <textarea name="message" maxlength="2000" rows="3" class="theme-input w-full text-sm" placeholder="Anything else the reviewer should know...">{{ old('message') }}</textarea>

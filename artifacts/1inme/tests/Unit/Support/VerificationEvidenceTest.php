@@ -22,7 +22,7 @@ class VerificationEvidenceTest extends TestCase
         $this->app['config']->set('database.connections.sqlite.database',':memory:');
         $this->app['config']->set('cache.default','array');
         DB::purge('sqlite');
-        Schema::create('profile_verification_requests',function($t){$t->id();$t->integer('user_id');$t->integer('tick_type_id');$t->string('official_name');$t->text('purpose');$t->string('status');$t->string('kind');$t->string('logo_path')->nullable();$t->json('proof_files')->nullable();$t->json('updates')->nullable();$t->timestamps();});
+        Schema::create('profile_verification_requests',function($t){$t->id();$t->integer('user_id');$t->integer('creator_profile_id')->nullable();$t->integer('tick_type_id');$t->string('official_name');$t->text('purpose');$t->string('status');$t->string('kind');$t->string('logo_path')->nullable();$t->json('proof_files')->nullable();$t->json('updates')->nullable();$t->timestamps();});
         (require dirname(__DIR__,3).'/database/migrations/2029_11_10_000001_add_evidence_to_profile_verification_requests.php')->up();
         Schema::create('users',function($t){$t->id();$t->string('name');$t->string('email');$t->string('profile_verification_status')->nullable();$t->timestamps();});
         Schema::create('verification_tick_types',function($t){$t->id();$t->string('name');$t->string('slug');$t->boolean('is_active');$t->boolean('admin_assigned_only');$t->integer('sort_order');});

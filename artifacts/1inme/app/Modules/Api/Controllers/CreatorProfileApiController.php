@@ -106,7 +106,7 @@ class CreatorProfileApiController extends Controller
 
         // Overlay the active workspace's profile so the payload reflects
         // the workspace being edited (Task #6618).
-        $this->activeProfile($user)->applyToUser($user);
+        $user = $this->activeProfile($user)->applyToUser(clone $user);
 
         return $this->ok(['profile' => $this->ownerProfilePayload($user)]);
     }
@@ -202,6 +202,7 @@ class CreatorProfileApiController extends Controller
             'socials.*'           => 'nullable|string|max:200',
             'sections'            => 'nullable|array',
             'sections.*'          => 'nullable|in:0,1,true,false',
+            'workspace_name' => 'nullable|string|max:200',
             'profile_published'   => 'nullable|in:0,1,true,false',
             'profile_theme_color' => ['nullable', 'string', 'max:7', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'featured_links'            => 'nullable|array|max:8',
@@ -228,6 +229,8 @@ class CreatorProfileApiController extends Controller
 
         // Task #6618 — all writes target the ACTIVE workspace's profile.
         $profile = $this->activeProfile($user);
+        $user = $profile->applyToUser(clone $user);
+        if (!$profile->workspace->is_personal && array_key_exists('workspace_name',$data)) $profile->name = $data['workspace_name'];
         \App\Modules\User\Controllers\CreatorProfileController::saveCoreProfileFields($user, $data, $request, $profile);
 
         // Publish toggle — same handle guard as the web editor: a published
@@ -255,7 +258,7 @@ class CreatorProfileApiController extends Controller
         }
 
         $profile->save();
-        $user->save();
+        if ($profile->workspace->is_personal) $user->save();
         $profile->mirrorToOwner();
         $user->refresh();
         $profile->refresh()->applyToUser($user);

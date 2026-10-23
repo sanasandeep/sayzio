@@ -24,6 +24,9 @@
     </div>
 
     @if($profileUrl)
+        @isset($workspaceProfile)
+        <p class="text-sm mb-4" style="color:var(--text-muted)">Editing {{ $workspaceProfile->workspace->name }} · {{ $workspaceProfile->workspace->is_personal ? 'Personal profile' : 'Workspace profile' }}. Your account settings remain personal.</p>
+        @endisset
         <details class="cp-editor-share"><summary>Share profile &amp; contact card</summary>@include('public.partials.creator-profile-share', ['shareUrl'=>$profileUrl, 'shareHandle'=>$user->handle, 'shareName'=>$user->name])</details>
     @endif
 
@@ -95,7 +98,7 @@
             <p class="text-sm font-bold mb-2" style="color: var(--text-primary);">Claim your handle</p>
             <p class="text-xs mb-3" style="color: var(--text-dimmed);">Your profile lives at <code>/@yourname</code>. Pick a 3–30 character handle (letters, numbers, underscore).</p>
             <form action="{{ route('user.creator-profile.handle.claim') }}" method="POST" class="flex gap-2 items-center">
-                @csrf
+                @csrf @isset($workspaceProfile)<input type="hidden" name="creator_profile_id" value="{{ $workspaceProfile->id }}">@endisset
                 <span class="text-sm font-bold" style="color: var(--text-primary);">@</span>
                 <input type="text" name="handle" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+"
                        placeholder="yourname"
@@ -123,7 +126,7 @@
                 </button>
             </div>
             <form x-show="editing" x-cloak action="{{ route('user.creator-profile.handle.claim') }}" method="POST" class="flex gap-2 items-center mt-3">
-                @csrf
+                @csrf @isset($workspaceProfile)<input type="hidden" name="creator_profile_id" value="{{ $workspaceProfile->id }}">@endisset
                 <span class="text-sm font-bold" style="color: var(--text-primary);">@</span>
                 <input type="text" name="handle" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+"
                        value="{{ old('handle', $user->handle) }}"
@@ -134,6 +137,10 @@
         </div>
     @endif
 
+    @isset($workspaceProfile)
+    @include('user.creator-profile.phone-identity')
+    @endisset
+
     {{-- ── Main editor ──────────────────────────────────── --}}
     <nav class="cp-editor-tabs" aria-label="Profile editor sections">
         @foreach(['design'=>'Design','about'=>'About you','links'=>'Links & contact','visibility'=>'Visibility','verification'=>'Verification','settings'=>'Publish & safety'] as $key=>$label)
@@ -141,7 +148,7 @@
         @endforeach
     </nav>
     <form @invalid.capture="editorTab = $event.target.closest('[data-editor-section]')?.dataset.editorSection || 'design'; $nextTick(() => $event.target.focus())" action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="cp-editor-form">
-        @csrf
+        @csrf @isset($workspaceProfile)<input type="hidden" name="creator_profile_id" value="{{ $workspaceProfile->id }}">@endisset
 
         @include('user.creator-profile.presentation-controls')
 
@@ -205,7 +212,7 @@
                             @if(!empty($user->creator_avatar))
                                 <p class="text-[11px]" style="color: var(--text-dimmed);">Custom avatar for your creator profile. Remove it to fall back to your account profile photo.</p>
                             @else
-                                <p class="text-[11px]" style="color: var(--text-dimmed);">Inherited from your account profile photo (Settings → Profile). Upload one here to use a different avatar on your public creator profile only.</p>
+                                <p class="text-[11px]" style="color: var(--text-dimmed);">{{ isset($workspaceProfile) && !$workspaceProfile->workspace->is_personal ? 'Upload a photo for this workspace creator profile. Your personal account photo stays separate.' : 'Inherited from your account profile photo (Settings → Profile). Upload one here to use a different avatar on your public creator profile only.' }}</p>
                             @endif
                         </div>
                     </div>
@@ -257,6 +264,11 @@
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);" id="cp-about">About</legend>
             <div class="space-y-4">
                 <div>
+                    @if(isset($workspaceProfile) && !$workspaceProfile->workspace->is_personal)
+                    <label class="block mb-3 text-sm">Workspace profile name
+                        <input type="text" name="workspace_name" value="{{ old('workspace_name', $user->name) }}" maxlength="200" class="w-full rounded-lg p-2" style="background:var(--bg-input);border:1px solid var(--border-soft)">
+                    </label>
+                    @endif
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Tagline (one-line headline)</label>
                     <input type="text" name="tagline" value="{{ old('tagline', $user->tagline) }}" maxlength="200" placeholder="e.g. Designer & cat collector"
                            class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
@@ -965,7 +977,7 @@
          Must live OUTSIDE the main profile form — see the nested-form note
          at the button. --}}
     <form id="cp-digest-sample-form" method="POST" action="{{ route('user.creator-digest.sample') }}">
-        @csrf
+        @csrf @isset($workspaceProfile)<input type="hidden" name="creator_profile_id" value="{{ $workspaceProfile->id }}">@endisset
     </form>
     </div>{{-- /left column --}}
 

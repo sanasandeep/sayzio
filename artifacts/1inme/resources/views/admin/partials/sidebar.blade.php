@@ -109,6 +109,12 @@
         @endif
 
         @if(auth('admin')->user()?->hasPermission('badge_requests.review'))
+            @if($staffNavigation->allows('admin.creator-phone-claims.index'))
+            <a href="{{ route('admin.creator-phone-claims.index') }}" class="sidebar-link {{ request()->routeIs('admin.creator-phone-claims.*') ? 'active' : '' }}"><i class="fas fa-phone"></i><span class="nav-label">Creator phone ownership</span><span class="sidebar-tooltip">Creator phone ownership</span></a>
+            @endif
+            @if($staffNavigation->allows('admin.verified-directory.index'))
+            <a href="{{ route('admin.verified-directory.index') }}" class="sidebar-link {{ request()->routeIs('admin.verified-directory.*') ? 'active' : '' }}"><i class="fas fa-check-circle"></i><span class="nav-label">Verified profiles &amp; links</span><span class="sidebar-tooltip">Verified profiles &amp; links</span></a>
+            @endif
             @if($staffNavigation->allows('admin.badge-requests.index'))
         <a href="{{ route('admin.badge-requests.index') }}"
                class="sidebar-link {{ request()->routeIs('admin.badge-requests.*') ? 'active' : '' }}"

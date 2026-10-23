@@ -19,5 +19,5 @@
         <a class="cp-share-button" href="{{ route('user.profile-verification.admin.tick-types') }}">Manage badge colors</a>
         @endif
     </div>
-    <p class="text-xs mt-3" style="color:var(--text-dimmed)">Include your official name, supporting URLs, proof attachments and a message. Approval locks your verified account name and photo; later identity changes require review.</p>
+    <p class="text-xs mt-3" style="color:var(--text-dimmed)">Include your official name, supporting URLs, proof attachments and a message. Approval locks the verified photo. Changing the profile name or handle removes verification and requires a fresh application.</p>
 </fieldset>

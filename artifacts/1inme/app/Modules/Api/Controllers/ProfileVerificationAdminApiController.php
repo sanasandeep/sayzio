@@ -122,6 +122,8 @@ class ProfileVerificationAdminApiController extends Controller
         $base = [
             'id'            => $r->id,
             'kind'          => $r->kind,
+            'creator_profile_id' => $r->creator_profile_id,
+            'workspace_name' => $r->creator_profile_id ? $r->creatorProfile?->workspace?->name : null,
             'status'        => $r->status,
             'official_name' => $r->official_name,
             'purpose'       => $r->purpose,

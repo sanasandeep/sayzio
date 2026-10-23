@@ -9,7 +9,7 @@ class ProfileVerificationRequest extends Model
     protected $table = 'profile_verification_requests';
 
     protected $fillable = [
-        'user_id', 'tick_type_id', 'official_name', 'purpose',
+        'creator_profile_id', 'user_id', 'tick_type_id', 'official_name', 'purpose',
         'logo_path', 'proof_files', 'status', 'kind',
         'admin_notes', 'prev_verified_name', 'new_name', 'new_avatar',
         'reviewed_at', 'reviewed_by', 'updates', 'supporting_urls', 'additional_info',
@@ -39,6 +39,11 @@ class ProfileVerificationRequest extends Model
         $updates[] = $entry;
         $this->update(['updates' => $updates]);
         return $entry;
+    }
+
+    public function creatorProfile()
+    {
+        return $this->belongsTo(CreatorProfile::class);
     }
 
     public function user()

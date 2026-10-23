@@ -29,15 +29,45 @@ use Illuminate\Support\Facades\DB;
  */
 class ProfileVerificationController extends Controller
 {
+    private function verificationProfile(): ?\App\Modules\User\Models\CreatorProfile
+    {
+        if (!app()->bound('current_workspace') || !app('current_workspace') || app('current_workspace')->is_personal) return null;
+        return \App\Modules\User\Models\CreatorProfile::forWorkspace(app('current_workspace'));
+    }
+
+    private function assertSubjectContext(Request $request): void
+    {
+        if ($request->has('creator_profile_id')) {
+            abort_unless((int)$request->input('creator_profile_id') === (int)($this->verificationProfile()?->id ?? 0),409,'Workspace changed. Reload verification settings.');
+        }
+    }
+
+    private function subjectUser(): \App\Modules\User\Models\User
+    {
+        $user = clone Auth::user();
+        return $this->verificationProfile()?->applyToUser($user) ?? $user;
+    }
+
+    private function requestQuery()
+    {
+        return ProfileVerificationRequest::where('user_id', Auth::id())
+            ->where('creator_profile_id', $this->verificationProfile()?->id);
+    }
+
+    private function setSubjectStatus(string $status): void
+    {
+        ($this->verificationProfile() ?? Auth::user())->update(['profile_verification_status'=>$status]);
+    }
+
     // ------------------------------------------------------------------
     // User-facing actions
     // ------------------------------------------------------------------
 
     public function index()
     {
-        $user = Auth::user();
+        $user = $this->subjectUser();
         $user->load('verificationTickType');
-        $requests = ProfileVerificationRequest::where('user_id', $user->id)
+        $requests = $this->requestQuery()
             ->with('tickType')
             ->orderByDesc('created_at')
             ->get();
@@ -47,7 +77,7 @@ class ProfileVerificationController extends Controller
 
     public function create(Request $request)
     {
-        $user = Auth::user();
+        $user = $this->subjectUser();
         if (in_array($user->profile_verification_status, ['pending', 'verified', 'pending_reverification'], true)) {
             return redirect()->route('user.profile-verification.index')
                 ->with('info', 'You already have a verification request or are already verified.');
@@ -71,7 +101,8 @@ class ProfileVerificationController extends Controller
 
     public function store(Request $request)
     {
-        $user = Auth::user();
+        $this->assertSubjectContext($request);
+        $user = $this->subjectUser();
 
         if (in_array($user->profile_verification_status, ['pending', 'pending_reverification'], true)) {
             return redirect()->route('user.profile-verification.index')
@@ -101,6 +132,7 @@ class ProfileVerificationController extends Controller
         $req = ProfileVerificationRequest::create([
             ...\App\Modules\User\Support\VerificationEvidence::fields($data),
             'user_id'       => $user->id,
+            'creator_profile_id' => $this->verificationProfile()?->id,
             'tick_type_id'  => $data['tick_type_id'],
             'official_name' => $data['official_name'],
             'purpose'       => $data['purpose'],
@@ -114,7 +146,7 @@ class ProfileVerificationController extends Controller
             $req->appendUpdate(trim($data['message']));
         }
 
-        $user->update(['profile_verification_status' => 'pending']);
+        $this->setSubjectStatus('pending');
 
         return redirect()->route('user.profile-verification.index')
             ->with('success', 'Verification request submitted! We will review it and get back to you.');
@@ -126,9 +158,10 @@ class ProfileVerificationController extends Controller
      */
     public function addUpdate(Request $request)
     {
-        $user = Auth::user();
+        $this->assertSubjectContext($request);
+        $user = $this->subjectUser();
 
-        $req = ProfileVerificationRequest::where('user_id', $user->id)
+        $req = $this->requestQuery()
             ->where('status', 'pending')
             ->orderByDesc('created_at')
             ->first();
@@ -180,7 +213,8 @@ class ProfileVerificationController extends Controller
      */
     public function reVerify(Request $request)
     {
-        $user = Auth::user();
+        $this->assertSubjectContext($request);
+        $user = $this->subjectUser();
 
         if (!$user->isVerified()) {
             return redirect()->route('user.profile-verification.index')
@@ -204,13 +238,14 @@ class ProfileVerificationController extends Controller
         }
 
         // Kill any outstanding pending re-verification requests for this user
-        ProfileVerificationRequest::where('user_id', $user->id)
+        $this->requestQuery()
             ->where('status', 'pending')
             ->where('kind', 'reverification')
             ->update(['status' => 'superseded']);
 
         ProfileVerificationRequest::create([
             'user_id'           => $user->id,
+            'creator_profile_id' => $this->verificationProfile()?->id,
             'tick_type_id'      => $user->profile_verification_type_id,
             'official_name'     => $newName,
             'purpose'           => 'Name / avatar change by verified user.',
@@ -221,7 +256,7 @@ class ProfileVerificationController extends Controller
             'new_avatar'        => $avatarChanged ? $newAvatar : null,
         ]);
 
-        $user->update(['profile_verification_status' => 'pending_reverification']);
+        $this->setSubjectStatus('pending_reverification');
 
         return redirect()->route('user.profile-verification.index')
             ->with('success', 'Change submitted for re-verification. Your tick is temporarily marked as pending while we review.');

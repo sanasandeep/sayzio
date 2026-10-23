@@ -28,8 +28,12 @@ class CreatorProfile extends Model
         'profile_theme_color', 'posts_count', 'followers_count',
     ];
 
+    public const WORKSPACE_SETTINGS = ['mute_words','watermark_settings','country_block_list','country_allow_list','dmca_email','organizer_profile','special_dates'];
+
+    public const VERIFICATION_FIELDS = ['profile_verification_status','profile_verification_type_id','profile_verified_at','profile_verified_name','profile_verified_avatar'];
+
     protected $fillable = [
-        'workspace_id', 'user_id',
+        'workspace_id', 'user_id', 'name', 'workspace_settings', ...self::VERIFICATION_FIELDS,
         'handle', 'bio', 'tagline', 'location', 'niche_tags', 'socials',
         'cover_image', 'creator_avatar', 'profile_published',
         'profile_section_visibility', 'profile_showcase',
@@ -37,6 +41,7 @@ class CreatorProfile extends Model
     ];
 
     protected $casts = [
+        'workspace_settings' => 'array',
         'niche_tags'                 => 'array',
         'socials'                    => 'array',
         'profile_section_visibility' => 'array',
@@ -45,6 +50,16 @@ class CreatorProfile extends Model
         'posts_count'                => 'integer',
         'followers_count'            => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $profile) {
+            if (!$profile->workspace->is_personal && $profile->isDirty(['name','handle']) && in_array($profile->getRawOriginal('profile_verification_status'), ['verified','pending_reverification'], true)) {
+                $profile->profile_verification_status = 'unverified';
+                ProfileVerificationRequest::where('creator_profile_id', $profile->id)->where('status','pending')->update(['status'=>'superseded']);
+            }
+        });
+    }
 
     public function workspace()
     {
@@ -69,7 +84,7 @@ class CreatorProfile extends Model
         return static::firstOrCreate(
             ['workspace_id' => $ws->id],
             ['user_id' => (int) $ws->owner_user_id]
-        );
+        )->fresh();
     }
 
     /**
@@ -128,7 +143,18 @@ class CreatorProfile extends Model
      */
     public function applyToUser(User $user): User
     {
-        $overlay = array_intersect_key($this->getAttributes(), array_flip(self::FIELDS));
+        $overlay = array_replace(array_fill_keys(self::FIELDS, null), array_intersect_key($this->getAttributes(), array_flip(self::FIELDS)));
+        if (!$this->workspace->is_personal) {
+            $overlay = array_merge($overlay, array_intersect_key($this->getAttributes(), array_flip(self::VERIFICATION_FIELDS)));
+            foreach (self::VERIFICATION_FIELDS as $field) $overlay[$field] = $this->getRawOriginal($field);
+            $overlay['name'] = $this->name ?: $this->workspace->name;
+            $overlay['avatar'] = null;
+            foreach (self::WORKSPACE_SETTINGS as $field) {
+                $value = ($this->workspace_settings ?? [])[$field] ?? null;
+                $overlay[$field] = is_array($value) ? json_encode($value) : $value;
+            }
+            $user->unsetRelation('verificationTickType');
+        }
         $user->setRawAttributes(array_merge($user->getAttributes(), $overlay), true);
         $user->setRelation('activeCreatorProfile', $this);
         return $user;
