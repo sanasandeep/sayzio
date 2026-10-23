@@ -2,6 +2,8 @@
 
 namespace App\Modules\User\Controllers;
 
+use Illuminate\Support\Facades\DB;
+
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Rules\NotBannedName;
 use App\Modules\User\Models\User;
@@ -90,7 +92,7 @@ class CreatorProfileController extends Controller
 
     public function edit()
     {
-        $user = Auth::user();
+        $user = clone Auth::user();
         $profile = $this->activeProfile();
         // Overlay the workspace profile's fields onto the auth user in
         // memory so the (large) editor blade keeps reading $user->…
@@ -132,6 +134,9 @@ class CreatorProfileController extends Controller
 
         return view('user.creator-profile.edit', [
             'user'                  => $user,
+            'workspaceProfile'      => $profile,
+            'identityPhones'        => DB::table('creator_phone_assignments')->where('creator_profile_id',$profile->id)->get(),
+            'phoneClaims'           => DB::table('creator_phone_claims')->where('creator_profile_id',$profile->id)->orderByDesc('id')->limit(10)->get(),
             'completeness'          => $user->profileCompletenessPercent(),
             'sections'              => $user->profileSectionVisibility(),
             'socials'               => is_array($user->socials) ? $user->socials : [],
@@ -281,6 +286,7 @@ class CreatorProfileController extends Controller
         }
 
         $data = $request->validate([
+            'workspace_name'      => 'nullable|string|max:200',
             'tagline'             => 'nullable|string|max:200',
             'location'            => 'nullable|string|max:120',
             'bio'                 => 'nullable|string|max:2000',
@@ -368,6 +374,9 @@ class CreatorProfileController extends Controller
         // Task #6618 — all profile fields target the ACTIVE workspace's
         // creator profile, not the users row.
         $profile = $this->activeProfile();
+        abort_if($request->has('creator_profile_id') && (int)$request->input('creator_profile_id') !== (int)$profile->id,409,'Workspace changed. Reload the creator profile.');
+        $user = $profile->applyToUser(clone $user);
+        if (!$profile->workspace->is_personal && array_key_exists('workspace_name', $data)) $profile->name = $data['workspace_name'];
 
         // Core profile fields — shared with the onboarding creator-profile step.
         self::saveCoreProfileFields($user, $data, $request, $profile);
@@ -460,8 +469,13 @@ class CreatorProfileController extends Controller
             \App\Modules\User\Support\SpecialDates::applyInput($user, (array) ($data['special_dates'] ?? []));
         }
 
+        if (!$profile->workspace->is_personal) {
+            $settings = $profile->workspace_settings ?? [];
+            foreach (\App\Modules\User\Models\CreatorProfile::WORKSPACE_SETTINGS as $field) $settings[$field] = $user->{$field};
+            $profile->workspace_settings = $settings;
+        }
         $profile->save();
-        $user->save();
+        if ($profile->workspace->is_personal) $user->save();
         // Keep the legacy users.* columns in sync for PERSONAL workspaces
         // (creators directory, watermark text, DM routing still read them).
         $profile->mirrorToOwner();
@@ -619,6 +633,7 @@ class CreatorProfileController extends Controller
         $user = Auth::user();
         // Task #6618 — the handle belongs to the ACTIVE workspace's profile.
         $profile = $this->activeProfile();
+        abort_if($request->has('creator_profile_id') && (int)$request->input('creator_profile_id') !== (int)$profile->id,409,'Workspace changed. Reload the creator profile.');
         $request->merge(['handle' => strtolower(trim((string) $request->input('handle')))]);
         $data = $request->validate([
             'handle' => [

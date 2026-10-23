@@ -3,6 +3,9 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto">
+    @if($req->creatorProfile)
+    <div class="border rounded-xl p-4 mb-4">Verification target: <strong>{{ $req->creatorProfile->workspace->name }}</strong> · {{ $req->creatorProfile->handle ? '@'.$req->creatorProfile->handle : 'No handle yet' }}. Approval affects only this workspace profile.</div>
+    @endif
     <div class="mb-6">
         <a href="{{ route('user.profile-verification.admin.index') }}" class="text-xs font-medium transition-colors hover:text-blue-400" style="color: var(--text-muted);">
             <i class="fas fa-arrow-left mr-1"></i>Back to Queue

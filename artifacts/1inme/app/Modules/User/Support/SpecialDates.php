@@ -287,7 +287,12 @@ class SpecialDates
         }
 
         if ($dirty) {
-            $user->forceFill(['special_dates' => array_values($entries)])->saveQuietly();
+            $profile = $user->relationLoaded('activeCreatorProfile') ? $user->activeCreatorProfile : null;
+            if ($profile && !$profile->workspace->is_personal) {
+                $profile->update(['workspace_settings'=>array_merge($profile->workspace_settings ?? [], ['special_dates'=>array_values($entries)])]);
+            } else {
+                $user->forceFill(['special_dates' => array_values($entries)])->saveQuietly();
+            }
         }
     }
 

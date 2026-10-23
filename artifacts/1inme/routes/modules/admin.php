@@ -55,6 +55,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
 
     Route::middleware([\App\Modules\Admin\Middleware\AdminAuth::class])->group(function () {
+        Route::get('creator-phone-claims', [\App\Modules\User\Controllers\CreatorPhoneController::class, 'adminIndex'])->middleware(CheckPermission::class . ':user.verifications.review')->name('creator-phone-claims.index');
+        Route::post('creator-phone-claims/{id}/review', [\App\Modules\User\Controllers\CreatorPhoneController::class, 'review'])->whereNumber('id')->middleware(CheckPermission::class . ':user.verifications.review')->name('creator-phone-claims.review');
+        Route::post('creator-phone-assignments/{id}/revoke', [\App\Modules\User\Controllers\CreatorPhoneController::class, 'revoke'])->whereNumber('id')->middleware(CheckPermission::class . ':user.verifications.review')->name('creator-phone-claims.revoke');
+        Route::get('verified-directory', [\App\Modules\User\Controllers\VerifiedDirectoryController::class, 'index'])->middleware(CheckPermission::class . ':user.verifications.review')->name('verified-directory.index');
+        Route::post('verified-directory/{kind}/{id}/revoke', [\App\Modules\User\Controllers\VerifiedDirectoryController::class, 'revoke'])->whereNumber('id')->middleware(CheckPermission::class . ':user.verifications.review')->name('verified-directory.revoke');
+
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('finance', [\App\Modules\Admin\Controllers\StaffFinanceController::class, 'index'])->name('finance.index');

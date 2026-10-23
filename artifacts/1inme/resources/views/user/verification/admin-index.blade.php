@@ -3,6 +3,7 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto">
+    <a class="inline-flex rounded-xl border px-4 py-2 mb-4 font-semibold" href="{{ route('user.verified-directory.index') }}">Verified profiles &amp; links · manage and revoke</a>
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Profile Verification</h1>
@@ -74,6 +75,7 @@
                                 <i class="fas {{ $req->tickType->icon }} mr-0.5 text-[9px]"></i>{{ $req->tickType->name }}
                             </span>
                             @endif
+                            @if($req->creator_profile_id)<span class="text-xs">Workspace profile #{{ $req->creator_profile_id }}</span>@endif
                             @if($req->kind === 'reverification')
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-400">Re-verify</span>
                             @endif

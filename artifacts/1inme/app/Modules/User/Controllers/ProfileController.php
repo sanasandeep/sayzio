@@ -22,9 +22,7 @@ class ProfileController extends Controller
     protected function activeCreatorProfile(): \App\Modules\User\Models\CreatorProfile
     {
         $user = auth()->user();
-        $ws = app()->bound('current_workspace')
-            ? app('current_workspace')
-            : (app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user) ?? $user->ensureDefaultWorkspace());
+        $ws = $user->ensureDefaultWorkspace();
 
         return \App\Modules\User\Models\CreatorProfile::forWorkspace($ws);
     }

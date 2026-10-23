@@ -2,6 +2,10 @@
 @section('title', 'Apply for Verification')
 
 @section('settings-content')
+@if($user->relationLoaded('activeCreatorProfile'))
+<p class="text-sm mb-4" style="color:var(--text-muted)">Verification for workspace: {{ $user->activeCreatorProfile->workspace->name }}. Approval applies only to this creator profile.</p>
+@endif
+
 <div class="max-w-5xl" x-data="{ tickTypeId: @js($selectedTickTypeId), officialName: @js(old('official_name', $user->name)), tickMap: @js($tickMap) }">
     <div class="mb-6">
         <a href="{{ route('user.profile-verification.index') }}" class="text-xs font-medium transition-colors hover:text-blue-400" style="color: var(--text-muted);">
@@ -24,7 +28,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
     {{-- Left: application form --}}
     <form action="{{ route('user.profile-verification.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5 lg:col-span-2 order-1">
-        @csrf
+        @csrf<input type="hidden" name="creator_profile_id" value="{{ $user->relationLoaded('activeCreatorProfile') ? $user->activeCreatorProfile->id : 0 }}">
 
         {{-- Tick type selector --}}
         <div class="card-premium p-6">

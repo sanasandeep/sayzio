@@ -14,19 +14,18 @@ class ProfileController extends Controller
 
     public function show(Request $request)
     {
-        // Task #6618 — overlay the ACTIVE workspace's creator profile so
+        // Task #6618 — overlay the PERSONAL workspace's creator profile so
         // the mobile app sees the workspace-scoped handle/bio/publish state.
-        $user = $request->user();
+        $user = clone $request->user();
         $this->activeCreatorProfile($user)->applyToUser($user);
 
         return $this->ok(['user' => UserResource::toArray($user, self: true)]);
     }
 
-    /** The authed user's active-workspace creator profile (Task #6618). */
+    /** The authed user's personal-workspace creator profile (Task #6618). */
     private function activeCreatorProfile(\App\Modules\User\Models\User $user): \App\Modules\User\Models\CreatorProfile
     {
-        $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user)
-            ?? $user->ensureDefaultWorkspace();
+        $ws = $user->ensureDefaultWorkspace();
 
         return \App\Modules\User\Models\CreatorProfile::forWorkspace($ws);
     }
@@ -37,7 +36,7 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name'             => ['sometimes', 'string', 'max:120'],
             'bio'              => ['sometimes', 'nullable', 'string', 'max:500'],
-            // Task #6618 — the handle lives on the ACTIVE workspace's
+            // Task #6618 — the handle lives on the PERSONAL workspace's
             // creator profile; uniqueness is enforced across all profiles.
             'handle'           => ['sometimes', 'nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', \App\Modules\User\Models\CreatorProfile::uniqueHandleRule($this->activeCreatorProfile($user)->id, $user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'avatar'           => ['sometimes', 'nullable', 'string', 'max:500'],
@@ -62,7 +61,7 @@ class ProfileController extends Controller
         // server-side (same rule as the web ProfileController) — silently
         // ignore both so an API call cannot bypass the identity lock.
         if ($user->isNameAvatarLocked()) {
-            unset($data['name'], $data['avatar'], $data['creator_avatar']);
+            unset($data['avatar'], $data['creator_avatar']);
         }
 
         // `users.timezone` / `users.language` are NOT NULL columns — an empty
@@ -115,7 +114,7 @@ class ProfileController extends Controller
         }
 
         // Task #6618 — handle (and bio, which is a profile field) write to
-        // the ACTIVE workspace's creator profile. users.handle/bio stay in
+        // the PERSONAL workspace's creator profile. users.handle/bio stay in
         // sync via the personal-workspace mirror only.
         $profile = null;
         if (array_key_exists('handle', $data) || array_key_exists('bio', $data)) {

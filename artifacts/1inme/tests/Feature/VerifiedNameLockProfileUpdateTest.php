@@ -7,9 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Verified users have their display name locked. The profile edit view
- * hides the name input, but the server must also ignore a submitted
- * `name` so a direct POST cannot bypass the verified-name lock.
+ * Identity changes require fresh verification; avatar replacement remains locked.
  */
 class VerifiedNameLockProfileUpdateTest extends TestCase
 {
@@ -25,7 +23,7 @@ class VerifiedNameLockProfileUpdateTest extends TestCase
         ], $overrides);
     }
 
-    public function test_verified_user_cannot_change_name_via_direct_post(): void
+    public function test_verified_name_change_requires_fresh_verification(): void
     {
         $user = User::factory()->create([
             'name'                        => 'Verified Name',
@@ -44,12 +42,13 @@ class VerifiedNameLockProfileUpdateTest extends TestCase
         $resp->assertRedirect();
 
         $fresh = $user->fresh();
-        $this->assertSame('Verified Name', $fresh->name);
+        $this->assertSame('Attacker Name', $fresh->name);
+        $this->assertSame('unverified', $fresh->profile_verification_status);
         // Other fields still save normally.
         $this->assertSame('Updated bio', $fresh->bio);
     }
 
-    public function test_pending_reverification_user_name_is_also_locked(): void
+    public function test_pending_reverification_name_change_requires_fresh_application(): void
     {
         $user = User::factory()->create([
             'name'                        => 'Locked Name',
@@ -63,7 +62,8 @@ class VerifiedNameLockProfileUpdateTest extends TestCase
         );
 
         $resp->assertSessionHasNoErrors();
-        $this->assertSame('Locked Name', $user->fresh()->name);
+        $this->assertSame('New Name', $user->fresh()->name);
+        $this->assertSame('unverified', $user->fresh()->profile_verification_status);
     }
 
     public function test_verified_user_cannot_change_avatar_via_direct_post(): void
@@ -113,7 +113,7 @@ class VerifiedNameLockProfileUpdateTest extends TestCase
         $this->assertNotSame('/storage/avatars/original.png', $user->fresh()->avatar);
     }
 
-    public function test_api_profile_update_ignores_name_and_avatar_when_locked(): void
+    public function test_api_name_change_removes_verification_but_preserves_locked_avatar(): void
     {
         $user = User::factory()->create([
             'name'                        => 'Verified Name',
@@ -132,7 +132,8 @@ class VerifiedNameLockProfileUpdateTest extends TestCase
 
         $resp->assertOk();
         $fresh = $user->fresh();
-        $this->assertSame('Verified Name', $fresh->name);
+        $this->assertSame('Attacker Name', $fresh->name);
+        $this->assertSame('unverified', $fresh->profile_verification_status);
         $this->assertSame('/storage/avatars/original.png', $fresh->avatar);
         $this->assertSame('API bio', $fresh->bio);
 

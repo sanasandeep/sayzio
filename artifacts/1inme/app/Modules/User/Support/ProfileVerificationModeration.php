@@ -24,8 +24,13 @@ class ProfileVerificationModeration
     public static function approve(ProfileVerificationRequest $req, array $data, int $reviewerId): void
     {
         $user = $req->user;
+        $subject = $req->creator_profile_id ? $req->creatorProfile : $user;
+        abort_unless($subject, 404);
 
-        DB::transaction(function () use ($req, $user, $data, $reviewerId) {
+        DB::transaction(function () use ($req, $subject, $data, $reviewerId) {
+            $fresh = $req->newQuery()->lockForUpdate()->findOrFail($req->id);
+            abort_unless($fresh->status === 'pending', 409, 'This request is no longer pending.');
+            $req->setRawAttributes($fresh->getAttributes(), true);
             $tickId = $data['tick_type_id'] ?? $req->tick_type_id;
             $req->update([
                 'tick_type_id' => $tickId,
@@ -50,11 +55,11 @@ class ProfileVerificationModeration
                 if ($req->new_avatar) $updates['profile_verified_avatar'] = $req->new_avatar;
             }
 
-            $user->update($updates);
+            $subject->update($updates);
         });
 
         $tickName     = optional(VerificationTickType::find($data['tick_type_id'] ?? $req->tick_type_id))->name ?? 'verified';
-        $verifiedName = (string) ($user->fresh()->profile_verified_name ?? $req->official_name);
+        $verifiedName = (string) ($subject->fresh()->profile_verified_name ?? $req->official_name);
         app(\App\Modules\Admin\Services\UserAccountNotifier::class)
             ->verificationApproved($user, $tickName, $verifiedName, $req->kind !== 'new');
     }
@@ -68,8 +73,13 @@ class ProfileVerificationModeration
     public static function reject(ProfileVerificationRequest $req, array $data, int $reviewerId): void
     {
         $user = $req->user;
+        $subject = $req->creator_profile_id ? $req->creatorProfile : $user;
+        abort_unless($subject, 404);
 
-        DB::transaction(function () use ($req, $user, $data, $reviewerId) {
+        DB::transaction(function () use ($req, $subject, $data, $reviewerId) {
+            $fresh = $req->newQuery()->lockForUpdate()->findOrFail($req->id);
+            abort_unless($fresh->status === 'pending', 409, 'This request is no longer pending.');
+            $req->setRawAttributes($fresh->getAttributes(), true);
             $req->update([
                 'status'      => 'rejected',
                 'admin_notes' => $data['admin_notes'],
@@ -79,10 +89,10 @@ class ProfileVerificationModeration
 
             // On rejection, revert the user's status
             if ($req->kind === 'new') {
-                $user->update(['profile_verification_status' => 'unverified']);
+                $subject->update(['profile_verification_status' => 'unverified']);
             } else {
                 // Re-verification rejected → revert to fully verified
-                $user->update(['profile_verification_status' => 'verified']);
+                $subject->update(['profile_verification_status' => 'verified']);
             }
         });
 

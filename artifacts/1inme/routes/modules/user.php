@@ -2359,6 +2359,9 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('blocks/{block}/toggle', [VerificationController::class, 'toggleBlock'])->middleware('workspace.can:settings.edit')->name('block.toggle');
         });
 
+        Route::post('creator-profile/phone', [\App\Modules\User\Controllers\CreatorPhoneController::class, 'attach'])->middleware(['workspace.can:settings.edit','throttle:10,1'])->name('creator-profile.phone.attach');
+        Route::post('creator-profile/phone-dispute', [\App\Modules\User\Controllers\CreatorPhoneController::class, 'dispute'])->middleware(['workspace.can:settings.edit','throttle:5,60'])->name('creator-profile.phone.dispute');
+
         // Profile-level creator verification (Task #5439).
         Route::prefix('settings/profile-verification')->name('profile-verification.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/',        [ProfileVerificationController::class, 'index'])->name('index');
@@ -2392,6 +2395,8 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         Route::middleware('user.can:user.verifications.review')->group(function () {
+            Route::get('verified-directory', [\App\Modules\User\Controllers\VerifiedDirectoryController::class, 'index'])->name('verified-directory.index');
+            Route::post('verified-directory/{kind}/{id}/revoke', [\App\Modules\User\Controllers\VerifiedDirectoryController::class, 'revoke'])->whereNumber('id')->name('verified-directory.revoke');
             // Legacy per-link verification admin (kept for backward compat with existing data).
             Route::get('verification-admin', [VerificationController::class, 'adminIndex'])->name('verification.admin');
             Route::get('verification-admin/{verificationRequest}', [VerificationController::class, 'adminReview'])->name('verification.admin.review');
