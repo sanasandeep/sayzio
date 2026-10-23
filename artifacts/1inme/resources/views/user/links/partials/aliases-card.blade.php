@@ -49,7 +49,7 @@
         /* `this.` on every one of these, and it is the whole bug.
          *
          * Alpine evaluates ATTRIBUTE expressions inside a `with(scope)`, so
-         * `@click="save()"` and `x-model="alias"` resolve bare names. A method
+         * `@click='save()'` and `x-model='alias'` resolve bare names. A method
          * defined in x-data is an ordinary function on the data object: a bare
          * `alias` in its body is a free variable, and there is no global
          * called alias.
