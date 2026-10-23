@@ -100,6 +100,23 @@
        The active tab had the primary gradient, which made every editor read
        as though it had three primary buttons in a row.
 
+       The list below is the full inventory, not a list of the ones that were
+       noticed. The first pass covered `.editor-tab` and `.pill-tab` because
+       those were the two visible on the page being looked at, and the inner
+       row on a link's Settings -- `.settings-tab` -- was still blue after
+       the deploy. So every rule in resources/views that paints an active or
+       aria-selected state with a gradient or the accent was enumerated by
+       scanning the blade files, and each selection control in that list is
+       named here.
+
+       Two things in that inventory are deliberately NOT here:
+       `.sidebar-link.active`, which is nav chrome and belongs to the
+       navigation-appearance presets, and `.qr-shape-card.active`, which is a
+       preview tile in a swatch grid rather than a tab -- the accent is doing
+       real work as the "this one is chosen" marker among a dozen look-alike
+       cards, and a 10% ink tint would be a worse signal there, not a
+       quieter one.
+
        !important here, and measured rather than assumed: the tab styles live
        in page-local @push('styles') blocks, so they render AFTER this
        partial, and the light variant is written as
@@ -109,7 +126,22 @@
        rules above need no !important and do not get one; they win on
        specificity, which was checked on the live page. */
     html .editor-tab.is-active,
-    html .pill-tab.is-active {
+    html .pill-tab.is-active,
+    html .settings-tab.is-active,
+    html .settings-tab.active,
+    html .settings-subtab.active,
+    html .cv-tab.is-active,
+    html .palette-tab.active,
+    html .gallery-tab.active,
+    html .qr-type-tab.active,
+    html .qr-cat-pill.active,
+    html .sl-span-btn.active,
+    html .ro-btn.active,
+    html .sb-btn.active,
+    html .et-page-btn.active,
+    html .view-toggle button.active,
+    html .bk-tabs button[aria-selected="true"],
+    html .kb-tabs button.is-active {
         background: var(--tab-active-bg) !important;
         background-image: none !important;
         color: var(--text-primary) !important;
@@ -117,7 +149,22 @@
         text-shadow: none !important;
     }
     html .editor-tab.is-active i,
-    html .pill-tab.is-active i { color: inherit !important; }
+    html .pill-tab.is-active i,
+    html .settings-tab.is-active i,
+    html .settings-tab.active i,
+    html .settings-subtab.active i,
+    html .cv-tab.is-active i,
+    html .palette-tab.active i,
+    html .gallery-tab.active i,
+    html .qr-type-tab.active i,
+    html .qr-cat-pill.active i,
+    html .sl-span-btn.active i,
+    html .ro-btn.active i,
+    html .sb-btn.active i,
+    html .et-page-btn.active i,
+    html .view-toggle button.active i,
+    html .bk-tabs button[aria-selected="true"] i,
+    html .kb-tabs button.is-active i { color: inherit !important; }
 
     /* ---- Hand-painted blue ----------------------------------------------
        Several hundred call sites across the app paint `bg-blue-600` /
