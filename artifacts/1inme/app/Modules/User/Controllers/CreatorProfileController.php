@@ -299,6 +299,8 @@ class CreatorProfileController extends Controller
             'sections.*'          => 'nullable|in:0,1,true,false',
             'profile_published'   => 'nullable|in:0,1,true,false',
             'primary_biolink_id' => 'nullable|integer|min:1',
+            'profile_destination' => 'nullable|in:profile,redirect',
+            'redirect_link_id' => 'nullable|integer|min:1',
             'presentation' => 'nullable|array',
             'presentation.theme' => 'nullable|in:paper,midnight,warm,mint',
             'presentation.avatar_shape' => 'nullable|in:circle,rounded,square',
@@ -508,6 +510,16 @@ class CreatorProfileController extends Controller
                 throw \Illuminate\Validation\ValidationException::withMessages(['primary_biolink_id' => 'Choose an active biolink from this workspace.']);
             }
         }
+        $destination = $data['profile_destination'] ?? $previous['profile_destination'] ?? 'profile';
+        $redirectId = array_key_exists('redirect_link_id', $data)
+            ? (!empty($data['redirect_link_id']) ? (int) $data['redirect_link_id'] : null)
+            : ($previous['redirect_link_id'] ?? null);
+        if (!in_array($destination, ['profile', 'redirect'], true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['profile_destination' => 'Choose a profile destination.']);
+        }
+        if (($redirectId && !in_array($redirectId, $ownerLinkIds, true)) || ($destination === 'redirect' && !$redirectId)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['redirect_link_id' => 'Choose an active link from this workspace.']);
+        }
         $presentation = \App\Modules\User\Support\CreatorProfilePresentation::resolve(array_merge((array) ($previous['presentation'] ?? []), (array) ($data['presentation'] ?? [])));
 
         $rawFeaturedLinks = (array) ($data['featured_links'] ?? []);
@@ -574,6 +586,8 @@ class CreatorProfileController extends Controller
         if (!in_array($chosenStyle, $validStyles, true)) $chosenStyle = 'classic';
 
         $target->profile_showcase = [
+            'profile_destination' => $destination,
+            'redirect_link_id' => $redirectId,
             'primary_biolink_id' => $primaryId,
             'presentation' => $presentation,
             'featured_links'       => $featuredLinks,

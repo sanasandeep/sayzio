@@ -76,6 +76,11 @@ class CreatorProfilePublicController extends Controller
             }
         }
 
+        if (!$ageGateRequired && !($isOwner && $request->boolean('cp_preview'))
+            && ($redirect = $this->profileRedirect($creator, $request))) {
+            return $redirect;
+        }
+
         $sectionsVisible = $creator->profileSectionVisibility();
 
         // Task #3666 — a few upcoming public events for the profile's
@@ -133,6 +138,21 @@ class CreatorProfilePublicController extends Controller
             'showcaseCards'   => $showcaseCards,
             'totalPublicLinks'=> $totalPublicLinks,
         ]));
+    }
+
+    /** Only the main handle route redirects; previews and sharing resources remain available. */
+    protected function profileRedirect(User $creator, Request $request): ?\Illuminate\Http\RedirectResponse
+    {
+        if (!$request->routeIs('creator-profile.show')
+            || ($creator->profile_showcase['profile_destination'] ?? 'profile') !== 'redirect') {
+            return null;
+        }
+        $link = Link::query()->withoutGlobalScope('workspace')
+            ->tap($this->workspaceLinkScope($creator))
+            ->whereKey((int) ($creator->profile_showcase['redirect_link_id'] ?? 0))
+            ->where('is_active', true)->first();
+        // The normal link route still enforces its own password, expiry and other gates.
+        return $link ? redirect($link->getShortUrl(), 302)->header('Cache-Control', 'private, no-store') : null;
     }
 
     /** Sharing resources use the same publication, block and region gates as the page. */
