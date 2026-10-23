@@ -1676,6 +1676,7 @@
 
                     <div class="hidden lg:flex items-center">
                         @include('common.partials.theme-toggle')
+                        @include('user.partials.startup-sound-toggle')
                     </div>
 
                     {{-- Task #3848 — compact coin-wallet icon + balance badge,
@@ -1811,6 +1812,7 @@
                              class="absolute right-0 mt-2 w-48 rounded-xl py-1.5 z-50" style="background: var(--bg-dropdown); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
                             <div class="px-3 py-2" style="border-bottom: 1px solid var(--border-subtle);">
                                 @include('common.partials.theme-toggle')
+                                @include('user.partials.startup-sound-toggle')
                             </div>
                             <a href="{{ route('user.profile.edit') }}" class="flex items-center gap-2.5 px-3 py-2 text-xs hover:opacity-80 transition-opacity" style="color: var(--text-muted);">
                                 <i class="fas fa-sliders" style="width: 14px; text-align: center;"></i> Settings
@@ -2180,6 +2182,7 @@
                     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2 mb-2">
                             @include('common.partials.theme-toggle')
+                            @include('user.partials.startup-sound-toggle')
                             <span class="text-[10px]" style="color: var(--text-dimmed);">Theme</span>
                         </div>
                     </div>
@@ -2342,6 +2345,10 @@
     @include('user.links.partials.themed-confirm')
     @include('common.partials.mini-profile-popover')
     @include('user.partials.list-design')
+    <div id="sayzio-startup-sound" hidden
+         data-dashboard="{{ request()->routeIs('user.dashboard') ? 'true' : 'false' }}"
+         data-src="{{ asset('audio/sayzio-sonic-logo.mp3') }}"></div>
+    <script defer src="{{ asset('js/startup-sound.js') }}"></script>
     @stack('scripts')
 </body>
 </html>
