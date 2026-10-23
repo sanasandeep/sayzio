@@ -1,4 +1,4 @@
-<fieldset x-show="editorTab === 'verification' || editorTab === 'all'" class="cp-editor-panel">
+<fieldset data-editor-section="verification" x-show="editorTab === 'verification'" class="cp-editor-panel">
     <legend>Verification &amp; trust</legend>
     <div class="flex items-center gap-3 mb-3 flex-wrap">
         @if($user->isVerified() && $user->verificationTickType)

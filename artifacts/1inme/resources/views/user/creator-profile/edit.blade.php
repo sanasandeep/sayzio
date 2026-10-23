@@ -2,6 +2,10 @@
 @section('title', 'Creator Profile')
 @section('settings-content')
 @include('user.creator-profile.editor-design')
+@php
+    $initialEditorSection = $errors->any() ? \App\Modules\User\Support\CreatorProfileVisibility::editorSection($errors->keys()[0]) : 'design';
+    $initialPostsEnabled = filter_var(old('sections.posts', $sections['posts'] ?? true), FILTER_VALIDATE_BOOLEAN);
+@endphp
 <div>
     <div class="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
@@ -34,9 +38,10 @@
     @endif
 
     <div class="xl:flex xl:items-start xl:gap-6"
-         @creator-avatar-ready="pvLive()" @input.debounce.300ms="pvLive()" @change.debounce.150ms="if ($event.target.name === 'presentation[mode]') pvTheme = null; pvLive()" @click.debounce.300ms="pvLive()"
+         @creator-avatar-ready="pvLive()" @input.debounce.300ms="pvLive()" @change.debounce.150ms="if ($event.target.name === 'sections[posts]') postsEnabled = $event.target.checked; if ($event.target.name === 'presentation[mode]') pvTheme = null; if ($event.target.name?.startsWith('sections[') || $event.target.name?.startsWith('highlights_') || $event.target.name === 'showcase_show_link_stats') pvReload(); pvLive()" @click.debounce.300ms="pvLive()"
          x-data="{
-             editorTab: {{ $errors->any() ? "'all'" : "'design'" }},
+             editorTab: @js($initialEditorSection),
+             postsEnabled: @js($initialPostsEnabled),
              pvMode: (function (m) { if (m === 'mini') return 'small'; return ['small','medium','large','full'].includes(m) ? m : 'medium'; })(localStorage.getItem('cp_pv_mode')),
              pvTheme: null,
              pvSizes: { small: 300, medium: 350, large: 430 },
@@ -47,7 +52,25 @@
              get pvScale() { return (this.pvPaneW - 26) / this.pvBase; },
              setMode(m) { this.pvMode = m; localStorage.setItem('cp_pv_mode', m); this.$nextTick(() => this.pvLive()); },
              pvToggleTheme() { this.pvTheme = (this.pvTheme || this.pvField('presentation[mode]')) === 'light' ? 'dark' : 'light'; this.pvLive(); },
-             pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; },
+             profilePreset(preset) {
+                 this.postsEnabled = false;
+                 document.querySelectorAll('.cp-editor-form input[type=checkbox]').forEach(el => {
+                     if (el.name.startsWith('sections[') && (preset === 'none' || ['sections[posts]','sections[monetization]','sections[tabs]'].includes(el.name))) el.checked = false;
+                 });
+                 this.pvReload();
+             },
+             pvReload() {
+                 [this.$refs.pvFrame, this.$refs.pvFrameFull].forEach(f => {
+                     if (!f) return;
+                     const u = new URL(f.src, location.origin);
+                     document.querySelectorAll('.cp-editor-form input[type=checkbox]').forEach(el => {
+                         if (el.name.startsWith('sections[')) u.searchParams.set('cp_' + el.name, el.checked ? '1' : '0');
+                         if (el.name.startsWith('highlights_')) u.searchParams.set('cp_highlights[' + el.name.replace('highlights_', '') + ']', el.checked ? '1' : '0');
+                         if (el.name === 'showcase_show_link_stats') u.searchParams.set('cp_link_stats', el.checked ? '1' : '0');
+                     });
+                     f.src = u.toString();
+                 });
+             },
              pvField(n) { const fields = Array.from(document.getElementsByName(n)); const el = fields.find(el => el.type !== 'radio' || el.checked); return el ? el.value : null; },
              pvLive() {
                  const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color'), coverUrl: document.querySelector('[data-creator-cover-preview]')?.getAttribute('src') || '', avatarUrl: document.querySelector('[data-creator-avatar-preview]')?.src || null, profileTheme: this.pvField('presentation[theme]'), profileLayout: this.pvField('presentation[layout]'), profileMode: this.pvField('presentation[mode]'), avatarShape: this.pvField('presentation[avatar_shape]'), avatarSize: this.pvField('presentation[avatar_size]'), avatarX: this.pvField('presentation[avatar_x]'), avatarY: this.pvField('presentation[avatar_y]'), density: this.pvMode === 'full' ? 'large' : this.pvMode, theme: this.pvTheme };
@@ -83,7 +106,7 @@
             @error('handle')<p class="mt-2 text-sm text-red-400">{{ $message }}</p>@enderror
         </div>
     @else
-        <div x-show="editorTab === 'about' || editorTab === 'settings' || editorTab === 'all'" class="rounded-2xl p-5 mb-6" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <div x-show="editorTab === 'about' || editorTab === 'settings'" class="rounded-2xl p-5 mb-6" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
              x-data="{ editing: {{ $errors->has('handle') ? 'true' : 'false' }} }">
             <div class="flex items-center gap-3 flex-wrap">
                 <div class="flex-1 min-w-0">
@@ -111,11 +134,11 @@
 
     {{-- ── Main editor ──────────────────────────────────── --}}
     <nav class="cp-editor-tabs" aria-label="Profile editor sections">
-        @foreach(['design'=>'Design','about'=>'About you','links'=>'Links & contact','visibility'=>'Visibility','verification'=>'Verification','settings'=>'Publish & safety','all'=>'All options'] as $key=>$label)
+        @foreach(['design'=>'Design','about'=>'About you','links'=>'Links & contact','visibility'=>'Visibility','verification'=>'Verification','settings'=>'Publish & safety'] as $key=>$label)
         <button type="button" :aria-pressed="editorTab === '{{ $key }}'" @click="editorTab = '{{ $key }}'">{{ $label }}</button>
         @endforeach
     </nav>
-    <form @invalid.capture="editorTab = 'all'" action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="cp-editor-form">
+    <form @invalid.capture="editorTab = $event.target.closest('[data-editor-section]')?.dataset.editorSection || 'design'; $nextTick(() => $event.target.focus())" action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="cp-editor-form">
         @csrf
 
         @include('user.creator-profile.presentation-controls')
@@ -123,7 +146,7 @@
         @include('user.creator-profile.destination-controls')
         @include('user.creator-profile.verification-controls')
         {{-- Hero --}}
-        <fieldset x-show="editorTab === 'design' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset data-editor-section="design" x-show="editorTab === 'design'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" id="cp-photo" style="color: var(--text-primary);">Photo & cover</legend>
             <div class="space-y-4">
                 <div>
@@ -226,7 +249,7 @@
         </fieldset>
 
         {{-- About --}}
-        <fieldset x-show="editorTab === 'about' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset data-editor-section="about" x-show="editorTab === 'about'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);" id="cp-about">About</legend>
             <div class="space-y-4">
                 <div>
@@ -273,7 +296,7 @@
         </fieldset>
 
         {{-- Socials --}}
-        <fieldset x-show="editorTab === 'links' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset data-editor-section="links" x-show="editorTab === 'links'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Socials</legend>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 @foreach($platforms as $key => $p)
@@ -291,9 +314,13 @@
         </fieldset>
 
         {{-- Section visibility --}}
-        <fieldset x-show="editorTab === 'visibility' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset data-editor-section="visibility" x-show="editorTab === 'visibility'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);" id="cp-sections">Visible sections</legend>
-            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Choose what your visitors see. Turn off Posts or Subscriptions, tips & paid posts for a simple professional profile. Existing subscriptions and purchases are unchanged.</p>
+            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Posts controls the entire profile feed. Paid-post controls only affect monetization. Turn off navigation tabs for one continuous page. Save profile to apply changes publicly; the preview updates without saving.</p>
+            <div class="flex gap-2 flex-wrap mb-4">
+                <button type="button" class="cp-share-button" @click="profilePreset('simple')">Simple profile: no posts or tabs</button>
+                <button type="button" class="cp-share-button" @click="profilePreset('none')">Hide all optional sections</button>
+            </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 @foreach($sectionDefaults as $key => $default)
                     <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
@@ -301,7 +328,7 @@
                         <input type="checkbox" name="sections[{{ $key }}]" value="1"
                                @checked(filter_var(old('sections.'.$key, $sections[$key] ?? $default), FILTER_VALIDATE_BOOLEAN))
                                class="rounded text-blue-600 focus:ring-blue-500" style="border-color: var(--border-glass);">
-                        <span class="text-xs font-semibold capitalize" style="color: var(--text-primary);">{{ $key === 'monetization' ? 'Subscriptions, tips & paid posts' : Str::headline($key) }}</span>
+                        <span class="text-xs font-semibold capitalize" style="color: var(--text-primary);">{{ ['tabs'=>'Profile navigation tabs','posts'=>'Posts (entire feed)','monetization'=>'Subscriptions, tips & paid posts','stats'=>'Statistics (profile metrics)','highlights'=>'Highlights layout','cta'=>'Action buttons'][$key] ?? Str::headline($key) }}</span>
                     </label>
                 @endforeach
             </div>
@@ -313,7 +340,7 @@
              silently discard input — show an upgrade hint instead. Legacy
              plans without the key (and plan-less users) default ON. --}}
         @if(! $user->getPlanFeature('special_dates', true))
-        <fieldset x-show="editorTab === 'about' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);" data-testid="special-dates-upgrade-hint">
+        <fieldset data-editor-section="about" x-show="editorTab === 'about'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);" data-testid="special-dates-upgrade-hint">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Special dates</legend>
             <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Birthday, anniversaries and product release days on your public profile, with follower wishes and a followable calendar.</p>
             <div class="rounded-lg p-4 flex items-start gap-3" style="background: rgba(61,107,255,0.06); border: 1px dashed rgba(61,107,255,0.35);">
@@ -328,7 +355,7 @@
             </div>
         </fieldset>
         @else
-        <fieldset x-show="editorTab === 'about' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset data-editor-section="about" x-show="editorTab === 'about'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       kinds: @js((object) $specialDateKindsJs),
                       rows: @js($specialDateRowsJs),
@@ -398,7 +425,7 @@
              details shown on the public event detail page and on
              /@handle/events. Not per-event; there is one profile per
              account. --}}
-        <fieldset x-show="editorTab === 'about' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset data-editor-section="about" x-show="editorTab === 'about'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Organizer profile</legend>
             <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Shown on all of your events, the public event page and your events listing. Everything here is optional; blank fields simply don't render.</p>
 
@@ -491,7 +518,7 @@
             $cBlock     = is_array($user->country_block_list) ? implode(', ', $user->country_block_list) : '';
             $cAllow     = is_array($user->country_allow_list) ? implode(', ', $user->country_allow_list) : '';
         @endphp
-        <fieldset x-show="editorTab === 'settings' || editorTab === 'all'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset data-editor-section="settings" x-show="editorTab === 'settings'" class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Safety &amp; moderation</legend>
             <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Mute words, watermarking on shared images, and per-region availability.</p>
 
@@ -589,7 +616,7 @@
                 'card_heading' => 'background:#fff;border-left:3px solid #3d6bff;border-radius:0 6px 6px 0;padding:4px 6px;color:#3d6bff;text-align:left;',
             ];
         @endphp
-        <fieldset x-show="editorTab === 'links' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset data-editor-section="links" x-show="editorTab === 'links'" class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       featured: {{ Js::from($showcaseFeaturedLinks) }},
                       style: {{ Js::from($featuredLinksStyle) }},
@@ -696,19 +723,11 @@
             </label>
 
             {{-- Section visibility toggle --}}
-            <div class="mt-3 pt-3 border-t" style="border-color: var(--border-glass);">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="hidden" name="sections[featured_links]" value="0">
-                    <input type="checkbox" name="sections[featured_links]" value="1"
-                           {{ ($sections['featured_links'] ?? true) ? 'checked' : '' }}
-                           class="rounded text-blue-600" style="border-color: var(--border-glass);">
-                    <span class="text-xs font-semibold" style="color: var(--text-primary);">Show featured links section on my profile</span>
-                </label>
-            </div>
+            <p class="text-xs mt-3" style="color:var(--text-dimmed)">Show or hide this section under <button type="button" class="underline" @click="editorTab = 'visibility'">Visibility</button>.</p>
         </fieldset>
 
         {{-- ── Task #5431: Showcase ─────────────────────────────── --}}
-        <fieldset x-show="editorTab === 'links' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset data-editor-section="links" x-show="editorTab === 'links'" class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       items: {{ Js::from(array_values($showcase['showcase_items'] ?? [])) }},
                       showcaseTypes: {{ Js::from($showcaseItemTypes) }},
@@ -785,29 +804,21 @@
                 </button>
             </div>
 
-            <div class="mt-3 pt-3 border-t" style="border-color: var(--border-glass);">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="hidden" name="sections[showcase]" value="0">
-                    <input type="checkbox" name="sections[showcase]" value="1"
-                           {{ ($sections['showcase'] ?? true) ? 'checked' : '' }}
-                           class="rounded text-blue-600" style="border-color: var(--border-glass);">
-                    <span class="text-xs font-semibold" style="color: var(--text-primary);">Show showcase section on my profile</span>
-                </label>
-            </div>
+            <p class="text-xs mt-3" style="color:var(--text-dimmed)">Show or hide this section under <button type="button" class="underline" @click="editorTab = 'visibility'">Visibility</button>.</p>
         </fieldset>
 
         {{-- ── Task #5431: Highlights strip ────────────────────── --}}
-        <fieldset x-show="editorTab === 'visibility' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset data-editor-section="visibility" x-show="editorTab === 'visibility'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">
                 <i class="fas fa-chart-bar mr-1 text-sky-500"></i> Highlights strip
             </legend>
-            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Pick which metrics to show below your hero image.</p>
+            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Statistics is the master switch for profile metrics. Highlights uses a compact strip; when off, enabled statistics use the standard layout. Pick the individual highlights below.</p>
             <div class="space-y-2">
                 @foreach([
                     'highlights_show_followers'    => ['label' => 'Follower count', 'key' => 'show_followers'],
                     'highlights_show_links'        => ['label' => 'Public link count', 'key' => 'show_links'],
                     'highlights_show_member_since' => ['label' => 'Member since (year)', 'key' => 'show_member_since'],
-                    'highlights_show_verified'     => ['label' => 'Verified badge', 'key' => 'show_verified'],
+                    'highlights_show_verified'     => ['label' => 'Verified badge in highlights', 'key' => 'show_verified'],
                 ] as $fieldName => $hlMeta)
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="hidden" name="{{ $fieldName }}" value="0">
@@ -818,19 +829,11 @@
                     </label>
                 @endforeach
             </div>
-            <div class="mt-3 pt-3 border-t" style="border-color: var(--border-glass);">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="hidden" name="sections[highlights]" value="0">
-                    <input type="checkbox" name="sections[highlights]" value="1"
-                           {{ ($sections['highlights'] ?? true) ? 'checked' : '' }}
-                           class="rounded text-blue-600" style="border-color: var(--border-glass);">
-                    <span class="text-xs font-semibold" style="color: var(--text-primary);">Show highlights strip on my profile</span>
-                </label>
-            </div>
+            <p class="text-xs mt-3" style="color:var(--text-dimmed)">Show or hide this section under <button type="button" class="underline" @click="editorTab = 'visibility'">Visibility</button>.</p>
         </fieldset>
 
         {{-- ── Task #5431: CTA / Contact block ─────────────────── --}}
-        <fieldset x-show="editorTab === 'links' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset data-editor-section="links" x-show="editorTab === 'links'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       primary: {{ Js::from($showcase['cta']['primary'] ?? null) }},
                       secondary: {{ Js::from(array_values($showcase['cta']['secondary'] ?? [])) }},
@@ -924,19 +927,11 @@
                 </button>
             </div>
 
-            <div class="mt-3 pt-3 border-t" style="border-color: var(--border-glass);">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="hidden" name="sections[cta]" value="0">
-                    <input type="checkbox" name="sections[cta]" value="1"
-                           {{ ($sections['cta'] ?? true) ? 'checked' : '' }}
-                           class="rounded text-blue-600" style="border-color: var(--border-glass);">
-                    <span class="text-xs font-semibold" style="color: var(--text-primary);">Show CTA block on my profile</span>
-                </label>
-            </div>
+            <p class="text-xs mt-3" style="color:var(--text-dimmed)">Show or hide this section under <button type="button" class="underline" @click="editorTab = 'visibility'">Visibility</button>.</p>
         </fieldset>
 
         {{-- Publish --}}
-        <fieldset x-show="editorTab === 'settings' || editorTab === 'all'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset data-editor-section="settings" x-show="editorTab === 'settings'" class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Publish</legend>
             <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
                 <input type="hidden" name="profile_published" value="0">
@@ -952,11 +947,9 @@
 
         <div class="flex justify-end items-center gap-2 lg:col-span-2 sticky bottom-0 z-40 rounded-xl px-4 py-3 -mx-1"
              style="background: color-mix(in srgb, var(--bg-card) 82%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-soft); box-shadow: 0 -6px 24px rgba(0,0,0,0.18);">
-            @if($sections['posts'] ?? true)
-            <a href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
+            <a x-show="postsEnabled" href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 Manage posts
             </a>
-            @endif
             <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">
                 <i class="fas fa-save mr-1"></i> Save profile
             </button>

@@ -161,6 +161,16 @@ class CreatorProfilePresentationTest extends TestCase
         catch(\Symfony\Component\HttpKernel\Exception\HttpException $e){$this->assertSame(403,$e->getStatusCode());}
     }
 
+    public function test_all_visibility_and_highlight_switches_can_be_saved_off(): void
+    {
+        $user=$this->creator(); $profile=new CreatorProfile(['workspace_id'=>10,'user_id'=>7]);
+        CreatorProfileController::saveCoreProfileFields($user,['sections'=>array_fill_keys(array_keys(User::PROFILE_DEFAULT_VISIBILITY),'0')],null,$profile);
+        foreach ($profile->profile_section_visibility as $key=>$value) $this->assertFalse($value,$key);
+        CreatorProfileController::saveShowcaseFields($user,['highlights_show_followers'=>'0','highlights_show_links'=>'0','highlights_show_member_since'=>'0','highlights_show_verified'=>'0'],$profile);
+        CreatorProfileController::saveShowcaseFields($user,[],$profile);
+        foreach ($profile->profile_showcase['highlights'] as $key=>$value) $this->assertFalse($value,$key);
+    }
+
     public function test_optional_monetization_is_preserved_when_older_clients_omit_it(): void
     {
         $user=$this->creator();$profile=new CreatorProfile(['profile_section_visibility'=>['monetization'=>false]]);

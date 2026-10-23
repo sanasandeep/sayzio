@@ -1,7 +1,7 @@
 <div class="cp-share flex flex-wrap items-center gap-2 my-4" x-data="{copied:false}" aria-label="Share profile">
     <button type="button" class="cp-share-button" @click="if(navigator.share){navigator.share({title:@js($shareName),url:@js($shareUrl)}).catch(()=>{});}else if(navigator.clipboard){navigator.clipboard.writeText(@js($shareUrl)).then(()=>copied=true);}"><i class="fas fa-share-nodes" aria-hidden="true"></i> Share</button>
     <button type="button" class="cp-share-button" @click="navigator.clipboard?.writeText(@js($shareUrl)).then(()=>copied=true)">Copy profile link</button>
-    <a class="cp-share-button" href="{{ route('creator-profile.vcard',$shareHandle) }}" download>Save contact</a>
+    @if($shareContact ?? true)<a class="cp-share-button" href="{{ route('creator-profile.vcard',$shareHandle) }}" download>Save contact</a>@endif
     <a class="cp-share-button" href="{{ 'https://wa.me/?text='.rawurlencode($shareName.' '.$shareUrl) }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
     <a class="cp-share-button" href="{{ 'https://t.me/share/url?url='.rawurlencode($shareUrl).'&text='.rawurlencode($shareName) }}" target="_blank" rel="noopener noreferrer">Telegram</a>
     <a class="cp-share-button" href="{{ 'sms:?body='.rawurlencode($shareName.' '.$shareUrl) }}">Message</a>

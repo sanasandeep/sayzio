@@ -1,5 +1,5 @@
 @php $chosenBiolink = old('primary_biolink_id', ($user->profile_showcase ?? [])['primary_biolink_id'] ?? ''); @endphp
-<fieldset x-show="editorTab === 'settings' || editorTab === 'all'" class="cp-editor-panel" x-data="{ destinationMode: @js(old('profile_destination', ($user->profile_showcase ?? [])['profile_destination'] ?? 'profile')) }">
+<fieldset data-editor-section="settings" x-show="editorTab === 'settings'" class="cp-editor-panel" x-data="{ destinationMode: @js(old('profile_destination', ($user->profile_showcase ?? [])['profile_destination'] ?? 'profile')) }">
 <legend>Profile destination</legend><p class="cp-editor-hint">Choose what visitors see when they open your handle.</p><div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <label x-show="destinationMode === 'profile'" class="block text-sm font-semibold">Main biolink button
             <select name="primary_biolink_id" class="block w-full rounded-xl p-3 mt-2" style="background:var(--bg-input);border:1px solid var(--border-soft)">

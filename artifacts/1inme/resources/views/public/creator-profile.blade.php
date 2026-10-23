@@ -2,7 +2,7 @@
     $__presentation = \App\Modules\User\Support\CreatorProfilePresentation::forUser($creator);
     $__cpProfileUrl = route('creator-profile.show', $creator->handle);
     $__cpTitle = $creator->name . ' (@' . $creator->handle . ') - ' . config('app.name');
-    $__cpDescription = Str::limit($creator->tagline ?: $creator->bio ?: ($creator->name . ' on Sayzio'), 180);
+    $__cpDescription = Str::limit($creator->tagline ?: (($sectionsVisible['about'] ?? true) ? $creator->bio : null) ?: ($creator->name . ' on Sayzio'), 180);
     $__cpImage = $creator->cover_image ?: $creator->creatorAvatarRaw() ?: null;
 
     // JSON-LD: identify the page as a ProfilePage whose mainEntity is the
@@ -11,7 +11,7 @@
     // as the "Find me on" section below so sameAs stays in lockstep.
     $__cpPlatforms = \App\Modules\User\Controllers\CreatorProfileController::SOCIAL_PLATFORMS;
     $__cpSameAs = [];
-    if (is_array($creator->socials)) {
+    if (($sectionsVisible['socials'] ?? true) && is_array($creator->socials)) {
         foreach ($creator->socials as $key => $value) {
             if (!isset($__cpPlatforms[$key]) || $key === 'email' || empty($value)) continue;
             $href = $value;
@@ -24,7 +24,7 @@
             $__cpSameAs[] = $href;
         }
     }
-    if ($primaryBiolink ?? null) {
+    if (($sectionsVisible['biolink'] ?? true) && ($primaryBiolink ?? null)) {
         $__cpSameAs[] = url('/' . $primaryBiolink->alias);
     }
 
@@ -36,7 +36,7 @@
         'identifier'    => $creator->handle,
     ];
     if ($__cpImage)                $__cpPerson['image'] = $__cpImage;
-    if ($creator->bio)             $__cpPerson['description'] = Str::limit($creator->bio, 500);
+    if (($sectionsVisible['about'] ?? true) && $creator->bio) $__cpPerson['description'] = Str::limit($creator->bio, 500);
     elseif ($creator->tagline)     $__cpPerson['description'] = $creator->tagline;
     if ($creator->location)        $__cpPerson['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $creator->location];
     if (!empty($__cpSameAs))       $__cpPerson['sameAs'] = array_values(array_unique($__cpSameAs));
@@ -53,13 +53,14 @@
     // Tab visibility — a tab is only shown when it has content.
     // Deep-linkable via ?tab=about|posts|links|events (or hash #tab-*).
     $__tab = request()->input('tab', 'about');
+    $__tabsEnabled = $sectionsVisible['tabs'] ?? true;
     $__hasAbout  = true; // always show: hero/bio/highlights/CTA
     $__hasPosts  = ($sectionsVisible['posts'] ?? true);
-    $__hasLinks  = (!empty($featuredLinks) || !empty($showcaseCards));
+    $__hasLinks  = (($sectionsVisible['featured_links'] ?? true) && !empty($featuredLinks)) || (($sectionsVisible['showcase'] ?? true) && !empty($showcaseCards));
     $__hasEvents = ($sectionsVisible['events'] ?? true) && $upcomingEvents->isNotEmpty();
     // Normalize tab to a valid visible tab.
     $__validTabs = array_filter(['about' => $__hasAbout, 'posts' => $__hasPosts, 'links' => $__hasLinks, 'events' => $__hasEvents]);
-    if (!array_key_exists($__tab, $__validTabs)) {
+    if (!$__tabsEnabled || !array_key_exists($__tab, $__validTabs)) {
         $__tab = array_key_first($__validTabs) ?? 'about';
     }
 
@@ -235,7 +236,7 @@
 @include('common.partials.viewer-login-modal')
 @include('common.partials.mini-profile-popover')
 
-<div class="max-w-3xl mx-auto px-3 sm:px-4 pb-24" x-data="{ activeTab: @js($__tab) }">
+<div class="max-w-3xl mx-auto px-3 sm:px-4 pb-24" x-data="{ activeTab: @js($__tab), tabsEnabled: @js($__tabsEnabled) }">
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <header class="cp-card cp-profile-hero overflow-hidden mt-4">
@@ -361,7 +362,7 @@
                             </a>
                         @endif
                         {{-- Paid DMs (Task #1210): Message button --}}
-                        @if(($creator->dm_access_mode ?? 'open') !== 'closed')
+                        @if(($sectionsVisible['contact'] ?? true) && ($creator->dm_access_mode ?? 'open') !== 'closed')
                             <button type="button"
                                     data-cp-open-dm
                                     data-cp-dm-handle="{{ $creator->handle ?: $creator->id }}"
@@ -405,12 +406,14 @@
         </div>
     </header>
 
-    @include('public.partials.creator-profile-share', ['shareUrl'=>$__cpProfileUrl, 'shareHandle'=>$creator->handle, 'shareName'=>$creator->name])
+    @if($sectionsVisible['sharing'] ?? true)
+    @include('public.partials.creator-profile-share', ['shareUrl'=>$__cpProfileUrl, 'shareHandle'=>$creator->handle, 'shareName'=>$creator->name, 'shareContact'=>$sectionsVisible['contact'] ?? true])
+    @endif
 
     {{-- ── Highlights strip (Task #5431) ──────────────────── --}}
     @php
         $__hl = $showcase['highlights'] ?? [];
-        $__showHl = ($sectionsVisible['highlights'] ?? true)
+        $__showHl = ($sectionsVisible['stats'] ?? true) && ($sectionsVisible['highlights'] ?? true)
             && (($__hl['show_followers'] ?? true)
                 || ($__hl['show_links'] ?? true)
                 || ($__hl['show_member_since'] ?? true)
@@ -455,6 +458,10 @@
         $__cta = $showcase['cta'] ?? [];
         $__ctaPrimary = is_array($__cta['primary'] ?? null) ? $__cta['primary'] : null;
         $__ctaSecondary = is_array($__cta['secondary'] ?? null) ? $__cta['secondary'] : [];
+        if (!($sectionsVisible['contact'] ?? true)) {
+        if (in_array($__ctaPrimary['kind'] ?? '', ['email','call','whatsapp'], true)) $__ctaPrimary = null;
+        $__ctaSecondary = array_values(array_filter($__ctaSecondary, fn ($button) => !in_array($button['kind'] ?? '', ['email','call','whatsapp'], true)));
+    }
         $__showCta = ($sectionsVisible['cta'] ?? true)
             && ($__ctaPrimary !== null || count($__ctaSecondary) > 0);
     @endphp
@@ -500,7 +507,7 @@
         if ($__hasLinks)  $__tabDefs['links']  = 'Links';
         if ($__hasEvents) $__tabDefs['events'] = 'Events';
     @endphp
-    @if(count($__tabDefs) > 1)
+    @if($__tabsEnabled && count($__tabDefs) > 1)
         <nav class="cp-tab-bar mt-3 rounded-t-xl overflow-hidden" data-cpd="l">
             @foreach($__tabDefs as $__tabKey => $__tabLabel)
                 <button type="button"
@@ -516,10 +523,10 @@
     {{-- ═══════════════════════════════════════════════════════
          Tab: About
          ═══════════════════════════════════════════════════════ --}}
-    <div x-show="activeTab === 'about'" x-cloak>
+    <div x-show="!tabsEnabled || activeTab === 'about'" x-cloak>
 
         {{-- ── Stats strip ─────────────────────────────────────── --}}
-        @if(($sectionsVisible['stats'] ?? true) && !$__showHl)
+        @if(($sectionsVisible['stats'] ?? true) && !($sectionsVisible['highlights'] ?? true))
             <div class="cp-card mt-3 px-5 py-4 grid grid-cols-3 text-center divide-x divide-slate-100" data-cpd="m">
                 <div>
                     <div class="text-xl font-extrabold">{{ number_format($creator->posts_count ?? 0) }}</div>
@@ -572,6 +579,7 @@
                         $platforms = \App\Modules\User\Controllers\CreatorProfileController::SOCIAL_PLATFORMS;
                     @endphp
                     @foreach($creator->socials as $key => $value)
+                    @continue($key === 'email' && !($sectionsVisible['contact'] ?? true))
                         @php
                             $p = $platforms[$key] ?? null;
                             if (!$p) continue;
@@ -611,7 +619,7 @@
             $__flStyle   = $showcase['featured_links_style'] ?? 'classic';
             $__flOneCol  = in_array($__flStyle, ['ghost', 'pill']);
         @endphp
-        @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0 && $__hasLinks)
+        @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0 && $__hasLinks && $__tabsEnabled)
             <section class="cp-card mt-3 p-5" data-cpd="l">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Featured</h2>
@@ -647,7 +655,7 @@
          Tab: Posts
          ═══════════════════════════════════════════════════════ --}}
     @if($__hasPosts)
-    <div x-show="activeTab === 'posts'" x-cloak data-cpd="l">
+    <div x-show="!tabsEnabled || activeTab === 'posts'" x-cloak data-cpd="l">
         <section class="mt-4">
             <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold px-1 mb-2">
                 Latest posts
@@ -682,7 +690,7 @@
          Tab: Links & Showcase (Task #5431)
          ═══════════════════════════════════════════════════════ --}}
     @if($__hasLinks)
-    <div x-show="activeTab === 'links'" x-cloak data-cpd="l">
+    <div x-show="!tabsEnabled || activeTab === 'links'" x-cloak data-cpd="l">
 
         {{-- ── Featured links ─────────────────────────────────── --}}
         @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0)
@@ -693,14 +701,14 @@
             <section class="cp-card mt-3 p-5">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Featured links</h2>
-                    @if($showcase['show_link_stats'] ?? false)
+                    @if(($sectionsVisible['stats'] ?? true) && ($showcase['show_link_stats'] ?? false))
                         <span class="text-[10px] text-slate-400">Click counts shown</span>
                     @endif
                 </div>
                 <div class="{{ $__flOneColFull ? 'flex flex-col' : 'grid grid-cols-1 sm:grid-cols-2' }} gap-2.5">
                     @foreach($featuredLinks as $__i => $fl)
                         @php
-                            $__flStats = ($showcase['show_link_stats'] ?? false) ? ($fl->clicks_count ?? 0) : null;
+                            $__flStats = (($sectionsVisible['stats'] ?? true) && ($showcase['show_link_stats'] ?? false)) ? ($fl->clicks_count ?? 0) : null;
                             $__isTop   = $__i === 0 && $__flStats !== null && $__flStats > 0;
                         @endphp
                         <a href="{{ url('/' . $fl->alias) }}" target="_blank" rel="noopener nofollow"
@@ -781,7 +789,7 @@
          Tab: Events (Task #3666)
          ═══════════════════════════════════════════════════════ --}}
     @if($__hasEvents)
-    <div x-show="activeTab === 'events'" x-cloak data-cpd="l">
+    <div x-show="!tabsEnabled || activeTab === 'events'" x-cloak data-cpd="l">
         <section class="cp-card mt-3 p-5">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Upcoming events</h2>
@@ -811,7 +819,7 @@
     @endif
 
     {{-- ── Related creators (always shown below tabs) ──────── --}}
-    @if(!empty($relatedCreators) && count($relatedCreators) > 0)
+    @if(($sectionsVisible['related_creators'] ?? true) && !empty($relatedCreators) && count($relatedCreators) > 0)
         <section class="cp-card mt-4 px-5 py-4" data-cpd="l">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-bold text-slate-900">More creators like {{ $creator->name }}</h3>
