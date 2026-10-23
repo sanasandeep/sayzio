@@ -7,7 +7,7 @@
     if ($menuKind) {
         $headerActions = [];
         if (\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), $link->type.'_builder')) {
-            $headerActions[] = ['label' => 'Build with AI', 'url' => route('user.links.ai-type-builder', $link), 'icon' => 'fa-wand-magic-sparkles', 'class' => 'btn-ghost'];
+            $headerActions[] = ['label' => 'Build with AI', 'url' => route('user.links.ai-type-builder', $link), 'icon' => 'fa-wand-magic-sparkles', 'class' => 'btn-ghost is-ai-cta'];
         }
         foreach (['orders' => ['Orders', 'fa-receipt'], 'kitchen' => ['Kitchen', 'fa-fire-burner'], 'staff-order' => ['Order for customer', 'fa-plus']] as $destination => [$label, $actionIcon]) {
             $headerActions[] = ['label' => $label, 'url' => route('user.links.'.$menuKind.'.'.$destination, $link), 'icon' => $actionIcon, 'class' => 'btn-ghost'];
@@ -18,7 +18,7 @@
     }
     if ($link->isAppointmentPage()) {
         if (\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'service_booking_builder')) {
-            $headerActions[] = ['label'=>'Build with AI','url'=>route('user.links.ai-type-builder',$link),'icon'=>'fa-wand-magic-sparkles','class'=>'btn-ghost'];
+            $headerActions[] = ['label'=>'Build with AI','url'=>route('user.links.ai-type-builder',$link),'icon'=>'fa-wand-magic-sparkles','class'=>'btn-ghost is-ai-cta'];
         }
         $headerActions[] = ['label'=>'Bookings','url'=>route('user.links.service-booking.bookings',$link),'icon'=>'fa-calendar-check','class'=>'btn-ghost'];
     } elseif ($link->isListingCatalog()) {

@@ -308,7 +308,7 @@
                     : null;
             @endphp
             @if($aiResumeLink)
-                <a href="{{ route('user.links.ai-type-builder', $aiResumeLink) }}" class="resume-add-btn" title="Draft the whole resume from a description with AI">
+                <a href="{{ route('user.links.ai-type-builder', $aiResumeLink) }}" class="resume-add-btn is-ai-cta" title="Draft the whole resume from a description with AI">
                     <i class="fas fa-wand-magic-sparkles"></i> Build with AI
                 </a>
             @endif

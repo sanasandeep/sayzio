@@ -32,6 +32,10 @@
     @include('common.partials.theme-styles')
     @include('common.partials.stats-art-motion')
     @include('common.partials.navigation-appearance')
+    {{-- Last of the appearance layers on purpose: it overrides
+         theme-styles' own .btn-primary, and does it by loading after
+         rather than by making every declaration !important. --}}
+    @include('common.partials.button-system')
     <style>
         /* Single source of truth for the in-app header height (matches the
            header's Tailwind h-16 = 4rem below). Anything that needs to budget

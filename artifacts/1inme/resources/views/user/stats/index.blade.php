@@ -72,7 +72,7 @@
                     </select>
                     <label>From date<input type="date" name="from" onchange="this.form.elements.range.value='custom'" value="{{ $start->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}"></label>
                     <label>To date<input type="date" name="to" onchange="this.form.elements.range.value='custom'" value="{{ $end->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}"></label>
-                    <button type="submit" class="btn-primary-gradient btn-primary">Apply dates</button>
+                    <button type="submit" class="btn-primary">Apply dates</button>
                     @error('from')<span role="alert">{{ $message }}</span>@enderror
                     @error('to')<span role="alert">{{ $message }}</span>@enderror
                     @if(workspace_owner()?->getPlanFeature('analytics_export', true))
