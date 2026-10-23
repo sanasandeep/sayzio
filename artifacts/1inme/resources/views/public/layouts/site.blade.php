@@ -145,8 +145,18 @@
          there alone, which is exactly why the rest of the site drifted. --}}
     @include('public.partials.surfaces')
     @include('public.partials.section-surfaces')
+    {{-- Last of the style layers, same as in the user app: it overrides
+         what the partials above paint, and does it by loading after.
+         It carries its own tokens -- this layout does not load
+         theme-styles, so every var() in there needs a fallback and has
+         one. --}}
+    @include('common.partials.button-system')
 </head>
-<body class="min-h-screen flex flex-col">
+{{-- data-site-layout scopes the button system's retint of hand-painted
+     blue to the MARKETING pages. A visitor's own biolink page is also
+     served from the public side and must keep every colour its owner
+     chose, so the retint must never reach it. --}}
+<body class="min-h-screen flex flex-col" data-site-layout>
 
 {{-- The page rails: a hairline under the nav and two vertical rules running
      the full height, landing on the same columns the navbar's edges do.
