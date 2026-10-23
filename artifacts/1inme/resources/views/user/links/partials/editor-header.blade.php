@@ -54,12 +54,16 @@
     // without losing them. Extra actions go FIRST because they are the ones
     // specific to this page type; the three icon buttons after them are the
     // same on every editor and read as the trailing furniture they are.
-    'actions'  => array_merge($headerActions, [
+    'actions'  => array_merge([['linkStatus' => $link]], $headerActions, [
         ['label' => '', 'url' => $link->getShortUrl(), 'icon' => 'fa-external-link-alt', 'class' => 'btn-ghost', 'target' => '_blank', 'title' => 'Open in new tab'],
         ['label' => '', 'url' => route('user.qr-codes.create', ['link_id' => $link->id]), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost', 'title' => 'QR Code'],
         ['label' => '', 'url' => route('user.links.show', $link), 'icon' => 'fa-chart-bar', 'class' => 'btn-ghost', 'title' => 'Analytics'],
     ]),
 ])
+
+@if(!$link->is_active)
+<p class="text-sm mb-4 rounded-xl p-3" style="background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-glass);" role="status">This link is disabled publicly. Your private mockup preview remains available.</p>
+@endif
 
 @if(!($hideEditorTabs ?? false))
 <div class="editor-tabs-row mb-6">

@@ -143,7 +143,7 @@ class RedirectController extends Controller
         // distinguish e.g. "/john" vs "/john-instagram" hits on the SAME page.
         $link->setAttribute('_used_alias', $alias);
 
-        if (!$link->isAccessible()) {
+        if (!\App\Modules\Common\Support\OwnerPreview::canAccess($link, $request)) {
             if ($redirect = $link->getExpiryRedirectUrl()) {
                 return redirect()->away($redirect, 302);
             }

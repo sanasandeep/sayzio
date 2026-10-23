@@ -3821,9 +3821,11 @@ class LinkController extends Controller
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
 
-        $link->update(['is_active' => !$link->is_active]);
+        $validated = $request->validate(['is_active' => 'sometimes|required|boolean']);
+        $active = array_key_exists('is_active', $validated) ? $request->boolean('is_active') : !$link->is_active;
+        $link->update(['is_active' => $active]);
 
-        return back()->with('success', 'Link status updated.');
+        return back()->with('success', $active ? 'Link enabled.' : 'Link disabled publicly. Your private mockup preview is still available.');
     }
 
     /**

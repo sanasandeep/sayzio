@@ -618,6 +618,7 @@ document.addEventListener('alpine:init', () => {
                     <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-blue-500/10" style="color: var(--text-faint);" title="View">
                         <i class="fas fa-chart-bar text-xs hover:text-blue-400"></i>
                     </a>
+                    @include('user.links.partials.status-control')
                     @canInWorkspace('links.edit')
                         @if($link->type === 'biolink')
                         <a href="{{ route('user.links.blocks.editor', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-pink-500/10" style="color: var(--text-faint);" title="Edit Blocks">
