@@ -187,8 +187,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/creators/{handle}/tip',                    [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'tip'])->middleware('throttle:30,1');
         Route::post('/biolinks/{alias}/tip-jar',                 [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'biolinkTip'])->where('alias', '[^/]+')->middleware('throttle:30,1');
         Route::get ('/creators/{handle}/my-subscription',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'mySubscription']);
-        Route::post('/creators/{handle}/my-subscription/cancel', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'cancelSubscription']);
-        Route::post('/creators/{handle}/my-subscription/resume', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'resumeSubscription']);
+        Route::post('/creators/{handle}/my-subscription/cancel', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'cancelSubscription'])->middleware('throttle:30,1');
+        Route::post('/creators/{handle}/my-subscription/resume', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'resumeSubscription'])->middleware('throttle:30,1');
 
         // All subscriptions the signed-in fan holds — backs the native
         // "manage subscription" screen (Task #3019) so a fan can review
@@ -209,7 +209,7 @@ Route::prefix('v1')->group(function () {
         // "Edit creator profile" page). Delegates to the web controller's
         // shared save helpers; showcase keys replace the showcase block as
         // a whole, core fields are present-keys-only.
-        Route::patch('/me/creator-profile', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'update']);
+        Route::patch('/me/creator-profile', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'update'])->middleware('throttle:30,1');
 
         // Owner read of the editable creator-profile state (Task #5600) —
         // raw resolved showcase (incl. disabled featured links) so the
@@ -231,7 +231,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/store/{alias}/checkout', [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'checkout'])->middleware('throttle:30,1');
         Route::get ('/store/orders/{order}',   [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'order'])->whereNumber('order');
         Route::get ('/me/creator/orders',                [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'ownerOrders']);
-        Route::post('/me/creator/orders/{order}/fulfill',[\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'fulfillOrder'])->whereNumber('order');
+        Route::post('/me/creator/orders/{order}/fulfill',[\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'fulfillOrder'])->whereNumber('order')->middleware('throttle:30,1');
 
         // Paid event ticketing (Task #3589) — buy is auth-required on mobile
         // (no guest checkout on the app), tier CRUD + door check-in are
@@ -264,21 +264,21 @@ Route::prefix('v1')->group(function () {
         Route::post('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'toggleDiscoverability'])->middleware('throttle:30,1')->middleware('events.enabled');
         Route::get ('/events/{alias}/people',              [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'listAttendees'])->middleware('events.enabled');
         Route::post('/events/{alias}/exchange',            [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'requestExchange'])->middleware('throttle:10,1')->middleware('events.enabled');
-        Route::post('/me/contact-exchanges/{id}/accept',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'acceptExchange'])->whereNumber('id')->middleware('events.enabled');
-        Route::post('/me/contact-exchanges/{id}/decline', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'declineExchange'])->whereNumber('id')->middleware('events.enabled');
+        Route::post('/me/contact-exchanges/{id}/accept',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'acceptExchange'])->whereNumber('id')->middleware('events.enabled')->middleware('throttle:30,1');
+        Route::post('/me/contact-exchanges/{id}/decline', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'declineExchange'])->whereNumber('id')->middleware('events.enabled')->middleware('throttle:30,1');
         // Task #5052 — "My swaps": review + withdraw own swap requests.
         Route::get ('/events/{alias}/my-swaps',           [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'mySwaps'])->middleware('events.enabled');
-        Route::post('/me/contact-exchanges/{id}/cancel',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'cancelExchange'])->whereNumber('id')->middleware('events.enabled');
+        Route::post('/me/contact-exchanges/{id}/cancel',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'cancelExchange'])->whereNumber('id')->middleware('events.enabled')->middleware('throttle:30,1');
         // Task #5010 — organizer aggregate stats for the connections dashboard.
         Route::get ('/links/{link}/exchange-stats',        [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'ownerStats'])->whereNumber('link')->middleware('events.enabled');
         Route::get ('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTiers'])->whereNumber('link')->middleware('events.enabled');
-        Route::post('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'storeTier'])->whereNumber('link')->middleware('events.enabled');
-        Route::patch('/links/{link}/event-tiers/{tier}',    [\App\Modules\Api\Controllers\EventTicketApiController::class, 'updateTier'])->whereNumber('link')->whereNumber('tier')->middleware('events.enabled');
-        Route::delete('/links/{link}/event-tiers/{tier}',   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'destroyTier'])->whereNumber('link')->whereNumber('tier')->middleware('events.enabled');
+        Route::post('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'storeTier'])->whereNumber('link')->middleware('events.enabled')->middleware('throttle:30,1');
+        Route::patch('/links/{link}/event-tiers/{tier}',    [\App\Modules\Api\Controllers\EventTicketApiController::class, 'updateTier'])->whereNumber('link')->whereNumber('tier')->middleware('events.enabled')->middleware('throttle:30,1');
+        Route::delete('/links/{link}/event-tiers/{tier}',   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'destroyTier'])->whereNumber('link')->whereNumber('tier')->middleware('events.enabled')->middleware('throttle:30,1');
         Route::post('/links/{link}/event-checkin',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkin'])->whereNumber('link')->middleware('throttle:120,1')->middleware('events.enabled');
         Route::get ('/links/{link}/event-checkin/progress', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkinProgress'])->whereNumber('link')->middleware('events.enabled');
         Route::get ('/links/{link}/event-tickets',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTickets'])->whereNumber('link')->middleware('events.enabled');
-        Route::post('/links/{link}/event-tickets/{ticket}/refund', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'refundTicket'])->whereNumber('link')->whereNumber('ticket')->middleware('events.enabled');
+        Route::post('/links/{link}/event-tickets/{ticket}/refund', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'refundTicket'])->whereNumber('link')->whereNumber('ticket')->middleware('events.enabled')->middleware('throttle:10,1');
         // Message guests: organizer → guest broadcast (venue moved, time changed, cancellation).
         Route::get ('/links/{link}/broadcasts', [\App\Modules\Api\Controllers\EventBroadcastApiController::class, 'index'])->whereNumber('link')->middleware('events.enabled');
         Route::post('/links/{link}/broadcasts', [\App\Modules\Api\Controllers\EventBroadcastApiController::class, 'store'])->whereNumber('link')->middleware('throttle:30,1')->middleware('events.enabled');
