@@ -6,7 +6,7 @@
     <h1 class="text-2xl font-bold text-white mb-2">Merge another account</h1>
     <p class="text-sm text-white/60 mb-6">Prove you own the other account and we'll fold all of its data into your current one. The other account will be deleted afterwards.</p>
 
-    @if (session('error'))<div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm">{{ session('error') }}</div>@endif
+
     @if (session('status'))<div class="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-200 text-sm">{{ session('status') }}</div>@endif
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

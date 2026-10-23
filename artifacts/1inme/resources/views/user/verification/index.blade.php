@@ -20,21 +20,6 @@
         </p>
     </div>
 
-    @if(session('success'))
-    <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2);">
-        <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
-    </div>
-    @endif
-    @if(session('info'))
-    <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: var(--c-primary-soft); color: var(--c-primary); border: 1px solid var(--c-primary-soft);">
-        <i class="fas fa-info-circle mr-2"></i>{{ session('info') }}
-    </div>
-    @endif
-    @if(session('error'))
-    <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2);">
-        <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
-    </div>
-    @endif
 
     {{-- Current verification status card --}}
     <div class="card-premium p-6 mb-5">

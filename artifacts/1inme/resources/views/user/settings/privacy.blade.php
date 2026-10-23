@@ -11,9 +11,6 @@
         </p>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>
-    @endif
 
     <form method="POST" action="{{ route('user.settings.privacy.update') }}"
           class="rounded-2xl p-5 space-y-6"

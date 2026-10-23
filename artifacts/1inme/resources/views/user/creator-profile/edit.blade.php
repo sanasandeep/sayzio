@@ -23,12 +23,7 @@
         <details class="cp-editor-share"><summary>Share profile &amp; contact card</summary>@include('public.partials.creator-profile-share', ['shareUrl'=>$profileUrl, 'shareHandle'=>$user->handle, 'shareName'=>$user->name])</details>
     @endif
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ session('error') }}</div>
-    @endif
+
     @if($errors->any())
         <div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">
             <ul class="list-disc pl-5">

@@ -1,14 +1,10 @@
 @extends('user.layouts.settings')
 @section('title', 'Webhooks')
 
-@section('content')
+@section('settings-content')
 <div class="max-w-5xl mx-auto">
 
-    @if(session('success'))
-        <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
-            <i class="fas fa-check-circle mr-1.5"></i> {{ session('success') }}
-        </div>
-    @endif
+
     @if($errors->any())
         <div class="mb-6 px-4 py-3 rounded-xl text-sm" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5;">
             @foreach($errors->all() as $err)<div><i class="fas fa-exclamation-circle mr-1.5"></i>{{ $err }}</div>@endforeach

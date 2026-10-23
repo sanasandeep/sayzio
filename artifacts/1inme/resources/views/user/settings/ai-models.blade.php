@@ -11,9 +11,7 @@
         </p>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>
-    @endif
+
     @if($errors->any())
         <div class="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
             <ul class="list-disc pl-4 space-y-0.5">

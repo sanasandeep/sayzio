@@ -7,12 +7,6 @@
         <p class="text-sm mt-1" style="color: var(--text-muted);">Request a badge for your account. Our team reviews every request.</p>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 p-3 rounded-lg text-emerald-400 text-sm" style="border:1px solid rgba(16,185,129,0.2); background: rgba(16,185,129,0.06);">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="mb-4 p-3 rounded-lg text-red-400 text-sm" style="border:1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.06);">{{ session('error') }}</div>
-    @endif
 
     @php $mine = auth()->user()->accountBadges; @endphp
     @if($mine->isNotEmpty())
