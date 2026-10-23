@@ -158,6 +158,14 @@ class MarketingSeo
                 'description' => 'Get the SayZio Browser desktop app — your links, Link in Bio pages and analytics in a fast, distraction-free browser. Free download for macOS (Intel & Apple Silicon) and Windows.',
                 'keywords' => 'sayzio browser, download sayzio, sayzio desktop app, sayzio for mac, sayzio for windows, link in bio desktop',
             ],
+            'android-download' => [
+                'label' => 'Sayzio for Android',
+                'group' => 'Apps',
+                'url' => '/android',
+                'title' => 'Sayzio for Android | Manage Links, Pages & QR Codes',
+                'description' => 'Download the Sayzio Android app to manage links, pages, QR codes and analytics on your phone. Check the latest available release.',
+                'keywords' => 'sayzio android app, android download, mobile link manager, qr codes',
+            ],
             'zio-dialer' => [
                 'label' => 'Zio Dialer',
                 'group' => 'Apps',
@@ -279,6 +287,7 @@ class MarketingSeo
             'features' => ['label' => 'Features', 'group' => 'Capabilities'],
             'how-it-works' => ['label' => 'How it works', 'group' => 'Capabilities'],
             'workspace-team' => ['label' => 'Workspaces & team', 'group' => 'Capabilities'],
+            'ai-dashboard' => ['label' => 'AI dashboard', 'group' => 'AI suite'],
             'buzz' => ['label' => 'Buzz (social proof)', 'group' => 'Capabilities'],
             'newsroom' => ['label' => 'Newsroom (press & love)', 'group' => 'Capabilities'],
             'services' => ['label' => 'Use cases (services)', 'group' => 'Capabilities'],

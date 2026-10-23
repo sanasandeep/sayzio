@@ -319,7 +319,7 @@
                     </a>
                 @endforeach
                 @if($liveStores->isEmpty())
-                    <a href="{{ route('register') }}" class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold text-white bg-[#3d6bff] hover:bg-[#2342c7] transition-colors">
+                    <a href="{{ route('register.page') }}" class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-bold text-white bg-[#3d6bff] hover:bg-[#2342c7] transition-colors">
                         Start on the web free <i class="fas fa-arrow-right text-xs"></i>
                     </a>
                 @endif

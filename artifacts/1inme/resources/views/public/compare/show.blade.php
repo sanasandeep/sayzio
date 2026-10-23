@@ -19,12 +19,6 @@
     <div class="mesh-bg" aria-hidden="true"></div>
     <div class="absolute inset-0 grid-bg opacity-50 pointer-events-none" aria-hidden="true"></div>
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <nav class="mb-6 text-xs text-gray-500" aria-label="Breadcrumb">
-            <a href="{{ route('site.compare.index') }}" class="hover:text-white transition-colors">Compare</a>
-            <span class="mx-2 text-white/20">/</span>
-            <span class="text-gray-300">Sayzio vs {{ $c['name'] }}</span>
-        </nav>
-
         {{-- VS chips --}}
         <div data-anim="fade-up" class="flex items-center justify-center gap-3 sm:gap-5 mb-7">
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-white"

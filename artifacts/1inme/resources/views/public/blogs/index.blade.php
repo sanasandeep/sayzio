@@ -20,8 +20,9 @@
         <p class="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">{{ $settings['hero_subheading'] }}</p>
 
         <form method="GET" action="{{ route('site.blogs.index') }}" class="mt-8 max-w-xl mx-auto flex">
-            <input type="text" name="q" value="{{ $q }}" placeholder="Search articles…" class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-l-xl text-sm text-white placeholder-white/40 focus:border-blue-500 outline-none">
-            <button class="px-5 py-3 bg-blue-600 hover:bg-blue-700 rounded-r-xl text-sm font-medium"><i class="fas fa-search"></i></button>
+            <label class="sr-only" for="blog-search">Search articles</label>
+            <input id="blog-search" type="search" name="q" value="{{ $q }}" placeholder="Search articles…" class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-l-xl text-sm text-white placeholder-white/40 focus:border-blue-500 outline-none">
+            <button type="submit" aria-label="Search articles" class="px-5 py-3 bg-blue-600 hover:bg-blue-700 rounded-r-xl text-sm font-medium"><i class="fas fa-search"></i></button>
         </form>
 
         @if($categories->count())
