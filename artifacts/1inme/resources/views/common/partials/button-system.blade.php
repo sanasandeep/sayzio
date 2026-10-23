@@ -48,8 +48,15 @@
         --btn-solid-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
         /* Selection, derived from the page's own ink so it follows a theme
            or a nav preset rather than being pinned to one grey. */
-        --tab-active-bg: color-mix(in srgb, var(--text-primary) 10%, transparent);
-        --tab-active-line: color-mix(in srgb, var(--text-primary) 18%, transparent);
+        /* Fallbacks are not belt-and-braces here, they are load-bearing.
+           Measured on sayzio.app/: the public pages do not load
+           theme-styles, so --text-primary, --border-glass and --accent
+           are all empty there. A var() with no fallback computes
+           invalid, and `background: var(--undefined)` is a transparent
+           button -- the exact failure we just spent a PR fixing on the
+           marketing header. */
+        --tab-active-bg: color-mix(in srgb, var(--text-primary, #f3f1f7) 10%, transparent);
+        --tab-active-line: color-mix(in srgb, var(--text-primary, #f3f1f7) 18%, transparent);
     }
     html.light-mode {
         --btn-solid: #14161c;
@@ -86,13 +93,13 @@
        editor header), so those entry points can be promoted without each of
        them growing a copy of the primary button's padding and radius. */
     html .is-ai-cta {
-        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+        background: linear-gradient(135deg, var(--accent, #3d6bff), var(--accent-light, #7b45d6));
         color: #fff;
         border-color: transparent;
     }
     html .is-ai-cta:hover {
-        background: linear-gradient(135deg, var(--accent-light), var(--accent));
-        box-shadow: 0 4px 14px -4px var(--accent-glow);
+        background: linear-gradient(135deg, var(--accent-light, #7b45d6), var(--accent, #3d6bff));
+        box-shadow: 0 4px 14px -4px var(--accent-glow, rgba(61,107,255,0.35));
     }
     html .is-ai-cta i { color: inherit; }
 
@@ -144,7 +151,7 @@
     html .kb-tabs button.is-active {
         background: var(--tab-active-bg) !important;
         background-image: none !important;
-        color: var(--text-primary) !important;
+        color: var(--text-primary, #f3f1f7) !important;
         box-shadow: inset 0 0 0 1px var(--tab-active-line) !important;
         text-shadow: none !important;
     }
@@ -177,16 +184,64 @@
        those are information rather than actions -- blackening them would
        destroy the thing they encode. !important here because the utility
        sits on the element itself and would otherwise win on source order. */
-    body[data-app-layout] :is(button, a, label, summary, [role="button"],
+    :is(body[data-app-layout], body[data-site-layout]) :is(button, a, label, summary, [role="button"],
         input[type="submit"], input[type="button"]):is([class*="bg-blue-6"],
         [class*="bg-blue-7"], [class*="bg-indigo-6"]):not(.keep-accent):not(.is-ai-cta) {
         background-color: var(--btn-solid) !important;
         background-image: none !important;
         color: var(--btn-solid-ink) !important;
     }
-    body[data-app-layout] :is(button, a, label, summary, [role="button"],
+    :is(body[data-app-layout], body[data-site-layout]) :is(button, a, label, summary, [role="button"],
         input[type="submit"], input[type="button"]):is([class*="bg-blue-6"],
         [class*="bg-blue-7"], [class*="bg-indigo-6"]):not(.keep-accent):not(.is-ai-cta):hover {
         background-color: var(--btn-solid-hover) !important;
+    }
+
+    /* ---- The marketing pages, same three weights ---------------------
+       The public site does not use the raw bg-blue utilities at all --
+       measured: zero on the homepage. It has its own small vocabulary, and
+       the gradients in it are the signup CTA repeated down the page, which
+       is one action offered three times rather than three actions
+       competing. Those keep the gradient, by Sana's call.
+
+       What changes is the hand-painted coloured solids, enumerated from the
+       source rather than noticed by eye: a secondary action should not be
+       wearing a saturated fill when the same weight in the app is black.
+
+       Deliberately NOT here: `.sy-cta`, the plan cards' buy button. It
+       inverts to white on the lead card and has light and dark variants I
+       have not seen in every state, and a pricing page's buy button is the
+       wrong place to find that out. It stays as it is until someone looks
+       at it.
+
+       The doubled class is not a typo. `html .sy-btn` is (0,1,1) and was
+       measured losing to the two-class rule that owns it; `html
+       .sy-btn.sy-btn` is (0,2,1) and wins. Each selector here was checked
+       against the live page rather than assumed -- the first version of this
+       block did nothing at all, and read exactly like a rule that worked. */
+    html .sf-create.sf-create,
+    html .sy-btn.sy-btn,
+    html .xcta-btn-primary.xcta-btn-primary {
+        background: var(--btn-solid) !important;
+        background-image: none !important;
+        color: var(--btn-solid-ink) !important;
+        border-color: transparent;
+        box-shadow: inset 0 0 0 1px var(--btn-solid-line), var(--btn-solid-shadow);
+    }
+    html .sf-create.sf-create:hover,
+    html .sy-btn.sy-btn:hover,
+    html .xcta-btn-primary.xcta-btn-primary:hover {
+        background: var(--btn-solid-hover) !important;
+        background-image: none !important;
+    }
+
+    /* A pressed filter is selection, not an action -- same rule as the
+       app's tabs, and the !important matches the source it is overriding. */
+    html .sf-filters button[aria-pressed="true"].sf-filters-pressed,
+    html .sf-filters button[aria-pressed="true"] {
+        background: var(--tab-active-bg) !important;
+        background-image: none !important;
+        color: var(--text-primary, #f3f1f7) !important;
+        box-shadow: inset 0 0 0 1px var(--tab-active-line) !important;
     }
 </style>

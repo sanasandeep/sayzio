@@ -11,6 +11,8 @@
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     <style>[x-cloak]{display:none !important}</style>
     @include('common.partials.theme-styles')
+    {{-- Same three button weights as the rest of the app. --}}
+    @include('common.partials.button-system')
 </head>
 <body class="min-h-screen relative overflow-hidden" style="background: var(--bg-body);">
     <div class="bg-mesh"></div>
