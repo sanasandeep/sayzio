@@ -13,16 +13,6 @@
         ],
     ])
 
-    @if(session('success'))
-        <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
-            <i class="fas fa-check-circle mr-1.5"></i> {{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #ef4444;">
-            <i class="fas fa-exclamation-circle mr-1.5"></i> {{ session('error') }}
-        </div>
-    @endif
 
     {{-- Newly-created key — shown exactly once. --}}
     @if($newToken)

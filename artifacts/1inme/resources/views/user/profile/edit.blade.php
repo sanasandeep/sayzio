@@ -454,9 +454,7 @@
                 @if(session('otp_demo_reveal'))
                     <div class="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-400/30 text-amber-200 text-xs"><i class="fas fa-flask text-[10px] mr-1"></i> {{ session('otp_demo_reveal') }}</div>
                 @endif
-                @if(session('error'))
-                    <div class="px-3 py-2 rounded-lg bg-red-500/10 border border-red-400/30 text-red-200 text-xs">{{ session('error') }}</div>
-                @endif
+
 
                 {{-- Phase 1: number --}}
                 <form method="POST" action="{{ route('user.onboarding.whatsapp.send') }}" x-show="phase === 'number'" class="flex flex-col sm:flex-row sm:items-stretch gap-2">

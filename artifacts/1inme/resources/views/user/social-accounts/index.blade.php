@@ -211,18 +211,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-center gap-2"
-             style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); color: #10b981;">
-            <i class="fas fa-check-circle"></i>{{ session('success') }}
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-center gap-2"
-             style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #ef4444;">
-            <i class="fas fa-exclamation-circle"></i>{{ session('error') }}
-        </div>
-    @endif
 
     {{-- Existing connections grid --}}
     @if($totalConnections > 0)

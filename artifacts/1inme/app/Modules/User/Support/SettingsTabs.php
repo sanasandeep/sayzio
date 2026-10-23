@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
  * areas (Security, Connected Accounts & Apps, Verification & Badges).
  *
  * The hub layout (user/layouts/settings.blade.php) reads this to render
- * the primary tab strip + secondary sub-tab strip and to infer the
+ * the primary category selector + secondary sub-tab strip and to infer the
  * active tab/sub-tab purely from the current route name, so individual
  * settings views never have to know they live inside the hub.
  */
