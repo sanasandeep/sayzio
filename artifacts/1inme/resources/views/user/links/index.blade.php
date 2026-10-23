@@ -238,7 +238,7 @@
     .links-search-bar .links-search input { border:0; background:transparent; height:40px; padding:8px; }
     .links-add-filter { width:40px; height:40px; flex:none; border-radius:50%; display:grid; place-items:center; color:var(--text-muted); background:var(--bg-card); font-size:16px; }
     .links-add-filter:hover { color:var(--accent); }
-    .links-search-submit { display:flex; align-items:center; justify-content:center; gap:8px; min-height:40px; padding:0 18px; border-radius:22px; color:white; background:var(--accent); font-size:12px; }
+    .links-search-submit { display:flex; align-items:center; justify-content:center; gap:8px; min-height:40px; padding:0 18px; border-radius:22px; color:var(--btn-solid-ink); background:var(--btn-solid); font-size:12px; }
     .links-filter-panel { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:14px; padding:16px; border:1px solid var(--border-soft); border-radius:14px; }
     .links-filter-panel .links-filter-heading, .links-filter-footer { grid-column:1 / -1; }
     .links-filter-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; color:var(--text-muted); }
@@ -264,7 +264,6 @@
     .links-applied:empty { display:none; }
     .links-applied .links-filter-tag { display:inline-flex; align-items:center; gap:9px; padding:7px 10px; min-height:34px; border:1px solid var(--border-soft); border-radius:18px; background:var(--bg-glass-hover); color:var(--text-secondary); max-width:100%; overflow-wrap:anywhere; }
     .links-filter-tag i { flex:none; font-size:9px; }
-    .links-search-submit.btn-primary-gradient { background:linear-gradient(135deg,var(--accent),var(--accent-light)); }
 </style>
 @endpush
 
@@ -350,7 +349,7 @@
             <input type="search" name="search" x-model="query" @focus="historyOpen=true" @input="historyOpen=true" autocomplete="off" aria-label="Search links"
                    placeholder="Search {{ number_format($__summary['total']) }} links&hellip;">
         </div>
-        <button type="submit" class="links-search-submit btn-primary-gradient" aria-label="Search links"><i class="fas fa-search" aria-hidden="true"></i><span>Search</span></button>
+        <button type="submit" class="links-search-submit" aria-label="Search links"><i class="fas fa-search" aria-hidden="true"></i><span>Search</span></button>
     </div>
     <div class="links-recent" x-show="historyOpen && matchingHistory.length" x-cloak @click.outside="historyOpen=false">
         <div class="links-recent-heading"><span>Recent searches <small>On this device</small></span><button type="button" @click="clearHistory()">Clear all</button></div>
