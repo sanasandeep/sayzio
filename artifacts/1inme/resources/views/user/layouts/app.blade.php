@@ -2140,66 +2140,13 @@
 
                     </nav>
                     @endif
-                    {{-- ========== ACCOUNT (collapsible) — coins + assigned badges ==========
-                         Mirror of the desktop section so the mobile drawer shows the
-                         same wallet balance + account badges. Kept in lockstep. --}}
-                    @php
-                        // Task #3848 — coin balance moved to the header icon+badge.
-                        $__mAcctBadges  = auth()->user()->accountBadges;
-                        $__mShowAccount = $__mAcctBadges->isNotEmpty() || $__can['settings_view'];
-                    @endphp
-                    @if($__mShowAccount)
-                    <div class="px-3 pt-2" x-data="{
-                            open: true,
-                            init() {
-                                try {
-                                    const saved = localStorage.getItem('1inme_sidebar_account_open');
-                                    if (saved !== null) this.open = saved === '1';
-                                } catch (e) {}
-                                this.$watch('open', (val) => {
-                                    try { localStorage.setItem('1inme_sidebar_account_open', val ? '1' : '0'); } catch (e) {}
-                                });
-                            }
-                        }">
-                        <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
-                                class="sidebar-group-toggle pt-2 pb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em]">
-                            <span>Account</span>
-                            <i class="fas fa-chevron-down grp-chevron"></i>
-                        </button>
-                        <div x-show="open" x-cloak class="space-y-2 pt-1">
-                            @if($__can['settings_view'])
-                    <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ \App\Modules\User\Support\SettingsTabs::activeKey() !== null ? 'active' : '' }}" data-account-settings-link>
-                        <div class="nav-icon-wrap"><i class="fas fa-sliders"></i></div><span>Settings</span>
-                    </a>
-                    @endif
-                    @if($__mAcctBadges->isNotEmpty())
-                            <div class="px-1">
-                                <p class="text-[9px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Your badges</p>
-                                <div class="flex flex-wrap gap-1.5">
-                                    @foreach($__mAcctBadges as $badge)
-                                    <span class="badge inline-flex items-center gap-1.5 text-[10px]"
-                                          style="background: {{ $badge->color }}26; color: {{ $badge->color }}; border: 1px solid {{ $badge->color }}40;">
-                                        <i class="fas fa-certificate text-[9px]"></i>{{ $badge->name }}
-                                    </span>
-                                    @endforeach
-                                </div>
-                            </div>
-                            @endif
-                        </div>
-                    </div>
-                    @endif
+                    {{-- The ACCOUNT section that stood here -- a second Settings
+                         link and the badge chips -- is gone, for the reason it
+                         went from the desktop rail in #553: Settings is already
+                         a nav destination, and badges render on the dashboard
+                         and on the badges settings page. The account row at the
+                         foot of the rail carries the rest. --}}
                     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
-                        @if(!session('impersonate_user_id') && auth()->user()->hasActiveAdminAccount())
-                        <form action="{{ route('user.switch-to-admin') }}" method="POST" class="mb-2">
-                            @csrf
-                            <button type="submit"
-                                    class="admin-switch-btn w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                                    style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);">
-                                <i class="fas fa-user-shield" style="font-size: 11px;"></i>
-                                <span>Switch to admin</span>
-                            </button>
-                        </form>
-                        @endif
                         <div class="flex items-center gap-2 mb-2">
                             @include('common.partials.theme-toggle')
                             <span class="text-[10px]" style="color: var(--text-dimmed);">Theme</span>
