@@ -6,13 +6,22 @@
 <p class="text-sm mb-4" style="color:var(--text-muted)">Verification for workspace: {{ $user->activeCreatorProfile->workspace->name }}. Approval applies only to this creator profile.</p>
 @endif
 
-<div class="max-w-5xl" x-data="{ tickTypeId: @js($selectedTickTypeId), officialName: @js(old('official_name', $user->name)), tickMap: @js($tickMap) }">
+@php $verificationPreviewUrl = $user->handle ? route('creator-profile.show', ['handle'=>$user->handle,'cp_preview'=>1]) : null; @endphp
+<div class="max-w-5xl" x-data="{
+    tickTypeId: @js($selectedTickTypeId), officialName: @js(old('official_name', $user->name)), originalName: @js($user->name), tickMap: @js($tickMap), previewAvatar: null,
+    refreshPreview() {
+        const color = this.tickMap[this.tickTypeId]?.color;
+        if (!color || !this.$refs.verificationFrame?.contentWindow) return;
+        this.$refs.verificationFrame.contentWindow.postMessage({type:'cpLive',verificationPreview:true,verificationColor:color,name:this.officialName || this.originalName,avatarUrl:this.previewAvatar}, window.location.origin);
+    }
+}" x-effect="tickTypeId; officialName; previewAvatar; $nextTick(() => refreshPreview())"
+@media-source-selected="if ($event.detail.name === 'logo' && !$event.detail.file) { previewAvatar = null; $refs.verificationFrame?.contentWindow.location.reload(); } if ($event.detail.name === 'logo' && $event.detail.file) { const reader = new FileReader(); reader.onload = e => { previewAvatar = e.target.result; }; reader.readAsDataURL($event.detail.file); }">
     <div class="mb-6">
         <a href="{{ route('user.profile-verification.index') }}" class="text-xs font-medium transition-colors hover:text-blue-400" style="color: var(--text-muted);">
             <i class="fas fa-arrow-left mr-1"></i>Back to Verification
         </a>
         <h2 class="text-lg font-bold mt-2" style="color: var(--text-primary);">Apply for Creator Profile Verification</h2>
-        <p class="text-sm mt-1" style="color: var(--text-muted);">An admin reviews your evidence and chooses the final badge type and color. Your profile name and avatar will be locked once verified to protect your identity.</p>
+        <p class="text-sm mt-1" style="color: var(--text-muted);">An admin reviews your evidence and chooses the verification color. Your profile shows a colored circled check beside your name and a thin matching strip above the cover. Changing your name or handle later requires a fresh application.</p>
     </div>
 
     @if($errors->any())
@@ -54,7 +63,7 @@
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Official / legal name <span class="text-red-400">*</span></label>
                     <input type="text" name="official_name" x-model="officialName" value="{{ old('official_name', $user->name) }}" required maxlength="200" class="theme-input w-full text-sm" placeholder="Enter your official name">
-                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">This name will be locked on your profile once verified and must match your proof documents.</p>
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Use the identity shown in your proof documents. Changing the profile name later removes verification until a fresh application is approved.</p>
                     @error('official_name')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
                 <div>
@@ -99,7 +108,7 @@
 
         <div class="p-4 rounded-xl text-xs" style="background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b;">
             <i class="fas fa-lock mr-2"></i>
-            <strong>Important:</strong> Once approved, your display name and profile avatar will be locked. You can request a change later; this will temporarily mark your tick as "pending re-verification" while we review.
+            <strong>Important:</strong> Approval protects your profile photo. Changing the profile name or handle removes verification and requires a fresh application.
         </div>
 
         <div class="flex justify-end gap-3 pb-4">
@@ -114,33 +123,19 @@
     <div class="space-y-5 order-2 lg:sticky lg:top-6">
         <div class="card-premium p-6" data-testid="tick-preview">
             <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-eye mr-2" style="color: var(--accent);"></i>Live Preview</h3>
-            <div class="p-5 rounded-2xl text-center" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
-                @if($user->avatar)
-                <img src="{{ \App\Support\PublicStorageUrl::resolve($user->avatar) }}" alt="" class="w-16 h-16 rounded-2xl object-cover mx-auto" style="border: 1px solid var(--border-glass);">
-                @else
-                <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center" style="background: var(--c-primary-soft);"><i class="fas fa-user text-xl" style="color: var(--c-primary);"></i></div>
-                @endif
-                <div class="mt-3 flex items-center justify-center gap-1.5 flex-wrap">
-                    <span class="font-bold text-base" style="color: var(--text-primary);" x-text="officialName || '{{ $user->name }}'">{{ old('official_name', $user->name) }}</span>
-                    <template x-if="tickMap[tickTypeId]">
-                        <i class="fas text-base" :class="tickMap[tickTypeId].icon" :style="'color: ' + tickMap[tickTypeId].color" :title="tickMap[tickTypeId].name + ' tick'"></i>
-                    </template>
-                </div>
-                @if($user->handle)
-                <p class="text-xs mt-1" style="color: var(--text-muted);">{{ '@' . $user->handle }}</p>
-                @endif
-                <template x-if="tickMap[tickTypeId]">
-                    <span class="inline-block mt-3 px-2.5 py-1 rounded-full text-[10px] font-semibold" :style="'background: ' + tickMap[tickTypeId].color + '20; color: ' + tickMap[tickTypeId].color" x-text="tickMap[tickTypeId].name + ' · verified'"></span>
-                </template>
-            </div>
-            <p class="text-[10px] mt-3" style="color: var(--text-dimmed);">This is how your name and tick will appear on your creator profile, dialer, and public pages.</p>
+            @if($verificationPreviewUrl)
+            <iframe x-ref="verificationFrame" src="{{ $verificationPreviewUrl }}" @load="refreshPreview()" title="Creator profile verification preview" class="w-full rounded-2xl border" style="height:640px;border-color:var(--border-glass);background:var(--bg-card)"></iframe>
+            <p class="text-[10px] mt-3" style="color:var(--text-dimmed)">Your saved creator profile design with the name, photo and verification color from this application. This preview does not grant verification.</p>
+            @else
+            <p class="text-sm" style="color:var(--text-muted)">Set a handle in <a class="underline" href="{{ route('user.creator-profile.edit') }}">Creator Profile</a> to preview your actual page here.</p>
+            @endif
         </div>
 
         <div class="card-premium p-6">
             <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);"><i class="fas fa-star mr-2 text-amber-400"></i>Advantages of Verification</h3>
             <ul class="space-y-2.5 text-xs" style="color: var(--text-secondary);">
                 <li class="flex gap-2.5"><i class="fas fa-check-circle mt-0.5 text-emerald-400"></i><span><strong>Trust badge everywhere:</strong> your colored tick shows on your profile, dialer, and all public pages.</span></li>
-                <li class="flex gap-2.5"><i class="fas fa-user-shield mt-0.5 text-blue-400"></i><span><strong>Impersonation protection:</strong> your verified name and avatar are locked so nobody can pose as you.</span></li>
+                <li class="flex gap-2.5"><i class="fas fa-user-shield mt-0.5 text-blue-400"></i><span><strong>Impersonation protection:</strong> your photo is protected and identity changes require a fresh verification review.</span></li>
                 <li class="flex gap-2.5"><i class="fas fa-compass mt-0.5 text-cyan-400"></i><span><strong>Higher discovery credibility</strong> · verified creators stand out in search and discovery surfaces.</span></li>
                 <li class="flex gap-2.5"><i class="fas fa-handshake mt-0.5 text-amber-400"></i><span><strong>Audience confidence:</strong> followers and subscribers know they're connecting with the real you.</span></li>
             </ul>

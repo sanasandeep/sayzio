@@ -124,4 +124,16 @@ class VerificationEvidenceTest extends TestCase
         $this->assertStringContainsString('&lt;script&gt;',$html);
         $this->assertStringContainsString('rel="noopener noreferrer"',$html);
     }
+    public function test_all_public_verification_types_use_the_same_colored_circled_check(): void
+    {
+        $type=new \App\Modules\User\Models\VerificationTickType(['name'=>'Government','icon'=>'fa-landmark','color'=>'#8b9eb7']);
+        $html=$type->tickHtml('text-xl');
+        $this->assertStringContainsString('<circle',$html);
+        $this->assertStringContainsString('<path',$html);
+        $this->assertStringContainsString('color:#8b9eb7',$html);
+        $this->assertStringContainsString('aria-label="Verified"',$html);
+        $this->assertStringNotContainsString('Government',$html);
+        $this->assertStringNotContainsString('fa-landmark',$html);
+    }
+
 }
