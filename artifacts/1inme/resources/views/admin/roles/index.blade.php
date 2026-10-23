@@ -5,9 +5,11 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40 ak-note">Manage staff roles and their permissions</p>
+    @if(auth('admin')->user()->hasPermission('roles.manage'))
     <a href="{{ route('admin.roles.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
         <i class="fas fa-plus mr-2"></i>Add Role
     </a>
+    @endif
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -20,19 +22,24 @@
             @endif
         </div>
         <p class="text-sm text-white/40 mb-4 ak-note">{{ $role->description ?? 'No description' }}</p>
-        <div class="flex items-center justify-between text-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
             <div class="flex items-center gap-4 text-white/30 ak-note">
                 <span><i class="fas fa-users mr-1"></i>{{ $role->admins_count }} staff</span>
-                <span><i class="fas fa-key mr-1"></i>{{ $role->permissions_count }} permissions</span>
+                <span><i class="fas fa-key mr-1"></i>{{ $role->slug === 'super-admin' ? 'Unrestricted access' : $role->permissions_count.' permissions' }}</span>
             </div>
-            @if($role->slug !== 'super-admin')
-            <div class="flex items-center gap-2">
-                <a href="{{ route('admin.roles.edit', $role) }}" class="text-white/30 hover:text-blue-400 ak-note"><i class="fas fa-edit"></i></a>
-                <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this role?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="text-white/30 hover:text-red-400 ak-note"><i class="fas fa-trash"></i></button>
-                </form>
-            </div>
+        </div>
+        <p class="text-xs font-semibold text-red-400 ak-red mt-3">{{ $role->slug === 'super-admin' ? 'Critical · All current and future permissions' : $role->permissions->filter(fn ($p) => \App\Modules\Admin\Support\StaffRoleTools::risk($p->slug) === 4)->count().' Critical permissions' }}</p>
+        <div class="flex flex-wrap items-center gap-3 mt-4 text-sm">
+            <a href="{{ route('admin.roles.show', $role) }}" class="ak-blue">View permissions</a>
+            @if(\App\Modules\Admin\Support\StaffRoleTools::canManage(auth('admin')->user(), $role))
+                <a href="{{ route('admin.roles.edit', $role) }}" class="ak-blue">Edit</a>
+                <a href="{{ route('admin.roles.duplicate', $role) }}" class="ak-blue">Copy / duplicate</a>
+                @if($role->slug !== 'super-admin' && $role->admins_count === 0)
+                    <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this role?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="ak-red">Delete</button>
+                    </form>
+                @endif
             @endif
         </div>
     </div>

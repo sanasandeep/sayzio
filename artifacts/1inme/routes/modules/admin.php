@@ -133,6 +133,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('create', [RoleController::class, 'create'])->middleware(CheckPermission::class . ':roles.manage')->name('create');
             Route::post('/', [RoleController::class, 'store'])->middleware(CheckPermission::class . ':roles.manage')->name('store');
             Route::get('{role}', [RoleController::class, 'show'])->middleware(CheckPermission::class . ':roles.view')->name('show');
+            Route::get('{role}/duplicate', [RoleController::class, 'duplicate'])->middleware(CheckPermission::class . ':roles.manage')->name('duplicate');
             Route::get('{role}/edit', [RoleController::class, 'edit'])->middleware(CheckPermission::class . ':roles.manage')->name('edit');
             Route::put('{role}', [RoleController::class, 'update'])->middleware(CheckPermission::class . ':roles.manage')->name('update');
             Route::delete('{role}', [RoleController::class, 'destroy'])->middleware(CheckPermission::class . ':roles.manage')->name('destroy');

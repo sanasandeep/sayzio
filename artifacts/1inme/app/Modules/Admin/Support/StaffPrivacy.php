@@ -25,7 +25,7 @@ final class StaffPrivacy
             'admin.users.suspend', 'admin.users.reactivate', 'admin.users.assign-link',
             'admin.finance.index', 'admin.finance.records', 'admin.finance.ai',
             'admin.roles.index', 'admin.roles.show', 'admin.roles.create', 'admin.roles.store',
-            'admin.roles.edit', 'admin.roles.update', 'admin.roles.destroy',
+            'admin.roles.duplicate', 'admin.roles.edit', 'admin.roles.update', 'admin.roles.destroy',
         ], true);
     }
 
