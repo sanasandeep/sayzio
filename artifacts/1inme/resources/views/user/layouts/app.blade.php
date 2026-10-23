@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="{{ (($_COOKIE['1inme_theme'] ?? null) === 'dark') ? '' : 'light-mode' }}" data-hero-style="{{ \App\Modules\Common\Support\PageHeroStyle::current() }}">
+<html lang="en" class="sayzio-workspace {{ (($_COOKIE['1inme_theme'] ?? null) === 'dark') ? '' : 'light-mode' }}" data-hero-style="{{ \App\Modules\Common\Support\PageHeroStyle::current() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -678,6 +678,7 @@
          to which one happens to be included first. --}}
     @include('common.partials.icon-sprite')
     @stack('styles')
+    @include('user.partials.dark-mode-surfaces')
 </head>
 <body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
     <div class="particles" id="particles"></div>
