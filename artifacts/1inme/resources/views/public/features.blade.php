@@ -1,375 +1,145 @@
 @extends('public.layouts.site')
-
 @section('title', $page->title ?? 'Features')
-
 @php
-    $featureName = function ($f) {
-        if (!is_array($f)) return '';
-        return $f['name'] ?? ($f[0] ?? '');
-    };
-    $featureDescription = function ($f) {
-        if (!is_array($f)) return '';
-        return $f['description'] ?? ($f[1] ?? '');
-    };
-    $featureIcon = function ($f) {
-        if (!is_array($f)) return 'fa-circle-check';
-        $icon = trim((string) ($f['icon'] ?? ''));
-        return $icon !== '' ? $icon : 'fa-circle-check';
-    };
-    // Map each "Link types" category row to its seeded /demos explainer page
-    // (alias `demo-type-{slug(name)}`) when one is live — the same mapping the
-    // home "What you can create" showcase uses. Reuses the shared cached
-    // gallery data (5-min TTL, plain arrays) so the features render stays
-    // query-free on the warm path; any failure just leaves rows non-linked.
-    $__demoAliasSet = [];
+    $groups = \App\Modules\Common\Support\FeatureDirectory::groups($categories);
+    $formatCount = count(collect($categories)->firstWhere('id', 'link-types')['features'] ?? []);
+    $startUrl = auth()->check() ? route('user.dashboard') : route('register.page');
+    $startLabel = auth()->check() ? 'Open your dashboard' : 'Get started free';
+    $demoAliases = [];
     try {
-        $__demoData = \Illuminate\Support\Facades\Cache::remember(
+        $demoData = \Illuminate\Support\Facades\Cache::remember(
             \App\Modules\Common\Controllers\SitePageController::DEMOS_CACHE_KEY,
             300,
             fn () => \App\Modules\Common\Controllers\SitePageController::buildDemosData()
         );
-        $__demoAliasSet = array_fill_keys(array_keys((array) ($__demoData['links'] ?? [])), true);
+        $demoAliases = array_fill_keys(array_keys((array) ($demoData['links'] ?? [])), true);
     } catch (\Throwable $e) {
-        $__demoAliasSet = [];
+        $demoAliases = [];
     }
-    $linkTypeDemoUrl = function ($name) use ($__demoAliasSet): ?string {
-        $name = trim((string) $name);
-        if ($name === '') {
-            return null;
-        }
-        $alias = 'demo-type-' . \Illuminate\Support\Str::slug($name);
-        return isset($__demoAliasSet[$alias]) ? url('/' . $alias) : null;
-    };
-    $showcase = [
-        ['img' => asset('images/marketing/features/biolink.png'),  'label' => 'Link in Bio builder', 'desc' => 'Drag, drop, ship.'],
-        ['img' => asset('images/marketing/features/qr-code.png'),  'label' => 'Dynamic QR',     'desc' => 'Scannable. Trackable.'],
-        ['img' => asset('images/marketing/features/analytics.png'),'label' => 'Live analytics', 'desc' => 'Numbers that move.'],
-    ];
 @endphp
-
 @push('head')
-<style>
-    /* Sticky top header is 4rem; nudge anchor scroll down past it (and the
-       mobile sticky "Jump to" bar when present). */
-    html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
-    @media (max-width: 1023px) { html { scroll-padding-top: 8.5rem; } }
-    .feature-cat-card { transition: border-color .2s ease, transform .25s ease; }
-    .feature-cat-card:hover { border-color: rgba(144,172,255,.35); transform: translateY(-2px); }
-    .feature-row { border-top: 1px solid rgba(255,255,255,.06); }
-    .feature-row:first-child { border-top: 0; }
-    .feat-spy-link { transition: color .15s ease, background .15s ease, border-color .15s ease; }
-    /* Thin scrollbar for the desktop sticky nav so it doesn't clash with the dark theme. */
-    .feat-spy-list::-webkit-scrollbar { width: 6px; }
-    .feat-spy-list::-webkit-scrollbar-thumb { background: rgba(144,172,255,.25); border-radius: 999px; }
-    .feat-spy-list::-webkit-scrollbar-track { background: transparent; }
-</style>
+<link rel="stylesheet" href="{{ asset('css/features-directory.css') }}?v=1">
 @endpush
-
 @section('content')
-{{-- HERO --}}
-<section class="sec-first relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
-    <div class="mesh-bg"></div>
-    <div class="absolute inset-0 grid-bg opacity-40 pointer-events-none"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-14 items-center">
-            <div data-anim="fade-right">
-                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold">
-                    <i class="fas fa-sparkles text-[10px]"></i> Everything Sayzio can do
-                </span>
-                <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
-                    Your link, <span class="grad-text">supercharged</span>.
-                </h1>
-                <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    {{ $page->meta_description ?? 'A complete tour of every capability inside Sayzio: from your Link in Bio and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
-                </p>
-                <div class="mt-7 flex flex-wrap items-center gap-3">
-                    @guest
-                        <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Start free</a>
-                    @else
-                        <a href="{{ route('user.dashboard') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
-                    @endguest
-                    <a href="#categories" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Browse all features</a>
+<div class="fx-directory" data-feature-directory>
+    <section class="fx-hero">
+        <div class="fx-wrap">
+            <div class="fx-hero-top">
+                <div>
+                    <p class="fx-eyebrow"><span></span> THE SAYZIO TOOLKIT</p>
+                    <h1>One place.<br><span>So many possibilities.</span></h1>
+                    <p class="fx-lead">Create your online presence. Meet your next customer. Grow with AI. Explore the tools that bring it all together.</p>
+                    <div class="fx-actions">
+                        <a class="fx-button fx-primary" href="{{ $startUrl }}">{{ $startLabel }} <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                        <a class="fx-button fx-secondary" href="{{ url('/demos') }}">Explore live demos <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                    </div>
+                    <p class="fx-small">Start with what you need. Add more as you grow.</p>
                 </div>
-                <div class="mt-10 grid grid-cols-3 gap-6 max-w-md" data-anim="fade-up" data-stagger>
-                    <div><div class="text-3xl font-bold"><span data-count="40" data-count-suffix="+"></span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-1">Block types</div></div>
-                    <div><div class="text-3xl font-bold"><span data-count="14"></span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-1">Categories</div></div>
-                    <div><div class="text-3xl font-bold"><span data-count="120000" data-count-suffix="+"></span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-1">Creators</div></div>
+                <div class="fx-product-map" aria-label="Sayzio connects your pages, AI tools, audience and business">
+                    <div class="fx-map-label">YOUR CONNECTED WORKSPACE</div>
+                    <div class="fx-map-center"><img src="{{ asset('images/marketing/features/biolink.png') }}" alt="" loading="eager"><strong>Your next big thing</strong><span>Built with Sayzio</span></div>
+                    <a href="#group-create" class="fx-node fx-node-create"><i class="fas fa-layer-group" aria-hidden="true"></i><span>Create</span></a>
+                    <a href="#group-ai" class="fx-node fx-node-ai"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i><span>Ask AI</span></a>
+                    <a href="#group-audience" class="fx-node fx-node-audience"><i class="fas fa-comments" aria-hidden="true"></i><span>Connect</span></a>
+                    <a href="#group-sell" class="fx-node fx-node-sell"><i class="fas fa-store" aria-hidden="true"></i><span>Grow</span></a>
+                    <div class="fx-map-caption"><span></span> Your pages. Your people. All connected.</div>
                 </div>
             </div>
-            <div data-anim="fade-left" data-tilt="6" class="relative">
-                <div class="img-frame img-tilt aspect-[5/4]">
-                    <img src="{{ asset('images/marketing/features/hero.png') }}"@imgSize(asset('images/marketing/features/hero.png')) alt="Phone showing a Sayzio Link in Bio page">
-                </div>
-                <div class="absolute -top-4 -left-4 bg-[#11101c] border border-white/10 rounded-2xl p-3 flex items-center gap-2 shadow-2xl float-y">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>
-                    <span class="text-xs font-semibold text-gray-200">Live · 247 visitors</span>
-                </div>
-                <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl px-4 py-3 shadow-2xl float-y" style="animation-delay:-3s">
-                    <div class="text-[10px] uppercase tracking-wider text-gray-500">Top link today</div>
-                    <div class="text-sm font-bold text-white mt-0.5">/new-album · <span class="text-emerald-400">+18%</span></div>
-                </div>
+            <div class="fx-at-a-glance">
+                <span><strong>{{ $formatCount }}</strong> page & link formats</span>
+                <span><strong>{{ count($groups) }}</strong> ways to explore</span>
+                <span><strong>One</strong> connected workspace</span>
+                <a href="#categories">Find your next tool <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
             </div>
         </div>
-    </div>
-</section>
-
-@include('public.partials.marketing-stats')
-
-{{-- SHOWCASE STRIP --}}
-<section class="sec-rule pb-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid md:grid-cols-3 gap-5 card-row" data-anim="fade-up" data-stagger>
-            @foreach($showcase as $s)
-                <div class="group relative" data-tilt="4">
-                    <div class="img-frame img-tilt aspect-[4/3]">
-                        <img src="{{ $s['img'] }}"@imgSize($s['img']) alt="{{ $s['label'] }} preview">
-                    </div>
-                    <div class="absolute bottom-4 left-4 right-4 z-10">
-                        <div class="text-sm font-bold text-white">{{ $s['label'] }}</div>
-                        <div class="text-xs text-gray-300">{{ $s['desc'] }}</div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-</section>
-
-{{-- CATEGORIES + sticky in-page navigation --}}
-<section id="categories"
-         x-data="featuresStickyNav({{ Js::from(collect($categories)->map(fn($c) => ['id' => 'cat-' . $c['id'], 'heading' => $c['heading'], 'icon' => $c['icon']])->values()) }})"
-         x-init="init()"
-         class="sec-rule relative pb-20">
-
-    {{-- Mobile/tablet: condensed sticky bar that opens a full category list.
-
-         `surface-lit` on both halves because both paint their own dark ground
-         with an arbitrary hex, which the light-mode sheet does not rewrite --
-         so in light mode the bar stayed #1e2330 while its label went
-         near-black on it. Measured at 1.33:1 at 390px wide, which is the only
-         width this bar exists at, which is why a desktop pass never saw it. --}}
-    <div class="surface-lit lg:hidden sticky top-16 z-30 bg-[#1e2330]/95 backdrop-blur-xl border-y border-white/10 shadow-lg shadow-black/20"
-         @click.outside="mobileOpen = false">
-        <button type="button"
-                @click="mobileOpen = !mobileOpen"
-                :aria-expanded="mobileOpen"
-                aria-controls="features-mobile-toc"
-                class="w-full flex items-center gap-3 px-4 py-3 text-left">
-            <span class="shrink-0 w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-400/30 flex items-center justify-center">
-                <i class="fas fa-list-ul text-blue-300 text-sm"></i>
-            </span>
-            <div class="min-w-0 flex-1">
-                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Jump to category</div>
-                <div class="text-sm font-semibold text-white truncate" x-text="currentLabel"></div>
+    </section>
+    <section class="fx-explore fx-wrap" id="categories" aria-labelledby="fx-explore-heading">
+        <div class="fx-directory-heading">
+            <div><p class="fx-eyebrow">EXPLORE THE POSSIBILITIES</p><h2 id="fx-explore-heading">Find the right tool for your next step.</h2></div>
+            <div class="fx-search" data-search-control hidden>
+                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                <label class="fx-sr-only" for="fx-search">Search all features</label>
+                <input type="search" id="fx-search" placeholder="Try bookings, AI, QR codes…" autocomplete="off" aria-controls="fx-results">
+                <button type="button" data-clear-search aria-label="Clear feature search" hidden><i class="fas fa-xmark" aria-hidden="true"></i></button>
             </div>
-            <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileOpen ? 'rotate-180' : ''"></i>
-        </button>
-        <div id="features-mobile-toc"
-             x-show="mobileOpen"
-             x-cloak
-             x-transition.opacity.duration.150ms
-             class="surface-lit absolute inset-x-0 top-full bg-[#1e2330] border-b border-white/10 max-h-[60vh] overflow-y-auto shadow-2xl shadow-black/40">
-            @foreach($categories as $i => $cat)
-                <a href="#cat-{{ $cat['id'] }}"
-                   @click="mobileOpen = false; current = 'cat-{{ $cat['id'] }}'"
-                   class="feat-spy-link flex items-center gap-3 px-4 py-2.5 text-sm border-t border-white/5 first:border-t-0"
-                   :class="current === 'cat-{{ $cat['id'] }}' ? 'text-blue-200 bg-blue-500/10' : 'text-gray-300 hover:bg-white/5'">
-                    <i class="fas {{ $cat['icon'] }} text-blue-400 w-4 text-center text-xs"></i>
-                    <span class="truncate">{{ $cat['heading'] }}</span>
-                    <span class="ml-auto text-[10px] text-gray-500">{{ $i + 1 }}</span>
-                </a>
-            @endforeach
         </div>
-    </div>
-
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 lg:pt-10">
-        <div class="grid lg:grid-cols-[260px_minmax(0,1fr)] gap-8 xl:gap-10">
-            {{-- Desktop: sticky side nav with scroll-spy. --}}
-            <aside class="hidden lg:block">
-                <nav class="sticky top-20" aria-label="Feature categories">
-                    <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-3">
-                        <div class="px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">On this page</div>
-                        <ul class="feat-spy-list space-y-0.5 max-h-[calc(100vh_-_8rem)] overflow-y-auto pr-1">
-                            @foreach($categories as $cat)
-                                <li>
-                                    <a href="#cat-{{ $cat['id'] }}"
-                                       @click="current = 'cat-{{ $cat['id'] }}'"
-                                       class="feat-spy-link flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm border-l-2"
-                                       :class="current === 'cat-{{ $cat['id'] }}'
-                                                 ? 'bg-blue-500/10 text-blue-200 border-blue-400 font-semibold'
-                                                 : 'text-gray-400 hover:text-blue-300 hover:bg-white/5 border-transparent'">
-                                        <i class="fas {{ $cat['icon'] }} w-4 text-center text-xs"
-                                           :class="current === 'cat-{{ $cat['id'] }}' ? 'text-blue-300' : 'text-blue-400/70'"></i>
-                                        <span class="truncate">{{ $cat['heading'] }}</span>
-                                    </a>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
+        <p class="fx-availability">Features vary by plan. AI tools use coins; connected services need setup. <a href="{{ url('/pricing') }}">Compare plans <i class="fas fa-arrow-right" aria-hidden="true"></i></a></p>
+        <div class="fx-directory-layout">
+            <aside class="fx-sidebar">
+                <nav aria-label="Feature categories">
+                    <p class="fx-nav-title">EXPLORE BY CATEGORY</p>
+                    @foreach($groups as $group)
+                        <a href="#group-{{ $group['id'] }}" data-group-link="{{ $group['id'] }}"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i><span>{{ $group['title'] }}</span><i class="fas fa-arrow-up-right-from-square fx-nav-arrow" aria-hidden="true"></i></a>
+                    @endforeach
+                    <div class="fx-nav-help"><strong>See it in action.</strong><p>Explore real page formats before you build your own.</p><a href="{{ url('/demos') }}">Visit the demo gallery <span aria-hidden="true">↗</span></a></div>
                 </nav>
             </aside>
-
-            {{-- Main column: feature category cards. --}}
-            <div class="min-w-0 space-y-10">
-                @foreach($categories as $i => $cat)
-                    <section id="cat-{{ $cat['id'] }}" data-spy-target class="feature-cat-card glass-panel rounded-2xl p-6 sm:p-10 scroll-mt-24" data-anim="fade-up">
-                        <div class="flex items-start gap-4 mb-6">
-                            <div class="shrink-0 w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
-                                <i class="fas {{ $cat['icon'] }} text-blue-300 text-lg"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <div class="text-xs font-semibold uppercase tracking-wider text-blue-300/80 mb-1">Category {{ $i + 1 }}</div>
-                                <h2 class="text-2xl sm:text-3xl font-bold text-white">{{ $cat['heading'] }}</h2>
-                                <p class="mt-2 text-gray-400 leading-relaxed max-w-3xl">{{ $cat['intro'] }}</p>
-                                @if(($cat['id'] ?? '') === 'link-types' && !empty($__demoAliasSet))
-                                    {{-- One-stop pointer to the full demo gallery; only shown
-                                         when at least one demo page is actually seeded. --}}
-                                    <a href="{{ url('/demos') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-300 hover:text-blue-200 font-semibold" aria-label="Browse the full gallery of live link-type demos">Browse all demos <i class="fas fa-arrow-right text-[10px]"></i></a>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="rounded-xl border border-white/5 bg-black/10 overflow-hidden">
-                            @foreach($cat['features'] as $feat)
-                                @php
-                                    $featLink = is_array($feat) ? trim((string) ($feat['link'] ?? '')) : '';
-                                    // Link-type rows deep-link to their seeded demo page
-                                    // (same mapping as the home showcase) when no explicit
-                                    // admin link is set; rows without a seeded demo stay
-                                    // non-linked, exactly as before.
-                                    $featDemoUrl = ($featLink === '' && ($cat['id'] ?? '') === 'link-types')
-                                        ? $linkTypeDemoUrl($featureName($feat))
-                                        : null;
-                                @endphp
-                                <div class="feature-row grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-6 px-5 py-4">
-                                    <div class="md:col-span-1">
-                                        <div class="flex items-start gap-2">
-                                            <i class="fas {{ $featureIcon($feat) }} text-blue-400 mt-1 text-sm w-4 text-center"></i>
-                                            <div class="font-semibold text-white">
-                                                @if($featLink !== '')
-                                                    <a href="{{ $featLink }}" class="hover:text-blue-300 underline-offset-4 hover:underline">{{ $featureName($feat) }}</a>
-                                                @elseif($featDemoUrl !== null)
-                                                    <a href="{{ $featDemoUrl }}" class="hover:text-blue-300 underline-offset-4 hover:underline" aria-label="See the live {{ $featureName($feat) }} demo">{{ $featureName($feat) }}</a>
-                                                @else
-                                                    {{ $featureName($feat) }}
-                                                @endif
-                                            </div>
+            <div class="fx-results" id="fx-results">
+                <p class="fx-result-status" data-result-status role="status" aria-live="polite" hidden></p>
+                <div class="fx-empty" data-empty hidden><i class="fas fa-magnifying-glass" aria-hidden="true"></i><h3>No matching features yet.</h3><p>Try a broader term such as “pages”, “contacts” or “AI”.</p><button class="fx-button fx-secondary" type="button" data-reset-search>Clear search</button></div>
+                @foreach($groups as $groupIndex => $group)
+                    <section class="fx-group" id="group-{{ $group['id'] }}" data-feature-group="{{ $group['id'] }}" aria-labelledby="fx-heading-{{ $group['id'] }}">
+                        <header class="fx-group-heading">
+                            <div class="fx-group-kicker"><span>{{ str_pad($groupIndex + 1, 2, '0', STR_PAD_LEFT) }}</span> {{ $group['title'] }}</div>
+                            <h2 id="fx-heading-{{ $group['id'] }}">{{ $group['heading'] }}</h2>
+                            <p>{{ $group['intro'] }}</p>
+                        </header>
+                        <div class="fx-card-grid">
+                            @foreach($group['items'] as $cat)
+                                <article id="cat-{{ $cat['id'] }}" class="fx-card {{ $cat['id'] === 'link-types' ? 'fx-card-formats' : '' }}" data-feature-card data-search="{{ mb_strtolower($group['title'] . ' ' . $cat['heading'] . ' ' . $cat['intro'] . ' ' . implode(' ', array_map(fn ($f) => ($f['name'] ?? $f[0] ?? '') . ' ' . ($f['description'] ?? $f[1] ?? ''), $cat['features']))) }}">
+                                    <div class="fx-card-top"><span class="fx-card-icon"><i class="fas {{ $cat['icon'] }}" aria-hidden="true"></i></span><span class="fx-card-count">{{ count($cat['features']) }} {{ count($cat['features']) === 1 ? 'capability' : 'capabilities' }}</span></div>
+                                    <h3>{{ $cat['heading'] }}</h3>
+                                    <p class="fx-card-intro">{{ $cat['intro'] }}</p>
+                                    @if($cat['id'] === 'link-types')
+                                        <div class="fx-format-grid">
+                                            @foreach($cat['features'] as $feat)
+                                                @php
+                                                    $name = $feat['name'] ?? $feat[0] ?? '';
+                                                    $alias = 'demo-type-' . \Illuminate\Support\Str::slug($name);
+                                                    $href = trim((string) ($feat['link'] ?? ''));
+                                                    if ($href === '' && isset($demoAliases[$alias])) $href = url('/' . $alias);
+                                                @endphp
+                                                <details class="fx-format">
+                                                    <summary><i class="fas {{ ($feat['icon'] ?? '') ?: 'fa-file-lines' }}" aria-hidden="true"></i><strong>{{ $name }}</strong><span aria-hidden="true">+</span></summary>
+                                                    <p>{{ $feat['description'] ?? $feat[1] ?? '' }}</p>
+                                                    @if($href !== '')<a href="{{ $href }}" aria-label="See the live {{ $name }} demo">Explore {{ $name }} <span aria-hidden="true">↗</span></a>@endif
+                                                </details>
+                                            @endforeach
                                         </div>
-                                    </div>
-                                    <div class="md:col-span-2 text-gray-400 text-sm leading-relaxed md:pt-0.5">
-                                        {{ $featureDescription($feat) }}
-                                        @if($featLink !== '')
-                                            <a href="{{ $featLink }}" class="ml-1 text-blue-300 hover:text-blue-200 font-semibold">Learn more <i class="fas fa-arrow-right text-[10px]"></i></a>
-                                        @elseif($featDemoUrl !== null)
-                                            <a href="{{ $featDemoUrl }}" class="ml-1 text-blue-300 hover:text-blue-200 font-semibold" aria-label="See the live {{ $featureName($feat) }} demo">See demo <i class="fas fa-arrow-right text-[10px]"></i></a>
+                                        <a class="fx-text-link" href="{{ url('/demos') }}">Browse the live demo gallery <span aria-hidden="true">↗</span></a>
+                                    @else
+                                        <div class="fx-feature-list">
+                                            @foreach(array_slice($cat['features'], 0, 3) as $feat)
+                                                @include('public.partials.feature-directory-row', ['feat' => $feat])
+                                            @endforeach
+                                        </div>
+                                        @if(count($cat['features']) > 3)
+                                            <details class="fx-more">
+                                                <summary><span class="fx-more-closed">Explore {{ count($cat['features']) - 3 }} more</span><span class="fx-more-open">Show less</span><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+                                                <div class="fx-feature-list">
+                                                    @foreach(array_slice($cat['features'], 3) as $feat)
+                                                        @include('public.partials.feature-directory-row', ['feat' => $feat])
+                                                    @endforeach
+                                                </div>
+                                            </details>
                                         @endif
-                                    </div>
-                                </div>
+                                    @endif
+                                </article>
                             @endforeach
                         </div>
                     </section>
                 @endforeach
             </div>
         </div>
-    </div>
-</section>
-
-@php
-    $__featuresTestimonials = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_features_testimonials', []);
-    if (empty($__featuresTestimonials)) {
-        $__featuresTestimonials = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
-    }
-@endphp
-@include('public.partials.testimonials', [
-    'testimonials' => $__featuresTestimonials,
-    'eyebrow' => 'What people say',
-    'heading' => 'Teams and creators ship faster with Sayzio.',
-])
-
-{{-- CTA --}}
-<section class="sec-rule pb-12">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
-            <div class="mesh-bg opacity-50"></div>
-            <div class="relative">
-                <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Ready to put it all to work?</h3>
-                <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Spin up your Link in Bio, drop in your first link, and explore every feature on this page from your dashboard.</p>
-                <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    @auth
-                        <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Open dashboard</a>
-                    @else
-                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
-                        <a href="{{ route('site.how-it-works') }}" class="px-6 py-3 border border-white/15 text-gray-200 rounded-full text-sm font-semibold hover:bg-white/5">See how it works</a>
-                    @endauth
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-@include('public.blogs.partials.latest-cta')
-
-@include('public.partials.subscribe-block', [
-    'heading' => 'Want a heads-up when we ship new features?',
-    'subtext' => 'Pick the channel that fits: email, WhatsApp Channel, or DM. Product updates, playbooks, and the occasional template. No spam, opt out any time.',
-    'source'  => 'features',
-])
+    </section>
+    <section class="fx-wrap fx-final">
+        <p class="fx-eyebrow">YOUR NEXT STEP STARTS HERE</p><h2>Start small. Build something bigger.</h2>
+        <p>A page today. An audience tomorrow. A workspace that grows with you.</p>
+        <div class="fx-actions"><a href="{{ $startUrl }}" class="fx-button fx-primary">{{ $startLabel }} <span aria-hidden="true">↗</span></a><a href="{{ url('/pricing') }}" class="fx-button fx-secondary">Find your plan</a></div>
+    </section>
+</div>
+@include('public.partials.subscribe-block', ['heading' => 'Keep up with what’s new.', 'subtext' => 'Product updates, useful ideas and new ways to build with Sayzio.', 'source' => 'features'])
 @endsection
-
 @push('scripts')
-<script>
-    // Sticky in-page nav for /features. Tracks the section currently in
-    // view and exposes `current` + `currentLabel` to the desktop side nav
-    // and the mobile "Jump to" bar.
-    function featuresStickyNav(items) {
-        return {
-            items: Array.isArray(items) ? items : [],
-            current: (Array.isArray(items) && items.length) ? items[0].id : '',
-            mobileOpen: false,
-            _ticking: false,
-            _onScroll: null,
-
-            get currentLabel() {
-                const m = this.items.find(i => i.id === this.current);
-                return m ? m.heading : (this.items[0]?.heading || '');
-            },
-
-            init() {
-                const sections = Array.from(document.querySelectorAll('[data-spy-target]'));
-                if (!sections.length) return;
-
-                // Scroll-spy: the active section is the last one whose top has
-                // crossed the trigger line just below the sticky top header.
-                // This is more accurate than IntersectionObserver's "topmost
-                // intersecting" when several sections overlap the trigger band.
-                const compute = () => {
-                    this._ticking = false;
-                    const triggerY = Math.max(80, window.innerHeight * 0.30);
-                    let active = sections[0];
-                    for (const s of sections) {
-                        if (s.getBoundingClientRect().top - triggerY <= 0) {
-                            active = s;
-                        } else {
-                            break;
-                        }
-                    }
-                    if (active && active.id && active.id !== this.current) {
-                        this.current = active.id;
-                    }
-                };
-
-                this._onScroll = () => {
-                    if (this._ticking) return;
-                    this._ticking = true;
-                    window.requestAnimationFrame(compute);
-                };
-
-                window.addEventListener('scroll', this._onScroll, { passive: true });
-                window.addEventListener('resize', this._onScroll, { passive: true });
-
-                // Compute once after layout so the initial highlight matches
-                // the page's load position (covers deep-link #cat-* hashes).
-                window.requestAnimationFrame(compute);
-            },
-        };
-    }
-</script>
+<script src="{{ asset('js/features-directory.js') }}?v=1" defer></script>
 @endpush
