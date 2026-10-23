@@ -111,7 +111,7 @@
     );
 @endphp
 <!DOCTYPE html>
-<html lang="en" data-profile-theme="{{ $__presentation['theme'] }}">
+<html lang="en" data-profile-theme="{{ $__presentation['theme'] }}" data-profile-mode="{{ $__presentation['mode'] }}" data-profile-layout="{{ $__presentation['layout'] }}">
 <head>
     @include('common.partials.toolbar-theme-color')
 <meta charset="UTF-8">
@@ -238,14 +238,14 @@
 <div class="max-w-3xl mx-auto px-3 sm:px-4 pb-24" x-data="{ activeTab: @js($__tab) }">
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
-    <header class="cp-card overflow-hidden mt-4">
+    <header class="cp-card cp-profile-hero overflow-hidden mt-4">
         <div class="h-40 sm:h-56 relative" data-cp-cover style="background: {{ $creator->profile_theme_color ? 'linear-gradient(135deg, var(--cp-accent), var(--cp-accent-mid))' : 'var(--cp-cover,linear-gradient(135deg,#3b82f6,#a855f7))' }};">
             @if($creator->cover_image)
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @endif
         </div>
-        <div class="px-5 sm:px-7 pb-6 -mt-12 relative z-10">
-            <div class="flex items-end justify-between gap-3 flex-wrap">
+        <div class="cp-hero-content px-5 sm:px-7 pb-6 -mt-12 relative z-10">
+            <div class="cp-hero-top flex items-end justify-between gap-3 flex-wrap">
                 <div class="flex items-end gap-4">
                     @if($creator->creatorAvatarRaw())
                         <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()) }}" alt="{{ $creator->name }}" data-cp-avatar class="object-cover border-4 border-white shadow-md bg-white cp-avatar">
@@ -375,7 +375,7 @@
                 </div>
             </div>
 
-            <div class="mt-4">
+            <div class="cp-hero-identity mt-4">
                 <h1 class="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 flex-wrap">
                     {{ $creator->name }}
                     @if(method_exists($creator, 'isVerified') && $creator->isVerified())
@@ -860,6 +860,8 @@
         if (d.type !== 'cpLive') return;
         var root = document.documentElement;
         if (['paper','midnight','warm','mint'].includes(d.profileTheme)) root.dataset.profileTheme = d.profileTheme;
+        if (['classic','centered','editorial','minimal'].includes(d.profileLayout)) root.dataset.profileLayout = d.profileLayout;
+        if (['light','dark'].includes(d.profileMode)) root.dataset.profileMode = d.profileMode;
         document.querySelectorAll('[data-cp-avatar]').forEach(avatar => {
             if (avatar.tagName === 'IMG' && typeof d.avatarUrl === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/.test(d.avatarUrl) && d.avatarUrl.length < 3000000) avatar.src = d.avatarUrl;
             if (['circle','rounded','square'].includes(d.avatarShape)) avatar.style.borderRadius = d.avatarShape === 'circle' ? '50%' : (d.avatarShape === 'square' ? '4px' : '20px');
@@ -872,7 +874,7 @@
         }
         if (d.theme === 'dark' || d.theme === 'light') {
             root.classList.toggle('light-mode', d.theme === 'light');
-            root.classList.toggle('cp-pv-dark', d.theme === 'dark');
+            root.dataset.profileMode = d.theme;
         }
         var tagEl = txt('tagline', d.tagline);
         if (tagEl) tagEl.style.display = d.tagline ? '' : 'none';

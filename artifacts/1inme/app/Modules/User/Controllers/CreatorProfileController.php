@@ -302,6 +302,8 @@ class CreatorProfileController extends Controller
             'profile_destination' => 'nullable|in:profile,redirect',
             'redirect_link_id' => 'nullable|integer|min:1',
             'presentation' => 'nullable|array',
+            'presentation.layout' => 'nullable|in:classic,centered,editorial,minimal',
+            'presentation.mode' => 'nullable|in:light,dark',
             'presentation.theme' => 'nullable|in:paper,midnight,warm,mint',
             'presentation.avatar_shape' => 'nullable|in:circle,rounded,square',
             'presentation.avatar_size' => 'nullable|integer|in:80,96,128',
