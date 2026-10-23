@@ -18,6 +18,8 @@
         </div>
     </div>
 
+
+@if(auth('admin')->user()?->hasAnyPermission(['users.coins.grant','users.coins.deduct']))
     <form method="POST" action="{{ route('admin.ai-usage.adjust', $user) }}"
           class="glass rounded-2xl border border-white/10 p-6 space-y-3">
         @csrf
@@ -34,6 +36,8 @@
             <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Apply</button>
         </div>
     </form>
+@endif
+
 
     <div class="glass rounded-2xl border border-white/10 p-6">
         <h3 class="font-semibold text-white mb-3 ak-strong">Recent transactions</h3>

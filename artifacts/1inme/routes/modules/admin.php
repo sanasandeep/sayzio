@@ -57,6 +57,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware([\App\Modules\Admin\Middleware\AdminAuth::class])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('finance', [\App\Modules\Admin\Controllers\StaffFinanceController::class, 'index'])->name('finance.index');
+        Route::get('finance/ai', [\App\Modules\Admin\Controllers\StaffFinanceController::class, 'ai'])->name('finance.ai');
+        Route::get('finance/records', [\App\Modules\Admin\Controllers\StaffFinanceController::class, 'records'])->name('finance.records');
+        Route::post('users/{user}/assign-link', [\App\Modules\Admin\Controllers\StaffAssignmentController::class, 'link'])
+            ->middleware([CheckPermission::class . ':users.links.assign', 'throttle:10,1'])->whereNumber('user')->name('users.assign-link');
         Route::get('business-starters', [\App\Modules\Admin\Controllers\BusinessStarterController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('business-starters.edit');
         Route::post('business-starters', [\App\Modules\Admin\Controllers\BusinessStarterController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('business-starters.update');
 
@@ -162,11 +167,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
 
         Route::prefix('links')->name('links.')->group(function () {
-            Route::get('/', [LinkManagementController::class, 'index'])->middleware(CheckPermission::class . ':staff.view')->name('index');
-            Route::post('bulk', [LinkManagementController::class, 'bulkAction'])->middleware(CheckPermission::class . ':staff.edit')->name('bulk');
-            Route::get('{link}', [LinkManagementController::class, 'show'])->middleware(CheckPermission::class . ':staff.view')->name('show');
-            Route::post('{link}/toggle', [LinkManagementController::class, 'toggleActive'])->middleware(CheckPermission::class . ':staff.edit')->name('toggle');
-            Route::delete('{link}', [LinkManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':staff.delete')->name('destroy');
+            Route::get('/', [LinkManagementController::class, 'index'])->middleware(CheckPermission::class . ':links.view')->name('index');
+            Route::post('bulk', [LinkManagementController::class, 'bulkAction'])->middleware(CheckPermission::class . ':links.bulk')->name('bulk');
+            Route::get('{link}', [LinkManagementController::class, 'show'])->middleware(CheckPermission::class . ':links.view')->name('show');
+            Route::post('{link}/toggle', [LinkManagementController::class, 'toggleActive'])->middleware(CheckPermission::class . ':links.toggle')->name('toggle');
+            Route::delete('{link}', [LinkManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':links.delete')->name('destroy');
         });
 
         Route::prefix('templates')->name('templates.')->group(function () {
@@ -375,32 +380,32 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
 
         Route::prefix('payments')->name('payments.')->group(function () {
-            Route::get('pending', [PendingPaymentController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('pending');
-            Route::post('{invoice}/mark-paid', [PendingPaymentController::class, 'markPaid'])->middleware(CheckPermission::class . ':settings.manage')->name('mark-paid');
+            Route::get('pending', [PendingPaymentController::class, 'index'])->middleware(CheckPermission::class . ':finance.payments.view')->name('pending');
+            Route::post('{invoice}/mark-paid', [PendingPaymentController::class, 'markPaid'])->middleware(CheckPermission::class . ':finance.payments.confirm')->name('mark-paid');
         });
 
         Route::prefix('invoices')->name('invoices.')->group(function () {
-            Route::get('{invoice}', [\App\Modules\Admin\Controllers\RefundController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
-            Route::post('{invoice}/refund', [\App\Modules\Admin\Controllers\RefundController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('refund');
+            Route::get('{invoice}', [\App\Modules\Admin\Controllers\RefundController::class, 'show'])->middleware(CheckPermission::class . ':finance.refunds.view')->name('show');
+            Route::post('{invoice}/refund', [\App\Modules\Admin\Controllers\RefundController::class, 'store'])->middleware(CheckPermission::class . ':finance.refunds.create')->name('refund');
         });
 
         Route::prefix('refunds')->name('refunds.')->group(function () {
-            Route::post('{refund}/confirm', [\App\Modules\Admin\Controllers\RefundController::class, 'confirm'])->middleware(CheckPermission::class . ':settings.manage')->name('confirm');
+            Route::post('{refund}/confirm', [\App\Modules\Admin\Controllers\RefundController::class, 'confirm'])->middleware(CheckPermission::class . ':finance.refunds.confirm')->name('confirm');
         });
 
         Route::prefix('subscriptions')->name('subscriptions.')->group(function () {
-            Route::get('{subscription}', [\App\Modules\Admin\Controllers\SubscriptionController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
+            Route::get('{subscription}', [\App\Modules\Admin\Controllers\SubscriptionController::class, 'show'])->middleware(CheckPermission::class . ':finance.subscriptions.view')->name('show');
         });
 
         Route::prefix('credit-reviews')->name('credit-reviews.')->group(function () {
-            Route::get('/', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
-            Route::post('{review}/approve', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'approve'])->middleware(CheckPermission::class . ':settings.manage')->name('approve');
-            Route::post('{review}/dismiss', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'dismiss'])->middleware(CheckPermission::class . ':settings.manage')->name('dismiss');
+            Route::get('/', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'index'])->middleware(CheckPermission::class . ':finance.credit_reviews.view')->name('index');
+            Route::post('{review}/approve', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'approve'])->middleware(CheckPermission::class . ':finance.credit_reviews.approve')->name('approve');
+            Route::post('{review}/dismiss', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'dismiss'])->middleware(CheckPermission::class . ':finance.credit_reviews.dismiss')->name('dismiss');
         });
 
         Route::prefix('referrals')->name('referrals.')->group(function () {
-            Route::get('/', [\App\Modules\Admin\Controllers\ReferralController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
-            Route::post('toggle', [\App\Modules\Admin\Controllers\ReferralController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::get('/', [\App\Modules\Admin\Controllers\ReferralController::class, 'index'])->middleware(CheckPermission::class . ':finance.referrals.view')->name('index');
+            Route::post('toggle', [\App\Modules\Admin\Controllers\ReferralController::class, 'toggle'])->middleware(CheckPermission::class . ':finance.referrals.manage')->name('toggle');
         });
 
         Route::prefix('newsletter')->name('newsletter.')->group(function () {
@@ -602,7 +607,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Read-only monetization report: coin packages vs AI costs, AI coin
         // burn vs top-up, and plan-wise profitability.
         Route::get('monetization', [\App\Modules\Admin\Controllers\MonetizationOverviewController::class, 'index'])
-            ->middleware(CheckPermission::class . ':settings.manage')
+            ->middleware(CheckPermission::class . ':finance.profit.view')
             ->name('monetization.index');
 
         Route::prefix('coin-packages')->name('coin-packages.')->group(function () {
@@ -610,7 +615,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('create',      [CoinPackageController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post('/',          [CoinPackageController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
             Route::post('fx-rate',    [CoinPackageController::class, 'updateFxRate'])->middleware(CheckPermission::class . ':settings.manage')->name('fx-rate');
-            Route::get('allocations', [CoinPackageController::class, 'allocations'])->middleware(CheckPermission::class . ':settings.manage')->name('allocations');
+            Route::get('allocations', [CoinPackageController::class, 'allocations'])->middleware(CheckPermission::class . ':finance.coins.view')->name('allocations');
             Route::get('{coinPackage}/edit',  [CoinPackageController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{coinPackage}',       [CoinPackageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{coinPackage}/archive', [CoinPackageController::class, 'archive'])->middleware(CheckPermission::class . ':settings.manage')->name('archive');
@@ -619,8 +624,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Platform-wide coin ledger (read-only audit of wallet_transactions).
         Route::prefix('coin-ledger')->name('coin-ledger.')->group(function () {
-            Route::get('/',       [\App\Modules\Admin\Controllers\CoinLedgerController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
-            Route::get('export',  [\App\Modules\Admin\Controllers\CoinLedgerController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');
+            Route::get('/',       [\App\Modules\Admin\Controllers\CoinLedgerController::class, 'index'])->middleware(CheckPermission::class . ':finance.ledger.view')->name('index');
+            Route::get('export',  [\App\Modules\Admin\Controllers\CoinLedgerController::class, 'export'])->middleware(CheckPermission::class . ':finance.ledger.export')->name('export');
         });
 
         Route::prefix('onboarding-slides')->name('onboarding-slides.')->group(function () {
@@ -764,9 +769,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
 
         Route::prefix('ai-usage')->name('ai-usage.')->group(function () {
-            Route::get('/',                 [\App\Modules\Admin\Controllers\AiUsageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
-            Route::get('{user}',            [\App\Modules\Admin\Controllers\AiUsageController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
-            Route::post('{user}/adjust',    [\App\Modules\Admin\Controllers\AiUsageController::class, 'adjust'])->middleware(CheckPermission::class . ':settings.manage')->name('adjust');
+            Route::get('/',                 [\App\Modules\Admin\Controllers\AiUsageController::class, 'index'])->middleware(CheckPermission::class . ':finance.ai.view')->name('index');
+            Route::get('{user}',            [\App\Modules\Admin\Controllers\AiUsageController::class, 'show'])->middleware(CheckPermission::class . ':finance.ai.view')->name('show');
+            Route::post('{user}/adjust',    [\App\Modules\Admin\Controllers\AiUsageController::class, 'adjust'])->middleware(CheckPermission::class . ':users.coins.grant|users.coins.deduct')->name('adjust');
         });
 
         // AI Minds — aggregate stats, per-plan caps, abuse controls.
@@ -926,8 +931,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // swallowed by the wildcard show route. Same gate as
             // mutating roles, since the row-level data is the same as
             // the existing per-user "role change history" panel.
-            Route::get('role-audits',        [UserManagementController::class, 'roleAudits'])->middleware(CheckPermission::class . ':users.edit')->name('role-audits.index');
-            Route::get('role-audits/export', [UserManagementController::class, 'roleAuditsExport'])->middleware(CheckPermission::class . ':users.edit')->name('role-audits.export');
+            Route::get('role-audits',        [UserManagementController::class, 'roleAudits'])->middleware(CheckPermission::class . ':users.audit.view')->name('role-audits.index');
+            Route::get('role-audits/export', [UserManagementController::class, 'roleAuditsExport'])->middleware(CheckPermission::class . ':users.audit.export')->name('role-audits.export');
 
             // Audit-the-auditor panel: surfaces recent CSV downloads of
             // the role-change audit. Super-admin gate is enforced in
@@ -943,25 +948,25 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Bulk multiplexes plan-assign + credit-grant; require at least
             // one of the two bulk perms here, enforce the specific one per
             // action inside the controller.
-            Route::post('bulk',    [UserManagementController::class, 'bulkAction'])->middleware(CheckPermission::class . ':users.bulk_credits|users.bulk_plan')->name('bulk');
+            Route::post('bulk',    [UserManagementController::class, 'bulkAction'])->middleware(CheckPermission::class . ':users.bulk_credits|users.bulk_plan|users.badges.bulk')->name('bulk');
 
             // Activity log (audit viewer) — read access mirrors the user list.
-            Route::get('activity-log',        [ActivityLogController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('activity-log.index');
-            Route::get('activity-log/export', [ActivityLogController::class, 'export'])->middleware(CheckPermission::class . ':users.view')->name('activity-log.export');
+            Route::get('activity-log',        [ActivityLogController::class, 'index'])->middleware(CheckPermission::class . ':users.activity.view')->name('activity-log.index');
+            Route::get('activity-log/export', [ActivityLogController::class, 'export'])->middleware(CheckPermission::class . ':users.activity.export')->name('activity-log.export');
 
             // Asset-transfer audit log (admin-granted link/workspace
             // transfers). Literal path, declared before `{user}`.
             Route::get('asset-transfers', [\App\Modules\Admin\Controllers\AssetTransferLogController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('asset-transfers.index');
 
-            Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');
-            Route::put('{user}', [UserManagementController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->name('update');
+            Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.details')->name('show');
+            Route::put('{user}', [UserManagementController::class, 'update'])->middleware(CheckPermission::class . ':users.profile.edit')->name('update');
             Route::delete('{user}', [UserManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':users.delete')->name('destroy');
             Route::post('{user}/impersonate', [UserManagementController::class, 'impersonate'])->middleware(CheckPermission::class . ':users.impersonate')->name('impersonate');
             Route::post('stop-impersonation', [UserManagementController::class, 'stopImpersonation'])->name('stop-impersonation');
-            Route::post('{user}/wallet/adjust', [UserManagementController::class, 'adjustWallet'])->middleware(CheckPermission::class . ':users.credits')->name('wallet.adjust');
+            Route::post('{user}/wallet/adjust', [UserManagementController::class, 'adjustWallet'])->middleware(CheckPermission::class . ':users.coins.grant|users.coins.deduct')->name('wallet.adjust');
             Route::get ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'edit'])->middleware(CheckPermission::class . ':users.assign_roles|users.grant_admin|users.revoke_admin')->whereNumber('user')->name('roles.edit');
             Route::put ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'update'])->middleware(CheckPermission::class . ':users.assign_roles')->whereNumber('user')->name('roles.update');
-            Route::get ('{user}/roles/audit.csv', [\App\Modules\Admin\Controllers\UserRoleController::class, 'export'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.audit.export');
+            Route::get ('{user}/roles/audit.csv', [\App\Modules\Admin\Controllers\UserRoleController::class, 'export'])->middleware(CheckPermission::class . ':users.audit.export')->whereNumber('user')->name('roles.audit.export');
             Route::post  ('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'grantAdminAccess'])->middleware(CheckPermission::class . ':users.grant_admin')->whereNumber('user')->name('admin-access.grant');
             Route::delete('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'revokeAdminAccess'])->middleware(CheckPermission::class . ':users.revoke_admin')->whereNumber('user')->name('admin-access.revoke');
 
@@ -969,14 +974,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{user}/assign-plan', [UserManagementController::class, 'assignPlan'])->middleware(CheckPermission::class . ':users.assign_plan')->whereNumber('user')->name('assign-plan');
             Route::post('{user}/suspend',       [UserManagementController::class, 'suspend'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('suspend');
             Route::post('{user}/reactivate',   [UserManagementController::class, 'reactivate'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('reactivate');
-            Route::post('{user}/set-password', [UserManagementController::class, 'setPassword'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('set-password');
+            Route::post('{user}/set-password', [UserManagementController::class, 'setPassword'])->middleware(CheckPermission::class . ':users.password.set')->whereNumber('user')->name('set-password');
 
             // Grant / revoke the asset-transfer capability (Task: admin-granted
             // link & workspace transfer). Same gate as other account mutations.
-            Route::post('{user}/transfer-capability', [UserManagementController::class, 'toggleTransferCapability'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('transfer-capability');
+            Route::post('{user}/transfer-capability', [UserManagementController::class, 'toggleTransferCapability'])->middleware(CheckPermission::class . ':users.transfer.manage')->whereNumber('user')->name('transfer-capability');
 
             // Attach/detach admin account badges for a single user.
-            Route::put('{user}/badges', [UserManagementController::class, 'updateBadges'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('badges.update');
+            Route::put('{user}/badges', [UserManagementController::class, 'updateBadges'])->middleware(CheckPermission::class . ':users.badges.assign')->whereNumber('user')->name('badges.update');
         });
 
         // Admin-managed account badges (definition CRUD). Listing mirrors

@@ -105,6 +105,7 @@ class LinkManagementController extends Controller
 
     public function bulkAction(Request $request)
     {
+        abort_unless(auth('admin')->user()?->hasPermission($request->input('action') === 'delete' ? 'links.delete' : 'links.toggle'), 403);
         $request->validate([
             'action' => 'required|in:enable,disable,delete',
             'link_ids' => 'required|array|min:1',

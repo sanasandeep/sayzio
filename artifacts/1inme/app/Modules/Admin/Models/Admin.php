@@ -35,6 +35,7 @@ class Admin extends Authenticatable
     {
         if (!$this->role) return false;
         if ($this->role->slug === 'super-admin') return true;
+        if ($this->role->relationLoaded('permissions')) return $this->role->permissions->contains('slug', $slug);
         return $this->role->permissions()->where('slug', $slug)->exists();
     }
 
@@ -42,6 +43,7 @@ class Admin extends Authenticatable
     {
         if (!$this->role) return false;
         if ($this->role->slug === 'super-admin') return true;
+        if ($this->role->relationLoaded('permissions')) return $this->role->permissions->contains(fn ($permission) => in_array($permission->slug, $slugs, true));
         return $this->role->permissions()->whereIn('slug', $slugs)->exists();
     }
 

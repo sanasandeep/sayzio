@@ -26,7 +26,7 @@ export async function getAdminCapabilities(): Promise<AdminCapabilities> {
 
 /**
  * Set (or replace) the password for a user account.
- * The calling admin must hold the `users.edit` permission;
+ * The calling admin must hold the `users.password.set` permission and full identity/contact visibility;
  * protected accounts are rejected with 403.
  */
 export async function setUserPassword(

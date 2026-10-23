@@ -25,7 +25,7 @@
         <td><code>{{ $r->gateway_ref }}</code></td>
         <td>{{ $r->created_at }}</td>
       </tr>
-      @if ($r->status === 'pending')
+      @if ($r->status === 'pending' && auth('admin')->user()?->hasPermission('finance.refunds.confirm'))
         <tr>
           <td colspan="5" class="bg-light">
             <form method="POST" action="{{ route('admin.refunds.confirm', $r) }}" class="d-flex gap-2 align-items-end mb-0">
@@ -49,6 +49,7 @@
   <div class="card">
     <div class="card-body">
       <h6>Issue refund</h6>
+      @if(auth('admin')->user()?->hasPermission('finance.refunds.create'))
       <form method="POST" action="{{ route('admin.invoices.refund', $invoice) }}">
         @csrf
         <div class="mb-2">
@@ -66,6 +67,7 @@
         </div>
         <button class="btn btn-danger">Issue refund</button>
       </form>
+      @endif
     </div>
   </div>
   @endif

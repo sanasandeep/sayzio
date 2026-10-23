@@ -416,7 +416,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // ── Authenticated ───────────────────────────────────────────────
-    Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class, \App\Modules\Api\Middleware\MeterApiUsage::class, \App\Modules\User\Middleware\EnforceApiWorkspaceFeature::class])->group(function () {
+    Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class, \App\Modules\Api\Middleware\MeterApiUsage::class, \App\Modules\User\Middleware\EnforceApiWorkspaceFeature::class, \App\Modules\Api\Middleware\StaffPrivacy::class])->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
         Route::post('/auth/logout',[AuthController::class, 'logout']);
         // Zio Browser: exchange the Sanctum token for a one-time signed web

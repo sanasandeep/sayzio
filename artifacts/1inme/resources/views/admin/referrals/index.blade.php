@@ -11,13 +11,17 @@
             <h2 class="text-sm font-semibold text-white ak-strong">Referral program</h2>
             <p class="text-xs text-white/50 mt-1 ak-muted">Toggle the program globally. When off, the dashboard, /r/&lcub;code&rcub; route, and reward engine all stop.</p>
         </div>
-        <form method="POST" action="{{ route('admin.referrals.toggle') }}">
+
+@if(auth('admin')->user()?->hasPermission('finance.referrals.manage'))
+<form method="POST" action="{{ route('admin.referrals.toggle') }}">
             @csrf
             <input type="hidden" name="enabled" value="{{ $enabled ? 0 : 1 }}">
             <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium {{ $enabled ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white' }}">
                 {{ $enabled ? 'Disable' : 'Enable' }}
             </button>
         </form>
+@endif
+
     </div>
 
     {{-- Totals --}}

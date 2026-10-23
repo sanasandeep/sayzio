@@ -16,6 +16,9 @@ html.light-mode .admin-users-protected { color: #065f46; }
 @php($canBulk = $canBulkPlan || $canBulkCredits)
 @php($canDeleteUsers = $operator?->hasPermission('users.delete'))
 @section('content')
+@if(auth('admin')->user()?->isSuperAdmin())
+<a class="inline-block underline mb-4" href="{{ request()->fullUrlWithQuery(['workbench' => 1]) }}">Open the detailed staff workbench</a>
+@endif
 <div @if($canBulk) x-data="bulkUsers()" @endif>
 @if(request('promote'))
 <div class="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">

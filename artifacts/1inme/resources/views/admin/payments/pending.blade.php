@@ -40,11 +40,13 @@
                                     <i class="fa-solid fa-user-check"></i> Buyer ref: <span class="font-mono">{{ $buyerRef }}</span>
                                 </div>
                             @endif
+                            @if(auth('admin')->user()?->hasPermission('finance.payments.confirm'))
                             <form method="POST" action="{{ route('admin.payments.mark-paid', $inv) }}" class="flex items-center gap-2" onsubmit="return window.themedConfirmSubmit(this, {title: 'Mark invoice {{ $inv->number }} as paid?', message: 'The subscription will be activated immediately.', confirmText: 'Mark paid', confirmIcon: 'fa-check', iconClass: 'fa-check'})">
                                 @csrf
                                 <input type="text" name="reference" value="{{ $buyerRef }}" placeholder="Reference #" class="px-2 py-1 rounded bg-white/5 border border-white/10 text-white text-xs w-32 ak-strong ak-input">
                                 <button type="submit" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium">Mark paid</button>
                             </form>
+                            @endif
                         </td>
                     </tr>
                 @empty

@@ -61,9 +61,14 @@ class AssetTransferService
      *
      * @return AssetTransfer the audit row
      */
-    public function transferLink(Link $link, User $sender, User $recipient, string $channel = 'web'): AssetTransfer
+    public function transferLink(Link $link, User $sender, User $recipient, string $channel = 'web', ?\App\Modules\Admin\Models\Admin $operator = null): AssetTransfer
     {
-        $this->assertCanTransfer($sender, $recipient);
+        if ($operator !== null) {
+            abort_unless($operator->status === 'active' && $operator->hasPermission('users.links.assign'), 403);
+            if ($sender->id === $recipient->id) throw new \InvalidArgumentException('Choose a different recipient.');
+        } else {
+            $this->assertCanTransfer($sender, $recipient);
+        }
         if ((int) $link->user_id !== (int) $sender->id) {
             throw new \RuntimeException('You can only transfer links you own.');
         }
@@ -121,7 +126,11 @@ class AssetTransferService
             ]);
         });
 
-        $this->notifyBothParties($transfer, 'link', $label, $sender, $recipient);
+        if ($operator !== null) {
+            DB::afterCommit(fn () => $this->notifyBothParties($transfer, 'link', $label, $sender, $recipient));
+        } else {
+            $this->notifyBothParties($transfer, 'link', $label, $sender, $recipient);
+        }
 
         return $transfer;
     }
