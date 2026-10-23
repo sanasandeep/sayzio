@@ -1,6 +1,10 @@
 @extends('user.layouts.settings')
 @section('title', 'Creator Profile')
 @section('settings-content')
+@if($user->profile_verification_status === 'unverified' && $user->profile_verified_name)
+<div role="alert" class="rounded-xl border p-4 mb-4" style="border-color:var(--border-soft);color:var(--text-primary)">Your identity has changed. Your verified badge is inactive. <a class="underline font-semibold" href="{{ route('user.profile-verification.request') }}">Apply for verification again</a> to restore it after review.</div>
+@endif
+
 @include('user.creator-profile.editor-design')
 @php
     $initialEditorSection = $errors->any() ? \App\Modules\User\Support\CreatorProfileVisibility::editorSection($errors->keys()[0]) : 'design';
@@ -108,6 +112,9 @@
                     <p class="text-sm font-bold" style="color: var(--text-primary);">Handle</p>
                     <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Your profile lives at <a href="{{ $profileUrl }}" target="_blank" rel="noopener" class="font-semibold break-all" style="color:var(--accent)">{{ '@'.$user->handle }}</a>. Changing it changes your public URL; old links to the previous handle stop working.</p>
                 </div>
+                @if($user->isVerified())
+                <p role="alert" class="text-xs" style="color:var(--text-muted)">Changing your handle removes your verified badge. You must apply for verification again after saving.</p>
+                @endif
                 <button type="button" @click="editing = !editing"
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
                         style="background: rgba(61,107,255,0.10); border: 1px solid rgba(61,107,255,0.25); color: var(--text-primary);">

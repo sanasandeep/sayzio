@@ -79,6 +79,30 @@ class VerificationEvidenceTest extends TestCase
         }
     }
 
+    public function test_identity_changes_require_a_fresh_verification_application(): void
+    {
+        foreach (['name', 'handle'] as $field) {
+            $user = new User;
+            $user->setRawAttributes(['name'=>'Example','handle'=>'example','profile_verification_status'=>'verified'], true);
+            $this->assertFalse($user->invalidateVerificationForIdentityChange());
+            $user->{$field} = 'changed';
+            $this->assertTrue($user->invalidateVerificationForIdentityChange());
+            $this->assertFalse($user->isVerified());
+            $this->assertSame('unverified', $user->profile_verification_status);
+        }
+    }
+
+    public function test_saved_identity_change_invalidates_badge_and_pending_review(): void
+    {
+        DB::table('users')->where('id',7)->update(['profile_verification_status'=>'verified']);
+        DB::table('profile_verification_requests')->insert(['user_id'=>7,'tick_type_id'=>1,'official_name'=>'Example','purpose'=>'Review','status'=>'pending','kind'=>'reverification']);
+        $user = User::find(7);
+        $user->name = 'Changed';
+        $user->save();
+        $this->assertSame('unverified', User::find(7)->profile_verification_status);
+        $this->assertSame('superseded', DB::table('profile_verification_requests')->value('status'));
+    }
+
     public function test_verified_bar_requires_approved_status_and_uses_admin_color(): void
     {
         $creator=new User(['profile_verification_status'=>'unverified']);
@@ -86,10 +110,10 @@ class VerificationEvidenceTest extends TestCase
         $this->assertStringNotContainsString('cp-verification-bar',view('public.partials.creator-verification-bar',compact('creator'))->render());
         $creator->profile_verification_status='verified';
         $html=view('public.partials.creator-verification-bar',compact('creator'))->render();
-        $this->assertStringContainsString('Verified · NGO',$html);
+        $this->assertStringNotContainsString('<span',$html);
         $this->assertStringContainsString('--cp-verified:#00ba7c',$html);
         $creator->profile_verification_status='pending_reverification';
-        $this->assertStringContainsString('Update under review',view('public.partials.creator-verification-bar',compact('creator'))->render());
+        $this->assertStringContainsString('cp-verification-bar',view('public.partials.creator-verification-bar',compact('creator'))->render());
     }
 
     public function test_evidence_is_escaped_in_admin_review(): void

@@ -49,8 +49,6 @@ html[data-profile-layout="minimal"] .cp-hero-top>div:first-child{grid-column:1;g
 html[data-profile-layout="minimal"] .cp-hero-top>div:last-child{grid-column:1/-1;grid-row:2;justify-content:flex-start}
 html[data-profile-layout="minimal"] .cp-hero-identity{grid-column:2;grid-row:1;margin-top:0;align-self:center}
 @media(max-width:420px){.cp-hero-top{gap:12px}.cp-hero-top>div:last-child{gap:6px}.cp-profile-hero .cp-hero-identity h1{font-size:1.6rem}}
-.cp-verification-bar{position:relative;z-index:2;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 16px;font-size:11px;font-weight:650;color:var(--cp-verified);background:color-mix(in srgb,var(--cp-verified) 9%,var(--cp-card-bg,#fff));border-bottom:1px solid color-mix(in srgb,var(--cp-verified) 25%,transparent)}
-.cp-verification-note{margin-left:auto;font-size:10px;color:inherit;opacity:.85}
-html[data-profile-mode="dark"] .cp-verification-bar{--cp-card-bg:#1b1f29}
+.cp-verification-bar{position:relative;z-index:2;height:4px;background:var(--cp-verified)}
 html[data-profile-layout="minimal"] .cp-verification-bar{margin-top:-32px;margin-bottom:24px}
 </style>
