@@ -40,4 +40,13 @@ class OwnerPreview
         return $request->boolean('_preview')
             && $request->hasValidSignatureWhileIgnoring(self::APPENDED_AFTER_SIGNING, false);
     }
+    /** Ignore only the publication switch for a signed editor preview. */
+    public static function canAccess(\App\Modules\User\Models\Link $link, Request $request): bool
+    {
+        if ($link->isAccessible()) return true;
+        if ($link->is_active || !self::is($request)) return false;
+        $preview = clone $link;
+        $preview->is_active = true;
+        return $preview->isAccessible();
+    }
 }

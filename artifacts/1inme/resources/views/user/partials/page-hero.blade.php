@@ -87,7 +87,9 @@
         @if(!empty($actions))
             <div class="hero-actions">
                 @foreach($actions as $a)
-                    @if(!empty($a['menu']))
+                    @if(isset($a['linkStatus']))
+                        @include('user.links.partials.status-control', ['link' => $a['linkStatus']])
+                    @elseif(!empty($a['menu']))
                         {{-- An action with more than one destination. Built on
                              <details> rather than a JS dropdown: it opens on
                              click, closes on Escape and is keyboard-reachable
