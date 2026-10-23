@@ -150,6 +150,7 @@ class CreatorProfile extends Model
 
         $overlay = array_intersect_key($this->getAttributes(), array_flip(self::FIELDS));
         $owner->setRawAttributes(array_merge($owner->getAttributes(), $overlay));
+        $owner->invalidateVerificationForIdentityChange();
         $owner->saveQuietly();
     }
 

@@ -45,7 +45,7 @@ class ProfileVerificationController extends Controller
         return view('user.verification.index', compact('user', 'requests', 'tickTypes'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $user = Auth::user();
         if (in_array($user->profile_verification_status, ['pending', 'verified', 'pending_reverification'], true)) {
@@ -60,7 +60,13 @@ class ProfileVerificationController extends Controller
             'icon'  => $t->icon,
             'color' => $t->color,
         ]])->all();
-        return view('user.verification.request', compact('user', 'tickTypes', 'tickMap'));
+        $requestedType = $request->query('tick_type_id', '');
+        $requestedType = is_scalar($requestedType) ? (string) $requestedType : '';
+        $allowedType = $tickTypes->first(fn ($type) => (string) $type->id === $requestedType);
+        $defaultType = $allowedType ?? $tickTypes->firstWhere('slug', 'creator') ?? $tickTypes->first();
+        $oldType = old('tick_type_id', $defaultType?->id ?? '');
+        $selectedTickTypeId = is_scalar($oldType) ? (string) $oldType : '';
+        return view('user.verification.request', compact('user', 'tickTypes', 'tickMap', 'selectedTickTypeId'));
     }
 
     public function store(Request $request)

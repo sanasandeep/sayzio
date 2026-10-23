@@ -258,6 +258,18 @@ class User extends Authenticatable
         return $this->profile_verification_status === 'pending_reverification';
     }
 
+    /** Identity changes invalidate approval; the user must submit fresh evidence. */
+    public function invalidateVerificationForIdentityChange(): bool
+    {
+        if (!in_array($this->getRawOriginal('profile_verification_status'), ['verified', 'pending_reverification'], true) || !$this->isVerified() || !$this->isDirty(['name', 'handle'])) return false;
+        if ($this->isDirty('profile_verification_status') && $this->profile_verification_status === 'verified') return false;
+        $this->profile_verification_status = 'unverified';
+        if ($this->exists) {
+            ProfileVerificationRequest::where('user_id', $this->id)->where('status', 'pending')->update(['status'=>'superseded']);
+        }
+        return true;
+    }
+
     /** True when the user's profile name/avatar are locked (they are verified). */
     public function isNameAvatarLocked(): bool
     {
@@ -514,6 +526,9 @@ class User extends Authenticatable
      */
     protected static function booted(): void
     {
+        static::updating(function (User $user) {
+            $user->invalidateVerificationForIdentityChange();
+        });
         static::created(function (User $user) {
             $primaryAssigned = false;
             if (!empty($user->email)) {

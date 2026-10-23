@@ -62,6 +62,60 @@ class VerificationEvidenceTest extends TestCase
             DB::table('users')->where('id',7)->update(['profile_verification_status'=>null]);
         }
     }
+    public function test_application_preselects_only_active_requestable_types(): void
+    {
+        DB::table('verification_tick_types')->insert([
+            ['id'=>2,'name'=>'Official','slug'=>'team','is_active'=>true,'admin_assigned_only'=>true,'sort_order'=>2],
+            ['id'=>3,'name'=>'NGO','slug'=>'ngo','is_active'=>true,'admin_assigned_only'=>false,'sort_order'=>3],
+            ['id'=>4,'name'=>'Inactive','slug'=>'inactive','is_active'=>false,'admin_assigned_only'=>false,'sort_order'=>4],
+        ]);
+        \Illuminate\Support\Facades\Auth::setUser(User::find(7));
+        foreach ([3=>'3',2=>'1',4=>'1',999=>'1'] as $requested=>$expected) {
+            $request=\Illuminate\Http\Request::create('/request?tick_type_id='.$requested);
+            $this->app->instance('request',$request);$request->setLaravelSession($this->app['session']->driver());
+            $view=(new \App\Modules\User\Controllers\ProfileVerificationController)->create($request);
+            $this->assertSame($expected,$view->getData()['selectedTickTypeId']);
+            $this->assertSame('Creator', $view->getData()['tickTypes']->first()->name);
+        }
+    }
+
+    public function test_identity_changes_require_a_fresh_verification_application(): void
+    {
+        foreach (['name', 'handle'] as $field) {
+            $user = new User;
+            $user->setRawAttributes(['name'=>'Example','handle'=>'example','profile_verification_status'=>'verified'], true);
+            $this->assertFalse($user->invalidateVerificationForIdentityChange());
+            $user->{$field} = 'changed';
+            $this->assertTrue($user->invalidateVerificationForIdentityChange());
+            $this->assertFalse($user->isVerified());
+            $this->assertSame('unverified', $user->profile_verification_status);
+        }
+    }
+
+    public function test_saved_identity_change_invalidates_badge_and_pending_review(): void
+    {
+        DB::table('users')->where('id',7)->update(['profile_verification_status'=>'verified']);
+        DB::table('profile_verification_requests')->insert(['user_id'=>7,'tick_type_id'=>1,'official_name'=>'Example','purpose'=>'Review','status'=>'pending','kind'=>'reverification']);
+        $user = User::find(7);
+        $user->name = 'Changed';
+        $user->save();
+        $this->assertSame('unverified', User::find(7)->profile_verification_status);
+        $this->assertSame('superseded', DB::table('profile_verification_requests')->value('status'));
+    }
+
+    public function test_verified_bar_requires_approved_status_and_uses_admin_color(): void
+    {
+        $creator=new User(['profile_verification_status'=>'unverified']);
+        $creator->setRelation('verificationTickType',new \App\Modules\User\Models\VerificationTickType(['name'=>'NGO','color'=>'#00ba7c','icon'=>'fa-heart']));
+        $this->assertStringNotContainsString('cp-verification-bar',view('public.partials.creator-verification-bar',compact('creator'))->render());
+        $creator->profile_verification_status='verified';
+        $html=view('public.partials.creator-verification-bar',compact('creator'))->render();
+        $this->assertStringNotContainsString('<span',$html);
+        $this->assertStringContainsString('--cp-verified:#00ba7c',$html);
+        $creator->profile_verification_status='pending_reverification';
+        $this->assertStringContainsString('cp-verification-bar',view('public.partials.creator-verification-bar',compact('creator'))->render());
+    }
+
     public function test_evidence_is_escaped_in_admin_review(): void
     {
         $req=new ProfileVerificationRequest(['additional_info'=>'<script>bad()</script>','supporting_urls'=>['https://example.test/?x=1&y=2']]);

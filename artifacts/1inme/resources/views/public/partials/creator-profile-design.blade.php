@@ -49,4 +49,6 @@ html[data-profile-layout="minimal"] .cp-hero-top>div:first-child{grid-column:1;g
 html[data-profile-layout="minimal"] .cp-hero-top>div:last-child{grid-column:1/-1;grid-row:2;justify-content:flex-start}
 html[data-profile-layout="minimal"] .cp-hero-identity{grid-column:2;grid-row:1;margin-top:0;align-self:center}
 @media(max-width:420px){.cp-hero-top{gap:12px}.cp-hero-top>div:last-child{gap:6px}.cp-profile-hero .cp-hero-identity h1{font-size:1.6rem}}
+.cp-verification-bar{position:relative;z-index:2;height:4px;background:var(--cp-verified)}
+html[data-profile-layout="minimal"] .cp-verification-bar{margin-top:-32px;margin-bottom:24px}
 </style>

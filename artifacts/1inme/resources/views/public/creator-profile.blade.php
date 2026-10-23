@@ -240,6 +240,7 @@
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <header class="cp-card cp-profile-hero overflow-hidden mt-4">
+        @include('public.partials.creator-verification-bar')
         <div class="h-40 sm:h-56 relative" data-cp-cover style="background: {{ $creator->profile_theme_color ? 'linear-gradient(135deg, var(--cp-accent), var(--cp-accent-mid))' : 'var(--cp-cover,linear-gradient(135deg,#3b82f6,#a855f7))' }};">
             <img data-cp-cover-image @if($creator->cover_image) src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" @else style="display:none" @endif alt="" class="absolute inset-0 w-full h-full object-cover">
         </div>
