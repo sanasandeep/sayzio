@@ -46,6 +46,22 @@
         domainId: @js($link->domain_id ? (string) $link->domain_id : ''),
         savedAlias: @js($link->alias),
         savedDomainId: @js($link->domain_id ? (string) $link->domain_id : ''),
+        /* `this.` on every one of these, and it is the whole bug.
+         *
+         * Alpine evaluates ATTRIBUTE expressions inside a `with(scope)`, so
+         * `@click="save()"` and `x-model="alias"` resolve bare names. A method
+         * defined in x-data is an ordinary function on the data object: a bare
+         * `alias` in its body is a free variable, and there is no global
+         * called alias.
+         *
+         * So this threw `ReferenceError: alias is not defined` on the very
+         * first line that built the body -- before fetch was ever reached.
+         * Alpine catches what a handler throws and logs it, so the button did
+         * nothing at all: no request, no alert, no error on screen. Reproduced
+         * on the live page with fetch intercepted: Save produced zero requests
+         * and zero alerts, and `save()` called directly threw that
+         * ReferenceError.
+         */
         save() {
             fetch('{{ route('user.links.update-alias', $link) }}', {
                 method: 'PUT',
@@ -54,11 +70,23 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
                     'Accept':'application/json'
                 },
-                body: JSON.stringify({alias: alias, domain_id: domainId || null})
-            }).then(r => r.json()).then(d => {
-                if (d.success || !d.errors) { editing = false; location.reload(); }
-                else { alert(d.errors?.alias?.[0] || d.errors?.domain_id?.[0] || d.message || 'Error'); domainId = savedDomainId; }
-            }).catch(() => { alert('Error'); domainId = savedDomainId; })
+                body: JSON.stringify({alias: this.alias, domain_id: this.domainId || null})
+            }).then(async r => {
+                const d = await r.json().catch(() => ({}));
+                /* `!d.errors` alone treated every non-validation failure as a
+                 * success and reloaded, which shows the OLD value with no
+                 * message -- indistinguishable from the bug above. A 403 or a
+                 * 500 carries a `message` and no `errors`, so the status is
+                 * what has to decide. */
+                if (r.ok) { this.editing = false; location.reload(); return; }
+                alert(d.errors?.alias?.[0] || d.errors?.domain_id?.[0] || d.message || ('Could not save (HTTP ' + r.status + ')'));
+                this.alias = this.savedAlias;
+                this.domainId = this.savedDomainId;
+            }).catch(() => {
+                alert('Could not reach the server. Your alias was not changed.');
+                this.alias = this.savedAlias;
+                this.domainId = this.savedDomainId;
+            })
         }
     }">
     <div class="flex items-center justify-between mb-4">
@@ -140,6 +168,8 @@
                  x-data="{
                      domainId: @js($a->domain_id ? (string) $a->domain_id : ''),
                      saved: @js($a->domain_id ? (string) $a->domain_id : ''),
+                     /* Same bug, same fix: rebinding an extra alias to a
+                      * different domain threw before it sent anything. */
                      saveDomain() {
                          fetch('{{ route('user.links.aliases.update-domain', [$link, $a]) }}', {
                              method: 'PUT',
@@ -148,11 +178,16 @@
                                  'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
                                  'Accept':'application/json'
                              },
-                             body: JSON.stringify({domain_id: domainId || null})
-                         }).then(r => r.json()).then(d => {
-                             if (d.success || !d.errors) { location.reload(); }
-                             else { alert(d.errors?.domain_id?.[0] || d.message || 'Error'); domainId = saved; }
-                         }).catch(() => { alert('Error'); domainId = saved; })
+                             body: JSON.stringify({domain_id: this.domainId || null})
+                         }).then(async r => {
+                             const d = await r.json().catch(() => ({}));
+                             if (r.ok) { location.reload(); return; }
+                             alert(d.errors?.domain_id?.[0] || d.message || ('Could not save (HTTP ' + r.status + ')'));
+                             this.domainId = this.saved;
+                         }).catch(() => {
+                             alert('Could not reach the server. The domain was not changed.');
+                             this.domainId = this.saved;
+                         })
                      }
                  }">
                 <select x-model="domainId" @change="saveDomain()"
