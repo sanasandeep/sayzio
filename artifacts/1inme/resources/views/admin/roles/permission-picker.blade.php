@@ -2,13 +2,7 @@
     $catalog = \App\Modules\Admin\Support\StaffPermissionCatalog::definitions();
     $riskLabels = \App\Modules\Admin\Support\StaffRoleTools::labels();
     $permissionRows = $permissions->flatten()->map(fn ($p) => ['id' => (string) $p->id, 'group' => $p->group ?: 'General', 'search' => strtolower(($p->group ?: 'General').' '.$p->name.' '.$p->slug.' '.($catalog[$p->slug]['description'] ?? '')), 'risk' => \App\Modules\Admin\Support\StaffRoleTools::risk($p->slug)])->values();
-    $presetRows = collect(\App\Modules\Admin\Support\StaffRoleTools::presets())->map(function ($preset) use ($permissions) {
-        $all = $permissions->flatten();
-        $matches = $all->whereIn('slug', $preset['permissions']);
-        $preset['ids'] = $matches->pluck('id')->map(fn ($id) => (string) $id)->values()->all();
-        $preset['available'] = $matches->count() === count($preset['permissions']) && $matches->every(fn ($p) => auth('admin')->user()->hasPermission($p->slug));
-        return $preset;
-    });
+    $presetRows = \App\Modules\Admin\Support\StaffRoleTools::resolvedPresets($permissions->flatten(), auth('admin')->user());
     $picked = array_map('strval', old('permission_selection_present') ? old('permissions', []) : ($rolePermissions ?? []));
 @endphp
 <div x-data="staffRolePicker(@js($picked), @js($permissionRows), @js($presetRows))" class="space-y-4">
@@ -21,9 +15,12 @@
             <select id="role-preset" x-model="preset" class="ak-input w-full rounded-xl border border-white/10 bg-white/5 p-3">
                 <option value="">Choose a starting point</option>
                 @foreach($presetRows as $key => $template)
-                    <option value="{{ $key }}" @disabled(!$template['available'])>{{ $template['name'] }}{{ $template['available'] ? '' : ' (unavailable with your permissions)' }}</option>
+                    <option value="{{ $key }}" @disabled(!$template['available'])>{{ $template['name'] }}{{ $template['available'] ? '' : ' ('.$template['unavailable_reason'].')' }}</option>
                 @endforeach
             </select>
+            @if($presetRows->contains(fn ($preset) => !empty($preset['missing'])))
+                <p class="text-sm ak-amber text-amber-300" role="status">Some presets need a permission catalog update. Missing records: {{ $presetRows->pluck('missing')->flatten()->unique()->implode(', ') }}. This does not indicate reduced Super Admin access.</p>
+            @endif
             <p class="text-sm ak-muted" x-text="presets[preset]?.description || 'Presets use explicit permissions. They do not create or assign a role until you save.'"></p>
             <button type="button" @click="applyPreset()" :disabled="!presets[preset]?.available" class="px-3 py-2 rounded-xl border border-white/10 font-medium disabled:opacity-40">Replace selection with preset</button>
             <p class="text-xs ak-muted">Applying a preset replaces all selected permissions, including hidden selections.</p>
