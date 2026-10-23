@@ -34,7 +34,15 @@
     $navStorageKey = 'sayzio_navigation_' . (auth()->id() ?? 'guest');
 
     $navScopes = [
-        'rail'   => '.navrail',
+        /* The account block is a SIBLING of .navrail, so it inherits its
+           tokens from .sidebar-shell -- the panel's scope. That is right
+           while it spans the panel, and wrong once the rail is minimised,
+           because it then occupies the rail's own column exactly: measured
+           at x=15 w=55 against a rail at x=15 w=55, painting #ffffff
+           inside a #0b0a11 rail. Naming it here makes it take the rail's
+           colours in that state and the panel's in the other, without a
+           second copy of the block or a markup change. */
+        'rail'   => ':is(.navrail, .navrail-wrap[data-rail-min="1"] .navrail-account)',
         'panel'  => ':is(.sidebar-shell,.navigation-mobile,.navrail-panel)',
         'topbar' => '.header-v2',
         'page'   => 'body',

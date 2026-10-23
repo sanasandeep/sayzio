@@ -112,7 +112,12 @@
         .dash-glass {
             background: rgba(255, 255, 255, 0.04) !important;
             border-color: transparent !important;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2), 0 12px 32px rgba(0, 0, 0, 0.4) !important;
+            /* Split into two custom properties so one surface can swap its
+               DROP without restating the inset list. The rail card does
+               exactly that below. */
+            --glass-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 1.5px 2px 0 -1px rgba(255, 255, 255, 0.4), inset -1.5px -1.5px 0 -1px rgba(255, 255, 255, 0.2), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.15), inset 0 0 8px 1px rgba(0, 0, 0, 0.2);
+            --glass-drop: 0 12px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: var(--glass-inset), var(--glass-drop) !important;
         }
         @supports (backdrop-filter: blur(8px)) {
             .dash-glass {
@@ -126,8 +131,29 @@
                through as a dark-blue tint that washed out sidebar text. */
             background: rgba(255, 255, 255, 0.92) !important;
             border-color: transparent !important;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02), 0 12px 32px rgba(0, 0, 0, 0.08) !important;
+            --glass-inset: inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 1.8px 3px 0 -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0 -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0 rgba(0, 0, 0, 0.05), inset 0 0 8px 1px rgba(0, 0, 0, 0.02);
+            --glass-drop: 0 12px 32px rgba(0, 0, 0, 0.08);
+            box-shadow: var(--glass-inset), var(--glass-drop) !important;
         }
+
+        /* The rail sidebar is an inset CARD, and a card needs a card's
+           shadow. dash-glass is a chrome utility: its drop is 8% black in
+           light mode, which against a white page is all but invisible --
+           "sidebar and panel border not clear in light mode" (Sana).
+           #565 removed the aurora rule that was deleting the shadow
+           outright; this is the remaining half, because what dash-glass
+           then painted afterwards was still its own very soft drop.
+
+           Only the DROP is swapped. The inset highlights are what make
+           the glass read as glass, and they stay.
+
+           Both the placement and the first selector are load-bearing.
+           `html.light-mode .dash-glass` is (0,2,1); a bare
+           `.dash-glass.rail-card` is (0,2,0), so on its own it would lose
+           in light mode -- the exact theme in which the card is hard to
+           see. It has to come after that rule AND match its specificity. */
+        html.light-mode .dash-glass.rail-card,
+        .dash-glass.rail-card { --glass-drop: var(--card-shadow-hover); }
         @supports (backdrop-filter: blur(8px)) {
             html.light-mode .dash-glass {
                 background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.88) 100%) !important;
