@@ -23,7 +23,7 @@ class CreatorProfilePresentationTest extends TestCase
         $this->app['config']->set('database.connections.sqlite.database', ':memory:');
         $this->app['config']->set('cache.default', 'array');
         DB::purge('sqlite');
-        Schema::create('links', function ($t) { $t->id(); $t->integer('user_id'); $t->integer('workspace_id')->nullable(); $t->string('type'); $t->boolean('is_active'); });
+        Schema::create('links', function ($t) { $t->id(); $t->integer('user_id'); $t->integer('workspace_id')->nullable(); $t->string('alias')->nullable(); $t->string('type'); $t->boolean('is_active'); });
         DB::table('links')->insert([
             ['id'=>1,'user_id'=>7,'workspace_id'=>10,'type'=>'biolink','is_active'=>true],
             ['id'=>2,'user_id'=>7,'workspace_id'=>11,'type'=>'biolink','is_active'=>true],
@@ -80,6 +80,51 @@ class CreatorProfilePresentationTest extends TestCase
             catch(\Illuminate\Validation\ValidationException $e){$this->assertArrayHasKey('primary_biolink_id',$e->errors());}
         }
     }
+    public function test_redirect_choice_is_scoped_optional_and_survives_partial_updates(): void
+    {
+        $user=$this->creator(); $profile=new CreatorProfile(['workspace_id'=>10,'user_id'=>7]);
+        CreatorProfileController::saveShowcaseFields($user,[], $profile);
+        $this->assertSame('profile', $profile->profile_showcase['profile_destination']);
+        CreatorProfileController::saveShowcaseFields($user,['profile_destination'=>'redirect','redirect_link_id'=>3],$profile);
+        $this->assertSame(3,$profile->profile_showcase['redirect_link_id']);
+        CreatorProfileController::saveShowcaseFields($user,[],$profile);
+        $this->assertSame('redirect',$profile->profile_showcase['profile_destination']);
+        CreatorProfileController::saveShowcaseFields($user,['profile_destination'=>'profile'],$profile);
+        $this->assertSame('profile',$profile->profile_showcase['profile_destination']);
+        foreach ([null,2,4,5] as $invalid) {
+            try { CreatorProfileController::saveShowcaseFields($user,['profile_destination'=>'redirect','redirect_link_id'=>$invalid],$profile); $this->fail('Reject missing or unavailable redirect'); }
+            catch (\Illuminate\Validation\ValidationException $e) { $this->assertArrayHasKey('redirect_link_id',$e->errors()); }
+        }
+    }
+
+    public function test_redirect_response_is_temporary_scoped_and_skips_resource_routes(): void
+    {
+        DB::table('links')->where('id',3)->update(['alias'=>'portfolio']);
+        $user=$this->creator();
+        $user->setRelation('activeCreatorProfile',new CreatorProfile(['workspace_id'=>10]));
+        $user->profile_showcase=['profile_destination'=>'redirect','redirect_link_id'=>3];
+        $controller=new class extends \App\Modules\Common\Controllers\CreatorProfilePublicController {
+            public function destination(User $user, \Illuminate\Http\Request $request) { return $this->profileRedirect($user,$request); }
+        };
+        $request=\Illuminate\Http\Request::create('/@example');
+        $route=new \Illuminate\Routing\Route('GET','/@{handle}',fn()=>null);
+        $route->name('creator-profile.show'); $request->setRouteResolver(fn()=>$route);
+        $response=$controller->destination($user,$request);
+        $this->assertSame(302,$response->getStatusCode());
+        $this->assertSame(url('/portfolio'),$response->getTargetUrl());
+        $this->assertTrue($response->headers->hasCacheControlDirective('no-store'));
+        foreach ([2,4,5,999] as $unavailable) {
+            $user->profile_showcase=['profile_destination'=>'redirect','redirect_link_id'=>$unavailable];
+            $this->assertNull($controller->destination($user,$request));
+        }
+        $user->profile_showcase=['profile_destination'=>'redirect','redirect_link_id'=>3];
+        $route->name('creator-profile.vcard');
+        $this->assertNull($controller->destination($user,$request));
+        $route->name('creator-profile.show');
+        $user->profile_showcase=['profile_destination'=>'profile','redirect_link_id'=>3];
+        $this->assertNull($controller->destination($user,$request));
+    }
+
     public function test_sharing_resources_preserve_page_gates_and_return_downloads(): void
     {
         $creator = $this->creator();
