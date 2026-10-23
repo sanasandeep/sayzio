@@ -135,7 +135,7 @@
 <nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} mkt-nav-autohide"
      :class="{ 'mkt-nav-hidden': navHidden && openMenu === null && !mobileOpen, 'mkt-nav-drawer-open': mobileOpen }"
      style="top: var(--inme-anno-h, 0px);">
-    <div class="mkt-navbar-bar" :class="scrolled ? 'is-stuck' : ''">
+    <div class="mkt-navbar-bar" :class="{ 'is-stuck': scrolled, 'is-menu-open': mobileOpen }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="relative flex items-center justify-between h-16">
             {{-- Brand (desktop wordmark) --}}
@@ -407,7 +407,7 @@
         </div>
 
         {{-- Mobile menu — collapsible accordions (x-collapse plugin is bundled) --}}
-        <div x-show="mobileOpen" x-cloak class="lg:hidden pb-4 border-t border-white/10 mt-2 pt-3 space-y-2 overflow-y-auto overscroll-contain"
+        <div x-show="mobileOpen" x-cloak class="mkt-mobile-menu lg:hidden pb-4 border-t border-white/10 mt-2 pt-3 space-y-2 overflow-y-auto overscroll-contain"
              style="max-height: calc(100dvh - var(--inme-anno-h, 0px) - 5rem); -webkit-overflow-scrolling: touch;">
 
             {{-- Product --}}
