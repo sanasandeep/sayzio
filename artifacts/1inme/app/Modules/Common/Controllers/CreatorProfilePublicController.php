@@ -43,6 +43,14 @@ class CreatorProfilePublicController extends Controller
         // the /@handle page itself answers to anyone but the owner.
         $viewer = ViewerSession::user() ?? auth()->user();
         $isOwner = $viewer && (int) $viewer->id === (int) $creator->id;
+        // Workspace editors may preview their own workspace page without publishing it.
+        $profile = $creator->relationLoaded('activeCreatorProfile') ? $creator->activeCreatorProfile : null;
+        $canEditPreview = $request->boolean('cp_preview') && auth()->check() && $profile?->workspace
+            && auth()->user()->canInWorkspace($profile->workspace, 'settings.edit');
+        if ($canEditPreview) {
+            $viewer = auth()->user();
+            $isOwner = true;
+        }
         if (!$isOwner && !$creator->profile_published) {
             abort(404);
         }
@@ -128,6 +136,7 @@ class CreatorProfilePublicController extends Controller
             'sectionsVisible' => $sectionsVisible,
             'viewer'          => $viewer,
             'isOwner'         => $isOwner,
+            'canEditPreview'  => $canEditPreview,
             'relatedCreators' => $relatedCreators,
             // Special dates (Task #6551).
             'specialDates'    => \App\Modules\User\Support\SpecialDates::publicEntries($creator),

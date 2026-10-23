@@ -79,4 +79,18 @@ class CreatorProfileVisibilityTest extends TestCase
         $this->assertSame('visibility',CreatorProfileVisibility::editorSection('sections.posts'));
         $this->assertSame('about',CreatorProfileVisibility::editorSection('bio'));
     }
+    public function test_verification_preview_controls_are_available_only_in_authenticated_owner_preview(): void
+    {
+        $request=Request::create('/@example?cp_preview=1');$this->app->instance('request',$request);$this->app['url']->setRequest($request);$request->setLaravelSession($this->app['session']->driver());
+        \Illuminate\Support\Facades\Auth::setUser($this->creator());
+        $html=$this->render(array_fill_keys(array_keys(User::PROFILE_DEFAULT_VISIBILITY),false));
+        $this->assertStringContainsString('data-cp-verification-strip',$html);
+        $this->assertStringContainsString('data-cp-verification-tick',$html);
+        $this->assertStringContainsString('d.verificationPreview === true',$html);
+        $other=new User;$other->id=8;\Illuminate\Support\Facades\Auth::setUser($other);
+        $html=$this->render(array_fill_keys(array_keys(User::PROFILE_DEFAULT_VISIBILITY),false));
+        $this->assertStringNotContainsString('data-cp-verification-strip',$html);
+        $this->assertStringNotContainsString('d.verificationPreview === true',$html);
+    }
+
 }

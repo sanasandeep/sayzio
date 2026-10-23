@@ -834,7 +834,6 @@
                     'highlights_show_followers'    => ['label' => 'Follower count', 'key' => 'show_followers'],
                     'highlights_show_links'        => ['label' => 'Public link count', 'key' => 'show_links'],
                     'highlights_show_member_since' => ['label' => 'Member since (year)', 'key' => 'show_member_since'],
-                    'highlights_show_verified'     => ['label' => 'Verified badge in highlights', 'key' => 'show_verified'],
                 ] as $fieldName => $hlMeta)
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="hidden" name="{{ $fieldName }}" value="0">

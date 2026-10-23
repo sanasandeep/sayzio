@@ -40,8 +40,7 @@ class VerificationTickType extends Model
     public function tickHtml(string $sizeClass = 'text-sm'): string
     {
         $color = htmlspecialchars($this->color, ENT_QUOTES);
-        $icon  = htmlspecialchars($this->icon, ENT_QUOTES);
-        $name  = htmlspecialchars($this->name, ENT_QUOTES);
-        return "<i class=\"fas {$icon} {$sizeClass}\" style=\"color:{$color};\" title=\"{$name} account\"></i>";
+        $size = htmlspecialchars($sizeClass, ENT_QUOTES);
+        return "<svg class=\"inline-block shrink-0 {$size}\" style=\"color:{$color};width:1em;height:1em\" viewBox=\"0 0 24 24\" role=\"img\" aria-label=\"Verified\"><circle cx=\"12\" cy=\"12\" r=\"12\" fill=\"currentColor\"/><path d=\"M6.5 12l3.5 3.5 7.5-7.5\" fill=\"none\" stroke=\"white\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>";
     }
 }

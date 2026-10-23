@@ -107,7 +107,7 @@
     // short-lived RELATIVE signed URL minted by the owner-only API
     // endpoint /me/creator-profile/preview-url (Task #5480).
     $__cpLive = request()->boolean('cp_preview') && (
-        (auth()->check() && auth()->id() === $creator->id)
+        (auth()->check() && (auth()->id() === $creator->id || ($canEditPreview ?? false)))
         || request()->hasValidSignature(false)
     );
 @endphp
@@ -377,14 +377,10 @@
 
             <div class="cp-hero-identity mt-4">
                 <h1 class="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 flex-wrap">
-                    {{ $creator->name }}
-                    @if(method_exists($creator, 'isVerified') && $creator->isVerified())
-                        <span class="inline-flex items-center">
-                        @if($creator->verificationTickType)
-                            {!! $creator->verificationTickType->tickHtml('text-xl') !!}
-                        @else
-                            <span class="text-blue-600" title="Verified"><i class="fas fa-circle-check"></i></span>
-                        @endif
+                    <span data-cp="name">{{ $creator->name }}</span>
+                    @if($creator->isVerified() || $__cpLive)
+                        <span data-cp-verification-tick class="inline-flex items-center" style="{{ $creator->isVerified() ? '' : 'display:none' }}">
+                            {!! ($creator->verificationTickType ?? new \App\Modules\User\Models\VerificationTickType(['color'=>'#1d9bf0']))->tickHtml('text-xl') !!}
                         </span>
                     @endif
                 </h1>
@@ -440,17 +436,7 @@
                     <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Since</div>
                 </div>
             @endif
-            @if(($__hl['show_verified'] ?? true) && method_exists($creator, 'isVerified') && $creator->isVerified())
-                <div class="cp-highlight-pill flex-1 min-w-[60px]">
-                    @if($creator->verificationTickType)
-                        <div class="text-lg font-extrabold">{!! $creator->verificationTickType->tickHtml('text-lg') !!}</div>
-                        <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">{{ $creator->verificationTickType->name }}</div>
-                    @else
-                        <div class="text-lg font-extrabold text-blue-600"><i class="fas fa-circle-check"></i></div>
-                        <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Verified</div>
-                    @endif
-                </div>
-            @endif
+
         </div>
     @endif
 
@@ -866,10 +852,25 @@
         var d = e.data || {};
         if (d.type !== 'cpLive') return;
         var root = document.documentElement;
+        if (d.verificationPreview === true && e.source === window.parent && /^#[0-9a-fA-F]{6}$/.test(d.verificationColor || '')) {
+            const tick = document.querySelector('[data-cp-verification-tick]');
+            const strip = document.querySelector('[data-cp-verification-strip]');
+            if (tick) { tick.style.display = 'inline-flex'; tick.querySelector('svg')?.style.setProperty('color',d.verificationColor); }
+            if (strip) { strip.style.display = ''; strip.style.setProperty('--cp-verified',d.verificationColor); }
+            if (typeof d.name === 'string') {
+                txt('name',d.name.slice(0,200));
+                document.querySelectorAll('[data-cp-avatar]').forEach(avatar => {
+                    if (avatar.tagName !== 'IMG') avatar.textContent = d.name.trim().split(/\s+/).slice(0,2).map(word => Array.from(word)[0] || '').join('').toUpperCase();
+                });
+            }
+        }
         if (['paper','midnight','warm','mint'].includes(d.profileTheme)) root.dataset.profileTheme = d.profileTheme;
         if (['classic','centered','editorial','minimal'].includes(d.profileLayout)) root.dataset.profileLayout = d.profileLayout;
         if (['light','dark'].includes(d.profileMode)) root.dataset.profileMode = d.profileMode;
         document.querySelectorAll('[data-cp-avatar]').forEach(avatar => {
+            if (avatar.tagName !== 'IMG' && typeof d.avatarUrl === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/.test(d.avatarUrl) && d.avatarUrl.length < 3000000) {
+                const image = document.createElement('img'); image.className = avatar.className; image.style.cssText = avatar.style.cssText; image.setAttribute('data-cp-avatar',''); image.style.objectFit = 'cover'; image.src = d.avatarUrl; image.alt = 'Profile photo'; avatar.replaceWith(image); avatar = image;
+            }
             if (avatar.tagName === 'IMG' && typeof d.avatarUrl === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/.test(d.avatarUrl) && d.avatarUrl.length < 3000000) avatar.src = d.avatarUrl;
             if (['circle','rounded','square'].includes(d.avatarShape)) avatar.style.borderRadius = d.avatarShape === 'circle' ? '50%' : (d.avatarShape === 'square' ? '4px' : '20px');
             if ([80,96,128].includes(Number(d.avatarSize))) { avatar.style.width = d.avatarSize + 'px'; avatar.style.height = d.avatarSize + 'px'; }
@@ -888,14 +889,20 @@
             root.classList.toggle('light-mode', d.theme === 'light');
             root.dataset.profileMode = d.theme;
         }
-        var tagEl = txt('tagline', d.tagline);
-        if (tagEl) tagEl.style.display = d.tagline ? '' : 'none';
-        txt('location', d.location);
-        var locWrap = document.querySelector('[data-cp="location-wrap"]');
-        if (locWrap) locWrap.style.display = d.location ? '' : 'none';
-        txt('bio', d.bio);
-        var bioSec = document.querySelector('[data-cp="bio-section"]');
-        if (bioSec) bioSec.style.display = d.bio ? '' : 'none';
+        if (typeof d.tagline === 'string') {
+            const tagEl = txt('tagline', d.tagline);
+            if (tagEl) tagEl.style.display = d.tagline ? '' : 'none';
+        }
+        if (typeof d.location === 'string') {
+            txt('location', d.location);
+            const locWrap = document.querySelector('[data-cp="location-wrap"]');
+            if (locWrap) locWrap.style.display = d.location ? '' : 'none';
+        }
+        if (typeof d.bio === 'string') {
+            txt('bio', d.bio);
+            const bioSec = document.querySelector('[data-cp="bio-section"]');
+            if (bioSec) bioSec.style.display = d.bio ? '' : 'none';
+        }
         if (typeof d.color === 'string') {
             var r = document.documentElement.style;
             if (/^#[0-9a-fA-F]{6}$/.test(d.color)) {

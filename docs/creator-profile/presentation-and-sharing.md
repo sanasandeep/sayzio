@@ -49,3 +49,9 @@ Admins with `user.verifications.review` and the existing full-identity privacy r
 A user can submit number ownership evidence, URLs and a message from the workspace's creator editor. Admins review these at `/admin/creator-phone-claims`, approve reassignment atomically or reject with notes. Reassignment revokes the prior allocation and records it; competing pending claims are superseded. Admins can also revoke an attachment with a reason. These operations never transfer or delete account login identifiers. Future dialer identity lookup should consume this registry; this change does not replace the existing dialer lookup behavior or migrate legacy contacts into ownership claims.
 
 Deploy both `2029_11_11_000001` and `2029_11_11_000002` migrations before using these screens. No phone allocations are inferred from unreviewed contact fields.
+
+## Verification appearance and application preview
+
+Public verification uses one circled checkmark SVG for every category. Only the admin-assigned color varies; the creator page shows the check beside the name and its thin matching strip above the cover, without a category name or a separate highlights badge. Administrative category selection remains available for review.
+
+The verification application embeds the actual saved `/@handle?cp_preview=1` page instead of a sample identity card. Name, selected verification color, and uploaded logo are applied to the iframe through the existing same-origin owner-preview message channel; saved layout, cover, theme and sections remain intact. These changes are visual only and grant no verification. Clearing the proposed photo reloads the saved profile. A handle is required to show the real public-page preview. Workspace members with `settings.edit` can preview their workspace's unpublished profile; visitors cannot enable the preview controls.
