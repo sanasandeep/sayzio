@@ -145,7 +145,59 @@ class PageBackground
             ? $bs['font_color']
             : '#ffffff';
 
+        // The ink has to be readable against THIS ground, whatever the page
+        // settings happen to say.
+        //
+        // Measured on a live restaurant page: ground #fdfcf7, ink #ffffff --
+        // white on cream, a contrast ratio of 1.02. Every text block in the
+        // palette flyout rendered invisible, and the creator judged the block
+        // on a blank rectangle.
+        //
+        // The safeguard already existed; it was gated behind "the page has no
+        // background_type", i.e. it ran only for pages that were never themed
+        // -- which is the one case that cannot have a stale font_color. A page
+        // that WAS themed, from dark to light, keeps its old white ink in
+        // settings and is exactly where the guard is needed.
+        //
+        // Only applied when the ground is a colour we can actually measure. A
+        // gradient's luminance is not one number, and readableFontColor's
+        // fallback for an unmeasurable ground is "assume dark, use white",
+        // which would reintroduce this bug on a light gradient. Leaving a
+        // gradient's ink alone is the honest answer until there is a measure
+        // for it.
+        $measurable = self::groundColour($bg);
+        if ($measurable !== null) {
+            $ink = self::readableFontColor(is_string($ink) ? $ink : '', $measurable);
+        }
+
         return ['bg' => $bg, 'ink' => $ink, 'ink_is_light' => self::inkIsLight($bs)];
+    }
+
+    /**
+     * The one colour a ground can be measured by, or null.
+     *
+     * A flat `#rrggbb` is itself. Anything else -- a gradient, a url(), a
+     * named colour -- has no single luminance, and guessing one is how a
+     * light gradient would end up with white ink again.
+     */
+    private static function groundColour(string $bg): ?string
+    {
+        $bg = trim($bg);
+
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $bg) === 1) {
+            return $bg;
+        }
+
+        // The one gradient whose luminance is not a guess: our own default,
+        // whose stops are all dark by construction. A page that was never
+        // themed lands here, and it is the case the old gated safeguard used
+        // to cover -- dropping it would let a stale dark font_color render
+        // invisible on the dark default.
+        if ($bg === self::DEFAULT_GRADIENT) {
+            return self::DEFAULT_COLOR;
+        }
+
+        return null;
     }
 
     /** WCAG relative luminance of a 6-digit hex colour, or null. */
