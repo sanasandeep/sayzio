@@ -597,10 +597,10 @@ class CreatorProfileController extends Controller
             'show_link_stats'      => filter_var($data['showcase_show_link_stats'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'showcase_items'    => $showcaseItems,
             'highlights' => [
-                'show_followers'    => filter_var($data['highlights_show_followers']    ?? true, FILTER_VALIDATE_BOOLEAN),
-                'show_links'        => filter_var($data['highlights_show_links']        ?? true, FILTER_VALIDATE_BOOLEAN),
-                'show_member_since' => filter_var($data['highlights_show_member_since'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                'show_verified'     => filter_var($data['highlights_show_verified']     ?? true, FILTER_VALIDATE_BOOLEAN),
+                'show_followers'    => filter_var($data['highlights_show_followers']    ?? ($previous['highlights']['show_followers'] ?? true), FILTER_VALIDATE_BOOLEAN),
+                'show_links'        => filter_var($data['highlights_show_links']        ?? ($previous['highlights']['show_links'] ?? true), FILTER_VALIDATE_BOOLEAN),
+                'show_member_since' => filter_var($data['highlights_show_member_since'] ?? ($previous['highlights']['show_member_since'] ?? true), FILTER_VALIDATE_BOOLEAN),
+                'show_verified'     => filter_var($data['highlights_show_verified']     ?? ($previous['highlights']['show_verified'] ?? true), FILTER_VALIDATE_BOOLEAN),
             ],
             'cta' => [
                 'primary'   => $ctaPrimary,

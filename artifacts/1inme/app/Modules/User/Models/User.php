@@ -368,6 +368,9 @@ class User extends Authenticatable
      * is intentionally absent from the editor.
      */
     public const PROFILE_DEFAULT_VISIBILITY = [
+        'tabs'           => true,
+        'sharing'        => true,
+        'related_creators' => true,
         'stats'          => true,
         'about'          => true,
         'posts'          => true,

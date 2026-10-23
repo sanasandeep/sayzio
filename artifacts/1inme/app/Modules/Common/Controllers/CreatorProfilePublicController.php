@@ -81,6 +81,7 @@ class CreatorProfilePublicController extends Controller
             return $redirect;
         }
 
+        \App\Modules\User\Support\CreatorProfileVisibility::preview($creator, $request, $isOwner);
         $sectionsVisible = $creator->profileSectionVisibility();
 
         // Task #3666 — a few upcoming public events for the profile's

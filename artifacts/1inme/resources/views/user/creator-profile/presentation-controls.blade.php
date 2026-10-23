@@ -1,7 +1,7 @@
 @php
     $profileDesign = \App\Modules\User\Support\CreatorProfilePresentation::forUser($user);
 @endphp
-<fieldset x-show="editorTab === 'design' || editorTab === 'all'" class="cp-editor-panel">
+<fieldset data-editor-section="design" x-show="editorTab === 'design'" class="cp-editor-panel">
     <legend>Profile layout</legend>
     <p class="cp-editor-hint">Start with the composition. Every layout works with your photo, content and links.</p>
     <div class="cp-choice-grid">
@@ -13,7 +13,7 @@
         @endforeach
     </div>
 </fieldset>
-<fieldset x-show="editorTab === 'design' || editorTab === 'all'" class="cp-editor-panel">
+<fieldset data-editor-section="design" x-show="editorTab === 'design'" class="cp-editor-panel">
     <legend>Gradient &amp; appearance</legend>
     <p class="cp-editor-hint">Choose a gradient, then a light or dark card palette. Your cover image and custom accent still take priority.</p>
     <div class="cp-choice-grid">
