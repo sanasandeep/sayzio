@@ -3,6 +3,7 @@
 
 @section('settings-content')
 @php
+    $canApply = !in_array($user->profile_verification_status, ['pending','verified','pending_reverification'], true);
     $statusMeta = [
         'unverified'             => ['bg' => 'rgba(100,116,139,0.1)', 'text' => '#94a3b8', 'label' => 'Not verified',                'icon' => 'fa-circle'],
         'pending'                => ['bg' => 'rgba(245,158,11,0.1)',  'text' => '#f59e0b', 'label' => 'Pending review',              'icon' => 'fa-clock'],
@@ -80,13 +81,14 @@
     @if(!$user->isVerified())
     <div class="card-premium p-6 mb-5">
         <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Verification Tick Types</h3>
-        <p class="text-xs mb-4" style="color: var(--text-muted);">Choose the tick type that best describes you when you apply.</p>
+        <p class="text-xs mb-4" style="color: var(--text-muted);">Choose a type to open its application. The review team decides the final badge and color.</p>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             @foreach($tickTypes as $type)
-            <div class="p-3 rounded-xl text-center" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+            @if($canApply)<a href="{{ route('user.profile-verification.request', ['tick_type_id'=>$type->id]) }}" class="p-3 rounded-xl text-center block hover:ring-2 hover:ring-blue-400 focus-visible:ring-2" style="background:var(--bg-glass);border:1px solid var(--border-glass)">
+            @else<div class="p-3 rounded-xl text-center" style="background:var(--bg-glass);border:1px solid var(--border-glass)">@endif
                 <i class="fas {{ $type->icon }} text-xl" style="color: {{ $type->color }};"></i>
                 <p class="text-xs font-semibold mt-1.5" style="color: var(--text-primary);">{{ $type->name }}</p>
-            </div>
+                @if($canApply)<span class="text-[10px] underline">Choose &amp; apply</span></a>@else</div>@endif
             @endforeach
             <div class="p-3 rounded-xl text-center opacity-50" style="background: var(--bg-glass); border: 1px solid var(--border-glass);" title="Assigned by admins only">
                 <i class="fas fa-check-circle text-xl" style="color: #1d9bf0;"></i>
@@ -98,7 +100,7 @@
     @endif
 
     {{-- CTA --}}
-    @if($user->profile_verification_status === 'unverified')
+    @if($canApply)
     <div class="mb-5">
         <a href="{{ route('user.profile-verification.request') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, var(--color-primary-500, #3d6bff), var(--color-primary-400, #5c83ff));">
             <i class="fas fa-shield-alt"></i>Apply for Verification

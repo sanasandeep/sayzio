@@ -2,7 +2,7 @@
 @section('title', 'Apply for Verification')
 
 @section('settings-content')
-<div class="max-w-5xl" x-data="{ tickTypeId: '{{ old('tick_type_id', $tickTypes->where('slug','creator')->first()?->id) }}', officialName: @js(old('official_name', $user->name)), tickMap: @js($tickMap) }">
+<div class="max-w-5xl" x-data="{ tickTypeId: @js($selectedTickTypeId), officialName: @js(old('official_name', $user->name)), tickMap: @js($tickMap) }">
     <div class="mb-6">
         <a href="{{ route('user.profile-verification.index') }}" class="text-xs font-medium transition-colors hover:text-blue-400" style="color: var(--text-muted);">
             <i class="fas fa-arrow-left mr-1"></i>Back to Verification
@@ -31,8 +31,8 @@
             <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-tag mr-2" style="color: var(--accent);"></i>Verification Type</h3>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 @foreach($tickTypes as $type)
-                <label class="cursor-pointer p-4 rounded-xl transition-all" :class="tickTypeId === '{{ $type->id }}' ? 'ring-2' : ''" :style="tickTypeId === '{{ $type->id }}' ? 'ring-color: {{ $type->color }}' : ''" style="background: var(--bg-glass); border: 1px solid var(--border-glass);" @click="tickTypeId = '{{ $type->id }}'">
-                    <input type="radio" name="tick_type_id" value="{{ $type->id }}" x-model="tickTypeId" class="sr-only">
+                <label class="cursor-pointer p-4 rounded-xl transition-all" :style="{outline: tickTypeId === '{{ $type->id }}' ? '2px solid {{ $type->color }}' : 'none', outlineOffset: '2px'}" style="background: var(--bg-glass); border: 1px solid var(--border-glass);" @click="tickTypeId = '{{ $type->id }}'">
+                    <input type="radio" name="tick_type_id" value="{{ $type->id }}" x-model="tickTypeId" class="w-4 h-4 mb-2" aria-label="{{ $type->name }}">
                     <div class="flex flex-col items-center gap-2 text-center">
                         <i class="fas {{ $type->icon }} text-2xl" style="color: {{ $type->color }};"></i>
                         <span class="text-xs font-bold" style="color: var(--text-primary);">{{ $type->name }}</span>

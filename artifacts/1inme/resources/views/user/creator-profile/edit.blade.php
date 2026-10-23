@@ -207,18 +207,18 @@
                             <i class="fas fa-lock mr-1"></i> Your profile is verified, so avatar changes are locked. Contact support to update your photo.
                         </p>
                     @else
-                        <label class="block rounded-xl p-4 border border-dashed cursor-pointer" style="border-color:var(--border-strong);background:var(--bg-glass-input)">
-                            <span class="block text-sm font-semibold">Upload a profile photo</span>
-                            <span class="block text-xs mb-2" style="color:var(--text-muted)">JPG, PNG, WebP or GIF · up to 2 MB. Adjust shape and framing below.</span>
-                            <input type="file" name="creator_avatar" accept="image/jpeg,image/png,image/webp,image/gif" class="block text-xs w-full" @change="const file = $event.target.files[0]; if(file &amp;&amp; file.type.startsWith('image/') &amp;&amp; file.size &lt;= 2097152) { const reader = new FileReader(); reader.onload = e => { image = e.target.result; $nextTick(() => $dispatch('creator-avatar-ready')); }; reader.readAsDataURL(file); }">
-                        </label>
-
+                        <div role="group" aria-label="Profile photo source" @media-source-selected="if ($event.detail.name === 'creator_avatar' && $event.detail.file) { const reader = new FileReader(); reader.onload = e => { image = e.target.result; $nextTick(() => pvLive()); }; reader.readAsDataURL($event.detail.file); }">
+                            @include('user.partials.dropzone-input', [
+                                'name'=>'creator_avatar', 'policy'=>null, 'accept'=>'image/jpeg,image/png,image/webp,image/gif', 'maxMb'=>2, 'multiple'=>false,
+                                'currentUrl'=>null, 'currentName'=>null, 'label'=>null, 'hint'=>'JPG, PNG, WebP or GIF',
+                                'previewKind'=>'image', 'allowAlternateSources'=>true, 'allowStock'=>false, 'browseType'=>'image',
+                            ])
+                        </div>
                         @if(!empty($user->creator_avatar))
-                            <label class="flex items-center gap-1.5 mt-1 text-[11px] cursor-pointer" style="color: var(--text-muted);">
+                            <label class="flex items-center gap-1.5 mt-2 text-xs cursor-pointer" style="color:var(--text-muted)">
                                 <input type="checkbox" name="creator_avatar_remove" value="1"> Remove custom avatar (use account profile photo)
                             </label>
                         @endif
-                        @include('user.partials.avatar-gallery-picker', ['inputName' => 'creator_avatar_asset'])
                     @endif
                         <div class="grid grid-cols-2 gap-3 mt-3">
                             <label class="text-xs">Photo shape<select name="presentation[avatar_shape]" x-model="shape" class="w-full rounded-lg p-2 mt-1" style="background:var(--bg-input);border:1px solid var(--border-soft)"><option value="circle">Circle</option><option value="rounded">Rounded</option><option value="square">Square</option></select></label>
@@ -228,13 +228,15 @@
                         </div>
                     </div>
                 </div>
-                <div x-data="{ image: @js($user->cover_image ? \App\Support\PublicStorageUrl::resolve($user->cover_image) : '') }">
-                    <label for="creator-cover-upload" class="text-sm font-semibold block mb-2">Cover photo</label>
+                <div role="group" aria-label="Cover photo source" x-data="{ image: @js($user->cover_image ? \App\Support\PublicStorageUrl::resolve($user->cover_image) : '') }"
+                     @media-source-selected="if ($event.detail.name === 'cover_image' && $event.detail.file) { const reader = new FileReader(); reader.onload = e => { image = e.target.result; $nextTick(() => pvLive()); }; reader.readAsDataURL($event.detail.file); }">
+                    <p class="text-sm font-semibold mb-2">Cover photo</p>
                     <template x-if="image"><img :src="image" data-creator-cover-preview alt="Cover photo preview" class="w-full h-40 object-cover rounded-xl mb-3"></template>
-                    <input id="creator-cover-upload" type="file" name="cover_image" accept="image/jpeg,image/png,image/webp,image/gif" class="text-xs" @change="const file = $event.target.files[0]; if(file && file.size <= 5242880){ const reader = new FileReader(); reader.onload = e => { image = e.target.result; $nextTick(() => pvLive()); }; reader.readAsDataURL(file); }">
-                    <p class="text-xs mt-2" style="color:var(--text-dimmed)">Upload a JPG, PNG, WebP or GIF up to 5 MB, or use an image URL. The photo replaces your gradient cover.</p>
-                    <label for="creator-cover-url" class="text-xs block mt-3 mb-1">Cover image URL</label>
-                    <input id="creator-cover-url" type="url" name="cover_image_url" value="{{ old('cover_image_url') }}" placeholder="https://…" maxlength="1024" @input="image = $event.target.value || @js($user->cover_image ? \App\Support\PublicStorageUrl::resolve($user->cover_image) : '')" class="w-full px-3 py-2 rounded-lg text-sm" style="background:var(--bg-input);border:1px solid var(--border-soft)">
+                    @include('user.partials.dropzone-input', [
+                        'name'=>'cover_image', 'policy'=>null, 'accept'=>'image/jpeg,image/png,image/webp,image/gif', 'maxMb'=>5, 'multiple'=>false,
+                        'currentUrl'=>null, 'currentName'=>null, 'label'=>null, 'hint'=>'JPG, PNG, WebP or GIF',
+                        'previewKind'=>'image', 'allowAlternateSources'=>true, 'allowStock'=>false, 'browseType'=>'image',
+                    ])
                     @if($user->cover_image)
                     <label class="flex items-center gap-2 mt-3 text-xs"><input type="checkbox" name="cover_image_remove" value="1" @change="image = $event.target.checked ? '' : @js(\App\Support\PublicStorageUrl::resolve($user->cover_image))">Remove saved cover and use gradient</label>
                     @endif
