@@ -637,8 +637,18 @@
        its glass shadow while the header -- which had a more specific rule of
        its own -- did not. Naming the element takes these to (0,2,1) and
        (0,3,1), which is what actually settles it. */
-    html.aurora aside.sidebar-shell,
-    html.aurora.light-mode aside.sidebar-shell {
+    {{-- :not(.rail-card) is the whole fix. This rule was written when the
+         sidebar was a flush slab with a right edge, and it is correct for
+         that -- a slab against the page needs no shadow and only the one
+         border. Since the rail sidebar became an inset CARD it has been
+         stripping the card's shadow with !important (an inline literal
+         shadow computed to `none`, which is how it was found) and forcing
+         a border on one side only. In light mode that left a white card
+         on a white page at contrast 1.00, held apart by a single hairline
+         at 1.3 -- "sidebar and panel border not clear in light mode". The
+         card's own rule in nav-rail already states both. --}}
+    html.aurora aside.sidebar-shell:not(.rail-card),
+    html.aurora.light-mode aside.sidebar-shell:not(.rail-card) {
         box-shadow: none !important;
         border-right: 1px solid var(--border-glass) !important;
     }

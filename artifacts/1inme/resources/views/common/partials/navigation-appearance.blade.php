@@ -198,6 +198,23 @@ html[data-rail-appearance]:not([data-rail-appearance="theme"]) .navrail {
     border-right:1px solid var(--nav-line)!important;
 }
 
+/* A toned top bar is a card, not a slab. Left alone it paints a
+   full-bleed rectangle with square corners and a hard bottom edge, which
+   is the one piece of chrome that does not match the inset sidebar card.
+   Rounded and inset, it reads as the same object.
+
+   The radius needs !important because the header carries Tailwind's
+   `!rounded-none`, which is itself !important and would otherwise win.
+
+   Nothing here applies on `theme`: $navOn excludes it, so an untoned top
+   bar keeps the flush treatment that merges it into the page -- which is
+   what light mode should do and already does. */
+html[data-topbar-appearance]:not([data-topbar-appearance="theme"]) header.header-v2 {
+    border-radius:16px!important;
+    margin:14px 14px 0 0;
+    border:1px solid var(--nav-line)!important;
+}
+
 :root { --navigation-theme-surface:var(--bg-header);--navigation-theme-ink:var(--text-primary); }
 
 .navigation-picker { position:fixed;right:20px;top:80px;z-index:100;width:min(360px,calc(100vw - 32px));padding:24px;border-radius:20px;background:var(--bg-dropdown);color:var(--text-primary);border:1px solid var(--border-strong);box-shadow:0 20px 60px #0003; }
