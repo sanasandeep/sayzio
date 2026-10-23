@@ -1234,10 +1234,17 @@ $catColors = [
            on a crop. Now the frame renders at a realistic page width and
            is scaled down whole, so the preview is a miniature of the
            real thing rather than a window onto part of it. */
+        /* No fill of its own. The frame inside paints the creator's own
+           page ground, so a colour here is a second surface sitting between
+           the card and the preview -- and a hardcoded dark wash at that,
+           which over a white card read as a grey band and over a light page
+           ground muddied the sample it was meant to set off. The hairline
+           stays: an edge is not a fill, and without it a preview of a white
+           page bleeds into a white card. */
         .block-flyout-stage {
             margin: 10px 10px 11px; height: 200px; position: relative;
             border-radius: 10px; overflow: hidden;
-            background: rgba(10,14,26,0.35);
+            box-shadow: inset 0 0 0 1px var(--border-glass);
             transition: height .14s ease;
         }
         .block-flyout-stage iframe {

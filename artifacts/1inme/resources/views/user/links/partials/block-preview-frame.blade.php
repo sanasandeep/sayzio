@@ -36,16 +36,11 @@
     // keeps a light-themed page from previewing white on white.
     $ground = \App\Modules\User\Support\PageBackground::previewGround($bs);
     $bgPaint = $ground['bg'];
+    // Already contrast-checked against the ground it is going to be painted
+    // on -- previewGround does it for every page now, not only for pages
+    // that were never themed. The gate used to live here and let a themed
+    // light page keep its stale white ink.
     $fontColor = $ground['ink'];
-    // Same contrast safeguard the public page applies: a page that was
-    // never themed falls back to the dark default, where a stale
-    // light-on-light font_color would render the sample invisible.
-    if (!isset($bs['background_type'])) {
-        $fontColor = \App\Modules\User\Support\PageBackground::readableFontColor(
-            is_string($fontColor) ? $fontColor : '',
-            is_string($bgPaint) ? $bgPaint : ''
-        );
-    }
     $fontFamily = $bs['font_family'] ?? 'Space Grotesk';
     $previewFontHref = \App\Modules\User\Support\FontCatalog::googleHref((string) $fontFamily);
 @endphp
