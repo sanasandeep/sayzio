@@ -30,6 +30,19 @@ final class StaffRoleTools
         return $role->permissions->every(fn ($permission) => $actor->hasPermission($permission->slug));
     }
 
+    public static function resolvedPresets(\Illuminate\Support\Collection $permissions, Admin $actor): \Illuminate\Support\Collection
+    {
+        return collect(self::presets())->map(function ($preset) use ($permissions, $actor) {
+            $matches = $permissions->whereIn('slug', $preset['permissions']);
+            $preset['ids'] = $matches->pluck('id')->map(fn ($id) => (string) $id)->values()->all();
+            $preset['missing'] = array_values(array_diff($preset['permissions'], $matches->pluck('slug')->all()));
+            $canDelegate = $actor->isSuperAdmin() || $matches->every(fn ($p) => $actor->hasPermission($p->slug));
+            $preset['available'] = empty($preset['missing']) && $canDelegate;
+            $preset['unavailable_reason'] = !empty($preset['missing']) ? 'permission catalog update required' : ($canDelegate ? '' : 'required permissions not held');
+            return $preset;
+        });
+    }
+
     public static function presets(): array
     {
         return [

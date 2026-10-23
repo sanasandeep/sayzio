@@ -70,6 +70,39 @@ class StaffPermissionBoundariesTest extends TestCase
         catch (HttpException $e) { $this->assertSame(403, $e->getStatusCode()); }
     }
 
+    public function test_missing_user_directory_record_is_repaired_without_granting_roles(): void
+    {
+        $tools = \App\Modules\Admin\Support\StaffRoleTools::class;
+        $permissionClass = \App\Modules\Admin\Models\Permission::class;
+        $slugs = collect($tools::presets())->pluck('permissions')->flatten()->unique()->reject(fn ($slug) => $slug === 'users.view');
+        foreach ($slugs as $slug) $permissionClass::create(['name' => $slug, 'slug' => $slug, 'group' => 'Test']);
+        $super = new class extends Admin {
+            public function isSuperAdmin(): bool { return true; }
+        };
+        $before = $tools::resolvedPresets($permissionClass::all(), $super);
+        $this->assertFalse($before['anonymous-support']['available']);
+        $this->assertSame(['users.view'], $before['anonymous-support']['missing']);
+        $this->assertSame('permission catalog update required', $before['anonymous-support']['unavailable_reason']);
+        $migration = require dirname(__DIR__, 3).'/database/migrations/2029_11_09_000001_restore_user_directory_permission.php';
+        $migration->up();
+        $id = $permissionClass::where('slug', 'users.view')->value('id');
+        DB::table('permissions')->where('id', $id)->update(['name' => 'Custom directory label']);
+        $migration->up();
+        $migration->down();
+        $this->assertSame(1, $permissionClass::where('slug', 'users.view')->count());
+        $this->assertSame('Custom directory label', $permissionClass::find($id)->name);
+        $this->assertSame(0, DB::table('role_permissions')->count());
+        $after = $tools::resolvedPresets($permissionClass::all(), $super);
+        foreach ($after as $preset) {
+            $this->assertTrue($preset['available']);
+            $this->assertCount(count($preset['permissions']), $preset['ids']);
+        }
+        $limited = $tools::resolvedPresets($permissionClass::all(), $this->actor(['roles.manage']));
+        $this->assertFalse($limited['anonymous-support']['available']);
+        $this->assertSame([], $limited['anonymous-support']['missing']);
+        $this->assertSame('required permissions not held', $limited['anonymous-support']['unavailable_reason']);
+    }
+
     public function test_role_copy_is_review_only_and_cannot_bypass_delegation(): void
     {
         $permission = \App\Modules\Admin\Models\Permission::create(['name' => 'Search', 'slug' => 'users.search', 'group' => 'Users']);
