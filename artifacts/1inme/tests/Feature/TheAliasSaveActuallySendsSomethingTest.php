@@ -126,6 +126,46 @@ class TheAliasSaveActuallySendsSomethingTest extends TestCase
     }
 
     /**
+     * No double quote inside an x-data attribute value.
+     *
+     * This shipped. The comment added to explain the fix contained
+     * `@click="save()"`, written inside an x-data="..." attribute -- the
+     * first double quote closed the attribute, the rest of the handler
+     * rendered as visible text on the settings page, and the alias field
+     * came up empty. A comment about the bug caused a worse bug than the
+     * one it described.
+     *
+     * HTML does not care that the quote is inside a JS comment. Nothing in
+     * an x-data value may use one.
+     */
+    public function test_no_double_quote_inside_an_x_data_attribute(): void
+    {
+        $src = $this->card();
+        $offenders = [];
+
+        $offset = 0;
+        while (($start = strpos($src, 'x-data="', $offset)) !== false) {
+            $valueStart = $start + strlen('x-data="');
+            $firstQuote = strpos($src, '"', $valueStart);
+            // Where the author intended the attribute to end.
+            $structuralEnd = strpos($src, '}">', $valueStart);
+
+            if ($firstQuote !== false && $structuralEnd !== false && $firstQuote < $structuralEnd + 1) {
+                $line = substr_count(substr($src, 0, $firstQuote), "\n") + 1;
+                $offenders[] = "line {$line}: " . trim(substr($src, max(0, $firstQuote - 50), 60));
+            }
+
+            $offset = $structuralEnd !== false ? $structuralEnd + 3 : $valueStart;
+        }
+
+        $this->assertSame([], $offenders, sprintf(
+            "A double quote inside an x-data attribute closes it early. Everything after it\n"
+            . "renders as text on the page and the component never initialises:\n\n%s",
+            implode("\n", $offenders)
+        ));
+    }
+
+    /**
      * Extract the body of each `name() { ... }` defined inside an x-data
      * attribute in this file.
      *
