@@ -70,6 +70,57 @@ class StaffPermissionBoundariesTest extends TestCase
         catch (HttpException $e) { $this->assertSame(403, $e->getStatusCode()); }
     }
 
+    public function test_role_copy_is_review_only_and_cannot_bypass_delegation(): void
+    {
+        $permission = \App\Modules\Admin\Models\Permission::create(['name' => 'Search', 'slug' => 'users.search', 'group' => 'Users']);
+        $role = Role::create(['name' => 'Support', 'slug' => 'support', 'guard' => 'admin']);
+        Role::create(['name' => 'Existing copy', 'slug' => 'support-copy', 'guard' => 'admin']);
+        $role->permissions()->sync([$permission->id]);
+        $actor = $this->actor(['roles.manage', 'users.search']);
+        $data = (new \App\Modules\Admin\Controllers\RoleController)->duplicate($role)->getData();
+        $this->assertSame('support-copy-2', $data['copySlug']);
+        $this->assertSame([$permission->id], $data['rolePermissions']);
+        $this->assertSame(2, Role::count());
+        $this->assertTrue(\App\Modules\Admin\Support\StaffRoleTools::canManage($actor, $role));
+        $this->actor(['roles.manage']);
+        $this->denied(fn () => (new \App\Modules\Admin\Controllers\RoleController)->duplicate($role));
+        $role->slug = 'super-admin';
+        $this->denied(fn () => (new \App\Modules\Admin\Controllers\RoleController)->duplicate($role));
+        $this->assertTrue(StaffPrivacy::allows($actor, 'admin.roles.duplicate'));
+    }
+
+    public function test_super_admin_copy_is_an_explicit_snapshot_without_the_bypass(): void
+    {
+        $actor = new class extends Admin {
+            public function isSuperAdmin(): bool { return true; }
+        };
+        $this->app['auth']->guard('admin')->setUser($actor);
+        $role = Role::create(['name' => 'Super Admin', 'slug' => 'super-admin', 'guard' => 'admin']);
+        $permission = \App\Modules\Admin\Models\Permission::create(['name' => 'Manage roles', 'slug' => 'roles.manage', 'group' => 'Roles']);
+        $data = (new \App\Modules\Admin\Controllers\RoleController)->duplicate($role)->getData();
+        $this->assertSame([$permission->id], $data['rolePermissions']);
+        $this->assertNotSame('super-admin', $data['copySlug']);
+        $this->assertStringContainsString('no Super Admin bypass', $data['copyNotice']);
+        $this->assertSame(1, Role::count());
+    }
+
+    public function test_role_risk_levels_and_presets_are_explicit(): void
+    {
+        $tools = \App\Modules\Admin\Support\StaffRoleTools::class;
+        foreach (['roles.manage', 'users.password.set', 'users.impersonate', 'users.grant_admin', 'staff.edit', 'user.platform.admin'] as $slug) $this->assertSame(4, $tools::risk($slug), $slug);
+        $this->assertSame(1, $tools::risk('finance.ai.card_scan.totals'));
+        $this->assertSame(2, $tools::risk('finance.ai.card_scan.records'));
+        $this->assertSame(3, $tools::risk('users.coins.grant'));
+        $this->assertGreaterThanOrEqual(3, $tools::risk('unknown.permission'));
+        foreach ($tools::presets() as $preset) {
+            $this->assertNotEmpty($preset['permissions']);
+            foreach ($preset['permissions'] as $slug) {
+                $this->assertStringNotContainsString('*', $slug);
+                $this->assertLessThan(4, $tools::risk($slug));
+            }
+        }
+    }
+
     public function test_identity_projection_does_not_include_hidden_fields(): void
     {
         $user = new User;

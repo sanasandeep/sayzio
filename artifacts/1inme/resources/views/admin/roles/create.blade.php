@@ -12,13 +12,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1 ak-strong" for="role-name">Role Name</label>
-                        <input type="text" id="role-name" name="name" value="{{ old('name') }}" required
+                        <input type="text" id="role-name" name="name" value="{{ old('name', $copyName ?? '') }}" required
                                class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                         @error('name')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1 ak-strong" for="role-slug">Slug</label>
-                        <input type="text" id="role-slug" name="slug" value="{{ old('slug') }}" required
+                        <input type="text" id="role-slug" name="slug" value="{{ old('slug', $copySlug ?? '') }}" required
                                class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                         @error('slug')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
                     </div>
@@ -27,8 +27,10 @@
                 <div>
                     <label class="block text-sm font-medium text-white/80 mb-1 ak-strong" for="role-description">Description</label>
                     <textarea id="role-description" name="description" rows="2"
-                              class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">{{ old('description') }}</textarea>
+                              class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">{{ old('description', $copyDescription ?? '') }}</textarea>
                 </div>
+
+                @isset($copyNotice)<p class="rounded-xl border p-4 ak-muted">{{ $copyNotice }}</p>@endisset
 
                 @include('admin.roles.permission-picker')
 

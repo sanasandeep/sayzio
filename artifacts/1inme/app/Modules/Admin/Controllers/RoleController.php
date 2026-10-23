@@ -6,18 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Role;
 use App\Modules\Admin\Models\Permission;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use App\Modules\Admin\Support\StaffPermissionCatalog;
 
 class RoleController extends Controller
 {
     public function index()
     {
-        $roles = Role::where('guard', 'admin')->withCount(['admins', 'permissions'])->get();
+        $roles = Role::where('guard', 'admin')->with('permissions')->withCount(['admins', 'permissions'])->get();
         return view('admin.roles.index', compact('roles'));
     }
 
     public function show(Role $role)
     {
+        abort_unless($role->guard === 'admin', 404);
         $role->load('permissions');
         return view('admin.roles.show', compact('role'));
     }
@@ -26,6 +28,24 @@ class RoleController extends Controller
     {
         $permissions = Permission::orderBy('group')->orderBy('name')->get()->groupBy('group');
         return view('admin.roles.create', compact('permissions'));
+    }
+
+    public function duplicate(Role $role)
+    {
+        StaffPermissionCatalog::assertAssignable(auth('admin')->user(), $role);
+        $permissions = Permission::orderBy('group')->orderBy('name')->get()->groupBy('group');
+        $rolePermissions = $role->slug === 'super-admin'
+            ? $permissions->flatten()->pluck('id')->all()
+            : $role->permissions->pluck('id')->all();
+        $base = Str::limit(Str::slug($role->name.' copy') ?: 'role-copy', 240, '');
+        $copySlug = $base;
+        for ($suffix = 2; Role::where('slug', $copySlug)->exists(); $suffix++) $copySlug = $base.'-'.$suffix;
+        $copyName = Str::limit($role->name, 250, '').' copy';
+        $copyDescription = $role->description;
+        $copyNotice = $role->slug === 'super-admin'
+            ? 'This is a restricted copy with explicit permissions. It has no Super Admin bypass and will not inherit future permissions. Review the critical selections before saving.'
+            : 'Review this copy before saving. Existing staff assignments and the original role are unchanged.';
+        return view('admin.roles.create', compact('permissions', 'rolePermissions', 'copyName', 'copySlug', 'copyDescription', 'copyNotice'));
     }
 
     public function store(Request $request)
@@ -78,7 +98,9 @@ class RoleController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
-        $role->permissions()->sync($validated['permissions'] ?? []);
+        if ($role->slug !== 'super-admin') {
+            $role->permissions()->sync($validated['permissions'] ?? []);
+        }
 
         return redirect()->route('admin.roles.index')->with('success', 'Role updated successfully.');
     }

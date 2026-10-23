@@ -167,3 +167,20 @@ These are configuration examples, not auto-created roles. UI descriptions specif
 ## Validation and limits
 
 Isolated SQLite tests cover field projection, forbidden searches/filters/sorts, separate financial reads/writes/exports, currency grouping, margin omission, per-feature SQL scope, one-time migration backfill, delegation boundaries and rendering a restricted workbench. They create an in-memory schema and never run migrations against the shared development/production database. Local browser previews use synthetic data; no financial action, password change, staff grant, notification or asset transfer is submitted against production. The production PostgreSQL suite and end-to-end transfer/payment integration checks remain CI validation; local success is not a certification of every admin workflow.
+
+## Role editing, copies and presets
+
+The role list provides View, Edit and Copy / duplicate. Management actions require `roles.manage` and the ability to delegate every permission in the source role. The duplicate GET route only prepares a new form; saving creates a separate admin role with a unique slug. Staff assignments are never copied. Existing delegation checks run again when saving.
+
+Super Admin is displayed as unrestricted, rather than showing its historical permission-pivot count. Its editor only changes name and description. Copying it snapshots all currently registered permissions into an ordinary role, with a visible warning: it has no system bypass and does not inherit future capabilities.
+
+Six standard presets are available in both create and edit: Anonymous support, Customer support, Finance overview, Purchase auditor, Coin operator and Plan operator. Presets replace the entire draft selection only after pressing the explicit apply button. They remain unavailable if the permission catalog is incomplete or the actor cannot delegate any required permission. They never create roles or change staff assignments automatically.
+
+| Label | Meaning |
+| --- | --- |
+| Level 1 · Basic access | Account lookup, basic display and aggregate totals |
+| Level 2 · Sensitive data | Identity, financial records, history and exports |
+| Level 3 · Changes | Mutations and capabilities without a lower-risk classification |
+| Critical · Security access | Role/staff administration, credentials, impersonation, account deletion, security settings, legacy user-edit bundle and user-app override capabilities |
+
+These labels are review aids, not hierarchical grants. Each capability remains independent. Search and risk filters affect visibility only. Category selection and clearing affect visible matches only; hidden selections stay intact. Critical permissions are skipped by bulk selection unless the separate opt-in is enabled. Individual Critical checkboxes remain available, and a live warning counts all selected Critical permissions, including hidden ones. Colors have text labels and light/dark variants.

@@ -28,7 +28,11 @@
                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">{{ old('description', $role->description) }}</textarea>
                 </div>
 
-                @include('admin.roles.permission-picker')
+                @if($role->slug === 'super-admin')
+                    <p class="rounded-xl border border-white/10 p-4 text-red-400 ak-red font-semibold">Critical · Unrestricted system access. You can edit the name and description. Super Admin always has all current and future permissions.</p>
+                @else
+                    @include('admin.roles.permission-picker')
+                @endif
 
                 <div class="flex items-center gap-3 pt-4">
                     <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">Update Role</button>
