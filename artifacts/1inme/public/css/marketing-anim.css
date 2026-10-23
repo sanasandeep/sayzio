@@ -276,6 +276,48 @@ html.light-mode .mkt-navbar-bar.is-stuck {
     .mkt-navbar-bar { transition: none; }
 }
 
+/* ---- The open mobile menu is a surface, not a transparency ----
+   Reported with a screenshot: on /pricing in Chrome, dark mode, the mobile
+   menu's ten links were laid straight over the hero -- "Product",
+   "Solutions", "Pricing" colliding with "Pricing that scales with you."
+   Measured on the live page: the bar computes to rgba(0,0,0,0) and the menu
+   panel carries only a border-top, so the open menu had nothing behind it at
+   all.
+
+   This is NOT the backdrop-filter fallback below: that is for browsers
+   without the property, and this is Chrome, which has had it since 76. The
+   bar is a 4%-white glass that leans entirely on blurring what is behind it,
+   and over a flat near-black page there is nothing to blur -- it resolves to
+   very nearly nothing even when the blur works.
+
+   So the panel gets a ground of its own rather than borrowing the bar's.
+   That is correct whatever the bar is doing, which matters here: the bar
+   measured fully transparent rather than the 4% its own rule states, and the
+   cause of THAT is not yet established -- the stylesheet scans run against
+   the live page contradicted each other. The bar is also forced opaque while
+   the menu is open, with !important, so whatever is currently zeroing it
+   cannot zero this too. Belt and braces, deliberately: a menu that cannot be
+   read is worse than a rule that is louder than it needs to be. */
+.mkt-mobile-menu {
+    background-color: #0d0b16;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+}
+.mkt-navbar-bar.is-menu-open {
+    background-color: #0d0b16 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+html.light-mode .mkt-mobile-menu { background-color: #ffffff; }
+html.light-mode .mkt-navbar-bar.is-menu-open {
+    background-color: #ffffff !important;
+}
+
+
 /* ---- Auto-hiding header on scroll ----
    The whole <nav> slides off-screen while the visitor scrolls down and slides
    back the instant they scroll up (state driven by Alpine in the header
