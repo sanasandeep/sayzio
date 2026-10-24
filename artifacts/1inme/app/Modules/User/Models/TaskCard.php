@@ -14,7 +14,7 @@ class TaskCard extends Model
         'title', 'description', 'description_html', 'position',
         'start_date', 'due_date', 'priority', 'progress', 'completed_at', 'archived_at',
         'billable', 'rate_type', 'rate_amount_minor', 'client_invoice_id',
-        'roadmap_item_id', 'calendar_event_id',
+        'roadmap_item_id', 'calendar_event_id', 'related_items',
     ];
 
     public function roadmapItem() { return $this->belongsTo(RoadmapItem::class, 'roadmap_item_id'); }
@@ -25,6 +25,7 @@ class TaskCard extends Model
         'completed_at'      => 'datetime',
         'archived_at'       => 'datetime',
         'billable'          => 'boolean',
+        'related_items'     => 'array',
         'rate_amount_minor' => 'integer',
     ];
 

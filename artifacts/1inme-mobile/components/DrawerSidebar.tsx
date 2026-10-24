@@ -90,17 +90,24 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Followers", icon: "user-check", href: "/followers" },
       { label: "Feed", icon: "activity", href: "/feed" },
       { label: "My Posts", icon: "edit-2", href: "/posts" },
-      { label: "Leads", icon: "target", href: "/leads" },
       { label: "Social Accounts", icon: "share-2", href: "/social" },
       { label: "Leaderboard", icon: "award", href: "/leaderboard" },
     ],
   },
   {
-    title: "Monetization",
+    title: "CRM & Customers",
+    items: [
+      { label: "Contacts", icon: "users", href: "/contacts" },
+      { label: "Dialer", icon: "phone", href: "/dialer" },
+      { label: "Leads", icon: "target", href: "/leads" },
+      { label: "Client Portals", icon: "briefcase", href: "/client-portals" },
+    ],
+  },
+  {
+    title: "Personal monetization",
     items: [
       { label: "Earnings & Payouts", icon: "dollar-sign", href: "/payouts" },
-      { label: "Monetization", icon: "trending-up", href: "/monetization" },
-      { label: "Orders", icon: "shopping-bag", href: "/orders" },
+      { label: "Creator earnings", icon: "trending-up", href: "/monetization" },
     ],
   },
   {
@@ -147,7 +154,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Workspace & Tools",
+    title: "Work & Team",
     items: [
       {
         label: "Attendance",
@@ -180,15 +187,20 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Billing & Accounting",
+    title: "Business finances",
     items: [
       { label: "Invoices", icon: "file-text", href: "/invoices" },
-      { label: "Client Portals", icon: "briefcase", href: "/client-portals" },
       { label: "Recurring", icon: "repeat", href: "/billing/recurring" },
       { label: "Expenses", icon: "dollar-sign", href: "/billing/expenses" },
       { label: "Catalog", icon: "book", href: "/billing/catalog" },
       { label: "Tax Rules", icon: "percent", href: "/billing/tax-rules" },
       { label: "Ledger", icon: "activity", href: "/billing/ledger" },
+    ],
+  },
+  {
+    title: "My purchases & usage",
+    items: [
+      { label: "Orders", icon: "shopping-bag", href: "/orders" },
       { label: "Wallet", icon: "credit-card", href: "/wallet" },
       { label: "API Usage", icon: "zap", href: "/api-usage" },
     ],

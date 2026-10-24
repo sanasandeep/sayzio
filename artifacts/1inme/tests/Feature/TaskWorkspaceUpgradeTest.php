@@ -86,4 +86,29 @@ class TaskWorkspaceUpgradeTest extends TestCase
         $this->actingAs($member)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
         $this->getJson('/user/tasks/boards/'.$private->id.'/sync')->assertNotFound();
     }
+    public function test_related_items_save_remove_and_reject_unsafe_urls(): void
+    {
+        [$owner,$ws,$project,$board,$card] = $this->setupBoard();
+        $item = ['title' => 'Campaign Mind', 'type' => 'mind', 'url' => url('/user/minds/42'), 'note' => 'Review the campaign brief'];
+        $revision = $this->getJson('/user/tasks/cards/'.$card->id)->json('card.revision');
+        $this->patchJson('/user/tasks/cards/'.$card->id, ['related_items' => [$item], 'expected_revision' => $revision])->assertOk();
+        $this->getJson('/user/tasks/cards/'.$card->id)->assertOk()->assertJsonPath('card.related_items.0.note', $item['note']);
+        $this->assertCount(1, $card->fresh()->related_items);
+        foreach (['javascript:alert(1)', 'https://outside.example/user/minds/42', 'https://sayzio.app@evil.example/'] as $url) {
+            $this->patchJson('/user/tasks/cards/'.$card->id, ['related_items' => [array_merge($item, ['url' => $url])]])->assertUnprocessable();
+        }
+        $this->patchJson('/user/tasks/cards/'.$card->id, ['related_items' => array_fill(0,21,$item)])->assertUnprocessable();
+        $this->patchJson('/user/tasks/cards/'.$card->id, ['related_items' => [], 'expected_revision' => $revision])->assertStatus(409);
+        $this->patchJson('/user/tasks/cards/'.$card->id, ['related_items' => []])->assertOk();
+        $this->assertSame([], $card->fresh()->related_items);
+        $viewer = User::factory()->create();
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $viewer->id, 'role' => 'viewer']);
+        $this->actingAs($viewer)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        $this->patchJson('/user/tasks/cards/'.$card->id, ['related_items' => [$item]])->assertForbidden();
+        $this->assertSame([], $card->fresh()->related_items);
+        $this->actingAs($owner);
+        $page = $this->get('/user/tasks/boards/'.$board->id)->assertOk()->assertSee('Related Sayzio items');
+        if (getenv('FORMS_UI_FIXTURE')) file_put_contents('/tmp/task-context-board.html', $page->getContent());
+    }
+
 }
