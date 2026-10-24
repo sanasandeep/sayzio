@@ -895,24 +895,7 @@
                     </span>
                     <span class="sidebar-tooltip">Notifications</span>
                 </a>
-                @if($__can['posts_view'])
-                <a href="{{ route('user.stats.index') }}"
-                   class="sidebar-link {{ nav_route_is('user.stats.*') ? 'active' : '' }}"
-                   style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
-                    <span class="nav-label">Stats</span>
-                    <span class="sidebar-tooltip">Stats</span>
-                </a>
-                @endif
-                @if($__can['stats_view'])
-                <a href="{{ route('user.visitors.index') }}"
-                   class="sidebar-link {{ nav_route_is('user.visitors.index') ? 'active' : '' }}"
-                   style="--nav-tint:#5cc7ff; --nav-tint-soft:rgba(92,199,255,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-users"></i></div>
-                    <span class="nav-label">Visitors</span>
-                    <span class="sidebar-tooltip">Visitors</span>
-                </a>
-                @endif
+
                 {{-- Task #3848 — the Wallet nav item moved to a compact icon +
                      balance badge in the top header (see the header markup
                      below); it no longer has its own sidebar entry. --}}
@@ -1063,7 +1046,7 @@
 
                 {{-- ========== AUDIENCE & COMMUNITY (collapsible) ========== --}}
                 @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'] || $__can['settings_view'])
-                @php $grpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.posts.*'); @endphp
+                @php $grpAudienceActive = nav_route_is('user.stats.*') || nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.posts.*'); @endphp
                 <div x-data="{ open: {{ $grpAudienceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1071,6 +1054,16 @@
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                @if($__can['posts_view'])
+                <a href="{{ route('user.stats.index') }}"
+                   class="sidebar-link {{ nav_route_is('user.stats.*') ? 'active' : '' }}"
+                   style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
+                    <span class="nav-label">Stats</span>
+                    <span class="sidebar-tooltip">Stats</span>
+                </a>
+                @endif
+
                         @if($__can['inbox_view'])
                         <a href="{{ route('user.subscribers.index') }}"
                            class="sidebar-link {{ nav_route_is('user.subscribers.*') ? 'active' : '' }}"
@@ -1937,12 +1930,7 @@
                             @php $__mUnread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
                             @if($__mUnread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-rose-500 text-white">{{ $__mUnread }}</span>@endif
                         </span></a>
-                        @if($__can['posts_view'])
-                        <a href="{{ route('user.stats.index') }}" class="sidebar-link {{ nav_route_is('user.stats.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Stats</span></a>
-                        @endif
-                        @if($__can['stats_view'])
-                        <a href="{{ route('user.visitors.index') }}" class="sidebar-link {{ nav_route_is('user.visitors.index') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Visitors</span></a>
-                        @endif
+
                         {{-- Task #3848 — Wallet nav item moved to the header icon+badge (mobile drawer's header mirrors the desktop one). --}}
 
                         {{-- ========== EVENTS & CALENDAR (collapsible) ========== --}}
@@ -1998,7 +1986,7 @@
 
                         {{-- ========== AUDIENCE & COMMUNITY (collapsible) ========== --}}
                         @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'] || $__can['settings_view'])
-                        @php $mGrpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.creator-profile.*') || nav_route_is('user.posts.*'); @endphp
+                        @php $mGrpAudienceActive = nav_route_is('user.stats.*') || nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.creator-profile.*') || nav_route_is('user.posts.*'); @endphp
                         <div x-data="{ open: {{ $mGrpAudienceActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -2006,6 +1994,10 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
+                        @if($__can['posts_view'])
+                        <a href="{{ route('user.stats.index') }}" class="sidebar-link {{ nav_route_is('user.stats.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Stats</span></a>
+                        @endif
+
                                 @if($__can['inbox_view'])
                                 <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ nav_route_is('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Subscribers</span></a>
                                 @endif

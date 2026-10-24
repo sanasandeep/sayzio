@@ -10,7 +10,7 @@
 --}}
                 {{-- ========== AUDIENCE & COMMUNITY (collapsible) ========== --}}
                 @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'] || $__can['settings_view'])
-                @php $grpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.posts.*'); @endphp
+                @php $grpAudienceActive = nav_route_is('user.stats.*') || nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.posts.*'); @endphp
                 <div x-data="{ open: {{ $grpAudienceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -18,6 +18,16 @@
                         <svg class="nav-icon grp-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                @if($__can['posts_view'])
+                <a href="{{ route('user.stats.index') }}"
+                   class="sidebar-link {{ nav_route_is('user.stats.*') ? 'active' : '' }}"
+                   style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
+                    <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-chart-line"></use></svg></div>
+                    <span class="nav-label">Stats</span>
+                    <span class="sidebar-tooltip">Stats</span>
+                </a>
+                @endif
+
                         @if($__can['inbox_view'])
                         <a href="{{ route('user.subscribers.index') }}"
                            class="sidebar-link {{ nav_route_is('user.subscribers.*') ? 'active' : '' }}"

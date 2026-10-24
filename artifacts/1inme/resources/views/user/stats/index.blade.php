@@ -52,17 +52,21 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 bento-stage">
 
-    {{-- ===================== LIVE-PULSE HERO ===================== --}}
-    <div class="bento-hero">
-        @include('common.partials.card-ribbon')
-        <div class="hero-grid cribbon-copy">
-            <div class="min-w-0">
-                <div class="flex items-center gap-2 flex-wrap mb-2">
-                    <span class="hero-chip"><i class="fas fa-calendar-day"></i> {{ $rangeLabel }}</span>
-                    <span class="hero-chip"><i class="fas fa-clock"></i> {{ $start->format('M j') }} – {{ $end->format('M j, Y') }}</span>
-                </div>
-                <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">Stats home</h1>
-                <p class="hero-subtitle">A live look at your audience, content and engagement.</p>
+    @include('user.partials.page-hero', [
+        'title' => 'Stats',
+        'subtitle' => 'Creator audience, posts, engagement and subscriptions.',
+        'icon' => 'fa-chart-line',
+        'chips' => [
+            ['icon' => 'fa-calendar', 'text' => $rangeLabel],
+            ['icon' => 'fa-clock', 'text' => $start->format('M j').' – '.$end->format('M j, Y')],
+        ],
+        'actions' => [
+            workspace_owner()?->getPlanFeature('analytics_export', true)
+                ? ['label' => 'Export CSV', 'url' => route('user.stats.export', ['range'=>$range,'from'=>$start->format('Y-m-d'),'to'=>$end->format('Y-m-d')]), 'icon'=>'fa-download', 'class'=>'btn-primary']
+                : ['label' => 'Export CSV', 'url' => route('user.upgrade'), 'icon'=>'fa-lock', 'class'=>'btn-ghost', 'title'=>'Upgrade your plan to export stats.'],
+        ],
+    ])
+    <section class="stats-card p-5 mb-6" aria-label="Stats date filters">
                 <form data-date-filters data-list-filters method="GET" class="flex items-center gap-2 flex-wrap mt-4">
                     <select name="range" class="stats-select px-3 py-2 text-sm">
                         @foreach($ranges as $key => $r)
@@ -75,35 +79,9 @@
                     <button type="submit" class="btn-primary">Apply dates</button>
                     @error('from')<span role="alert">{{ $message }}</span>@enderror
                     @error('to')<span role="alert">{{ $message }}</span>@enderror
-                    @if(workspace_owner()?->getPlanFeature('analytics_export', true))
-                        <a href="{{ route('user.stats.export', ['range' => $range, 'from' => $start->format('Y-m-d'), 'to' => $end->format('Y-m-d')]) }}" class="btn-primary text-xs py-2">
-                            <i class="fas fa-download text-[10px]"></i> CSV
-                        </a>
-                    @else
-                        <a href="{{ route('user.upgrade') }}" class="btn-ghost text-xs py-2" title="Exporting stats is a paid feature. Upgrade your plan to download CSV exports.">
-                            <i class="fas fa-lock text-[10px]"></i> CSV
-                        </a>
-                    @endif
-                </form>
-            </div>
 
-            {{-- Live pulse: engagement this range --}}
-            <div class="flex items-center gap-4">
-                <div class="pulse-orb">
-                    <span class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($kpis['reactions'] + $kpis['comments']) }}</span>
-                    <span class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">engaged</span>
-                </div>
-                <div>
-                    <span class="live-dot"><span class="dot"></span> Live</span>
-                    <p class="text-sm font-semibold mt-1.5" style="color: var(--text-primary);">Engagement</p>
-                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">
-                        <strong style="color: var(--text-secondary);">{{ number_format($kpis['reactions']) }}</strong> reactions ·
-                        <strong style="color: var(--text-secondary);">{{ number_format($kpis['comments']) }}</strong> comments
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
+                </form>
+    </section>
 
     {{-- ===================== KPI BENTO ===================== --}}
     @php
@@ -229,11 +207,11 @@
         Object.values(Chart.instances).forEach((ch) => {
             const o = ch.options || {};
             if (o.scales) Object.values(o.scales).forEach((sc) => {
-                sc.ticks = sc.ticks || {}; sc.ticks.color = c.tick;
-                sc.grid = sc.grid || {}; sc.grid.color = c.grid;
+                if (!sc.ticks) sc.ticks = {}; sc.ticks.color = c.tick;
+                if (!sc.grid) sc.grid = {}; sc.grid.color = c.grid;
             });
-            o.plugins = o.plugins || {};
-            if (o.plugins.legend) { o.plugins.legend.labels = o.plugins.legend.labels || {}; o.plugins.legend.labels.color = c.tick; }
+            if (!o.plugins) o.plugins = {};
+            if (o.plugins.legend) { if (!o.plugins.legend.labels) o.plugins.legend.labels = {}; o.plugins.legend.labels.color = c.tick; }
             if (o.plugins.tooltip) { o.plugins.tooltip.backgroundColor = c.tipBg; o.plugins.tooltip.titleColor = c.tick; o.plugins.tooltip.bodyColor = c.tick; }
             ch.update('none');
         });
