@@ -56,7 +56,13 @@ class FolderExplorerController extends Controller
 
     public function contents(Request $request, PlannerResources $resources)
     {
-        $v = $request->validate(['folder' => 'nullable|integer|min:1', 'q' => 'nullable|string|max:100', 'page' => 'nullable|integer|min:1', 'kind' => 'nullable|string|in:'.implode(',', array_keys(PlannerResources::TYPES)), 'link_type' => 'nullable|string|max:80', 'sort' => 'nullable|in:name,name_desc,newest,oldest']);
+        // Accept older bookmarked single-value filters as well as multi-select arrays.
+        foreach (['kind', 'link_type'] as $key) {
+            if (is_string($request->query($key))) {
+                $request->merge([$key => array_filter([$request->query($key)])]);
+            }
+        }
+        $v = $request->validate(['folder' => 'nullable|integer|min:1', 'q' => 'nullable|string|max:100', 'page' => 'nullable|integer|min:1', 'kind' => 'nullable|array|max:30', 'kind.*' => 'string|in:'.implode(',', array_keys(PlannerResources::TYPES)), 'link_type' => 'nullable|array|max:100', 'link_type.*' => 'string|max:80', 'sort' => 'nullable|in:name,name_desc,newest,oldest']);
         $folder = $this->folder($v['folder'] ?? null);
         if ($folder) {
             $items = collect($resources->folder($folder, $request->user()));
@@ -81,8 +87,8 @@ class FolderExplorerController extends Controller
         }
         $q = mb_strtolower($v['q'] ?? '');
         $items = $items->filter(fn ($item) => (! $q || str_contains(mb_strtolower($item['label']), $q))
-            && (empty($v['kind']) || $item['kind'] === $v['kind'])
-            && (empty($v['link_type']) || ($item['kind'] === 'link' && $item['row']->type === $v['link_type'])));
+            && (empty($v['kind']) || in_array($item['kind'], $v['kind'], true))
+            && (empty($v['link_type']) || ($item['kind'] !== 'link' || in_array($item['row']->type, $v['link_type'], true))));
         $sort = $v['sort'] ?? 'name';
         $items = match ($sort) {
             'name_desc' => $items->sortByDesc('label', SORT_NATURAL | SORT_FLAG_CASE),
