@@ -810,50 +810,7 @@
             <nav class="flex-1 relative overflow-hidden" style="overflow:clip"
                  onscroll="this.scrollTop=0;this.scrollLeft=0">
             <div class="absolute inset-0 overflow-y-auto overflow-x-hidden sidebar-nav-scroll py-4" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
-                @if($__can['links_view'])
-                        @php
-                            $__navFolders = workspace_owner()->projects()->orderBy('name')->limit(10)->get(['id', 'name', 'color']);
-                        @endphp
-                        <div x-data="{ foldersOpen: {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }">
-                            <div class="flex items-center">
-                                <a href="{{ route('user.dashboard') }}#folders"
-                                   class="sidebar-link flex-1 {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'active' : '' }}"
-                                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                                    <div class="nav-icon-wrap"><i class="fas fa-folder"></i></div>
-                                    <span class="nav-label">Folders</span>
-                                    <span class="sidebar-tooltip">Folders</span>
-                                </a>
-                                @if($__navFolders->isNotEmpty())
-                                <button type="button" @click="foldersOpen = !foldersOpen"
-                                        class="nav-label p-1.5 mr-1 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10"
-                                        :aria-expanded="foldersOpen ? 'true' : 'false'" aria-label="Toggle folders list">
-                                    <i class="fas fa-chevron-down text-[10px] transition-transform" :class="foldersOpen ? '' : '-rotate-90'"></i>
-                                </button>
-                                @endif
-                            </div>
-                            <div x-show="foldersOpen" x-collapse class="nav-label pl-9 pr-2 pb-1 space-y-0.5">
-                                @foreach($__navFolders as $__nf)
-                                <a href="{{ route('user.projects.show', $__nf) }}"
-                                   class="folder-sidebar-item flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] {{ (request('project_id') == $__nf->id || (nav_route_is('user.projects.*') && request()->route('project') instanceof \App\Modules\User\Models\Project && request()->route('project')->id === $__nf->id)) ? 'text-white bg-white/10' : 'text-white/50 hover:text-white hover:bg-white/5' }}">
-                                    <i class="fas fa-folder text-xs" style="color: {{ $__nf->color ?: '#3b82f6' }}"></i>
-                                    <span class="truncate">{{ $__nf->name }}</span>
-                                </a>
-                                @endforeach
-                                <a href="{{ route('user.projects.create') }}" class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] text-white/40 hover:text-white hover:bg-white/5">
-                                    <i class="fas fa-plus text-xs"></i>
-                                    <span>New folder</span>
-                                </a>
-                            </div>
-                        </div>
-                @endif
-                {{-- ========== TOP LEVEL — most-used destinations stay visible ========== --}}
-                <a href="{{ route('user.dashboard') }}"
-                   class="sidebar-link {{ nav_route_is('user.dashboard') ? 'active' : '' }}"
-                   style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-house"></i></div>
-                    <span class="nav-label">Dashboard</span>
-                    <span class="sidebar-tooltip">Dashboard</span>
-                </a>
+@include('user.partials.dashboard-folder-dropdown')
                 @if($__can['links_view'])
                 <a href="{{ route('user.links.index') }}"
                    class="sidebar-link {{ nav_route_is('user.links.index') || nav_route_is('user.links.show') ? 'active' : '' }}"
@@ -1611,7 +1568,7 @@
                 <div class="header-glow"></div>
 
                 <div class="flex items-center gap-3 min-w-0">
-                    <button @click="mobileMenu = !mobileMenu" class="flex lg:hidden header-icon-btn flex-shrink-0" style="width: 34px; height: 34px;">
+                    <button @click="mobileMenu = !mobileMenu" aria-label="Toggle navigation" :aria-expanded="mobileMenu ? 'true' : 'false'" class="flex lg:hidden header-icon-btn flex-shrink-0" style="width: 34px; height: 34px;">
                         <i class="fas fa-bars" style="font-size: 13px;"></i>
                     </button>
 
@@ -1842,35 +1799,6 @@
                     </div>
                     @auth
                         @include('user.partials.workspace-switcher')
-                        {{-- In rail mode the Home panel carries the folders
-                             tree, so this copy would be the second one on the
-                             same screen. --}}
-                        @if($__can['links_view'] && !$__railNav)
-                                <div x-data="{ mFoldersOpen: {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'true' : 'false' }} }">
-                                    <div class="flex items-center">
-                                        <a href="{{ route('user.dashboard') }}#folders" class="sidebar-link flex-1 {{ nav_route_is('user.projects.*') || request()->filled('project_id') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Folders</span></a>
-                                        @php $__mNavFolders = workspace_owner()->projects()->orderBy('name')->limit(10)->get(['id', 'name', 'color']); @endphp
-                                        @if($__mNavFolders->isNotEmpty())
-                                        <button type="button" @click="mFoldersOpen = !mFoldersOpen" class="p-1.5 mr-1 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10" :aria-expanded="mFoldersOpen ? 'true' : 'false'" aria-label="Toggle folders list">
-                                            <i class="fas fa-chevron-down text-[10px] transition-transform" :class="mFoldersOpen ? '' : '-rotate-90'"></i>
-                                        </button>
-                                        @endif
-                                    </div>
-                                    <div x-show="mFoldersOpen" x-collapse class="pl-9 pr-2 pb-1 space-y-0.5">
-                                        @foreach($__mNavFolders as $__mnf)
-                                        <a href="{{ route('user.projects.show', $__mnf) }}" class="folder-sidebar-item flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] {{ (request('project_id') == $__mnf->id || (nav_route_is('user.projects.*') && request()->route('project') instanceof \App\Modules\User\Models\Project && request()->route('project')->id === $__mnf->id)) ? 'text-white bg-white/10' : 'text-white/50 hover:text-white hover:bg-white/5' }}">
-                                            <i class="fas fa-folder text-xs" style="color: {{ $__mnf->color ?: '#3b82f6' }}"></i>
-                                            <span class="truncate">{{ $__mnf->name }}</span>
-                                        </a>
-                                        @endforeach
-                                        <a href="{{ route('user.projects.create') }}" class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[13px] text-white/40 hover:text-white hover:bg-white/5">
-                                            <i class="fas fa-plus text-xs"></i>
-                                            <span>New folder</span>
-                                        </a>
-                                    </div>
-                                </div>
-                        @endif
-
                     @endauth
                     @if($__railNav)
                     {{-- Search and Quick Shorten have only ever existed in the
@@ -1906,7 +1834,7 @@
                             <span>Search</span>
                         </button>
                         {{-- ========== TOP LEVEL — mirrors desktop most-used destinations ========== --}}
-                        <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ nav_route_is('user.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-house"></i></div> <span>Dashboard</span></a>
+                        @include('user.partials.dashboard-folder-dropdown')
                         @if($__can['links_view'])
                         <a href="{{ route('user.links.index') }}" class="sidebar-link {{ nav_route_is('user.links.index') || nav_route_is('user.links.show') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>All Links</span></a>
                         @endif
