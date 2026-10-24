@@ -107,7 +107,7 @@ class FolderExplorerController extends Controller
             $permission = preg_replace('/\.view$/', '.edit', PlannerResources::permissionFor($item['kind']));
             $inherited = $item['kind'] === 'task' && ! isset($directTasks[$item['row']->id]) && isset($assignedBoards[$item['row']->board_id]);
 
-            return ['key' => $item['kind'].':'.$item['row']->id, 'kind' => $item['kind'], 'name' => $item['label'], 'url' => $item['url'], 'movable' => (! $folder || $this->canEditFolder($folder)) && $request->user()->canInWorkspace(app('current_workspace'), 'projects.edit') && $request->user()->canInWorkspace(app('current_workspace'), $permission), 'inherited' => (bool) $inherited];
+            return ['key' => $item['kind'].':'.$item['row']->id, 'kind' => $item['kind'], 'link_type' => $item['kind'] === 'link' ? $item['row']->type : null, 'name' => $item['label'], 'url' => $item['url'], 'movable' => (! $folder || $this->canEditFolder($folder)) && $request->user()->canInWorkspace(app('current_workspace'), 'projects.edit') && $request->user()->canInWorkspace(app('current_workspace'), $permission), 'inherited' => (bool) $inherited];
         })->values();
 
         return response()->json(['folder' => $folder ? ['id' => $folder->id, 'name' => $folder->name, 'color' => $folder->color, 'url' => route('user.projects.show', $folder)] : null, 'items' => $items, 'total' => $total, 'page' => $page, 'has_more' => $page * 100 < $total, 'folders' => $this->folders()]);
