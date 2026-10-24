@@ -38,10 +38,13 @@ class FolderExplorerTest extends TestCase
         $this->getJson($base)->assertOk()->assertJsonPath('total', 2);
         $this->getJson($base.'&kind=link&link_type=url')->assertOk()->assertJsonPath('total', 1)->assertJsonPath('items.0.key', 'link:'.$link->id);
         $this->getJson($base.'&kind=file')->assertOk()->assertJsonPath('total', 0);
+        $this->getJson($base.'&kind[]=link&kind[]=file&link_type[]=url&link_type[]=biolink')->assertOk()->assertJsonPath('total', 2);
+        $this->getJson($base.'&kind[]=link&link_type[]=biolink')->assertOk()->assertJsonPath('total', 1)->assertJsonPath('items.0.name', 'Alpha profile');
+        $this->getJson($base.'&kind[]=invalid')->assertUnprocessable();
         $this->getJson($base.'&sort=name_desc')->assertOk()->assertJsonPath('items.0.key', 'link:'.$link->id);
         $this->getJson($base.'&q=Alpha&link_type=url')->assertOk()->assertJsonPath('total', 0);
         $this->getJson($base.'&kind=invalid')->assertUnprocessable();
-        $this->get('/user/folders')->assertOk()->assertSee('All item types')->assertSee('All link types')->assertSee('Clear filters');
+        $this->get('/user/folders')->assertOk()->assertSee('All item types')->assertSee('All link types')->assertSee('Clear filters')->assertSee('Refine your search')->assertSee('Apply filters')->assertSee('data-folder-create-dialog', false)->assertSee('Optional description');
     }
 
     public function test_all_folders_route_renders_and_native_links_move_in_out_and_back(): void

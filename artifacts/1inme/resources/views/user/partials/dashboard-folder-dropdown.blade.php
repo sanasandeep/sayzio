@@ -26,7 +26,7 @@
             </div>
             <a href="{{ route('user.folders.index') }}" @if(nav_route_is('user.folders.index') && !request('folder')) aria-current="page" @endif class="navrail-subtle-btn flex items-center gap-2 px-2 py-2 rounded-lg text-[13px]"><svg class="nav-icon text-xs" aria-hidden="true"><use href="#i-folder"></use></svg><span>All folders</span></a>
             @if(\App\Modules\User\Services\WorkspacePermissions::userCan('projects.create'))
-                <a href="{{ route('user.projects.create') }}" class="navrail-subtle-btn flex items-center gap-2 px-2 py-2 rounded-lg text-[13px]"><svg class="nav-icon text-xs" aria-hidden="true"><use href="#i-plus"></use></svg><span>New folder</span></a>
+                <a href="{{ route('user.projects.create') }}" @click.prevent="$dispatch('open-folder-create')" class="navrail-subtle-btn flex items-center gap-2 px-2 py-2 rounded-lg text-[13px]"><svg class="nav-icon text-xs" aria-hidden="true"><use href="#i-plus"></use></svg><span>New folder</span></a>
             @endif
         </div>
     @endif

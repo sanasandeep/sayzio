@@ -2281,6 +2281,7 @@
          voiceDictation() helper + window.__voice config stay defined for the
          companion composer. --}}
     @include('partials.voice-assistant', ['voiceFloating' => false])
+    @include('user.partials.folder-create-modal')
     @include('user.links.partials.themed-confirm')
     @include('common.partials.mini-profile-popover')
     @include('user.partials.list-design')
