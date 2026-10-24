@@ -42,6 +42,7 @@ class NavRailSections
                 'user.links.show',
                 'user.links.create',
                 'user.projects.*',
+                'user.folders.*',
                 'user.inbox.*',
                 'user.notifications.*',
             ],

@@ -566,10 +566,8 @@
     }
     .navrail-plan-cta:hover { filter: brightness(1.08); }
 
-    /* ---- the two utility tiles --------------------------------------
-       Minimised only. Expanded, the switcher is the panel's head row
-       and Folders is the first group inside Home, so a rail tile for
-       either would be the same destination twice. */
+    /* Workspace utility appears only when minimised. Folder selection
+       lives beside Dashboard in the Home panel. */
     .navrail-util-sep {
         width: 24px;
         height: 1px;
@@ -810,11 +808,6 @@
                     <span class="navrail-btn-label">Workspace: {{ $railWs->name }}</span>
                 </button>
             @endif
-            <button type="button" class="navrail-btn" x-show="railMin" x-cloak
-                    @click="utility('folders')" title="Folders">
-                <svg class="nav-icon" aria-hidden="true" aria-hidden="true"><use href="#i-folder"></use></svg>
-                <span class="navrail-btn-label">Folders</span>
-            </button>
             <div class="navrail-util-sep" x-show="railMin" x-cloak aria-hidden="true"></div>
         @endif
         @foreach($railOrder as $railKey)
