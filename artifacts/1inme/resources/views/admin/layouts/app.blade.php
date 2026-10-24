@@ -263,6 +263,7 @@
                     @if($staffNavigation->allows('admin.users.index'))
                     <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') && ! request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div><span>Users</span></a>
                     @endif
+                    <a href="{{ route('admin.attendance.index') }}" class="sidebar-link {{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span>Attendance</span></a>
                     @if($staffNavigation->allows('admin.staff.index'))
                     <a href="{{ route('admin.staff.index') }}" class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Staff</span></a>
                     @endif

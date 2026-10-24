@@ -61,6 +61,9 @@ class EnforceWorkspaceFeature
         if (! $feature) {
             return $next($request);
         }
+        // Attendance has independent self-service, review and policy capabilities.
+        // Its controller checks membership, record ownership and the exact capability.
+        if ($feature === 'attendance') return $next($request);
         $permissionAction = self::action($request);
         if (! in_array($permissionAction, WorkspacePermissionCatalog::featureActions($feature))) {
             $permissionAction = WorkspacePermissionCatalog::baseAction($permissionAction);

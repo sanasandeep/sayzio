@@ -110,6 +110,11 @@ return [
 
             's3' => $s3,
 
+            'attendance_evidence' => array_replace($s3, [
+                'bucket' => env('ATTENDANCE_EVIDENCE_BUCKET') ?: env('AWS_BUCKET'),
+                'url' => null, 'throw' => true,
+            ]),
+
         ];
     })(),
 

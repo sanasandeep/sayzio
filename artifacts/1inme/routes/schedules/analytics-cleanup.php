@@ -15,6 +15,11 @@
 
 return [
     [
+        'key' => 'attendance:prune-evidence',
+        'description' => 'Remove attendance photos and coordinates after the team retention period.',
+        'cadence' => ['dailyAt', '03:45'],
+    ],
+    [
         'key'         => 'coach:snapshot-scores',
         'description' => 'Record yesterday\'s Performance Coach score for every active link, powering the 30-day trend sparkline.',
         'cadence'     => ['dailyAt', '01:15'],

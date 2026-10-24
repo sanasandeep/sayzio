@@ -102,7 +102,7 @@
         ),
     ]);
 @endphp
-    /* {{ $heroOpt['label'] }} - {{ $heroTheme }} */
+    {{-- Generated hero option and theme. --}}
     {{-- No border-color here. `html.aurora .page-hero` (among others) sets
          `border: 1px solid transparent !important`, so a border-color rule at
          this specificity is dead on arrival - it computed rgba(0,0,0,0) on

@@ -128,7 +128,7 @@
 <style>
 @foreach($navScopes as $navArea => $navScope)
 @php($navSel = $navOn($navArea) . ' ' . $navScope)
-/* ---------------- {{ $navArea }} ---------------- */
+{{-- Generated navigation area. --}}
 @if(in_array($navArea, $navSurfaceOnly, true))
 @foreach(NavAppearance::PALETTES as $navPreset => $navPalette)
 {!! $navIs($navArea, $navPreset) !!} {!! $navScope !!} { background:{{ $navPalette['surface'] }}!important; }
