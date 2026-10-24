@@ -71,3 +71,10 @@ Attendance, Shifts & Leave remains under Billing & Accounting for workspaces and
 Employee Self-Service shows personal attendance, dated rosters, timing, leave balances, and request history. Employees can submit leave, attendance correction, overtime, training and general requests, and withdraw pending requests. Training requests capture a title, provider and course URL. Requests use the existing scoped approval permissions and prohibit self-approval.
 
 Leave types can allow half-day/whole-day encashment requests with an annual limit. Leave and encashment share the same balance; pending requests reserve days and withdrawal releases reservations. Approval consumes days. Managers record a separate externally completed settlement with currency, amount and payment reference; this workflow does not transfer funds or calculate payroll. Internal staff use the same workflows in their separate attendance scope.
+
+
+## Management navigation
+
+Attendance, Leave Management and Team Management are separate server-rendered areas, rather than anchors into one page. Internal admins see Staff Management. Each area renders only its selected URL-backed sub-tab. Attendance contains overview, records, employee requests, personal workspace, QR, reports, policy and audit history. Leave Management contains requests/approvals, personal balances, encashments and manager-only leave types. Team/Staff Management contains people, rosters, designations/holidays, notices and roles/permissions.
+
+Workspace role links lead to the workspace team role editor; internal staff links lead to the admin role editor. Permissions and records remain isolated by their existing workspace/admin guards. Manager-only tabs are checked server-side, and existing mutation permissions remain enforced. Buttons use the shared btn-primary/btn-ghost theme classes.

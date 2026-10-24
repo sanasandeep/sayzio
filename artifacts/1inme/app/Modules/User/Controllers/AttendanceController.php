@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Support\StaffNavigation;
 use App\Modules\User\Controllers\Concerns\AttendanceManagement;
 use App\Modules\User\Controllers\Concerns\AttendanceSelfService;
 use App\Modules\User\Models\AttendanceParticipant;
@@ -92,6 +93,35 @@ class AttendanceController extends Controller
         $canExport = $this->can($request, $ws, 'export');
         $canRequest = $this->can($request, $ws, 'create');
         $canPunch = $this->can($request, $ws, 'create') && $participant->attendance_enabled;
+        $area = $request->route('area', 'attendance');
+        $tabs = $area === 'leave'
+            ? ['requests' => 'Requests & approvals', 'balances' => 'My balances', 'encashments' => 'Encashments']
+            : ['overview' => 'Overview', 'history' => 'Attendance records', 'self-service' => 'My workspace', 'requests' => 'Employee requests'];
+        if ($area === 'leave' && $canManage) {
+            $tabs['types'] = 'Leave types & allowances';
+        }
+        if ($area === 'attendance') {
+            if ($canExport) {
+                $tabs['reports'] = 'Reports';
+            }
+            $tabs['qr'] = 'QR clock-in';
+            if ($canManage) {
+                $tabs['policy'] = 'Policy';
+            }
+            $tabs['audit'] = 'Audit history';
+
+        }
+        if ($area === 'team') {
+            $tabs = ($reviewer || $canManage) ? ['people' => $this->actorGuard() === 'admin' ? 'Internal staff' : 'Team members'] : [];
+            $tabs += ['shifts' => 'Shifts & rosters', 'calendar' => 'Designations & holidays', 'notices' => 'Notices', 'access' => 'Roles & permissions'];
+        }
+        $tab = $request->query('tab', array_key_first($tabs));
+        abort_unless(is_string($tab) && array_key_exists($tab, $tabs), 404);
+        $isInternal = $this->actorGuard() === 'admin';
+        $mayManageRoles = $isInternal ? $this->actor($request)->hasPermission('roles.view') : ((int) $ws->owner_user_id === (int) $this->actor($request)->id || $this->actor($request)->membershipFor($ws)?->role === 'admin');
+        $directoryAccess = $isInternal ? (new StaffNavigation($this->actor($request)))->allows('admin.staff.index') : $mayManageRoles;
+        $accessPermissions = collect(['create', 'review', 'manage', 'export'])->mapWithKeys(fn ($ability) => [$ability => $this->can($request, $ws, $ability)])->all();
+
         $query = AttendancePunch::with('participant.'.$this->staffRelation())->whereHas('participant', fn ($q) => $q->where('workspace_id', $ws->id)->when(! $reviewer, fn ($q) => $q->where('user_id', $this->actor($request)->id)));
         $filters = $request->validate(['from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d|after_or_equal:from', 'staff' => 'nullable|integer|min:1']);
         if (! empty($filters['from'])) {
@@ -104,7 +134,7 @@ class AttendanceController extends Controller
             $query->whereHas('participant', fn ($q) => $q->where('user_id', $filters['staff']));
         }
         $punches = $query->orderByDesc('occurred_at')->orderByDesc('id')->paginate(30)->withQueryString();
-        $requests = AttendanceRequest::with('participant.'.$this->staffRelation())->whereHas('participant', fn ($q) => $q->where('workspace_id', $ws->id)->when(! $reviewer, fn ($q) => $q->where('user_id', $this->actor($request)->id)))->latest()->limit(50)->get();
+        $requests = AttendanceRequest::whereIn('type', $area === 'leave' ? ($tab === 'encashments' ? ['encashment'] : ['leave']) : ['correction', 'overtime', 'training', 'general'])->with('participant.'.$this->staffRelation())->whereHas('participant', fn ($q) => $q->where('workspace_id', $ws->id)->when(! $reviewer, fn ($q) => $q->where('user_id', $this->actor($request)->id)))->latest()->limit(50)->get();
         $today = CarbonImmutable::now($policy['timezone'])->startOfDay();
         $seconds = $this->attendance->workedSeconds($participant->punches()->orderBy('occurred_at')->orderBy('id')->get(), $today, $today->addDay());
         $reviews = AttendanceReview::where('workspace_id', $ws->id)->when(! $reviewer, fn ($q) => $q->where(function ($q) use ($participant) {
@@ -117,7 +147,7 @@ class AttendanceController extends Controller
         $routePrefix = $this->routePrefix();
         $layout = $this->layout();
 
-        return view('user.attendance.index', compact('canRequest', 'operations', 'routePrefix', 'layout', 'directory', 'states', 'ws', 'policy', 'participant', 'reviewer', 'canManage', 'canExport', 'canPunch', 'punches', 'requests', 'seconds', 'reviews'));
+        return view('user.attendance.index', compact('area', 'tabs', 'tab', 'isInternal', 'mayManageRoles', 'directoryAccess', 'accessPermissions', 'canRequest', 'operations', 'routePrefix', 'layout', 'directory', 'states', 'ws', 'policy', 'participant', 'reviewer', 'canManage', 'canExport', 'canPunch', 'punches', 'requests', 'seconds', 'reviews'));
     }
 
     public function challenge(Request $request)
