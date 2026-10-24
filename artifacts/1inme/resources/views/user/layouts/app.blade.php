@@ -2367,7 +2367,7 @@
     <div id="sayzio-startup-sound" hidden
          data-dashboard="{{ request()->routeIs('user.dashboard') ? 'true' : 'false' }}"
          data-src="{{ asset('audio/sayzio-sonic-logo.mp3') }}"></div>
-    <script defer src="{{ asset('js/startup-sound.js') }}"></script>
+    <script defer src="{{ asset('js/startup-sound.js') }}?v={{ filemtime(public_path('js/startup-sound.js')) }}"></script>
     @stack('scripts')
 </body>
 </html>

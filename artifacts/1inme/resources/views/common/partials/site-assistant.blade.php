@@ -449,8 +449,12 @@ window.__SA_LOGIN_URL = @json(url('/login'));
 
   launcher.onclick=function(){ togglePanel(!open); };
 
-  function togglePanel(on){
+  function togglePanel(on, playOpeningSound){
+    var wasOpen = open;
     open = !!on;
+    if(open && !wasOpen && playOpeningSound !== false){
+      window.dispatchEvent(new CustomEvent('sayzio:zio-open'));
+    }
     panelWrap.classList.toggle('sa-open', open);
     saSyncPanelViewport();
     if(open){
@@ -1902,7 +1906,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   window.addEventListener('resize', saSyncPanelViewport, { passive: true });
   window.addEventListener('orientationchange', saSyncPanelViewport, { passive: true });
 
-  if(navigationHandoff) setTimeout(function(){togglePanel(true);},200);
+  if(navigationHandoff) setTimeout(function(){togglePanel(true, false);},200);
   scheduleTooltip(true);
 })();
 </script>
