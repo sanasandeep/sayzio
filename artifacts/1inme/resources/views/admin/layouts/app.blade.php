@@ -263,7 +263,6 @@
                     @if($staffNavigation->allows('admin.users.index'))
                     <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') && ! request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div><span>Users</span></a>
                     @endif
-                    <a href="{{ route('admin.attendance.index') }}" class="sidebar-link {{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span>Attendance</span></a>
                     @if($staffNavigation->allows('admin.staff.index'))
                     <a href="{{ route('admin.staff.index') }}" class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Staff</span></a>
                     @endif
@@ -362,7 +361,8 @@
                     <a href="{{ route('admin.finance.index') }}" class="sidebar-link {{ request()->routeIs('admin.finance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-pie"></i></div><span>Financial reports</span></a>
                     @endif
                     {{-- Billing & Plans --}}
-                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Billing &amp; Plans</div>
+                    <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Billing &amp; Accounts</div>
+                    <a href="{{ route('admin.attendance.index') }}" class="sidebar-link {{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span>Attendance &amp; Leave</span></a>
                     @if($staffNavigation->allows('admin.plans.index'))
                     <a href="{{ route('admin.plans.index') }}" class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-tags"></i></div><span>Plans</span></a>
                     @endif

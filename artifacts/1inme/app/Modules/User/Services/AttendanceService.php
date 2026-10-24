@@ -24,7 +24,7 @@ class AttendanceService
         $stored = DB::table('attendance_policies')->where('workspace_id', $workspace->id)->value('settings');
 
         return array_replace(['timezone' => 'UTC', 'require_photo' => (bool) config('attendance.evidence_bucket'), 'require_location' => false,
-            'latitude' => null, 'longitude' => null, 'radius_m' => null, 'retention_days' => 90],
+            'latitude' => null, 'longitude' => null, 'radius_m' => null, 'retention_days' => 90, 'enforce_roster' => false, 'early_checkin_minutes' => 60, 'auto_out_at_shift_end' => false],
             $stored ? json_decode($stored, true) : []);
     }
 
@@ -43,15 +43,25 @@ class AttendanceService
         return $next[$state][$action];
     }
 
-    public function challenge(AttendanceParticipant $participant, string $action): AttendanceChallenge
+    public function challenge(AttendanceParticipant $participant, string $action, ?string $ip = null, ?string $qr = null): AttendanceChallenge
     {
-        return DB::transaction(function () use ($participant, $action) {
+        return DB::transaction(function () use ($participant, $action, $ip, $qr) {
             $participant = AttendanceParticipant::whereKey($participant->id)->lockForUpdate()->firstOrFail();
+            app(AttendanceOperations::class)->checkPunchAccess($participant, $ip);
+            if ($qr) {
+                abort_unless($action === 'in', 422, 'QR sessions are for clock-in only.');
+                $this->qrSession($qr, $participant);
+            }
+            if ($action === 'in') {
+                $scope = new Workspace;
+                $scope->id = $participant->workspace_id;
+                app(AttendanceWorkforce::class)->rosterForCheckIn($participant, $scope);
+            }
             $this->nextState($participant->state, $action);
             AttendanceChallenge::where('participant_id', $participant->id)->whereNull('consumed_at')->delete();
 
             return AttendanceChallenge::create(['id' => (string) Str::uuid(), 'participant_id' => $participant->id,
-                'action' => $action, 'pose' => self::POSES[random_int(0, count(self::POSES) - 1)], 'expires_at' => now()->addMinutes(2)]);
+                'qr_session_id' => $qr, 'action' => $action, 'pose' => self::POSES[random_int(0, count(self::POSES) - 1)], 'expires_at' => now()->addMinutes(2)]);
         });
     }
 
@@ -62,6 +72,7 @@ class AttendanceService
             return DB::transaction(function () use ($participant, $workspace, $data, $photo, &$path) {
                 $participant = AttendanceParticipant::whereKey($participant->id)->lockForUpdate()->firstOrFail();
                 $challenge = AttendanceChallenge::whereKey($data['challenge_id'])->where('participant_id', $participant->id)->lockForUpdate()->firstOrFail();
+                app(AttendanceOperations::class)->checkPunchAccess($participant, $data['ip_address'] ?? null);
                 // A retried upload returns its original receipt, never a second punch.
                 if ($challenge->consumed_at) {
                     return AttendancePunch::where('challenge_id', $challenge->id)->firstOrFail();
@@ -69,8 +80,13 @@ class AttendanceService
                 if ($challenge->expires_at->isPast()) {
                     throw ValidationException::withMessages(['challenge_id' => 'Challenge expired. Start a new capture.']);
                 }
+                if ($challenge->qr_session_id) {
+                    $this->qrSession($challenge->qr_session_id, $participant);
+                }
+                abort_if($participant->auto_punch_out_at && $participant->auto_punch_out_at->isPast(), 409, 'Automatic punch-out is due. Refresh shortly before recording another action.');
                 $next = $this->nextState($participant->state, $challenge->action);
                 $policy = $this->policy($workspace);
+                $roster = $challenge->action === 'in' ? app(AttendanceWorkforce::class)->rosterForCheckIn($participant, $workspace) : null;
                 $needsPhoto = $policy['require_photo'] && in_array($challenge->action, ['in', 'out']);
                 if ($needsPhoto && ! $photo) {
                     throw ValidationException::withMessages(['photo' => 'Capture a selfie showing the requested pose.']);
@@ -99,9 +115,20 @@ class AttendanceService
                 $punch = AttendancePunch::create(['participant_id' => $participant->id, 'challenge_id' => $challenge->id,
                     'action' => $challenge->action, 'occurred_at' => now(), 'photo_path' => $path, 'pose' => $photo ? $challenge->pose : null,
                     'captured_at' => $capturedAt, 'latitude' => $data['latitude'] ?? null, 'longitude' => $data['longitude'] ?? null,
+                    'roster_id' => $challenge->action === 'in' ? $roster?->id : $participant->active_roster_id, 'ip_address' => $data['ip_address'] ?? null, 'source' => $challenge->qr_session_id ? 'qr' : 'web',
                     'accuracy' => $data['accuracy'] ?? null, 'review_status' => $photo ? 'pending' : 'not_required']);
                 $challenge->update(['consumed_at' => now()]);
-                $participant->update(['state' => $next]);
+                $deadline = $challenge->action === 'in' ? app(AttendanceOperations::class)->autoOutDeadline($participant, $workspace) : $participant->auto_punch_out_at;
+                if ($challenge->action === 'in' && $policy['auto_out_at_shift_end'] && $roster) {
+                    $shiftEnd = CarbonImmutable::parse($roster->ends_at);
+                    if (! $deadline || $shiftEnd->lt($deadline)) {
+                        $deadline = $shiftEnd;
+                    }
+                }
+                $participant->update(['state' => $next, 'active_roster_id' => $challenge->action === 'in' ? $roster?->id : ($next === 'out' ? null : $participant->active_roster_id), 'auto_punch_out_at' => $next === 'out' ? null : $deadline]);
+                if ($challenge->qr_session_id) {
+                    DB::table('attendance_qr_redemptions')->insert(['qr_session_id' => $challenge->qr_session_id, 'participant_id' => $participant->id, 'punch_id' => $punch->id, 'created_at' => now(), 'updated_at' => now()]);
+                }
 
                 return $punch;
             });
@@ -111,6 +138,16 @@ class AttendanceService
             }
             throw $e;
         }
+    }
+
+    public function qrSession(string $token, AttendanceParticipant $person)
+    {
+        $qr = DB::table('attendance_qr_sessions')->where('id', $token)->where('workspace_id', $person->workspace_id)->first();
+        abort_unless($qr, 404);
+        abort_if(CarbonImmutable::parse($qr->expires_at)->isPast(), 422, 'Workplace QR expired. Scan the current code.');
+        abort_if(DB::table('attendance_qr_redemptions')->where('qr_session_id', $token)->where('participant_id', $person->id)->exists(), 409, 'You already used this workplace QR.');
+
+        return $qr;
     }
 
     public function distance(float $a, float $b, float $c, float $d): float

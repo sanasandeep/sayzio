@@ -8,7 +8,7 @@ class AttendanceChallenge extends Model
 {
     protected $table = 'attendance_challenges';
 
-    protected $fillable = ['id', 'participant_id', 'action', 'pose', 'expires_at', 'consumed_at'];
+    protected $fillable = ['id', 'participant_id', 'action', 'pose', 'expires_at', 'consumed_at', 'qr_session_id'];
 
     protected $keyType = 'string';
 

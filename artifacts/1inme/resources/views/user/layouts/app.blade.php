@@ -1319,8 +1319,8 @@
                 </div>
 
                 {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
-                @if($__can['attendance_view'] || $__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                @php $grpWorkspaceActive = nav_route_is('user.attendance.*') || nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
+                @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
+                @php $grpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
                 <div x-data="{ open: {{ $grpWorkspaceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1328,9 +1328,6 @@
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
-                        @if($__can['attendance_view'])
-                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span><span class="sidebar-tooltip">Attendance</span></a>
-                        @endif
                         @if($__can['tasks_view'])
                         <a href="{{ route('user.tasks.index') }}"
                            class="sidebar-link {{ nav_route_is('user.tasks.*') ? 'active' : '' }}"
@@ -1367,8 +1364,8 @@
                 @endif
 
                 {{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
-                @if($__can['tasks_view'])
-                @php $grpBillingActive = nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*'); @endphp
+                @if($__can['tasks_view'] || $__can['attendance_view'])
+                @php $grpBillingActive = nav_route_is('user.attendance.*') || nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*'); @endphp
                 <div x-data="{ open: {{ $grpBillingActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1376,6 +1373,10 @@
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                        @if($__can['attendance_view'])
+                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance &amp; Leave</span></a>
+                        @endif
+                        @if($__can['tasks_view'])
                         <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
                         <a href="{{ route('user.client-invoices.dashboard') }}"
                            class="sidebar-link {{ nav_route_is('user.client-invoices.*') ? 'active' : '' }}"
@@ -1419,6 +1420,7 @@
                             <span class="nav-label">Ledger</span>
                             <span class="sidebar-tooltip">Ledger / P&amp;L</span>
                         </a>
+                        @endif
                     </div>
                 </div>
                 @endif
@@ -2110,8 +2112,8 @@
                         </div>
 
                         {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
-                        @if($__can['attendance_view'] || $__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                        @php $mGrpWorkspaceActive = nav_route_is('user.attendance.*') || nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
+                        @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
+                        @php $mGrpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
                         <div x-data="{ open: {{ $mGrpWorkspaceActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -2119,9 +2121,6 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                @if($__can['attendance_view'])
-                                <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span><span class="sidebar-tooltip">Attendance</span></a>
-                                @endif
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.tasks.index') }}" class="sidebar-link {{ nav_route_is('user.tasks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div> <span>Tasks</span></a>
                                 @endif
@@ -2138,14 +2137,18 @@
                         @endif
 
                         {{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
-                        @if($__can['tasks_view'])
-                        <div x-data="{ open: {{ (nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*')) ? 'true' : 'false' }} }">
+                        @if($__can['tasks_view'] || $__can['attendance_view'])
+                        <div x-data="{ open: {{ (nav_route_is('user.attendance.*') || nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*')) ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
                                 <span>Billing &amp; Accounting</span>
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
+                                @if($__can['attendance_view'])
+                                <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance &amp; Leave</span></a>
+                                @endif
+                                @if($__can['tasks_view'])
                                 <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
                                 <a href="{{ route('user.client-invoices.dashboard') }}" class="sidebar-link {{ nav_route_is('user.client-invoices.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-invoice-dollar"></i></div> <span>Invoices</span></a>
                                 <a href="{{ route('user.billing.recurring.index') }}" class="sidebar-link {{ nav_route_is('user.billing.recurring.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-repeat"></i></div> <span>Recurring</span></a>
@@ -2153,9 +2156,10 @@
                                 <a href="{{ route('user.billing.catalog.index') }}" class="sidebar-link {{ nav_route_is('user.billing.catalog.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-boxes-stacked"></i></div> <span>Catalog</span></a>
                                 <a href="{{ route('user.billing.tax-rules.index') }}" class="sidebar-link {{ nav_route_is('user.billing.tax-rules.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-percent"></i></div> <span>Tax Rules</span></a>
                                 <a href="{{ route('user.billing.ledger.index') }}" class="sidebar-link {{ nav_route_is('user.billing.ledger.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Ledger</span></a>
+                                @endif
                             </div>
                         </div>
-                        @endif
+                                @endif
 
                         {{-- ========== ACCOUNT (collapsible) ========== --}}
                         @if($__can['settings_view'])

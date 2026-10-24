@@ -12,6 +12,7 @@
     const token = document.querySelector('meta[name="csrf-token"]').content;
     async function post(url, body) {
         const response = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }, body });
+        if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Your session expired or the server returned an unexpected response. Refresh and sign in again.');
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(Object.values(result.errors || {}).flat()[0] || result.message || 'Unable to save. Check your connection and retry.');
         return result;
@@ -37,6 +38,7 @@
         get('capture-title').textContent = button.textContent;
         const current = generation;
         const body = new FormData(); body.set('action', button.dataset.attendanceAction);
+        if (button.dataset.attendanceAction === 'in' && root.dataset.qrToken) body.set('qr_token',root.dataset.qrToken);
         try {
             const result = await post(root.dataset.challengeUrl, body);
             if (current !== generation || !dialog.open) return;
@@ -101,7 +103,7 @@
             for (const field of ['latitude','longitude','accuracy']) body.set(field, String(location[field]));
         }
         submitting = true; ready(); status('Saving attendance…');
-        try { await post(root.dataset.punchUrl, body); stop(); window.location.reload(); }
+        try { await post(root.dataset.punchUrl, body); stop(); window.location.assign(root.dataset.indexUrl); }
         catch (error) { status(error.message); submitting = false; ready(); }
     });
     get('capture').querySelector('[data-close-capture]').addEventListener('click', () => { if (!submitting) dialog.close(); });
@@ -118,4 +120,80 @@
         const value = event.target.value;
         root.querySelector('[data-correction-iso]').value = value ? new Date(value).toISOString() : '';
     });
+
+    // Bulk selection is based on the actual staff directory; no membership changes occur here.
+    root.querySelector('[data-attendance-group]')?.addEventListener('change', event => {
+        root.querySelectorAll('[data-attendance-staff] option').forEach(option => { option.selected = event.target.value === 'all' || option.dataset.group === event.target.value; });
+    });
+    const qrDialog = document.getElementById('attendance-qr-scanner');
+    const qrVideo = root.querySelector('[data-qr-video]');
+    const qrStatus = root.querySelector('[data-qr-status]');
+    let qrStream, qrFrame, stationActive = false, stationExpiry;
+    function stopQr() { if (qrFrame) cancelAnimationFrame(qrFrame); if (qrStream) qrStream.getTracks().forEach(track => track.stop()); qrStream = null; if (qrVideo) qrVideo.srcObject = null; }
+    function openScanned(value) {
+        try {
+            const url = new URL(value, window.location.origin);
+            const pattern = new URL(root.dataset.scanBase, window.location.origin);
+            const prefix = pattern.pathname.replace('__TOKEN__','');
+            const token = url.pathname.slice(prefix.length);
+            if (url.origin !== window.location.origin || !url.pathname.startsWith(prefix) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token) || url.search || url.hash) throw new Error('Scan a workplace QR from this attendance area.');
+            stopQr(); window.location.assign(url.href);
+        } catch (error) { qrStatus.textContent = error.message; }
+    }
+    root.querySelector('[data-open-qr-scanner]')?.addEventListener('click', () => qrDialog.showModal());
+    root.querySelector('[data-close-qr]')?.addEventListener('click', () => qrDialog.close());
+    qrDialog?.addEventListener('close', stopQr);
+    root.querySelector('[data-qr-paste]')?.addEventListener('submit', event => { event.preventDefault(); openScanned(root.querySelector('[data-qr-url]').value); });
+    root.querySelector('[data-start-qr-camera]')?.addEventListener('click', async () => {
+        stopQr(); qrStatus.textContent = 'Waiting for camera permission…';
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+            if (!qrDialog.open) { stream.getTracks().forEach(track => track.stop()); return; }
+            qrStream = stream; qrVideo.srcObject = stream; await qrVideo.play(); qrStatus.textContent = 'Point the camera at the current workplace QR.';
+            const canvas = document.createElement('canvas'), context = canvas.getContext('2d',{willReadFrequently:true});
+            function decode() {
+                if (!qrStream) return;
+                if (qrVideo.readyState >= 2 && qrVideo.videoWidth) {
+                    const ratio = Math.min(1,720/qrVideo.videoWidth); canvas.width = Math.round(qrVideo.videoWidth*ratio); canvas.height = Math.round(qrVideo.videoHeight*ratio);
+                    context.drawImage(qrVideo,0,0,canvas.width,canvas.height); const pixels = context.getImageData(0,0,canvas.width,canvas.height);
+                    const code = window.jsQR?.(pixels.data,pixels.width,pixels.height);
+                    if (code) { openScanned(code.data); if (!qrStream) return; }
+                }
+                qrFrame = requestAnimationFrame(decode);
+            }
+            decode();
+        } catch (error) { qrStatus.textContent = 'Camera unavailable: '+error.message+'. You can paste a scanned QR link instead.'; }
+    });
+    async function refreshStation() {
+        if (!stationActive || document.visibilityState !== 'visible') return;
+        const host = root.querySelector('[data-qr-station]');
+        try {
+            const result = await post(root.dataset.qrSessionUrl,new FormData());
+            if (!stationActive) return;
+            const image = new Image(); image.alt = 'Workplace attendance QR'; image.width = image.height = 240; image.src = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(result.svg);
+            root.querySelector('[data-qr-image]').replaceChildren(image); host.hidden = false; stationExpiry = Date.parse(result.expires_at);
+        } catch (error) { root.querySelector('[data-qr-expiry]').textContent = error.message; }
+    }
+    root.querySelector('[data-start-qr-station]')?.addEventListener('click', event => {
+        stationActive = !stationActive; event.target.textContent = stationActive ? 'Stop QR display' : 'Start QR display';
+        if (stationActive) refreshStation(); else { root.querySelector('[data-qr-station]').hidden = true; stationExpiry = null; }
+    });
+    setInterval(refreshStation,45000);
+    setInterval(() => { if (stationActive && stationExpiry) { const left = Math.max(0,Math.ceil((stationExpiry-Date.now())/1000)); root.querySelector('[data-qr-expiry]').textContent = left ? 'Code expires in '+left+' seconds.' : 'Code expired. Waiting for refresh…'; } },1000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') stopQr(); else if (stationActive) refreshStation(); });
+    window.addEventListener('pagehide',stopQr);
+
+    const requestForm = root.querySelector('[data-self-service-form]');
+    function requestFields() {
+        if (!requestForm) return;
+        const type = requestForm.querySelector('[data-request-type]').value;
+        requestForm.querySelectorAll('[data-request-for]').forEach(label => {
+            const visible = label.dataset.requestFor.split(',').includes(type); label.hidden = !visible;
+            label.querySelectorAll('input,select,textarea').forEach(input => { input.disabled = !visible; });
+        });
+        const required = { title:['training','general'], requested_days:['encashment'], punch_id:['correction'], proposed_local:['correction'], minutes:['overtime'], category:['general'] };
+        Object.entries(required).forEach(([name, types]) => { const input = requestForm.elements.namedItem(name); if (input) input.required = types.includes(type); });
+    }
+    requestForm?.querySelector('[data-request-type]').addEventListener('change',requestFields);
+    requestFields();
 })();

@@ -2,8 +2,8 @@
 
 ## Where to find it
 
-- Workspace: **Home → Attendance** in rail navigation, or **Workspace & Tools → Attendance** in the classic sidebar. URL: `/user/attendance`.
-- Internal Sayzio staff: **Attendance** in the admin sidebar. URL: `/admin/attendance`.
+- Workspace: **Money → Billing & Accounting → Attendance** in rail navigation, or **Billing & Accounting → Attendance** in the classic sidebar. URL: `/user/attendance`.
+- Internal Sayzio staff: **Billing & Accounts → Attendance** in the admin sidebar. URL: `/admin/attendance`.
 
 Workspace attendance uses actual owners and active workspace members. Internal attendance uses active admin accounts, under a separate scope. A user and an admin with the same numeric ID cannot read one another's attendance records.
 
@@ -11,15 +11,17 @@ Workspace attendance uses actual owners and active workspace members. Internal a
 
 Staff can clock in, start/end breaks and clock out repeatedly during a day. Each event is timestamped by the server. The participant row is locked while events are recorded, so concurrent submissions cannot start two sessions. A single-use, two-minute challenge is bound to the actor, scope and requested action. Retrying the same completed challenge returns the original receipt.
 
-Photo-enabled clock-in/out asks for a random pose and explicit browser camera permission; location permission is also explicit. Authorized reviewers manually compare the photo and issued pose. The app does **not** claim automated face recognition, anti-spoofing or verified liveness. Browser capture timestamps and coordinates are client evidence, not independently trusted assertions. No gallery uploader, fabricated evidence, offline punch queue or automatic check-out is included.
+Photo-enabled clock-in/out asks for a random pose and explicit browser camera permission; location permission is also explicit. Authorized reviewers manually compare the photo and issued pose. The app does **not** claim automated face recognition, anti-spoofing or verified liveness. Browser capture timestamps and coordinates are client evidence, not independently trusted assertions. There is no gallery uploader, fabricated evidence or offline punch queue. Employee-configured automatic punch-out is a server-generated event without photo/location evidence.
 
-Hours use UTC intervals and the configured attendance timezone, support overnight work, and exclude breaks. Open sessions remain open until clock-out. Recorded hours include pending/rejected evidence; the review status remains visible for follow-up. This is an attendance report, not an automatic payroll calculation.
+Hours use UTC intervals and the configured attendance timezone, support overnight work, and exclude breaks. Open sessions remain open until manual clock-out or their configured automatic cutoff. The scheduler closes due sessions idempotently, including sessions currently on break. Recorded hours include pending/rejected evidence; the review status remains visible for follow-up. This is an attendance report, not an automatic payroll calculation.
 
 Staff may request leave, overtime or corrections. Another authorized reviewer must approve/reject them with a note. Corrections preserve the original receipt timestamp and write before/after times into the audit trail; they cannot reorder events. Duplicate pending/approved requests are rejected. Approved overtime and leave appear separately in CSV exports. Date and staff filters apply to the history table.
 
 ## Permissions
 
 Workspace roles have independent `attendance.view`, `attendance.create`, `attendance.review`, `attendance.manage` and `attendance.export` capabilities in **Team → Roles**. Owners retain full access. By default active members can view and record their own attendance; only owners/admins can review others, manage policy and export. A role override can revoke or delegate each capability. Reviewers cannot approve their own evidence or requests.
+
+Employee attendance settings include a scoped display name/code, designation, enabled state, allowed IP addresses/CIDRs and local automatic punch-out time. Changing attendance settings does not rename or delete the person’s global account. Existing Team invitations/member removal and Admin Staff create/edit/delete screens remain the account-management source of truth; authorized links open those screens from Employees.
 
 Every active internal admin can view/record their own attendance. Super admins can manage/review/export. Other internal roles need explicit **Staff attendance** permissions (`attendance.review`, `attendance.manage`, `attendance.export`) in **Admin → Roles & Permissions**. Customer identity privileges are not needed, because this screen contains only internal staff data.
 
@@ -39,4 +41,33 @@ The registered daily `attendance:prune-evidence` job deletes expired photos and 
 
 Run the normal migrations, cache rebuild and deployment process. No new service is required. The change has isolated PostgreSQL integration coverage for membership/role isolation, replay/expiry, encrypted photo storage and gated retrieval, reviews, geofencing, overnight calculation, corrections, admin staff scope and retention. Desktop/narrow layouts and challenge-dialog controls are checked in a browser with generated fixtures. A physical camera/GPS and live S3 upload must still be exercised on a test account after deployment.
 
+## CRM feature checklist
+
+| Requested capability | Implementation |
+|---|---|
+| Dashboard, notifications, graph reports | Live working/on-break/pending counters, dated notices and 14-day work-hour graph. Zero-data states stay explicit. |
+| Employee create/edit/delete | Existing Team/Staff account workflows linked from Employees; scoped attendance enrolment can be configured or disabled without losing history. |
+| IP restriction | Exact IPv4/IPv6 and CIDR rules enforced server-side on challenge and punch submission. Applies to attendance, not unrelated Sayzio services. |
+| Auto punch-out | Per-employee local cutoff, overnight rollover and registered every-minute `attendance:auto-punch-out` job. Events explicitly identify their system origin. |
+| Login as user | Existing platform `users.impersonate` capability only, with an audit record. Workspace managers receive no account impersonation power. Impersonated sessions cannot submit attendance. |
+| Designations | Scoped create/edit/delete, multiple staff selection and role-group bulk assignment. |
+| Holidays | Create/update date ranges with weekday selection; edit/delete individual dates; working-day leave calculations exclude holidays/weekends. |
+| Leave | Paid/unpaid types, annual allowances, approved/pending/remaining balances, reviewed requests and over-allocation checks. Cross-year requests must be split. |
+| Notices | Attendance managers create, edit, schedule and delete plain-text notices; staff see only currently published notices. |
+| Individual/summary reports | Staff/date filters, daily or employee-summary CSV, actual XLSX and rendered PDF exports. Text cells stay text; CSV formula prefixes are escaped. |
+| Bulk accept/reject | Atomic selected evidence/request review, notes per decision and no self-approval. |
+| Bulk modification | Employee field updates and selected punch-time shifts (up to 24h), with original receipt/evidence retained. Invalid timelines and self-modification are rejected atomically. |
+| QR clock-in | Manager-issued 90-second rotating workplace QR. Self-hosted jsQR camera decoder plus paste/native-camera fallback. Scan only opens confirmation; normal identity/IP/selfie/location checks still apply. One redemption per staff/code. |
+
+Report exports are limited to 93 days and 50,000 estimated daily rows; PDFs are limited to 3,000 rows. The existing S3 encryption/storage approach is preserved. Leave types with requests cannot be deleted, and disabling attendance records a system clock-out when needed. Retention keeps attendance/audit history while removing expired photos/coordinates. No wage, tax or statutory payroll calculations are introduced.
+
 Biometric device ingestion is **not connected**. Implementing it requires the vendor/model, transport/SDK, credentials and explicit mapping to staff accounts. The UI displays this state rather than importing invented punches.
+
+
+## Shifts and employee self-service
+
+Attendance, Shifts & Leave remains under Billing & Accounting for workspaces and Billing & Accounts for internal staff. Managers can create and archive shift templates, assign work/off rosters in bulk, and configure roster-required check-in, early check-in windows and automatic shift-end punch-out. Overnight assignments are supported. Assignments snapshot times and grace periods; assignments referenced by attendance cannot be rewritten or cancelled. Planned breaks are informational; actual worked time subtracts recorded breaks.
+
+Employee Self-Service shows personal attendance, dated rosters, timing, leave balances, and request history. Employees can submit leave, attendance correction, overtime, training and general requests, and withdraw pending requests. Training requests capture a title, provider and course URL. Requests use the existing scoped approval permissions and prohibit self-approval.
+
+Leave types can allow half-day/whole-day encashment requests with an annual limit. Leave and encashment share the same balance; pending requests reserve days and withdrawal releases reservations. Approval consumes days. Managers record a separate externally completed settlement with currency, amount and payment reference; this workflow does not transfer funds or calculate payroll. Internal staff use the same workflows in their separate attendance scope.

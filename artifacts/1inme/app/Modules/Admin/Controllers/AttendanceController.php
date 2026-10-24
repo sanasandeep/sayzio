@@ -40,7 +40,7 @@ class AttendanceController extends \App\Modules\User\Controllers\AttendanceContr
 
     protected function directory(Workspace $ws)
     {
-        return Admin::where('status', 'active')->orderBy('name')->get(['id', 'name', 'email']);
+        return Admin::where('status', 'active')->orderBy('name')->get(['id', 'name', 'email', 'user_id', 'role_id']);
     }
 
     protected function workspace(Request $request, string $ability = 'view'): Workspace

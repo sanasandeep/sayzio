@@ -302,6 +302,16 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('security.logins.revoke-from-list');
         Route::prefix('attendance')->name('attendance.')->controller(\App\Modules\User\Controllers\AttendanceController::class)->group(function () {
             Route::get('', 'index')->middleware('throttle:60,1')->name('index');
+            Route::post('employees', 'saveEmployee')->middleware('throttle:30,1')->name('employees.save');
+            Route::post('setup', 'saveResource')->middleware('throttle:30,1')->name('setup.save');
+            Route::post('bulk-review', 'bulkReview')->middleware('throttle:20,1')->name('bulk-review');
+            Route::post('qr-session', 'qrSession')->middleware('throttle:30,1')->name('qr-session');
+            Route::get('scan/{token}', 'scan')->middleware('throttle:60,1')->name('scan');
+            Route::post('shifts', 'saveShift')->middleware('throttle:30,1')->name('shifts.save');
+            Route::post('rosters', 'saveRoster')->middleware('throttle:30,1')->name('rosters.save');
+            Route::post('rosters/{roster}/cancel', 'cancelRoster')->whereNumber('roster')->name('rosters.cancel');
+            Route::post('requests/{attendanceRequest}/withdraw', 'withdrawRequest')->whereNumber('attendanceRequest')->name('requests.withdraw');
+            Route::post('requests/{attendanceRequest}/settle', 'settleEncashment')->whereNumber('attendanceRequest')->name('requests.settle');
             Route::post('challenge', 'challenge')->middleware('throttle:60,1')->name('challenge');
             Route::post('punch', 'punch')->middleware('throttle:60,1')->name('punch');
             Route::get('export', 'export')->middleware('throttle:60,1')->name('export');
