@@ -1,3 +1,7 @@
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useEffect, useRef } from "react";
+import { CreatorProfileSharing } from "@/components/CreatorProfileSharing";
+import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import {
   useInfiniteQuery,
@@ -32,18 +36,58 @@ import { showAlert } from "@/lib/webAlert";
 
 export default function CreatorProfileScreen() {
   const { handle: rawHandle } = useLocalSearchParams<{ handle: string }>();
-  const handle = (Array.isArray(rawHandle) ? rawHandle[0] : rawHandle ?? "")
+  const handle = (Array.isArray(rawHandle) ? rawHandle[0] : (rawHandle ?? ""))
     .replace(/^@/, "")
     .toLowerCase();
-  const colors = useColors();
+  const appColors = useColors();
   const router = useRouter();
   const qc = useQueryClient();
+  const { workspaces, activeWorkspace, switchWorkspace } = useWorkspace();
 
   const profileQ = useQuery({
     queryKey: ["creator-profile", handle],
     queryFn: () => creatorProfile.show(handle),
     enabled: !!handle,
   });
+
+  const openedDestination = useRef<string | null>(null);
+  useEffect(() => {
+    const p = profileQ.data?.profile;
+    if (
+      !p?.redirect_url ||
+      p.is_owner ||
+      openedDestination.current === p.redirect_url
+    )
+      return;
+    openedDestination.current = p.redirect_url;
+    void Linking.openURL(p.redirect_url).catch(() =>
+      showAlert(
+        "Could not open destination",
+        "Use the destination button to try again.",
+      ),
+    );
+  }, [profileQ.data?.profile.redirect_url, profileQ.data?.profile.is_owner]);
+  const appearance = profileQ.data?.profile.presentation;
+  const colors = {
+    ...appColors,
+    ...(appearance
+      ? appearance.mode === "dark"
+        ? {
+            background: "#14161d",
+            card: "#1c2029",
+            foreground: "#e9edf4",
+            mutedForeground: "#a7b0c0",
+            border: "#343a49",
+          }
+        : {
+            background: "#f5f7fc",
+            card: "#ffffff",
+            foreground: "#171b2b",
+            mutedForeground: "#627088",
+            border: "#dfe4ef",
+          }
+      : {}),
+  };
 
   const feedQ = useInfiniteQuery({
     queryKey: ["creator-profile-feed", handle],
@@ -53,7 +97,10 @@ export default function CreatorProfileScreen() {
         ? last.meta.current_page + 1
         : undefined,
     initialPageParam: 1,
-    enabled: !!handle && !!profileQ.data,
+    enabled:
+      !!handle &&
+      !!profileQ.data &&
+      profileQ.data.profile.sections.posts !== false,
   });
 
   const followM = useMutation({
@@ -96,7 +143,10 @@ export default function CreatorProfileScreen() {
 
   const { profile, reactions_catalog } = profileQ.data;
   const sections = profile.sections;
-  const posts = feedQ.data?.pages.flatMap((p) => p.items) ?? [];
+  const posts =
+    sections.posts === false
+      ? []
+      : (feedQ.data?.pages.flatMap((p) => p.items) ?? []);
 
   const initials = profile.name
     .trim()
@@ -129,18 +179,31 @@ export default function CreatorProfileScreen() {
             refreshing={profileQ.isFetching || feedQ.isFetching}
             onRefresh={() => {
               profileQ.refetch();
-              feedQ.refetch();
+              if (sections.posts !== false) feedQ.refetch();
             }}
             tintColor={colors.primary}
           />
         }
         onEndReachedThreshold={0.4}
         onEndReached={() => {
-          if (feedQ.hasNextPage && !feedQ.isFetchingNextPage)
+          if (
+            sections.posts !== false &&
+            feedQ.hasNextPage &&
+            !feedQ.isFetchingNextPage
+          )
             feedQ.fetchNextPage();
         }}
         ListHeaderComponent={
           <View>
+            {profile.verification_color ? (
+              <View
+                accessibilityLabel="Verified profile"
+                style={{
+                  height: 4,
+                  backgroundColor: profile.verification_color,
+                }}
+              />
+            ) : null}
             {/* Cover */}
             <View style={styles.cover}>
               {profile.cover_image ? (
@@ -150,10 +213,19 @@ export default function CreatorProfileScreen() {
                   contentFit="cover"
                 />
               ) : (
-                <View
+                <LinearGradient
+                  colors={
+                    appearance?.theme === "warm"
+                      ? ["#eab08f", "#d9a3bd"]
+                      : appearance?.theme === "mint"
+                        ? ["#7cbfb0", "#9abfe5"]
+                        : appearance?.theme === "midnight"
+                          ? ["#7975ae", "#a185b0"]
+                          : ["#9daef0", "#c1a8e7"]
+                  }
                   style={[
                     StyleSheet.absoluteFill,
-                    { backgroundColor: profile.theme_color ?? colors.primary },
+                    { opacity: appearance?.mode === "dark" ? 0.3 : 0.8 },
                   ]}
                 />
               )}
@@ -166,54 +238,151 @@ export default function CreatorProfileScreen() {
                 {
                   backgroundColor: colors.card,
                   borderColor: colors.border,
-                  borderRadius: colors.radius,
+                  borderRadius:
+                    appearance?.layout === "editorial"
+                      ? 4
+                      : appearance?.layout === "centered"
+                        ? 24
+                        : colors.radius,
+                  alignItems:
+                    appearance?.layout === "centered"
+                      ? "center"
+                      : appearance?.layout === "editorial"
+                        ? "flex-end"
+                        : "flex-start",
+                  ...(appearance?.layout === "minimal"
+                    ? { marginTop: 16 }
+                    : {}),
                 },
               ]}
             >
-              <View style={styles.avatarWrap}>
-                {profile.avatar ? (
-                  <Image
-                    source={{ uri: profile.avatar }}
+              <View
+                style={{
+                  flexDirection:
+                    appearance?.layout === "minimal" ? "row" : "column",
+                  alignItems:
+                    appearance?.layout === "centered"
+                      ? "center"
+                      : appearance?.layout === "editorial"
+                        ? "flex-end"
+                        : "flex-start",
+                  gap: appearance?.layout === "minimal" ? 14 : 0,
+                  width: "100%",
+                }}
+              >
+                <View
+                  style={[
+                    styles.avatarWrap,
+                    appearance?.layout === "centered"
+                      ? { alignSelf: "center" }
+                      : appearance?.layout === "editorial"
+                        ? { alignSelf: "flex-end" }
+                        : appearance?.layout === "minimal"
+                          ? { marginTop: 0 }
+                          : {},
+                  ]}
+                >
+                  {profile.avatar ? (
+                    <Image
+                      source={{ uri: profile.avatar }}
+                      style={[
+                        styles.avatar,
+                        {
+                          borderColor: colors.card,
+                          width: appearance?.avatar_size ?? 96,
+                          height: appearance?.avatar_size ?? 96,
+                          borderRadius:
+                            appearance?.avatar_shape === "circle"
+                              ? 999
+                              : appearance?.avatar_shape === "square"
+                                ? 0
+                                : 20,
+                        },
+                      ]}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.avatar,
+                        styles.avatarFallback,
+                        {
+                          backgroundColor: colors.primary,
+                          width: appearance?.avatar_size ?? 96,
+                          height: appearance?.avatar_size ?? 96,
+                          borderRadius:
+                            appearance?.avatar_shape === "circle"
+                              ? 999
+                              : appearance?.avatar_shape === "square"
+                                ? 0
+                                : 20,
+                          borderColor: colors.card,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.avatarInitials}>
+                        {initials || "?"}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <View
+                  style={{
+                    flex: appearance?.layout === "minimal" ? 1 : undefined,
+                    alignItems:
+                      appearance?.layout === "centered"
+                        ? "center"
+                        : appearance?.layout === "editorial"
+                          ? "flex-end"
+                          : "flex-start",
+                  }}
+                >
+                  <Text
                     style={[
-                      styles.avatar,
-                      { borderColor: colors.card },
-                    ]}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.avatar,
-                      styles.avatarFallback,
+                      styles.name,
                       {
-                        backgroundColor: colors.primary,
-                        borderColor: colors.card,
+                        color: colors.foreground,
+                        textAlign:
+                          appearance?.layout === "centered"
+                            ? "center"
+                            : appearance?.layout === "editorial"
+                              ? "right"
+                              : "left",
                       },
                     ]}
                   >
-                    <Text style={styles.avatarInitials}>{initials || "?"}</Text>
-                  </View>
-                )}
+                    {profile.name}{" "}
+                    {profile.verification_color ? (
+                      <Feather
+                        name="check-circle"
+                        accessibilityLabel="Verified"
+                        size={22}
+                        color={profile.verification_color}
+                      />
+                    ) : null}
+                  </Text>
+                  {profile.handle ? (
+                    <Text
+                      style={[
+                        styles.handleLine,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      @{profile.handle}
+                      {profile.location ? `  ·  ${profile.location}` : ""}
+                    </Text>
+                  ) : null}
+                  {profile.tagline ? (
+                    <Text
+                      style={[styles.tagline, { color: colors.foreground }]}
+                      numberOfLines={3}
+                    >
+                      {profile.tagline}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
-
-              <Text style={[styles.name, { color: colors.foreground }]}>
-                {profile.name}
-              </Text>
-              {profile.handle ? (
-                <Text style={[styles.handleLine, { color: colors.mutedForeground }]}>
-                  @{profile.handle}
-                  {profile.location ? `  ·  ${profile.location}` : ""}
-                </Text>
-              ) : null}
-              {profile.tagline ? (
-                <Text
-                  style={[styles.tagline, { color: colors.foreground }]}
-                  numberOfLines={3}
-                >
-                  {profile.tagline}
-                </Text>
-              ) : null}
-
               {sections.stats ? (
                 <View style={styles.statRow}>
                   <Stat
@@ -222,15 +391,22 @@ export default function CreatorProfileScreen() {
                     color={colors.foreground}
                     muted={colors.mutedForeground}
                   />
-                  <View
-                    style={[styles.statSep, { backgroundColor: colors.border }]}
-                  />
-                  <Stat
-                    label="Posts"
-                    value={profile.posts_count}
-                    color={colors.foreground}
-                    muted={colors.mutedForeground}
-                  />
+                  {sections.posts !== false ? (
+                    <>
+                      <View
+                        style={[
+                          styles.statSep,
+                          { backgroundColor: colors.border },
+                        ]}
+                      />
+                      <Stat
+                        label="Posts"
+                        value={profile.posts_count}
+                        color={colors.foreground}
+                        muted={colors.mutedForeground}
+                      />
+                    </>
+                  ) : null}
                 </View>
               ) : null}
 
@@ -247,39 +423,52 @@ export default function CreatorProfileScreen() {
                       when the creator has a payout connection wired
                       up; the Subscribe screen handles the empty
                       tier-list case gracefully. */}
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        label={
-                          profileQ.data?.viewer_subscription?.is_current
-                            ? `${profileQ.data.viewer_subscription.tier_badge ?? "✓"} Subscribed`
-                            : "Subscribe"
-                        }
-                        variant={
-                          profileQ.data?.viewer_subscription?.is_current ? "secondary" : "primary"
-                        }
-                        onPress={() =>
-                          router.push(
+                  {sections.monetization !== false ? (
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          label={
                             profileQ.data?.viewer_subscription?.is_current
-                              ? { pathname: "/monetization/manage", params: { handle: profile.handle ?? "" } }
-                              : { pathname: "/monetization/subscribe", params: { handle: profile.handle ?? "" } },
-                          )
-                        }
-                      />
+                              ? `${profileQ.data.viewer_subscription.tier_badge ?? "✓"} Subscribed`
+                              : "Subscribe"
+                          }
+                          variant={
+                            profileQ.data?.viewer_subscription?.is_current
+                              ? "secondary"
+                              : "primary"
+                          }
+                          onPress={() =>
+                            router.push(
+                              profileQ.data?.viewer_subscription?.is_current
+                                ? {
+                                    pathname: "/monetization/manage",
+                                    params: { handle: profile.handle ?? "" },
+                                  }
+                                : {
+                                    pathname: "/monetization/subscribe",
+                                    params: { handle: profile.handle ?? "" },
+                                  },
+                            )
+                          }
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Button
+                          label="💖 Tip"
+                          variant="outline"
+                          onPress={() =>
+                            router.push({
+                              pathname: "/monetization/tip",
+                              params: {
+                                handle: profile.handle ?? "",
+                                name: profile.name,
+                              },
+                            })
+                          }
+                        />
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        label="💖 Tip"
-                        variant="outline"
-                        onPress={() =>
-                          router.push({
-                            pathname: "/monetization/tip",
-                            params: { handle: profile.handle ?? "", name: profile.name },
-                          })
-                        }
-                      />
-                    </View>
-                  </View>
+                  ) : null}
                   {/* Paid DMs (Task #1210): Message button. */}
                   <View style={{ marginTop: 8 }}>
                     <Button
@@ -298,12 +487,34 @@ export default function CreatorProfileScreen() {
                 <Button
                   label="Edit profile"
                   variant="secondary"
-                  onPress={() => router.push("/profile-edit")}
+                  onPress={() => {
+                    const workspace = workspaces.find(
+                      (w) => w.id === profile.workspace_id,
+                    );
+                    if (workspace && workspace.id !== activeWorkspace?.id)
+                      void switchWorkspace(workspace)
+                        .then(() => router.push("/creator-settings"))
+                        .catch((e) =>
+                          showAlert("Could not open editor", e.message),
+                        );
+                    else router.push("/creator-settings");
+                  }}
                   style={{ marginTop: 14, alignSelf: "stretch" }}
                 />
               )}
             </View>
 
+            {sections.sharing !== false && profile.handle ? (
+              <CreatorProfileSharing handle={profile.handle} />
+            ) : null}
+            {profile.redirect_url ? (
+              <Button
+                label="Open creator’s destination"
+                onPress={() => {
+                  void Linking.openURL(profile.redirect_url!);
+                }}
+              />
+            ) : null}
             {/* About */}
             {sections.about && (profile.bio || profile.niche_tags.length) ? (
               <SectionCard title="About" colors={colors}>
@@ -325,7 +536,9 @@ export default function CreatorProfileScreen() {
                           },
                         ]}
                       >
-                        <Text style={{ color: colors.foreground, fontSize: 12 }}>
+                        <Text
+                          style={{ color: colors.foreground, fontSize: 12 }}
+                        >
                           #{tag}
                         </Text>
                       </View>
@@ -343,10 +556,7 @@ export default function CreatorProfileScreen() {
                     <Pressable
                       key={k}
                       onPress={() => v && Linking.openURL(v)}
-                      style={[
-                        styles.socialRow,
-                        { borderColor: colors.border },
-                      ]}
+                      style={[styles.socialRow, { borderColor: colors.border }]}
                     >
                       <Feather name="link-2" size={16} color={colors.primary} />
                       <Text
@@ -384,38 +594,85 @@ export default function CreatorProfileScreen() {
             ) : null}
 
             {/* ── Highlights strip (Task #5431) ──────────────────────── */}
-            {sections.highlights ? (() => {
-              const hl = profile.showcase.highlights;
-              const items: { label: string; value: string }[] = [];
-              if (hl.show_followers)
-                items.push({ label: "Followers", value: Intl.NumberFormat().format(profile.followers_count) });
-              if (hl.show_links && profile.total_public_links > 0)
-                items.push({ label: "Links", value: Intl.NumberFormat().format(profile.total_public_links) });
-              if (hl.show_member_since)
-                items.push({ label: "Since", value: new Date(profile.created_at ?? Date.now()).getFullYear().toString() });
-              if (items.length === 0) return null;
-              return (
-                <View
-                  style={[
-                    styles.highlightStrip,
-                    { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
-                  ]}
-                >
-                  {items.map((item, i) => (
-                    <View key={item.label} style={[styles.highlightPill, i > 0 && { borderLeftWidth: 1, borderLeftColor: colors.border }]}>
-                      <Text style={[styles.highlightValue, { color: colors.foreground }]}>{item.value}</Text>
-                      <Text style={[styles.highlightLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
+            {sections.highlights
+              ? (() => {
+                  const hl = profile.showcase.highlights;
+                  const items: { label: string; value: string }[] = [];
+                  if (hl.show_followers)
+                    items.push({
+                      label: "Followers",
+                      value: Intl.NumberFormat().format(
+                        profile.followers_count,
+                      ),
+                    });
+                  if (hl.show_links && profile.total_public_links > 0)
+                    items.push({
+                      label: "Links",
+                      value: Intl.NumberFormat().format(
+                        profile.total_public_links,
+                      ),
+                    });
+                  if (hl.show_member_since)
+                    items.push({
+                      label: "Since",
+                      value: new Date(profile.created_at ?? Date.now())
+                        .getFullYear()
+                        .toString(),
+                    });
+                  if (items.length === 0) return null;
+                  return (
+                    <View
+                      style={[
+                        styles.highlightStrip,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          borderRadius: colors.radius,
+                        },
+                      ]}
+                    >
+                      {items.map((item, i) => (
+                        <View
+                          key={item.label}
+                          style={[
+                            styles.highlightPill,
+                            i > 0 && {
+                              borderLeftWidth: 1,
+                              borderLeftColor: colors.border,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.highlightValue,
+                              { color: colors.foreground },
+                            ]}
+                          >
+                            {item.value}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.highlightLabel,
+                              { color: colors.mutedForeground },
+                            ]}
+                          >
+                            {item.label}
+                          </Text>
+                        </View>
+                      ))}
                     </View>
-                  ))}
-                </View>
-              );
-            })() : null}
+                  );
+                })()
+              : null}
 
             {/* ── CTA / Contact block (Task #5431) ───────────────────── */}
             {sections.cta && profile.showcase.cta.primary ? (
               <SectionCard title="Get in touch" colors={colors}>
                 <View style={{ gap: 8 }}>
-                  {[profile.showcase.cta.primary, ...profile.showcase.cta.secondary]
+                  {[
+                    profile.showcase.cta.primary,
+                    ...profile.showcase.cta.secondary,
+                  ]
                     .filter(Boolean)
                     .map((btn, i) => {
                       const href = ctaHref(btn!.kind, btn!.value);
@@ -441,7 +698,9 @@ export default function CreatorProfileScreen() {
                     <FeaturedLinkItem
                       key={fl.id}
                       link={fl}
-                      flStyle={profile.showcase.featured_links_style ?? "classic"}
+                      flStyle={
+                        profile.showcase.featured_links_style ?? "classic"
+                      }
                       accent={profile.theme_color ?? colors.primary}
                       colors={colors}
                     />
@@ -453,24 +712,59 @@ export default function CreatorProfileScreen() {
             {/* ── Showcase cards (Task #5431) ─────────────────────────── */}
             {sections.showcase && profile.showcase_cards.length > 0 ? (
               <SectionCard title="Showcase" colors={colors}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -4 }}>
-                  <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 4 }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginHorizontal: -4 }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 10,
+                      paddingHorizontal: 4,
+                    }}
+                  >
                     {profile.showcase_cards.map((card) => (
                       <Pressable
                         key={`${card.type}-${card.id}`}
                         onPress={() => Linking.openURL(card.url)}
                         style={[
                           styles.showcaseCard,
-                          { backgroundColor: colors.background, borderColor: colors.border },
+                          {
+                            backgroundColor: colors.background,
+                            borderColor: colors.border,
+                          },
                         ]}
                       >
-                        <Text style={{ color: colors.primary, fontSize: 20, textAlign: "center" }}>
+                        <Text
+                          style={{
+                            color: colors.primary,
+                            fontSize: 20,
+                            textAlign: "center",
+                          }}
+                        >
                           {showcaseEmoji(card.type)}
                         </Text>
-                        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600", marginTop: 6, textAlign: "center" }} numberOfLines={2}>
+                        <Text
+                          style={{
+                            color: colors.foreground,
+                            fontSize: 12,
+                            fontWeight: "600",
+                            marginTop: 6,
+                            textAlign: "center",
+                          }}
+                          numberOfLines={2}
+                        >
                           {card.title || card.alias}
                         </Text>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4, textAlign: "center" }}>
+                        <Text
+                          style={{
+                            color: colors.mutedForeground,
+                            fontSize: 10,
+                            marginTop: 4,
+                            textAlign: "center",
+                          }}
+                        >
                           {showcaseTypeLabel(card.type)}
                         </Text>
                       </Pressable>
@@ -481,15 +775,12 @@ export default function CreatorProfileScreen() {
             ) : null}
 
             {/* Posts header */}
-            <Text
-              style={[
-                styles.postsHeader,
-                { color: colors.foreground },
-              ]}
-            >
-              Posts
-            </Text>
-            {feedQ.isLoading ? (
+            {sections.posts !== false ? (
+              <Text style={[styles.postsHeader, { color: colors.foreground }]}>
+                Posts
+              </Text>
+            ) : null}
+            {sections.posts !== false && feedQ.isLoading ? (
               <ActivityIndicator
                 color={colors.primary}
                 style={{ marginTop: 16 }}
@@ -506,9 +797,11 @@ export default function CreatorProfileScreen() {
           />
         )}
         ListEmptyComponent={
-          !feedQ.isLoading ? (
+          sections.posts !== false && !feedQ.isLoading ? (
             <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-              <Text style={{ color: colors.mutedForeground, textAlign: "center" }}>
+              <Text
+                style={{ color: colors.mutedForeground, textAlign: "center" }}
+              >
                 No posts yet.
               </Text>
             </View>
@@ -530,22 +823,32 @@ export default function CreatorProfileScreen() {
 function ctaHref(kind: string, value: string): string | null {
   if (!value) return null;
   switch (kind) {
-    case "email":    return `mailto:${value}`;
-    case "whatsapp": return `https://wa.me/${value.replace(/[^0-9+]/g, "")}`;
-    case "call":     return `tel:${value}`;
-    case "form":     return `/${value}`;
+    case "email":
+      return `mailto:${value}`;
+    case "whatsapp":
+      return `https://wa.me/${value.replace(/[^0-9+]/g, "")}`;
+    case "call":
+      return `tel:${value}`;
+    case "form":
+      return `/${value}`;
     case "link":
-    default:         return value.startsWith("http") ? value : `https://${value}`;
+    default:
+      return value.startsWith("http") ? value : `https://${value}`;
   }
 }
 
 function ctaDefaultLabel(kind: string): string {
   switch (kind) {
-    case "email":    return "Email me";
-    case "whatsapp": return "WhatsApp me";
-    case "call":     return "Call me";
-    case "form":     return "Fill out a form";
-    default:         return "Visit";
+    case "email":
+      return "Email me";
+    case "whatsapp":
+      return "WhatsApp me";
+    case "call":
+      return "Call me";
+    case "form":
+      return "Fill out a form";
+    default:
+      return "Visit";
   }
 }
 
@@ -571,7 +874,12 @@ function FeaturedLinkItem({
       : null;
   const open = () => Linking.openURL(link.url);
 
-  if (flStyle === "outline" || flStyle === "solid" || flStyle === "ghost" || flStyle === "pill") {
+  if (
+    flStyle === "outline" ||
+    flStyle === "solid" ||
+    flStyle === "ghost" ||
+    flStyle === "pill"
+  ) {
     const solidLike = flStyle === "solid" || flStyle === "pill";
     const fg = solidLike ? "#fff" : accent;
     return (
@@ -579,7 +887,11 @@ function FeaturedLinkItem({
         onPress={open}
         style={[
           styles.flRow,
-          flStyle === "outline" && { borderWidth: 2, borderColor: accent, borderRadius: 12 },
+          flStyle === "outline" && {
+            borderWidth: 2,
+            borderColor: accent,
+            borderRadius: 12,
+          },
           flStyle === "solid" && { backgroundColor: accent, borderRadius: 12 },
           flStyle === "ghost" && { paddingHorizontal: 6, paddingVertical: 8 },
           flStyle === "pill" && {
@@ -608,12 +920,21 @@ function FeaturedLinkItem({
       style={[
         styles.flCard,
         { backgroundColor: colors.card, borderColor: colors.border },
-        isHeading && { borderLeftWidth: 4, borderLeftColor: accent, borderRadius: 14 },
+        isHeading && {
+          borderLeftWidth: 4,
+          borderLeftColor: accent,
+          borderRadius: 14,
+        },
       ]}
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
         {!isHeading ? (
-          <Feather name="link" size={15} color={accent} style={{ marginTop: 2 }} />
+          <Feather
+            name="link"
+            size={15}
+            color={accent}
+            style={{ marginTop: 2 }}
+          />
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
@@ -627,14 +948,22 @@ function FeaturedLinkItem({
             {title}
           </Text>
           <Text
-            style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}
+            style={{
+              color: colors.mutedForeground,
+              fontSize: 11,
+              marginTop: 2,
+            }}
             numberOfLines={1}
           >
             {link.type.toUpperCase()}
             {clicksLine ? `  ·  ${clicksLine}` : ""}
           </Text>
         </View>
-        <Feather name="external-link" size={14} color={colors.mutedForeground} />
+        <Feather
+          name="external-link"
+          size={14}
+          color={colors.mutedForeground}
+        />
       </View>
     </Pressable>
   );
@@ -642,27 +971,43 @@ function FeaturedLinkItem({
 
 function showcaseEmoji(type: string): string {
   switch (type) {
-    case "qr":              return "⬛";
-    case "form":            return "📋";
-    case "ics":             return "📅";
-    case "vcard":           return "💳";
-    case "resume":          return "📄";
-    case "restaurant_menu": return "🍽️";
-    case "store_menu":      return "🛍️";
-    default:                return "🔗";
+    case "qr":
+      return "⬛";
+    case "form":
+      return "📋";
+    case "ics":
+      return "📅";
+    case "vcard":
+      return "💳";
+    case "resume":
+      return "📄";
+    case "restaurant_menu":
+      return "🍽️";
+    case "store_menu":
+      return "🛍️";
+    default:
+      return "🔗";
   }
 }
 
 function showcaseTypeLabel(type: string): string {
   switch (type) {
-    case "qr":              return "QR Code";
-    case "form":            return "Form";
-    case "ics":             return "Event";
-    case "vcard":           return "Digital Card";
-    case "resume":          return "Resume";
-    case "restaurant_menu": return "Restaurant";
-    case "store_menu":      return "Store";
-    default:                return type;
+    case "qr":
+      return "QR Code";
+    case "form":
+      return "Form";
+    case "ics":
+      return "Event";
+    case "vcard":
+      return "Digital Card";
+    case "resume":
+      return "Resume";
+    case "restaurant_menu":
+      return "Restaurant";
+    case "store_menu":
+      return "Store";
+    default:
+      return type;
   }
 }
 

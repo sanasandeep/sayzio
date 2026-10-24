@@ -1,6 +1,7 @@
+import { EvidenceFiles, type EvidenceFile } from "@/components/EvidenceFiles";
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -22,6 +23,8 @@ import {
   type ProfileVerificationRequest,
   type TickType,
 } from "@/lib/api/verification";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { getCreatorProfileSettings } from "@/lib/api/creatorProfile";
 import { showAlert } from "@/lib/webAlert";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -32,33 +35,77 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function VerificationScreen() {
+  const { activeWorkspace } = useWorkspace();
+  const { context } = useLocalSearchParams<{ context?: string }>();
+  return (
+    <VerificationForm
+      key={`${context}-${activeWorkspace?.id}`}
+      workspace={context === "workspace"}
+      workspaceId={activeWorkspace?.id}
+    />
+  );
+}
+function VerificationForm({
+  workspace,
+  workspaceId,
+}: {
+  workspace: boolean;
+  workspaceId?: number;
+}) {
   const colors = useColors();
   const qc = useQueryClient();
   const [showNew, setShowNew] = useState(false);
   const [selectedTickId, setSelectedTickId] = useState<number | null>(null);
   const [officialName, setOfficialName] = useState("");
+  const [attachments, setAttachments] = useState<EvidenceFile[]>([]);
+  const [additionalInfo, setAdditionalInfo] = useState("");
+  const [urls, setUrls] = useState("");
   const [purpose, setPurpose] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const q = useQuery({
-    queryKey: ["profile-verification"],
-    queryFn: getProfileVerificationStatus,
+    queryKey: ["profile-verification", workspace ? workspaceId : "personal"],
+    queryFn: () =>
+      getProfileVerificationStatus(workspace ? "workspace" : undefined),
+  });
+
+  const profileQ = useQuery({
+    queryKey: ["creator-profile-settings", workspaceId],
+    queryFn: getCreatorProfileSettings,
+    enabled: workspace && !!workspaceId,
   });
 
   const resetForm = () => {
     setSelectedTickId(null);
     setOfficialName("");
+    setAttachments([]);
     setPurpose("");
+    setAdditionalInfo("");
+    setUrls("");
     setErrors({});
   };
 
   const submit = useMutation({
     mutationFn: () => {
       if (!selectedTickId) throw new Error("Choose a verification type first");
+      if (workspace && !profileQ.data)
+        throw new Error("Wait for the workspace profile to load.");
       return submitProfileVerification({
         tick_type_id: selectedTickId,
         official_name: officialName.trim(),
         purpose: purpose.trim(),
+        additional_info: additionalInfo.trim(),
+        attachments,
+        supporting_urls: urls
+          .split(/\r?\n/)
+          .map((u) => u.trim())
+          .filter(Boolean),
+        ...(workspace
+          ? {
+              context: "workspace" as const,
+              creator_profile_id: profileQ.data?.creator_profile_id,
+            }
+          : {}),
       });
     },
     onSuccess: () => {
@@ -85,12 +132,13 @@ export default function VerificationScreen() {
   const status = data?.status ?? "unverified";
   const canApply = status === "unverified";
 
-  const statusColor = {
-    unverified: colors.mutedForeground,
-    pending: colors.warning,
-    verified: colors.success,
-    pending_reverification: colors.warning,
-  }[status] ?? colors.mutedForeground;
+  const statusColor =
+    {
+      unverified: colors.mutedForeground,
+      pending: colors.warning,
+      verified: colors.success,
+      pending_reverification: colors.warning,
+    }[status] ?? colors.mutedForeground;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -103,8 +151,23 @@ export default function VerificationScreen() {
       ) : (
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
           {/* Status card */}
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
               <View style={{ flex: 1 }}>
                 <Text style={[styles.name, { color: colors.foreground }]}>
                   {data?.verified_name ?? "Your Account"}
@@ -114,7 +177,9 @@ export default function VerificationScreen() {
                   Profile Verification
                 </Text>
               </View>
-              <View style={[styles.badge, { backgroundColor: statusColor + "33" }]}>
+              <View
+                style={[styles.badge, { backgroundColor: statusColor + "33" }]}
+              >
                 <Text style={[styles.badgeText, { color: statusColor }]}>
                   {STATUS_LABEL[status] ?? status}
                 </Text>
@@ -122,7 +187,12 @@ export default function VerificationScreen() {
             </View>
 
             {data?.verified_at ? (
-              <Text style={[styles.sub, { color: colors.mutedForeground, marginTop: 8 }]}>
+              <Text
+                style={[
+                  styles.sub,
+                  { color: colors.mutedForeground, marginTop: 8 },
+                ]}
+              >
                 Verified since {new Date(data.verified_at).toLocaleDateString()}
               </Text>
             ) : null}
@@ -131,14 +201,35 @@ export default function VerificationScreen() {
           {/* Tick type catalog (for unverified users) */}
           {canApply && tickTypes.length > 0 ? (
             <View>
-              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Tick Types</Text>
+              <Text
+                style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+              >
+                Tick Types
+              </Text>
               <View style={{ gap: 8, marginTop: 8 }}>
                 {tickTypes.map((t: TickType) => (
-                  <View key={t.id} style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-                    <View style={[styles.iconWrap, { backgroundColor: t.color + "22" }]}>
+                  <View
+                    key={t.id}
+                    style={[
+                      styles.row,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderRadius: colors.radius,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.iconWrap,
+                        { backgroundColor: t.color + "22" },
+                      ]}
+                    >
                       <Feather name="shield" size={18} color={t.color} />
                     </View>
-                    <Text style={[styles.name, { color: colors.foreground }]}>{t.name}</Text>
+                    <Text style={[styles.name, { color: colors.foreground }]}>
+                      {t.name}
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -147,17 +238,38 @@ export default function VerificationScreen() {
 
           {/* Apply CTA */}
           {canApply ? (
-            <Button label="Apply for Verification" onPress={() => setShowNew(true)} />
+            <Button
+              label="Apply for Verification"
+              onPress={() => setShowNew(true)}
+            />
           ) : status === "pending" ? (
-            <View style={[styles.notice, { backgroundColor: colors.warning + "18", borderColor: colors.warning + "44" }]}>
+            <View
+              style={[
+                styles.notice,
+                {
+                  backgroundColor: colors.warning + "18",
+                  borderColor: colors.warning + "44",
+                },
+              ]}
+            >
               <Text style={[styles.sub, { color: colors.warning }]}>
-                Your request is under review. We'll notify you when it's processed.
+                Your request is under review. We'll notify you when it's
+                processed.
               </Text>
             </View>
           ) : status === "pending_reverification" ? (
-            <View style={[styles.notice, { backgroundColor: colors.warning + "18", borderColor: colors.warning + "44" }]}>
+            <View
+              style={[
+                styles.notice,
+                {
+                  backgroundColor: colors.warning + "18",
+                  borderColor: colors.warning + "44",
+                },
+              ]}
+            >
               <Text style={[styles.sub, { color: colors.warning }]}>
-                Your name change is under review. Your tick remains visible in the meantime.
+                Your name change is under review. Your tick remains visible in
+                the meantime.
               </Text>
             </View>
           ) : null}
@@ -165,31 +277,85 @@ export default function VerificationScreen() {
           {/* Request history */}
           {requests.length > 0 ? (
             <View>
-              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Request History</Text>
+              <Text
+                style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+              >
+                Request History
+              </Text>
               <View style={{ gap: 8, marginTop: 8 }}>
                 {requests.map((r: ProfileVerificationRequest) => {
-                  const sc = r.status === "approved" ? colors.success : r.status === "rejected" ? colors.destructive : colors.warning;
+                  const sc =
+                    r.status === "approved"
+                      ? colors.success
+                      : r.status === "rejected"
+                        ? colors.destructive
+                        : colors.warning;
                   return (
-                    <View key={r.id} style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-                      <View style={[styles.iconWrap, { backgroundColor: colors.primary + "1c" }]}>
-                        <Feather name="award" size={18} color={colors.primary} />
+                    <View
+                      key={r.id}
+                      style={[
+                        styles.row,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border,
+                          borderRadius: colors.radius,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.iconWrap,
+                          { backgroundColor: colors.primary + "1c" },
+                        ]}
+                      >
+                        <Feather
+                          name="award"
+                          size={18}
+                          color={colors.primary}
+                        />
                       </View>
                       <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
+                        <Text
+                          style={[styles.name, { color: colors.foreground }]}
+                          numberOfLines={1}
+                        >
                           {r.official_name}
                         </Text>
-                        <Text style={[styles.sub, { color: colors.mutedForeground }]} numberOfLines={1}>
-                          {r.kind === "reverification" ? "Re-verification" : "New request"}
-                          {r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : ""}
+                        <Text
+                          style={[
+                            styles.sub,
+                            { color: colors.mutedForeground },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {r.kind === "reverification"
+                            ? "Re-verification"
+                            : "New request"}
+                          {r.created_at
+                            ? ` · ${new Date(r.created_at).toLocaleDateString()}`
+                            : ""}
                         </Text>
                         {r.admin_notes && r.status !== "pending" ? (
-                          <Text style={[styles.sub, { color: colors.mutedForeground, fontStyle: "italic" }]} numberOfLines={2}>
+                          <Text
+                            style={[
+                              styles.sub,
+                              {
+                                color: colors.mutedForeground,
+                                fontStyle: "italic",
+                              },
+                            ]}
+                            numberOfLines={2}
+                          >
                             {r.admin_notes}
                           </Text>
                         ) : null}
                       </View>
-                      <View style={[styles.badge, { backgroundColor: sc + "33" }]}>
-                        <Text style={[styles.badgeText, { color: sc }]}>{r.status}</Text>
+                      <View
+                        style={[styles.badge, { backgroundColor: sc + "33" }]}
+                      >
+                        <Text style={[styles.badgeText, { color: sc }]}>
+                          {r.status}
+                        </Text>
                       </View>
                     </View>
                   );
@@ -208,21 +374,39 @@ export default function VerificationScreen() {
       )}
 
       {/* Apply modal */}
-      <Modal visible={showNew} animationType="slide" transparent onRequestClose={() => setShowNew(false)}>
+      <Modal
+        visible={showNew}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowNew(false)}
+      >
         <View style={styles.modalBackdrop}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={[
               styles.modalCard,
-              { backgroundColor: colors.background, borderColor: colors.border, borderRadius: colors.radius },
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Apply for Verification</Text>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              Apply for Verification
+            </Text>
             <Text style={[styles.sub, { color: colors.mutedForeground }]}>
               Your profile name will be locked once approved.
             </Text>
 
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginTop: 8 }]}>Verification Type</Text>
+            <Text
+              style={[
+                styles.fieldLabel,
+                { color: colors.mutedForeground, marginTop: 8 },
+              ]}
+            >
+              Verification Type
+            </Text>
             <View style={{ gap: 6 }}>
               {tickTypes.map((t: TickType) => {
                 const active = selectedTickId === t.id;
@@ -245,15 +429,25 @@ export default function VerificationScreen() {
                       size={16}
                       color={active ? t.color : colors.mutedForeground}
                     />
-                    <Text style={[styles.name, { color: colors.foreground }]}>{t.name}</Text>
+                    <Text style={[styles.name, { color: colors.foreground }]}>
+                      {t.name}
+                    </Text>
                   </Pressable>
                 );
               })}
             </View>
             {errors.tick_type_id ? (
-              <Text style={[styles.sub, { color: colors.destructive }]}>{errors.tick_type_id}</Text>
+              <Text style={[styles.sub, { color: colors.destructive }]}>
+                {errors.tick_type_id}
+              </Text>
             ) : null}
 
+            <Text style={{ color: colors.mutedForeground }}>
+              {workspace
+                ? "Current workspace creator verification"
+                : "Personal profile verification"}
+              . Name and handle changes require fresh verification.
+            </Text>
             <TextField
               label="Official / legal name"
               value={officialName}
@@ -269,11 +463,30 @@ export default function VerificationScreen() {
               error={errors.purpose}
             />
 
+            <EvidenceFiles files={attachments} onChange={setAttachments} />
+            <TextField
+              label="Additional information"
+              value={additionalInfo}
+              onChangeText={setAdditionalInfo}
+              multiline
+              maxLength={4000}
+            />
+            <TextField
+              label="Supporting URLs (one per line, up to 5)"
+              value={urls}
+              onChangeText={setUrls}
+              multiline
+              autoCapitalize="none"
+              error={errors.supporting_urls}
+            />
             <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
               <Button
                 label="Cancel"
                 variant="outline"
-                onPress={() => { setShowNew(false); resetForm(); }}
+                onPress={() => {
+                  setShowNew(false);
+                  resetForm();
+                }}
                 style={{ flex: 1 }}
               />
               <Button
@@ -294,7 +507,13 @@ export default function VerificationScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   card: { padding: 16, borderWidth: 1 },
-  row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderWidth: 1 },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderWidth: 1,
+  },
   iconWrap: {
     width: 40,
     height: 40,
@@ -318,7 +537,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   notice: { padding: 14, borderRadius: 12, borderWidth: 1 },
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
   modalCard: { padding: 20, gap: 14, borderTopWidth: 1, maxHeight: "92%" },
   modalTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 22 },
   fieldLabel: {

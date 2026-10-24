@@ -1,3 +1,4 @@
+import { evidenceForm, type EvidenceUpload } from "@/lib/evidenceForm";
 import { apiFetch } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
@@ -42,9 +43,11 @@ export type ProfileVerificationStatusResponse = {
   tick_types: TickType[];
 };
 
-export async function getProfileVerificationStatus(): Promise<ProfileVerificationStatusResponse> {
+export async function getProfileVerificationStatus(
+  context?: "workspace",
+): Promise<ProfileVerificationStatusResponse> {
   const res = await apiFetch<{ data: ProfileVerificationStatusResponse }>(
-    "/profile-verification",
+    `/profile-verification${context ? "?context=workspace" : ""}`,
   );
   return res.data;
 }
@@ -53,10 +56,22 @@ export async function submitProfileVerification(p: {
   tick_type_id: number;
   official_name: string;
   purpose: string;
+  additional_info?: string;
+  supporting_urls?: string[];
+  message?: string;
+  context?: "workspace";
+  creator_profile_id?: number;
+  attachments?: EvidenceUpload[];
 }): Promise<ProfileVerificationRequest> {
+  const { attachments = [], ...values } = p;
   const res = await apiFetch<{ data: { request: ProfileVerificationRequest } }>(
     "/profile-verification",
-    { method: "POST", body: JSON.stringify(p) },
+    {
+      method: "POST",
+      body: attachments.length
+        ? await evidenceForm(values, attachments)
+        : JSON.stringify(values),
+    },
   );
   return res.data.request;
 }
@@ -86,7 +101,9 @@ export type LegacyVerificationRequest = {
   created_at: string | null;
 };
 
-export async function listLegacyVerifications(): Promise<LegacyVerificationRequest[]> {
+export async function listLegacyVerifications(): Promise<
+  LegacyVerificationRequest[]
+> {
   const res = await apiFetch<{ data: { items: LegacyVerificationRequest[] } }>(
     "/verifications",
   );
@@ -94,6 +111,8 @@ export async function listLegacyVerifications(): Promise<LegacyVerificationReque
 }
 
 /** @deprecated use getProfileVerificationStatus() */
-export async function listVerifications(): Promise<LegacyVerificationRequest[]> {
+export async function listVerifications(): Promise<
+  LegacyVerificationRequest[]
+> {
   return listLegacyVerifications();
 }

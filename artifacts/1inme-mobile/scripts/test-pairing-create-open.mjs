@@ -44,13 +44,26 @@ const root = join(__dirname, "..");
 // Canonical PHP sources in the product app, relative to this mobile package.
 const APP = resolve(root, "..", "1inme");
 const SITE_PAGES_CONTENT_PHP = join(
-  APP, "app", "Modules", "Common", "Support", "SitePagesContent.php",
+  APP,
+  "app",
+  "Modules",
+  "Common",
+  "Support",
+  "SitePagesContent.php",
 );
 const PLANS_SEEDER_PHP = join(
-  APP, "database", "seeders", "PlansAndAddonsSeeder.php",
+  APP,
+  "database",
+  "seeders",
+  "PlansAndAddonsSeeder.php",
 );
 const LINK_CONTROLLER_PHP = join(
-  APP, "app", "Modules", "User", "Controllers", "LinkController.php",
+  APP,
+  "app",
+  "Modules",
+  "User",
+  "Controllers",
+  "LinkController.php",
 );
 
 // Shipped mobile sources.
@@ -65,7 +78,11 @@ const read = (p) => readFileSync(p, "utf8");
 // ---------------------------------------------------------------------------
 function catalogPairingTypes(php) {
   const start = php.indexOf("function linkTypePairingsCatalog");
-  assert.notEqual(start, -1, "linkTypePairingsCatalog() not found in SitePagesContent.php");
+  assert.notEqual(
+    start,
+    -1,
+    "linkTypePairingsCatalog() not found in SitePagesContent.php",
+  );
   // Bound to the method body so an identically-named key elsewhere can't leak in.
   const slice = php.slice(start, php.indexOf("\n    }", start));
   const types = new Set();
@@ -80,6 +97,8 @@ const pairingTypes = catalogPairingTypes(read(SITE_PAGES_CONTENT_PHP));
 // gains/removes a type this set must be updated in lockstep with the mapping
 // tables below — the drift assertion right after forces that.
 const EXPECTED_PAIRING_TYPES = [
+  "url",
+  "file",
   "calendar",
   "biolink",
   "reviews",
@@ -105,7 +124,11 @@ assert.deepEqual(
 // `features_map` for a brand-new default account.
 function freePlanFeatures(php) {
   const slug = php.indexOf("'slug' => 'free'");
-  assert.notEqual(slug, -1, "free plan block not found in PlansAndAddonsSeeder.php");
+  assert.notEqual(
+    slug,
+    -1,
+    "free plan block not found in PlansAndAddonsSeeder.php",
+  );
   const feats = php.indexOf("'features' => [", slug);
   assert.notEqual(feats, -1, "free plan 'features' array not found");
   // Capture up to the closing of the features array (first "\n                ],").
@@ -147,10 +170,17 @@ function extractFn(src, signature, file) {
   assert.notEqual(at, -1, `${signature} not found in ${file}`);
   // Balance braces from the first "{" after the signature.
   const open = src.indexOf("{", at);
-  let depth = 0, end = -1;
+  let depth = 0,
+    end = -1;
   for (let i = open; i < src.length; i++) {
     if (src[i] === "{") depth++;
-    else if (src[i] === "}") { depth--; if (depth === 0) { end = i + 1; break; } }
+    else if (src[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        end = i + 1;
+        break;
+      }
+    }
   }
   assert.notEqual(end, -1, `could not balance braces for ${signature}`);
   return src.slice(at, end);
@@ -161,9 +191,14 @@ const pairingSrc = extractFn(
   read(LINK_PAIRINGS_TS),
   "export function pairingCreatePath",
   "linkPairings.ts",
-).replace("export function pairingCreatePath(type: string): string", "function pairingCreatePath(type)");
+).replace(
+  "export function pairingCreatePath(type: string): string",
+  "function pairingCreatePath(type)",
+);
 // eslint-disable-next-line no-new-func
-const pairingCreatePath = new Function(`${pairingSrc}; return pairingCreatePath;`)();
+const pairingCreatePath = new Function(
+  `${pairingSrc}; return pairingCreatePath;`,
+)();
 
 // ---------------------------------------------------------------------------
 // 4. Mobile LINK_KINDS (kind -> apiType).
@@ -188,10 +223,19 @@ const gatedSetSrc = (planSrc.match(
   /const GATED_LINK_TYPES = new Set<string>\(\[[\s\S]*?\]\);/,
 ) || [])[0];
 assert.ok(gatedSetSrc, "GATED_LINK_TYPES not found in usePlanFeatures.ts");
-const truthySrc = extractFn(planSrc, "function truthy", "usePlanFeatures.ts")
-  .replace("function truthy(v: unknown): boolean", "function truthy(v)");
-const lockedSrc = extractFn(planSrc, "function isLinkTypeLocked", "usePlanFeatures.ts")
-  .replace("function isLinkTypeLocked(apiType: string): boolean", "function isLinkTypeLocked(apiType)");
+const truthySrc = extractFn(
+  planSrc,
+  "function truthy",
+  "usePlanFeatures.ts",
+).replace("function truthy(v: unknown): boolean", "function truthy(v)");
+const lockedSrc = extractFn(
+  planSrc,
+  "function isLinkTypeLocked",
+  "usePlanFeatures.ts",
+).replace(
+  "function isLinkTypeLocked(apiType: string): boolean",
+  "function isLinkTypeLocked(apiType)",
+);
 
 // Non-uniform plan-key override maps (module/cap keys that don't follow the
 // uniform `module_<apiType>` / `max_<apiType>` convention). Parse them from the
@@ -252,12 +296,14 @@ for (const type of EXPECTED_PAIRING_TYPES) {
   if (gate) {
     const moduleVal = freeFeatures[gate.module];
     assert.notEqual(
-      moduleVal, false,
+      moduleVal,
+      false,
       `free plan disables module '${gate.module}' for pairing '${type}' — create screen would be a dead-end`,
     );
     const capVal = freeFeatures[gate.cap];
     assert.notEqual(
-      capVal, 0,
+      capVal,
+      0,
       `free plan sets cap '${gate.cap}' = 0 for pairing '${type}' — fresh account cannot create it`,
     );
   }
@@ -361,9 +407,13 @@ for (const apiType of mobileGated) {
 for (const [apiType, moduleKey] of Object.entries(moduleKeyByType.map)) {
   const webType = apiTypeToWebType[apiType] ?? apiType;
   const gate = gatingMap[webType];
-  assert.ok(gate, `MODULE_KEY_BY_TYPE gates apiType '${apiType}' the web doesn't`);
+  assert.ok(
+    gate,
+    `MODULE_KEY_BY_TYPE gates apiType '${apiType}' the web doesn't`,
+  );
   assert.equal(
-    moduleKey, gate.module,
+    moduleKey,
+    gate.module,
     `MODULE_KEY_BY_TYPE['${apiType}'] = '${moduleKey}' but the web module key ` +
       `for '${webType}' is '${gate.module}' — the proactive module lock reads the ` +
       `wrong plan key. Match LinkController::enforceLinkTypeQuota.`,
@@ -374,7 +424,8 @@ for (const [apiType, capKey] of Object.entries(capKeyByType.map)) {
   const gate = gatingMap[webType];
   assert.ok(gate, `CAP_KEY_BY_TYPE gates apiType '${apiType}' the web doesn't`);
   assert.equal(
-    capKey, gate.cap,
+    capKey,
+    gate.cap,
     `CAP_KEY_BY_TYPE['${apiType}'] = '${capKey}' but the web cap key for ` +
       `'${webType}' is '${gate.cap}' — the proactive cap lock reads the wrong ` +
       `plan key. Match LinkController::enforceLinkTypeQuota.`,
@@ -383,7 +434,10 @@ for (const [apiType, capKey] of Object.entries(capKeyByType.map)) {
 
 // Calendar (mobile apiType `event`) must be reachable on the free plan
 // (seeder grants max_calendars=1, module_calendar not disabled)...
-assert.ok(mobileGated.has("event"), "calendar apiType 'event' expected in GATED_LINK_TYPES");
+assert.ok(
+  mobileGated.has("event"),
+  "calendar apiType 'event' expected in GATED_LINK_TYPES",
+);
 assert.equal(
   isLinkTypeLocked("event"),
   false,

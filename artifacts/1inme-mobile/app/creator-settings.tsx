@@ -1,3 +1,7 @@
+import { CreatorProfileSharing } from "@/components/CreatorProfileSharing";
+import { CreatorPhonePanel } from "@/components/CreatorPhonePanel";
+import { ProfilePreview } from "@/components/CreatorProfilePreview";
+import { CreatorImageSources } from "@/components/CreatorImageSources";
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
@@ -27,7 +31,10 @@ import {
   type FeaturedLinksStyle,
 } from "@/lib/api/creatorProfile";
 import { listLinks, type Link } from "@/lib/api/links";
-import { updateProfile } from "@/lib/api/profile";
+import { apiFetch } from "@/lib/api";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { CreatorDesignControls } from "@/components/CreatorDesignControls";
+import type { CreatorPresentation } from "@/lib/api/creatorProfile";
 import { showAlert } from "@/lib/webAlert";
 
 // Same style catalog as the server's featured_links_style validation
@@ -43,6 +50,11 @@ const LINK_STYLES: { key: FeaturedLinksStyle; label: string }[] = [
 
 // Mirrors User::PROFILE_DEFAULT_VISIBILITY keys (the profile "tabs").
 const SECTION_LABELS: { key: string; label: string }[] = [
+  { key: "tabs", label: "Profile navigation tabs" },
+  { key: "sharing", label: "Sharing and contact card" },
+  { key: "monetization", label: "Subscriptions, tips & paid posts" },
+  { key: "related_creators", label: "Related creators" },
+  { key: "special_dates", label: "Special dates" },
   { key: "stats", label: "Stats" },
   { key: "about", label: "About" },
   { key: "posts", label: "Posts" },
@@ -60,7 +72,6 @@ const HIGHLIGHT_LABELS: { key: HighlightKey; label: string }[] = [
   { key: "show_followers", label: "Followers count" },
   { key: "show_links", label: "Links count" },
   { key: "show_member_since", label: "Member since" },
-  { key: "show_verified", label: "Verified badge" },
 ];
 
 type HighlightKey =
@@ -78,8 +89,14 @@ const CTA_KINDS: { key: CtaButton["kind"]; label: string }[] = [
 ];
 
 const THEME_PRESETS = [
-  "#3b82f6", "#6366f1", "#ec4899", "#ef4444",
-  "#f59e0b", "#10b981", "#14b8a6", "#64748b",
+  "#3b82f6",
+  "#6366f1",
+  "#ec4899",
+  "#ef4444",
+  "#f59e0b",
+  "#10b981",
+  "#14b8a6",
+  "#64748b",
 ];
 
 const bit = (b: boolean): "0" | "1" => (b ? "1" : "0");
@@ -87,22 +104,55 @@ const bit = (b: boolean): "0" | "1" => (b ? "1" : "0");
 type FeaturedEntry = { id: number; enabled: boolean; label: string };
 
 export default function CreatorSettingsScreen() {
+  const { activeWorkspace } = useWorkspace();
+  return (
+    <CreatorSettingsForm
+      key={activeWorkspace?.id ?? "pending"}
+      workspaceId={activeWorkspace?.id}
+    />
+  );
+}
+
+function CreatorSettingsForm({ workspaceId }: { workspaceId?: number }) {
   const colors = useColors();
   const router = useRouter();
   const qc = useQueryClient();
 
   const q = useQuery({
-    queryKey: ["creator-profile-settings"],
+    queryKey: ["creator-profile-settings", workspaceId],
     queryFn: getCreatorProfileSettings,
+    enabled: !!workspaceId,
   });
 
   // Owned links for the featured-link picker. per_page 100 covers the
   // realistic case; the server caps featured links at 8 anyway.
   const linksQ = useQuery({
-    queryKey: ["creator-settings-links"],
+    queryKey: ["creator-settings-links", workspaceId],
     queryFn: () => listLinks({ per_page: 100 }),
+    enabled: !!workspaceId,
   });
 
+  const [handle, setHandle] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [editorTab, setEditorTab] = useState("design");
+  const [presentation, setPresentation] = useState<CreatorPresentation>({
+    layout: "classic",
+    theme: "paper",
+    mode: "light",
+    avatar_shape: "rounded",
+    avatar_size: 96,
+    avatar_x: 50,
+    avatar_y: 50,
+  });
+  const [primaryLink, setPrimaryLink] = useState<number | null>(null);
+  const [destination, setDestination] = useState<"profile" | "redirect">(
+    "profile",
+  );
+  const [redirectLink, setRedirectLink] = useState<number | null>(null);
+  const [published, setPublished] = useState(false);
+  const [bio, setBio] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [location, setLocation] = useState("");
   const [themeColor, setThemeColor] = useState<string>("");
   const [sections, setSections] = useState<Record<string, boolean>>({});
   const [featured, setFeatured] = useState<FeaturedEntry[]>([]);
@@ -122,6 +172,26 @@ export default function CreatorSettingsScreen() {
   useEffect(() => {
     if (!q.data || seeded) return;
     const p = q.data;
+    setHandle(p.handle ?? "");
+    setWorkspaceName(p.name ?? "");
+    setPresentation(
+      p.presentation ?? {
+        layout: "classic",
+        theme: "paper",
+        mode: "light",
+        avatar_shape: "rounded",
+        avatar_size: 96,
+        avatar_x: 50,
+        avatar_y: 50,
+      },
+    );
+    setPrimaryLink(p.primary_biolink_id ?? null);
+    setDestination(p.profile_destination ?? "profile");
+    setRedirectLink(p.redirect_link_id ?? null);
+    setPublished(p.profile_published);
+    setBio(p.bio ?? "");
+    setTagline(p.tagline ?? "");
+    setLocation(p.location ?? "");
     setThemeColor(p.profile_theme_color ?? "");
     setSections({ ...p.sections });
     setFeatured(
@@ -141,13 +211,30 @@ export default function CreatorSettingsScreen() {
 
   const save = useMutation({
     mutationFn: () => {
+      if (destination === "redirect" && !redirectLink)
+        throw new Error("Choose an active redirect link first.");
       const payload: CreatorProfileUpdatePayload = {
+        creator_profile_id: q.data?.creator_profile_id,
+        ...(!q.data?.is_personal ? { workspace_name: workspaceName } : {}),
+        presentation,
+        primary_biolink_id: primaryLink,
+        profile_destination: destination,
+        redirect_link_id: redirectLink,
+        profile_published: bit(published),
+        bio,
+        tagline,
+        location,
         profile_theme_color:
-          themeColor && /^#[0-9a-fA-F]{6}$/.test(themeColor) ? themeColor : null,
+          themeColor && /^#[0-9a-fA-F]{6}$/.test(themeColor)
+            ? themeColor
+            : null,
         sections: Object.fromEntries(
           Object.entries(sections).map(([k, v]) => [k, bit(v)]),
         ),
-        featured_links: featured.map((f) => ({ id: f.id, enabled: bit(f.enabled) })),
+        featured_links: featured.map((f) => ({
+          id: f.id,
+          enabled: bit(f.enabled),
+        })),
         featured_links_style: linkStyle,
         showcase_show_link_stats: bit(showLinkStats),
         // Pass the existing showcase cards through untouched — the save
@@ -172,6 +259,7 @@ export default function CreatorSettingsScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["creator-profile-settings"] });
       qc.invalidateQueries({ queryKey: ["creator-profile"] });
+      qc.invalidateQueries({ queryKey: ["cp-preview-url"] });
       if (Platform.OS === "web") {
         router.back();
       } else {
@@ -188,11 +276,36 @@ export default function CreatorSettingsScreen() {
   // Task #6015 — creator-avatar gallery pick saves immediately through
   // the profile endpoint (creator_avatar override), independent of the
   // main creator-profile save.
+  const claimHandle = useMutation({
+    mutationFn: () =>
+      apiFetch("/me/creator-profile/handle", {
+        method: "POST",
+        body: JSON.stringify({
+          creator_profile_id: q.data?.creator_profile_id,
+          handle,
+        }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["creator-profile-settings"] });
+      void qc.invalidateQueries({ queryKey: ["cp-preview-url"] });
+      showAlert(
+        "Saved",
+        "Creator handle updated. Previous handle links stop working.",
+      );
+    },
+    onError: (e: Error) => showAlert("Could not update handle", e.message),
+  });
+
   const avatarM = useMutation({
-    mutationFn: (url: string) => updateProfile({ creator_avatar: url }),
+    mutationFn: (assetKey: string) =>
+      updateCreatorProfile({
+        creator_profile_id: q.data?.creator_profile_id,
+        creator_avatar_asset: assetKey,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["creator-profile-settings"] });
       qc.invalidateQueries({ queryKey: ["creator-profile"] });
+      qc.invalidateQueries({ queryKey: ["cp-preview-url"] });
       qc.invalidateQueries({ queryKey: ["profile"] });
     },
     onError: (e: any) => {
@@ -243,325 +356,538 @@ export default function CreatorSettingsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: "Creator profile" }} />
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}
+      >
         {!q.data.handle ? (
           <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            Claim a handle in Edit profile first. Your public page lives at
-            /@handle.
+            Open Identity to claim a handle for this workspace. Your public page
+            lives at /@handle.
           </Text>
         ) : null}
 
-        {/* Task #6015 — curated avatar gallery (every plan). */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Profile avatar</Text>
-        <AvatarGalleryPicker
-          saving={avatarM.isPending}
-          onSelect={(url) => avatarM.mutate(url)}
-        />
-
-        {/* Theme color */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Theme color</Text>
-        <View style={styles.swatchRow}>
-          <Pressable
-            onPress={() => setThemeColor("")}
-            accessibilityRole="button"
-            style={[
-              styles.swatch,
-              {
-                borderColor: themeColor === "" ? colors.primary : colors.border,
-                backgroundColor: colors.card,
-              },
-            ]}
-          >
-            <Feather name="x" size={14} color={colors.mutedForeground} />
-          </Pressable>
-          {THEME_PRESETS.map((hex) => (
+        <Text style={[styles.section, { color: colors.foreground }]}>
+          {q.data.name} {q.data.handle ? `· @${q.data.handle}` : ""}
+        </Text>
+        <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+          {q.data.is_personal
+            ? "Personal creator profile"
+            : "Workspace creator profile"}
+          . Changes apply only to this workspace.
+        </Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {[
+            "design",
+            "about",
+            "visibility",
+            "links",
+            "identity",
+            "preview",
+          ].map((tab) => (
             <Pressable
-              key={hex}
-              onPress={() => setThemeColor(hex)}
-              accessibilityRole="button"
-              style={[
-                styles.swatch,
-                {
-                  backgroundColor: hex,
-                  borderColor:
-                    themeColor.toLowerCase() === hex ? colors.foreground : "transparent",
-                },
-              ]}
-            />
-          ))}
-        </View>
-        <TextField
-          label="Custom hex"
-          value={themeColor}
-          onChangeText={(t) => setThemeColor(t.trim())}
-          placeholder="#3b82f6"
-          autoCapitalize="none"
-          hint="Leave empty for the platform default."
-        />
-
-        {/* Profile tabs */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Profile sections</Text>
-        <View style={[styles.groupCard, card]}>
-          {SECTION_LABELS.map((s, i) => (
-            <View
-              key={s.key}
-              style={[
-                styles.rowBetween,
-                i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.rowLabel, { color: colors.foreground }]}>{s.label}</Text>
-              <Switch
-                value={sections[s.key] ?? true}
-                onValueChange={(v) => setSections((sec) => ({ ...sec, [s.key]: v }))}
-                trackColor={{ true: colors.primary }}
-              />
-            </View>
-          ))}
-        </View>
-
-        {/* Featured links */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Featured links</Text>
-        {featured.length === 0 ? (
-          <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            No featured links yet. Add up to 8 from your links.
-          </Text>
-        ) : (
-          <View style={[styles.groupCard, card]}>
-            {featured.map((f, i) => (
-              <View
-                key={f.id}
-                style={[
-                  styles.rowBetween,
-                  i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-                ]}
-              >
-                <Text
-                  style={[styles.rowLabel, { color: colors.foreground, flex: 1 }]}
-                  numberOfLines={1}
-                >
-                  {f.label}
-                </Text>
-                <Switch
-                  value={f.enabled}
-                  onValueChange={(v) =>
-                    setFeatured((list) =>
-                      list.map((x) => (x.id === f.id ? { ...x, enabled: v } : x)),
-                    )
-                  }
-                  trackColor={{ true: colors.primary }}
-                />
-                <Pressable
-                  onPress={() =>
-                    setFeatured((list) => list.filter((x) => x.id !== f.id))
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove ${f.label}`}
-                  hitSlop={8}
-                  style={{ marginLeft: 10 }}
-                >
-                  <Feather name="trash-2" size={16} color={colors.mutedForeground} />
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        )}
-        {featured.length < 8 ? (
-          <Pressable
-            onPress={() => setPickerOpen((o) => !o)}
-            accessibilityRole="button"
-            style={[styles.addBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-          >
-            <Feather name={pickerOpen ? "chevron-up" : "plus"} size={15} color={colors.primary} />
-            <Text style={[styles.rowLabel, { color: colors.primary }]}>
-              {pickerOpen ? "Hide link picker" : "Add a featured link"}
-            </Text>
-          </Pressable>
-        ) : null}
-        {pickerOpen ? (
-          linksQ.isLoading ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : availableLinks.length === 0 ? (
-            <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-              No more links to add.
-            </Text>
-          ) : (
-            <View style={[styles.groupCard, card]}>
-              {availableLinks.slice(0, 30).map((l, i) => (
-                <Pressable
-                  key={l.id}
-                  onPress={() => {
-                    setFeatured((list) =>
-                      list.length >= 8
-                        ? list
-                        : [...list, { id: l.id, enabled: true, label: l.title || l.alias }],
-                    );
-                    setPickerOpen(false);
-                  }}
-                  accessibilityRole="button"
-                  style={[
-                    styles.rowBetween,
-                    i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowLabel, { color: colors.foreground }]} numberOfLines={1}>
-                      {l.title || l.alias}
-                    </Text>
-                    <Text style={[styles.hint, { color: colors.mutedForeground }]} numberOfLines={1}>
-                      /{l.alias} · {l.type}
-                    </Text>
-                  </View>
-                  <Feather name="plus-circle" size={16} color={colors.primary} />
-                </Pressable>
-              ))}
-            </View>
-          )
-        ) : null}
-
-        <View style={styles.chipRow}>
-          {LINK_STYLES.map((s) => (
-            <Pressable
-              key={s.key}
-              onPress={() => setLinkStyle(s.key)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: linkStyle === s.key }}
-              style={[
-                styles.chip,
-                {
-                  borderColor: linkStyle === s.key ? colors.primary : colors.border,
-                  backgroundColor: linkStyle === s.key ? colors.primary : colors.card,
-                },
-              ]}
+              key={tab}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: editorTab === tab }}
+              aria-selected={editorTab === tab}
+              onPress={() => setEditorTab(tab)}
+              style={{
+                padding: 12,
+                borderWidth: 1,
+                borderColor: editorTab === tab ? colors.primary : colors.border,
+                borderRadius: colors.radius,
+              }}
             >
               <Text
-                style={[
-                  styles.chipLabel,
-                  { color: linkStyle === s.key ? "#fff" : colors.mutedForeground },
-                ]}
+                style={{
+                  color: colors.foreground,
+                  textTransform: "capitalize",
+                }}
               >
-                {s.label}
+                {tab}
               </Text>
             </Pressable>
           ))}
         </View>
-        <View style={[styles.rowBetween, styles.groupCard, card]}>
-          <Text style={[styles.rowLabel, { color: colors.foreground }]}>
-            Show click counts on featured links
-          </Text>
-          <Switch
-            value={showLinkStats}
-            onValueChange={setShowLinkStats}
-            trackColor={{ true: colors.primary }}
-          />
-        </View>
-
-        {/* Highlights */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Highlights</Text>
-        <View style={[styles.groupCard, card]}>
-          {HIGHLIGHT_LABELS.map((h, i) => (
-            <View
-              key={h.key}
-              style={[
-                styles.rowBetween,
-                i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-              ]}
-            >
-              <Text style={[styles.rowLabel, { color: colors.foreground }]}>{h.label}</Text>
-              <Switch
-                value={highlights[h.key]}
-                onValueChange={(v) => setHighlight(h.key, v)}
-                trackColor={{ true: colors.primary }}
+        {editorTab === "identity" ? (
+          <>
+            {!q.data.is_personal ? (
+              <TextField
+                label="Workspace creator name"
+                value={workspaceName}
+                onChangeText={setWorkspaceName}
+                maxLength={200}
+                hint="Changing a verified name requires fresh verification."
               />
-            </View>
-          ))}
-        </View>
-
-        {/* Primary CTA */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Primary action button</Text>
-        <View style={styles.chipRow}>
-          <Pressable
-            onPress={() => setCtaPrimary(null)}
-            accessibilityRole="button"
-            style={[
-              styles.chip,
-              {
-                borderColor: !ctaPrimary ? colors.primary : colors.border,
-                backgroundColor: !ctaPrimary ? colors.primary : colors.card,
-              },
-            ]}
-          >
-            <Text style={[styles.chipLabel, { color: !ctaPrimary ? "#fff" : colors.mutedForeground }]}>
-              None
+            ) : (
+              <Button
+                label="Edit personal name"
+                variant="secondary"
+                onPress={() => router.push("/profile-edit")}
+              />
+            )}
+            <TextField
+              label="Creator handle"
+              value={handle}
+              onChangeText={setHandle}
+              maxLength={30}
+              autoCapitalize="none"
+              hint="Changing your handle changes the public URL and requires fresh verification."
+            />
+            <Button
+              label="Update creator handle"
+              loading={claimHandle.isPending}
+              onPress={() =>
+                showAlert(
+                  "Change creator handle?",
+                  "Previous handle links stop working. If verified, you must reapply for verification.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Update", onPress: () => claimHandle.mutate() },
+                  ],
+                )
+              }
+            />
+            <Button
+              label="Creator verification"
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: "/verification",
+                  params: { context: "workspace" },
+                })
+              }
+            />
+            <CreatorPhonePanel
+              key={q.data.creator_profile_id}
+              profileId={q.data.creator_profile_id}
+            />
+          </>
+        ) : null}
+        {editorTab === "preview" ? (
+          <>
+            <ProfilePreview key={workspaceId} hasHandle={!!q.data.handle} />
+            <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+              Preview shows your saved workspace profile. Save changes to
+              refresh it.
             </Text>
-          </Pressable>
-          {CTA_KINDS.map((k) => {
-            const active = ctaPrimary?.kind === k.key;
-            return (
+          </>
+        ) : null}
+        {editorTab === "links" && q.data.handle ? (
+          <CreatorProfileSharing handle={q.data.handle} />
+        ) : null}
+        {editorTab === "design" ? (
+          <>
+            <CreatorDesignControls
+              presentation={presentation}
+              onPresentation={setPresentation}
+              primaryLink={primaryLink}
+              onPrimaryLink={setPrimaryLink}
+              destination={destination}
+              onDestination={setDestination}
+              redirectLink={redirectLink}
+              onRedirectLink={setRedirectLink}
+              links={linksQ.data?.items ?? []}
+            />
+            <CreatorImageSources
+              profileId={q.data.creator_profile_id}
+              field="cover_image"
+              current={q.data.cover_image}
+            />
+            {!q.data.identity_locked ? (
+              <CreatorImageSources
+                profileId={q.data.creator_profile_id}
+                field="creator_avatar"
+                current={q.data.avatar}
+              />
+            ) : null}
+
+            {/* Task #6015 — curated avatar gallery (every plan). */}
+            <Text style={[styles.section, { color: colors.foreground }]}>
+              Profile avatar
+            </Text>
+            {q.data.identity_locked ? (
+              <Text style={{ color: colors.mutedForeground }}>
+                Your verified avatar is locked. Name or handle changes require
+                fresh verification.
+              </Text>
+            ) : (
+              <AvatarGalleryPicker
+                saving={avatarM.isPending}
+                onSelect={(_url, asset) => avatarM.mutate(asset.key)}
+              />
+            )}
+
+            {/* Theme color */}
+            <Text style={[styles.section, { color: colors.foreground }]}>
+              Theme color
+            </Text>
+            <View style={styles.swatchRow}>
               <Pressable
-                key={k.key}
-                onPress={() =>
-                  setCtaPrimary((c) => ({
-                    kind: k.key,
-                    label: c?.label ?? "",
-                    value: c?.value ?? "",
-                  }))
-                }
+                onPress={() => setThemeColor("")}
                 accessibilityRole="button"
-                accessibilityState={{ selected: active }}
                 style={[
-                  styles.chip,
+                  styles.swatch,
                   {
-                    borderColor: active ? colors.primary : colors.border,
-                    backgroundColor: active ? colors.primary : colors.card,
+                    borderColor:
+                      themeColor === "" ? colors.primary : colors.border,
+                    backgroundColor: colors.card,
                   },
                 ]}
               >
-                <Text style={[styles.chipLabel, { color: active ? "#fff" : colors.mutedForeground }]}>
-                  {k.label}
+                <Feather name="x" size={14} color={colors.mutedForeground} />
+              </Pressable>
+              {THEME_PRESETS.map((hex) => (
+                <Pressable
+                  key={hex}
+                  onPress={() => setThemeColor(hex)}
+                  accessibilityRole="button"
+                  style={[
+                    styles.swatch,
+                    {
+                      backgroundColor: hex,
+                      borderColor:
+                        themeColor.toLowerCase() === hex
+                          ? colors.foreground
+                          : "transparent",
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+            <TextField
+              label="Custom hex"
+              value={themeColor}
+              onChangeText={(t) => setThemeColor(t.trim())}
+              placeholder="#3b82f6"
+              autoCapitalize="none"
+              hint="Leave empty for the platform default."
+            />
+          </>
+        ) : null}
+        {editorTab === "about" ? (
+          <>
+            <TextField
+              label="Tagline"
+              value={tagline}
+              onChangeText={setTagline}
+              maxLength={200}
+            />
+            <TextField
+              label="Bio"
+              value={bio}
+              onChangeText={setBio}
+              multiline
+              maxLength={2000}
+            />
+            <TextField
+              label="Location"
+              value={location}
+              onChangeText={setLocation}
+              maxLength={120}
+            />
+          </>
+        ) : null}
+        {editorTab === "visibility" ? (
+          <>
+            <View style={styles.rowBetween}>
+              <Text style={{ color: colors.foreground }}>Publish profile</Text>
+              <Switch
+                accessibilityLabel="Publish profile"
+                value={published}
+                onValueChange={setPublished}
+              />
+            </View>
+            {/* Profile tabs */}
+            <Text style={[styles.section, { color: colors.foreground }]}>
+              Profile sections
+            </Text>
+            <View style={[styles.groupCard, card]}>
+              {SECTION_LABELS.map((s, i) => (
+                <View
+                  key={s.key}
+                  style={[
+                    styles.rowBetween,
+                    i > 0 && {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    {s.label}
+                  </Text>
+                  <Switch
+                    accessibilityLabel={s.label}
+                    value={sections[s.key] ?? true}
+                    onValueChange={(v) =>
+                      setSections((sec) => ({ ...sec, [s.key]: v }))
+                    }
+                    trackColor={{ true: colors.primary }}
+                  />
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+        {editorTab === "links" ? (
+          <>
+            {/* Featured links */}
+            <Text style={[styles.section, { color: colors.foreground }]}>
+              Featured links
+            </Text>
+            {featured.length === 0 ? (
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                No featured links yet. Add up to 8 from your links.
+              </Text>
+            ) : (
+              <View style={[styles.groupCard, card]}>
+                {featured.map((f, i) => (
+                  <View
+                    key={f.id}
+                    style={[
+                      styles.rowBetween,
+                      i > 0 && {
+                        borderTopWidth: StyleSheet.hairlineWidth,
+                        borderTopColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.rowLabel,
+                        { color: colors.foreground, flex: 1 },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {f.label}
+                    </Text>
+                    <Switch
+                      value={f.enabled}
+                      onValueChange={(v) =>
+                        setFeatured((list) =>
+                          list.map((x) =>
+                            x.id === f.id ? { ...x, enabled: v } : x,
+                          ),
+                        )
+                      }
+                      trackColor={{ true: colors.primary }}
+                    />
+                    <Pressable
+                      onPress={() =>
+                        setFeatured((list) => list.filter((x) => x.id !== f.id))
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${f.label}`}
+                      hitSlop={8}
+                      style={{ marginLeft: 10 }}
+                    >
+                      <Feather
+                        name="trash-2"
+                        size={16}
+                        color={colors.mutedForeground}
+                      />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+            {featured.length < 8 ? (
+              <Pressable
+                onPress={() => setPickerOpen((o) => !o)}
+                accessibilityRole="button"
+                style={[
+                  styles.addBtn,
+                  { borderColor: colors.border, backgroundColor: colors.card },
+                ]}
+              >
+                <Feather
+                  name={pickerOpen ? "chevron-up" : "plus"}
+                  size={15}
+                  color={colors.primary}
+                />
+                <Text style={[styles.rowLabel, { color: colors.primary }]}>
+                  {pickerOpen ? "Hide link picker" : "Add a featured link"}
                 </Text>
               </Pressable>
-            );
-          })}
-        </View>
-        {ctaPrimary ? (
-          <View style={{ gap: 10 }}>
-            <TextField
-              label="Button label"
-              value={ctaPrimary.label}
-              onChangeText={(t) => setCtaPrimary((c) => (c ? { ...c, label: t } : c))}
-              placeholder="Get in touch"
-            />
-            <TextField
-              label={ctaPrimary.kind === "form" ? "Form alias" : "Destination"}
-              value={ctaPrimary.value}
-              onChangeText={(t) => setCtaPrimary((c) => (c ? { ...c, value: t } : c))}
-              placeholder={
-                ctaPrimary.kind === "email"
-                  ? "you@example.com"
-                  : ctaPrimary.kind === "link"
-                    ? "https://…"
-                    : ctaPrimary.kind === "form"
-                      ? "my-form-alias"
-                      : "+1 555 000 0000"
-              }
-              autoCapitalize="none"
-            />
-          </View>
-        ) : null}
+            ) : null}
+            {pickerOpen ? (
+              linksQ.isLoading ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : availableLinks.length === 0 ? (
+                <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                  No more links to add.
+                </Text>
+              ) : (
+                <View style={[styles.groupCard, card]}>
+                  {availableLinks.slice(0, 30).map((l, i) => (
+                    <Pressable
+                      key={l.id}
+                      onPress={() => {
+                        setFeatured((list) =>
+                          list.length >= 8
+                            ? list
+                            : [
+                                ...list,
+                                {
+                                  id: l.id,
+                                  enabled: true,
+                                  label: l.title || l.alias,
+                                },
+                              ],
+                        );
+                        setPickerOpen(false);
+                      }}
+                      accessibilityRole="button"
+                      style={[
+                        styles.rowBetween,
+                        i > 0 && {
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: colors.border,
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.rowLabel,
+                            { color: colors.foreground },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {l.title || l.alias}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.hint,
+                            { color: colors.mutedForeground },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          /{l.alias} · {l.type}
+                        </Text>
+                      </View>
+                      <Feather
+                        name="plus-circle"
+                        size={16}
+                        color={colors.primary}
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+              )
+            ) : null}
 
-        {/* Secondary CTAs */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Secondary buttons</Text>
-        {ctaSecondary.map((c, i) => (
-          <View key={i} style={[styles.groupCard, card, { padding: 12, gap: 8 }]}>
             <View style={styles.chipRow}>
+              {LINK_STYLES.map((s) => (
+                <Pressable
+                  key={s.key}
+                  onPress={() => setLinkStyle(s.key)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: linkStyle === s.key }}
+                  aria-selected={linkStyle === s.key}
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor:
+                        linkStyle === s.key ? colors.primary : colors.border,
+                      backgroundColor:
+                        linkStyle === s.key ? colors.primary : colors.card,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipLabel,
+                      {
+                        color:
+                          linkStyle === s.key ? "#fff" : colors.mutedForeground,
+                      },
+                    ]}
+                  >
+                    {s.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={[styles.rowBetween, styles.groupCard, card]}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                Show click counts on featured links
+              </Text>
+              <Switch
+                value={showLinkStats}
+                onValueChange={setShowLinkStats}
+                trackColor={{ true: colors.primary }}
+              />
+            </View>
+
+            {/* Highlights */}
+            <Text style={[styles.section, { color: colors.foreground }]}>
+              Highlights
+            </Text>
+            <View style={[styles.groupCard, card]}>
+              {HIGHLIGHT_LABELS.map((h, i) => (
+                <View
+                  key={h.key}
+                  style={[
+                    styles.rowBetween,
+                    i > 0 && {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    {h.label}
+                  </Text>
+                  <Switch
+                    value={highlights[h.key]}
+                    onValueChange={(v) => setHighlight(h.key, v)}
+                    trackColor={{ true: colors.primary }}
+                  />
+                </View>
+              ))}
+            </View>
+
+            {/* Primary CTA */}
+            <Text style={[styles.section, { color: colors.foreground }]}>
+              Primary action button
+            </Text>
+            <View style={styles.chipRow}>
+              <Pressable
+                onPress={() => setCtaPrimary(null)}
+                accessibilityRole="button"
+                style={[
+                  styles.chip,
+                  {
+                    borderColor: !ctaPrimary ? colors.primary : colors.border,
+                    backgroundColor: !ctaPrimary ? colors.primary : colors.card,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipLabel,
+                    { color: !ctaPrimary ? "#fff" : colors.mutedForeground },
+                  ]}
+                >
+                  None
+                </Text>
+              </Pressable>
               {CTA_KINDS.map((k) => {
-                const active = c.kind === k.key;
+                const active = ctaPrimary?.kind === k.key;
                 return (
                   <Pressable
                     key={k.key}
-                    onPress={() => updateSecondary(i, { kind: k.key })}
+                    onPress={() =>
+                      setCtaPrimary((c) => ({
+                        kind: k.key,
+                        label: c?.label ?? "",
+                        value: c?.value ?? "",
+                      }))
+                    }
                     accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    aria-selected={active}
                     style={[
                       styles.chip,
                       {
@@ -570,58 +896,171 @@ export default function CreatorSettingsScreen() {
                       },
                     ]}
                   >
-                    <Text style={[styles.chipLabel, { color: active ? "#fff" : colors.mutedForeground }]}>
+                    <Text
+                      style={[
+                        styles.chipLabel,
+                        { color: active ? "#fff" : colors.mutedForeground },
+                      ]}
+                    >
                       {k.label}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
-            <TextInput
-              value={c.label}
-              onChangeText={(t) => updateSecondary(i, { label: t })}
-              placeholder="Label"
-              placeholderTextColor={colors.mutedForeground}
-              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-            />
-            <TextInput
-              value={c.value}
-              onChangeText={(t) => updateSecondary(i, { value: t })}
-              placeholder="Destination"
-              placeholderTextColor={colors.mutedForeground}
-              autoCapitalize="none"
-              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-            />
-            <Pressable
-              onPress={() => setCtaSecondary((list) => list.filter((_, idx) => idx !== i))}
-              accessibilityRole="button"
-              style={{ alignSelf: "flex-end" }}
-            >
-              <Text style={[styles.chipLabel, { color: colors.mutedForeground }]}>Remove</Text>
-            </Pressable>
-          </View>
-        ))}
-        {ctaSecondary.length < 3 ? (
-          <Pressable
-            onPress={() =>
-              setCtaSecondary((list) => [...list, { kind: "link", label: "", value: "" }])
-            }
-            accessibilityRole="button"
-            style={[styles.addBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-          >
-            <Feather name="plus" size={15} color={colors.primary} />
-            <Text style={[styles.rowLabel, { color: colors.primary }]}>Add secondary button</Text>
-          </Pressable>
-        ) : null}
+            {ctaPrimary ? (
+              <View style={{ gap: 10 }}>
+                <TextField
+                  label="Button label"
+                  value={ctaPrimary.label}
+                  onChangeText={(t) =>
+                    setCtaPrimary((c) => (c ? { ...c, label: t } : c))
+                  }
+                  placeholder="Get in touch"
+                />
+                <TextField
+                  label={
+                    ctaPrimary.kind === "form" ? "Form alias" : "Destination"
+                  }
+                  value={ctaPrimary.value}
+                  onChangeText={(t) =>
+                    setCtaPrimary((c) => (c ? { ...c, value: t } : c))
+                  }
+                  placeholder={
+                    ctaPrimary.kind === "email"
+                      ? "you@example.com"
+                      : ctaPrimary.kind === "link"
+                        ? "https://…"
+                        : ctaPrimary.kind === "form"
+                          ? "my-form-alias"
+                          : "+1 555 000 0000"
+                  }
+                  autoCapitalize="none"
+                />
+              </View>
+            ) : null}
 
-        <Button label="Save changes" onPress={() => save.mutate()} loading={save.isPending} />
+            {/* Secondary CTAs */}
+            <Text style={[styles.section, { color: colors.foreground }]}>
+              Secondary buttons
+            </Text>
+            {ctaSecondary.map((c, i) => (
+              <View
+                key={i}
+                style={[styles.groupCard, card, { padding: 12, gap: 8 }]}
+              >
+                <View style={styles.chipRow}>
+                  {CTA_KINDS.map((k) => {
+                    const active = c.kind === k.key;
+                    return (
+                      <Pressable
+                        key={k.key}
+                        onPress={() => updateSecondary(i, { kind: k.key })}
+                        accessibilityRole="button"
+                        style={[
+                          styles.chip,
+                          {
+                            borderColor: active
+                              ? colors.primary
+                              : colors.border,
+                            backgroundColor: active
+                              ? colors.primary
+                              : colors.card,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipLabel,
+                            { color: active ? "#fff" : colors.mutedForeground },
+                          ]}
+                        >
+                          {k.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <TextInput
+                  value={c.label}
+                  onChangeText={(t) => updateSecondary(i, { label: t })}
+                  placeholder="Label"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[
+                    styles.input,
+                    { color: colors.foreground, borderColor: colors.border },
+                  ]}
+                />
+                <TextInput
+                  value={c.value}
+                  onChangeText={(t) => updateSecondary(i, { value: t })}
+                  placeholder="Destination"
+                  placeholderTextColor={colors.mutedForeground}
+                  autoCapitalize="none"
+                  style={[
+                    styles.input,
+                    { color: colors.foreground, borderColor: colors.border },
+                  ]}
+                />
+                <Pressable
+                  onPress={() =>
+                    setCtaSecondary((list) =>
+                      list.filter((_, idx) => idx !== i),
+                    )
+                  }
+                  accessibilityRole="button"
+                  style={{ alignSelf: "flex-end" }}
+                >
+                  <Text
+                    style={[
+                      styles.chipLabel,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    Remove
+                  </Text>
+                </Pressable>
+              </View>
+            ))}
+            {ctaSecondary.length < 3 ? (
+              <Pressable
+                onPress={() =>
+                  setCtaSecondary((list) => [
+                    ...list,
+                    { kind: "link", label: "", value: "" },
+                  ])
+                }
+                accessibilityRole="button"
+                style={[
+                  styles.addBtn,
+                  { borderColor: colors.border, backgroundColor: colors.card },
+                ]}
+              >
+                <Feather name="plus" size={15} color={colors.primary} />
+                <Text style={[styles.rowLabel, { color: colors.primary }]}>
+                  Add secondary button
+                </Text>
+              </Pressable>
+            ) : null}
+          </>
+        ) : null}
+        <Button
+          label="Save changes"
+          onPress={() => save.mutate()}
+          loading={save.isPending}
+        />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
   section: {
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 13,

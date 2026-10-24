@@ -24,7 +24,7 @@ class WorkspacePixelsController extends Controller
     public function show(Request $request)
     {
         $ws = $this->resolveWorkspace($request);
-        if (!$ws) return $this->forbidden('No accessible workspace');
+        if (!$ws || !$request->user()->canInWorkspace($ws, 'pixels.view')) return $this->forbidden('No accessible workspace');
 
         return $this->ok(['pixels' => $this->extract($ws)]);
     }
@@ -32,7 +32,7 @@ class WorkspacePixelsController extends Controller
     public function update(Request $request)
     {
         $ws = $this->resolveWorkspace($request);
-        if (!$ws) return $this->forbidden('No accessible workspace');
+        if (!$ws || !$request->user()->canInWorkspace($ws, 'pixels.edit')) return $this->forbidden('No permission to edit workspace pixels');
 
         $data = $request->validate([
             // Meta (Facebook) Pixel ID — 15-16 digit numeric string.

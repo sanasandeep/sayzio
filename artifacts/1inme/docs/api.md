@@ -1692,3 +1692,13 @@ via the `api.usage_warning` notification type) fire once per period at 80% of th
 allowance, at 100% (now on overage), and when overage can no longer be covered.
 Tokens minted for the first-party web/mobile apps are **not** stamped as
 `api_key` and bypass this meter.
+
+## Main mobile creator and leads parity (24 October 2026)
+
+The owner creator editor now reads presentation/destination fields and its active `creator_profile_id` from `GET /api/v1/me/creator-profile`. Include that ID on updates to detect a workspace change (409). PATCH supports `presentation` (layout/theme/mode/avatar framing), `primary_biolink_id`, `profile_destination`, `redirect_link_id`, `creator_avatar_url`/`creator_avatar_asset`, image removal, and existing profile fields. Image files use multipart POST to the same URI with `_method=PATCH` (`creator_avatar`, max 2 MB; `cover_image`, max 5 MB). Verification locks still apply.
+
+Authenticated additions: `POST /me/creator-profile/handle`; `GET/POST /me/creator-profile/phones`; `POST /me/creator-profile/phone-claims`. Phone mutations require `creator_profile_id`; claims take `phone`, `message`, optional `supporting_urls[]` and `proof_files[]`, and use the existing admin review queue. Verified numbers remain exclusive across creator profiles.
+
+Profile verification accepts optional `context=workspace` with `creator_profile_id`; existing callers without context retain personal account verification. Evidence supports `additional_info`, `supporting_urls[]`, `message` and `proof_files[]`.
+
+`GET /leads` returns `items`, source labels and pagination (`q`, `source`, `page`). `POST /leads/decision` takes `source_type`, `source_id`, `decision=approve|dismiss`; it uses shared web lead services and contacts view/edit permissions. Already handled sources return 409. The source aggregator retains the same owner/workspace scoping distinctions as web.

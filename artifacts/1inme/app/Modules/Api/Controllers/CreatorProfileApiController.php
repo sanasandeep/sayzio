@@ -44,7 +44,7 @@ class CreatorProfileApiController extends Controller
         return $this->ok([
             'profile'             => $this->profilePayload($creator, $viewer, $isOwner, $isFollowing),
             'reactions_catalog'   => CreatorPostReaction::REACTIONS,
-            'tiers'               => $this->tiersPayload($creator),
+            'tiers'               => $creator->isSectionVisible('monetization') ? $this->tiersPayload($creator) : [],
             'viewer_subscription' => $this->viewerSubscriptionPayload($creator, $viewer, $isOwner),
         ]);
     }
@@ -67,6 +67,7 @@ class CreatorProfileApiController extends Controller
         $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user)
             ?? $user->ensureDefaultWorkspace();
 
+        abort_unless((int) $ws->owner_user_id === (int) $user->id || $user->hasPermission('user.workspaces.access_any') || $user->membershipFor($ws)?->can('settings.edit'), 403);
         return \App\Modules\User\Models\CreatorProfile::forWorkspace($ws);
     }
 
@@ -111,6 +112,70 @@ class CreatorProfileApiController extends Controller
         return $this->ok(['profile' => $this->ownerProfilePayload($user)]);
     }
 
+    public function claimHandle(Request $request)
+    {
+        $profile = $this->editableProfile($request);
+        $request->merge(['handle'=>strtolower(trim((string) $request->input('handle')))]);
+        $data = $request->validate(['handle'=>[
+            'required','string','min:3','max:30','regex:/^[a-z0-9_]+$/i',
+            \App\Modules\User\Models\CreatorProfile::uniqueHandleRule($profile->id, (int) $profile->user_id),
+            new \App\Modules\Admin\Rules\NotBannedName(),
+        ]]);
+        $profile->handle = $data['handle'];
+        $profile->save();
+        $profile->mirrorToOwner();
+        return $this->settings($request);
+    }
+
+    public function phones(Request $request)
+    {
+        $profile = $this->activeProfile($request->user());
+        return $this->ok([
+            'creator_profile_id' => $profile->id,
+            'numbers' => DB::table('creator_phone_assignments')->where('creator_profile_id', $profile->id)->get(['phone', 'source']),
+            'claims' => DB::table('creator_phone_claims')->where('creator_profile_id', $profile->id)->orderByDesc('id')->limit(20)->get(['id','phone','status','admin_notes','created_at']),
+        ]);
+    }
+
+    public function attachPhone(Request $request)
+    {
+        $profile = $this->editableProfile($request);
+        $data = $request->validate(['phone' => 'required|string|max:60']);
+        \App\Modules\User\Support\CreatorPhoneIdentity::attach($profile, $request->user(), $data['phone']);
+        return $this->phones($request);
+    }
+
+    private function editableProfile(Request $request): \App\Modules\User\Models\CreatorProfile
+    {
+        $profile = $this->activeProfile($request->user());
+        $request->validate(['creator_profile_id' => 'required|integer']);
+        abort_unless((int) $request->input('creator_profile_id') === (int) $profile->id, 409, 'Workspace changed. Reload before continuing.');
+        return $profile;
+    }
+
+    public function claimPhone(Request $request)
+    {
+        $profile = $this->editableProfile($request);
+        $data = $request->validate([
+            'phone' => 'required|string|max:60', 'message' => 'required|string|max:3000',
+            ...\App\Modules\User\Support\VerificationEvidence::rules(),
+            'proof_files' => 'nullable|array|max:5',
+            'proof_files.*' => \App\Services\UploadPolicy::rule('verification.proof', $request->user()),
+        ]);
+        $phone = \App\Modules\User\Support\CreatorPhoneIdentity::normalize($data['phone']);
+        if (DB::table('creator_phone_claims')->where('creator_profile_id', $profile->id)->where('phone', $phone)->where('status','pending')->exists()) {
+            return $this->fail('A claim for this number is already awaiting review.', 409, 'claim_pending');
+        }
+        $files = [];
+        foreach ($request->file('proof_files', []) as $file) $files[] = \App\Modules\User\Models\UserFile::createFromUpload($file, $request->user(), ['enforce_allowlist'=>false, 'upload_key'=>'verification.proof'])->url_path;
+        DB::table('creator_phone_claims')->insert([
+            'creator_profile_id'=>$profile->id, 'user_id'=>$request->user()->id, 'phone'=>$phone,
+            'message'=>$data['message'], 'proof_files'=>json_encode($files), 'supporting_urls'=>json_encode($data['supporting_urls'] ?? []),
+            'status'=>'pending', 'created_at'=>now(), 'updated_at'=>now(),
+        ]);
+        return $this->phones($request);
+    }
+
     /**
      * Shared owner-editor payload used by settings() and update().
      *
@@ -145,6 +210,17 @@ class CreatorProfileApiController extends Controller
             : ['title' => null, 'alias' => null, 'type' => null];
 
         return [
+            'creator_profile_id' => $user->getRelation('activeCreatorProfile')?->id,
+            'workspace_id' => $user->getRelation('activeCreatorProfile')?->workspace_id,
+            'is_personal' => (bool) $user->getRelation('activeCreatorProfile')?->workspace?->is_personal,
+            'name' => $user->name,
+            'avatar' => \App\Support\PublicStorageUrl::resolve($user->creatorAvatarRaw()),
+            'cover_image' => \App\Support\PublicStorageUrl::resolve($user->cover_image),
+            'identity_locked' => $user->isNameAvatarLocked(),
+            'presentation' => \App\Modules\User\Support\CreatorProfilePresentation::forUser($user),
+            'primary_biolink_id' => $user->profile_showcase['primary_biolink_id'] ?? null,
+            'profile_destination' => $user->profile_showcase['profile_destination'] ?? 'profile',
+            'redirect_link_id' => $user->profile_showcase['redirect_link_id'] ?? null,
             'handle'              => $user->handle,
             'tagline'             => $user->tagline,
             'location'            => $user->location,
@@ -195,7 +271,25 @@ class CreatorProfileApiController extends Controller
             'tagline'             => 'nullable|string|max:200',
             'location'            => 'nullable|string|max:120',
             'bio'                 => 'nullable|string|max:2000',
-            'cover_image_url'     => 'nullable|string|max:1024',
+            'creator_profile_id' => 'nullable|integer|min:1',
+            'creator_avatar' => 'nullable|image|max:2048',
+            'creator_avatar_url' => 'nullable|url:http,https|max:1024',
+            'creator_avatar_asset' => 'nullable|string|max:300',
+            'creator_avatar_remove' => 'nullable|in:0,1',
+            'cover_image' => 'nullable|image|max:5120',
+            'cover_image_remove' => 'nullable|in:0,1',
+            'cover_image_url' => 'nullable|url:http,https|max:1024',
+            'primary_biolink_id' => 'nullable|integer|min:1',
+            'profile_destination' => 'nullable|in:profile,redirect',
+            'redirect_link_id' => 'nullable|integer|min:1',
+            'presentation' => 'nullable|array',
+            'presentation.layout' => 'nullable|in:classic,centered,editorial,minimal',
+            'presentation.mode' => 'nullable|in:light,dark',
+            'presentation.theme' => 'nullable|in:paper,midnight,warm,mint',
+            'presentation.avatar_shape' => 'nullable|in:circle,rounded,square',
+            'presentation.avatar_size' => 'nullable|integer|in:80,96,128',
+            'presentation.avatar_x' => 'nullable|integer|min:0|max:100',
+            'presentation.avatar_y' => 'nullable|integer|min:0|max:100',
             'niche_tags'          => 'nullable|array|max:8',
             'niche_tags.*'        => 'string|max:32',
             'socials'             => 'nullable|array',
@@ -229,6 +323,9 @@ class CreatorProfileApiController extends Controller
 
         // Task #6618 — all writes target the ACTIVE workspace's profile.
         $profile = $this->activeProfile($user);
+        if (isset($data['creator_profile_id']) && (int) $data['creator_profile_id'] !== (int) $profile->id) {
+            return $this->fail('Workspace changed. Reload the creator editor before saving.', 409, 'workspace_changed');
+        }
         $user = $profile->applyToUser(clone $user);
         if (!$profile->workspace->is_personal && array_key_exists('workspace_name',$data)) $profile->name = $data['workspace_name'];
         \App\Modules\User\Controllers\CreatorProfileController::saveCoreProfileFields($user, $data, $request, $profile);
@@ -246,6 +343,7 @@ class CreatorProfileApiController extends Controller
         // Showcase block: only touched when the request carries at least one
         // showcase key (a pure core-fields PATCH must not reset the showcase).
         $showcaseKeys = [
+            'presentation', 'primary_biolink_id', 'profile_destination', 'redirect_link_id',
             'featured_links', 'featured_links_style', 'showcase_show_link_stats',
             'showcase_items', 'highlights_show_followers', 'highlights_show_links',
             'highlights_show_member_since', 'highlights_show_verified',
@@ -254,29 +352,27 @@ class CreatorProfileApiController extends Controller
         if ($request->hasAny($showcaseKeys)) {
             // Absent boolean toggles fall back to the same defaults as the
             // web form, so senders should submit the full showcase state.
+            $previous = $user->resolvedProfileShowcase();
+            $data += [
+                'featured_links' => $previous['featured_links'],
+                'featured_links_style' => $previous['featured_links_style'],
+                'showcase_show_link_stats' => $previous['show_link_stats'] ? '1' : '0',
+                'showcase_items' => $previous['showcase_items'],
+                'cta_primary_kind' => $previous['cta']['primary']['kind'] ?? null,
+                'cta_primary_label' => $previous['cta']['primary']['label'] ?? null,
+                'cta_primary_value' => $previous['cta']['primary']['value'] ?? null,
+                'cta_secondary' => $previous['cta']['secondary'],
+            ];
             \App\Modules\User\Controllers\CreatorProfileController::saveShowcaseFields($user, $data, $profile);
         }
 
         $profile->save();
         if ($profile->workspace->is_personal) $user->save();
         $profile->mirrorToOwner();
-        $user->refresh();
+        $user->unsetRelation('activeCreatorProfile')->refresh();
         $profile->refresh()->applyToUser($user);
 
-        return $this->ok([
-            'profile' => [
-                'handle'              => $user->handle,
-                'tagline'             => $user->tagline,
-                'location'            => $user->location,
-                'bio'                 => $user->bio,
-                'niche_tags'          => $user->niche_tags ?? [],
-                'socials'             => $user->socials ?? [],
-                'sections'            => $user->profile_section_visibility ?? [],
-                'profile_published'   => (bool) $user->profile_published,
-                'profile_theme_color' => $user->profile_theme_color,
-                'showcase'            => $user->profile_showcase,
-            ],
-        ]);
+        return $this->ok(['profile' => $this->ownerProfilePayload($user)]);
     }
 
     /**
@@ -430,9 +526,13 @@ class CreatorProfileApiController extends Controller
 
     private function profilePayload(User $creator, ?User $viewer, bool $isOwner, bool $isFollowing): array
     {
-        $primaryBiolink = Link::where('user_id', $creator->id)
-            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->where('is_active', true)
-            ->orderBy('id')->first();
+        $links = Link::query()->withoutGlobalScope('workspace')->tap($this->apiWorkspaceLinkScope($creator))->where('is_active', true);
+        $primaryId = $creator->profile_showcase['primary_biolink_id'] ?? null;
+        $primaryBiolink = (clone $links)->whereIn('type', Link::BIOLINK_FAMILY)
+            ->when($primaryId, fn ($q) => $q->whereKey($primaryId))->orderBy('id')->first();
+        if (!$primaryBiolink) $primaryBiolink = (clone $links)->whereIn('type', Link::BIOLINK_FAMILY)->orderBy('id')->first();
+        $redirect = ($creator->profile_showcase['profile_destination'] ?? 'profile') === 'redirect'
+            ? (clone $links)->whereKey($creator->profile_showcase['redirect_link_id'] ?? 0)->first() : null;
 
         $sections        = $creator->profileSectionVisibility();
         $showcase        = $creator->resolvedProfileShowcase();
@@ -447,6 +547,7 @@ class CreatorProfileApiController extends Controller
 
         return [
             'id'                  => $creator->id,
+            'workspace_id' => $isOwner && $creator->relationLoaded('activeCreatorProfile') ? $creator->getRelation('activeCreatorProfile')?->workspace_id : null,
             'handle'              => $creator->handle,
             'name'                => $creator->name,
             'avatar'              => \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()),
@@ -464,7 +565,10 @@ class CreatorProfileApiController extends Controller
             'is_following'        => $isFollowing,
             'is_owner'            => $isOwner,
             'created_at'          => $creator->created_at?->toIso8601String(),
-            'biolink_url'         => $primaryBiolink ? url('/' . $primaryBiolink->alias) : null,
+            'biolink_url'         => $primaryBiolink?->getShortUrl(),
+            'presentation' => \App\Modules\User\Support\CreatorProfilePresentation::forUser($creator),
+            'redirect_url' => $redirect?->getShortUrl(),
+            'verification_color' => $creator->isVerified() ? $creator->verificationTickType?->color : null,
             'theme_color'         => $creator->profile_theme_color ?: null,
             'showcase'            => [
                 'show_link_stats'      => (bool) ($showcase['show_link_stats'] ?? false),
@@ -657,7 +761,10 @@ class CreatorProfileApiController extends Controller
             return $this->notFound('Creator not found');
         }
 
-        return $this->buildFeedResponse($request, $creator, $viewer);
+        if (!$creator->isSectionVisible('posts')) {
+            return $this->ok(['items'=>[], 'meta'=>['current_page'=>1, 'per_page'=>15, 'total'=>0, 'last_page'=>1]]);
+        }
+        return $this->buildFeedResponse($request, $creator, $viewer, true);
     }
 
     /**
@@ -665,12 +772,13 @@ class CreatorProfileApiController extends Controller
      * and the alias-keyed paidPageFeed(). Applies the same per-post
      * paywall masking so a locked post never leaks its body/media URLs.
      */
-    private function buildFeedResponse(Request $request, User $creator, ?User $viewer)
+    private function buildFeedResponse(Request $request, User $creator, ?User $viewer, bool $respectProfileSections = false)
     {
         $page = CreatorPost::query()
             ->withoutGlobalScope('workspace')
             ->where('user_id', $creator->id)
             ->whereNotNull('published_at')
+            ->when($respectProfileSections && !$creator->isSectionVisible('monetization'), fn ($q) => $q->where(fn ($v) => $v->where('visibility','free')->orWhereNull('visibility')))
             ->orderByDesc('pinned_at')
             ->orderByDesc('published_at')
             ->paginate(min(50, max(1, (int) $request->input('per_page', 15))));

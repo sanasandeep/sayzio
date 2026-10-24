@@ -60,9 +60,17 @@ const editorSrc = readFileSync(
   "utf8",
 );
 
-const mergeStart = editorSrc.indexOf("const putStyle = (key: string, val: string)");
-assert.ok(mergeStart !== -1, "found the save-merge putStyle definition in [blockId].tsx");
-const mergeEnd = editorSrc.indexOf("if (Object.keys(styleOut).length > 0)", mergeStart);
+const mergeStart = editorSrc.indexOf(
+  "const putStyle = (key: string, val: string)",
+);
+assert.ok(
+  mergeStart !== -1,
+  "found the save-merge putStyle definition in [blockId].tsx",
+);
+const mergeEnd = editorSrc.indexOf(
+  "if (Object.keys(styleOut).length > 0)",
+  mergeStart,
+);
 assert.ok(mergeEnd !== -1, "found the end of the border save-merge block");
 const mergeTs = editorSrc.slice(mergeStart, mergeEnd);
 // Sanity: the lifted block still persists all three per-side fields.
@@ -75,7 +83,10 @@ for (const f of ["style", "width", "color"]) {
 // Strip TS annotations (`: string`, `as const`) so the lifted statements
 // evaluate as plain JS.
 const mergeJs = ts.transpileModule(mergeTs, {
-  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+  compilerOptions: {
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.ESNext,
+  },
 }).outputText;
 
 // The mixed scenario (one block, all coverage cases at once):
@@ -84,6 +95,11 @@ const mergeJs = ts.transpileModule(mergeTs, {
 //   bottom → hidden via width=0
 //   left   → fully inherits the shorthand (solid 2px #112233)
 const scenario = {
+  // Width controls are outside this border-only scenario.
+  gridSpan: "",
+  gridSpanMd: "",
+  gridRowSpan: "",
+  gridRowSpanMd: "",
   bdStyle: "solid",
   bdWidth: "2",
   bdColor: "#112233",
@@ -121,7 +137,10 @@ assert.deepEqual(
   },
   "persisted _style keys match the expected save-merge output",
 );
-ok(true, "save merge persists exactly the non-blank border fields (left side fully inherited by absence)");
+ok(
+  true,
+  "save merge persists exactly the non-blank border fields (left side fully inherited by absence)",
+);
 
 // ---------------------------------------------------------------------------
 // 2 + 3. Round-trip through the REAL PHP sanitizer + inline-style builder.
@@ -141,7 +160,10 @@ try {
   const phpFile = join(tmp, "roundtrip.php");
   writeFileSync(phpFile, phpHarness);
   phpOut = JSON.parse(
-    execFileSync("php", [phpFile], { input: JSON.stringify(styleOut), encoding: "utf8" }),
+    execFileSync("php", [phpFile], {
+      input: JSON.stringify(styleOut),
+      encoding: "utf8",
+    }),
   );
 } finally {
   rmSync(tmp, { recursive: true, force: true });
@@ -150,15 +172,46 @@ try {
 const sanitized = phpOut.sanitized;
 // Sanitizer keeps every field (numerics come back as numbers) — nothing
 // dropped, nothing mangled.
-assert.equal(sanitized.border_style, "solid", "sanitizer keeps shorthand style");
-assert.equal(Number(sanitized.border_width), 2, "sanitizer keeps shorthand width");
-assert.equal(sanitized.border_color, "#112233", "sanitizer keeps shorthand color");
+assert.equal(
+  sanitized.border_style,
+  "solid",
+  "sanitizer keeps shorthand style",
+);
+assert.equal(
+  Number(sanitized.border_width),
+  2,
+  "sanitizer keeps shorthand width",
+);
+assert.equal(
+  sanitized.border_color,
+  "#112233",
+  "sanitizer keeps shorthand color",
+);
 assert.equal(sanitized.border_top_style, "dashed", "sanitizer keeps top style");
-assert.equal(Number(sanitized.border_top_width), 4, "sanitizer keeps top width");
-assert.equal(sanitized.border_top_color, "#ff0000", "sanitizer keeps top color");
-assert.equal(sanitized.border_right_style, "none", "sanitizer keeps right style=none");
-assert.equal(Number(sanitized.border_bottom_width), 0, "sanitizer keeps bottom width=0");
-ok(true, "BlockStyleSanitizer round-trips the mobile payload cleanly (no key dropped or mangled)");
+assert.equal(
+  Number(sanitized.border_top_width),
+  4,
+  "sanitizer keeps top width",
+);
+assert.equal(
+  sanitized.border_top_color,
+  "#ff0000",
+  "sanitizer keeps top color",
+);
+assert.equal(
+  sanitized.border_right_style,
+  "none",
+  "sanitizer keeps right style=none",
+);
+assert.equal(
+  Number(sanitized.border_bottom_width),
+  0,
+  "sanitizer keeps bottom width=0",
+);
+ok(
+  true,
+  "BlockStyleSanitizer round-trips the mobile payload cleanly (no key dropped or mangled)",
+);
 
 // Public web CSS from buildInlineStyle.
 const cssDecls = Object.fromEntries(
@@ -170,11 +223,30 @@ const cssDecls = Object.fromEntries(
       return [d.slice(0, i), d.slice(i + 1)];
     }),
 );
-assert.equal(cssDecls["border-top"], "4px dashed #ff0000", "web: top uses the explicit override");
-assert.equal(cssDecls["border-right"], "none", "web: right hidden via style=none");
-assert.equal(cssDecls["border-bottom"], "none", "web: bottom hidden via width=0");
-assert.equal(cssDecls["border-left"], "2px solid #112233", "web: left inherits the shorthand");
-ok(true, "buildInlineStyle emits the expected per-side CSS (override / none / width-0 / inherit)");
+assert.equal(
+  cssDecls["border-top"],
+  "4px dashed #ff0000",
+  "web: top uses the explicit override",
+);
+assert.equal(
+  cssDecls["border-right"],
+  "none",
+  "web: right hidden via style=none",
+);
+assert.equal(
+  cssDecls["border-bottom"],
+  "none",
+  "web: bottom hidden via width=0",
+);
+assert.equal(
+  cssDecls["border-left"],
+  "2px solid #112233",
+  "web: left inherits the shorthand",
+);
+ok(
+  true,
+  "buildInlineStyle emits the expected per-side CSS (override / none / width-0 / inherit)",
+);
 
 // ---------------------------------------------------------------------------
 // 4. Run the REAL mobile renderer math (variantOverlay) on the same style.
@@ -184,12 +256,22 @@ let overlay;
 try {
   for (const name of ["blockVariants", "blockTypeRegistry"]) {
     const src = readFileSync(join(root, "lib", `${name}.ts`), "utf8");
-    const js = ts.transpileModule(src, {
-      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
-    }).outputText.replace(/from\s+["']\.\/blockTypeRegistry["']/g, 'from "./blockTypeRegistry.mjs"');
+    const js = ts
+      .transpileModule(src, {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.ESNext,
+        },
+      })
+      .outputText.replace(
+        /from\s+["']\.\/blockTypeRegistry["']/g,
+        'from "./blockTypeRegistry.mjs"',
+      );
     writeFileSync(join(tmp2, `${name}.mjs`), js);
   }
-  const { variantOverlay } = await import(pathToFileURL(join(tmp2, "blockVariants.mjs")).href);
+  const { variantOverlay } = await import(
+    pathToFileURL(join(tmp2, "blockVariants.mjs")).href
+  );
   // What the phone renderer sees after a refetch: the sanitized style.
   overlay = variantOverlay("link", { _style: sanitized });
 } finally {
@@ -198,14 +280,42 @@ try {
 
 assert.ok(overlay, "variantOverlay produced a card overlay");
 // Rendered RN card border props, side by side with the web CSS:
-assert.equal(overlay.borderTopWidth, 4, "mobile: top width 4 (explicit override)");
-assert.equal(overlay.borderTopColor, "#ff0000", "mobile: top color from the override");
-assert.equal(overlay.borderRightWidth, 0, "mobile: right hidden via style=none → width 0");
-assert.equal(overlay.borderBottomWidth, 0, "mobile: bottom hidden via width=0 → width 0");
-assert.equal(overlay.borderLeftWidth, 2, "mobile: left inherits the shorthand width");
-assert.equal(overlay.borderLeftColor, "#112233", "mobile: left inherits the shorthand color");
+assert.equal(
+  overlay.borderTopWidth,
+  4,
+  "mobile: top width 4 (explicit override)",
+);
+assert.equal(
+  overlay.borderTopColor,
+  "#ff0000",
+  "mobile: top color from the override",
+);
+assert.equal(
+  overlay.borderRightWidth,
+  0,
+  "mobile: right hidden via style=none → width 0",
+);
+assert.equal(
+  overlay.borderBottomWidth,
+  0,
+  "mobile: bottom hidden via width=0 → width 0",
+);
+assert.equal(
+  overlay.borderLeftWidth,
+  2,
+  "mobile: left inherits the shorthand width",
+);
+assert.equal(
+  overlay.borderLeftColor,
+  "#112233",
+  "mobile: left inherits the shorthand color",
+);
 // RN single borderStyle = first visible side's style (top → dashed).
-assert.equal(overlay.borderStyle, "dashed", "mobile: single borderStyle approximated from first visible side (top, dashed)");
+assert.equal(
+  overlay.borderStyle,
+  "dashed",
+  "mobile: single borderStyle approximated from first visible side (top, dashed)",
+);
 ok(true, "mobile renderer card props mirror the web CSS on every side");
 
 // ---------------------------------------------------------------------------
@@ -221,7 +331,11 @@ for (const side of ["top", "right", "bottom", "left"]) {
   } else {
     const m = /^(\d+(?:\.\d+)?)px \S+ (\S+)$/.exec(web);
     assert.ok(m, `${side}: web CSS parses as "<w>px <style> <color>"`);
-    assert.equal(w, Number(m[1]), `${side}: widths match web=${m[1]} mobile=${w}`);
+    assert.equal(
+      w,
+      Number(m[1]),
+      `${side}: widths match web=${m[1]} mobile=${w}`,
+    );
     assert.equal(
       overlay[`border${cap(side)}Color`],
       m[2],
@@ -229,6 +343,9 @@ for (const side of ["top", "right", "bottom", "left"]) {
     );
   }
 }
-ok(true, "per-side visibility, widths and colors are identical between the web CSS and the RN props");
+ok(
+  true,
+  "per-side visibility, widths and colors are identical between the web CSS and the RN props",
+);
 
 console.log(`\nAll ${passed} checks passed.`);

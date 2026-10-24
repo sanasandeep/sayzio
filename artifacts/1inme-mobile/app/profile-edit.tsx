@@ -1,6 +1,7 @@
+import { ProfilePreview } from "@/components/CreatorProfilePreview";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -19,180 +20,12 @@ import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import { getCreatorPreviewUrl } from "@/lib/api/creatorProfile";
-import { getProfile, updateProfile, type ProfilePayload } from "@/lib/api/profile";
+import {
+  getProfile,
+  updateProfile,
+  type ProfilePayload,
+} from "@/lib/api/profile";
 import { showAlert } from "@/lib/webAlert";
-
-// Lazy-require so the web bundle never evaluates the native module
-// (same pattern as components/MapPickerModal.tsx).
-let WebView: typeof import("react-native-webview").WebView | null = null;
-if (Platform.OS !== "web") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  WebView = require("react-native-webview").WebView;
-}
-
-type PvDensity = "small" | "medium" | "large";
-type PvTheme = "dark" | "light";
-
-// Same modes + heights as the web editor's Small/Medium/Large preview
-// (user/creator-profile/edit.blade.php pvSizes/pvHeights).
-const DENSITIES: { key: PvDensity; label: string }[] = [
-  { key: "small", label: "Small" },
-  { key: "medium", label: "Medium" },
-  { key: "large", label: "Large" },
-];
-const PV_HEIGHTS: Record<PvDensity, number> = {
-  small: 440,
-  medium: 620,
-  large: 760,
-};
-
-/**
- * Task #5480 — live public-profile preview with the same density +
- * theme controls as the web Creator Profile editor. Loads the signed
- * /@handle?cp_preview=1 URL in a WebView (iframe on web) and posts the
- * exact same `cpLive` message ({density, theme}) the page already
- * understands. Real visitor rendering is untouched — the page only
- * honors the message under its cp_preview gate.
- */
-function ProfilePreview({ hasHandle }: { hasHandle: boolean }) {
-  const colors = useColors();
-  const [density, setDensity] = useState<PvDensity>("medium");
-  const [theme, setTheme] = useState<PvTheme>("dark");
-  const webRef = useRef<import("react-native-webview").WebView | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  const urlQ = useQuery({
-    queryKey: ["cp-preview-url"],
-    queryFn: getCreatorPreviewUrl,
-    enabled: hasHandle,
-    staleTime: 20 * 60 * 1000, // the signature lives ~30 min
-    retry: false,
-  });
-
-  const previewUri = urlQ.data ? `${getBaseUrl()}${urlQ.data.url}` : null;
-
-  const postLive = useCallback(
-    (d: PvDensity, t: PvTheme) => {
-      const msg = { type: "cpLive", density: d, theme: t };
-      if (Platform.OS === "web") {
-        try {
-          iframeRef.current?.contentWindow?.postMessage(msg, getBaseUrl());
-        } catch {
-          /* cross-origin in odd dev setups — preview just stays default */
-        }
-      } else {
-        webRef.current?.injectJavaScript(
-          // Post from inside the page so e.origin matches the page's own
-          // origin (the listener requires that).
-          `window.postMessage(${JSON.stringify(msg)}, window.location.origin); true;`,
-        );
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (loaded) postLive(density, theme);
-  }, [loaded, density, theme, postLive]);
-
-  if (!hasHandle) return null;
-
-  return (
-    <View style={{ gap: 10 }}>
-      <Text style={[styles.section, { color: colors.foreground }]}>
-        Public profile preview
-      </Text>
-
-      <View style={styles.pvControls}>
-        <View
-          style={[
-            styles.pvSeg,
-            { borderColor: colors.border, backgroundColor: colors.card },
-          ]}
-        >
-          {DENSITIES.map((d) => (
-            <Pressable
-              key={d.key}
-              onPress={() => setDensity(d.key)}
-              style={[
-                styles.pvSegBtn,
-                density === d.key && { backgroundColor: colors.primary },
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: density === d.key }}
-            >
-              <Text
-                style={[
-                  styles.pvSegLabel,
-                  { color: density === d.key ? "#fff" : colors.mutedForeground },
-                ]}
-              >
-                {d.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Pressable
-          onPress={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-          style={[
-            styles.pvThemeBtn,
-            { borderColor: colors.border, backgroundColor: colors.card },
-          ]}
-          accessibilityRole="button"
-        >
-          <Text style={[styles.pvSegLabel, { color: colors.foreground }]}>
-            {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
-          </Text>
-        </Pressable>
-      </View>
-
-      {urlQ.isError ? (
-        <Text style={[styles.tHint, { color: colors.mutedForeground }]}>
-          Couldn&apos;t load the preview right now.
-        </Text>
-      ) : previewUri ? (
-        <View
-          style={[
-            styles.pvFrameWrap,
-            {
-              borderColor: colors.border,
-              height: PV_HEIGHTS[density],
-            },
-          ]}
-        >
-          {Platform.OS === "web" ? (
-            <iframe
-              ref={iframeRef}
-              src={previewUri}
-              title="Profile preview"
-              onLoad={() => setLoaded(true)}
-              style={{ border: 0, width: "100%", height: "100%" }}
-            />
-          ) : WebView ? (
-            <WebView
-              ref={webRef}
-              source={{ uri: previewUri }}
-              onLoadEnd={() => setLoaded(true)}
-              // Keep the preview inert-ish: no new windows.
-              setSupportMultipleWindows={false}
-              style={{ flex: 1 }}
-            />
-          ) : null}
-        </View>
-      ) : (
-        <Text style={[styles.tHint, { color: colors.mutedForeground }]}>
-          Loading preview…
-        </Text>
-      )}
-      <Text style={[styles.tHint, { color: colors.mutedForeground }]}>
-        Preview only: visitors always see your published profile at its
-        normal size and theme.
-      </Text>
-    </View>
-  );
-}
 
 export default function ProfileEdit() {
   const colors = useColors();
@@ -279,7 +112,9 @@ export default function ProfileEdit() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: "Edit profile" }} />
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}
+      >
         <TextField
           label="Display name"
           value={form.name ?? ""}
@@ -290,7 +125,9 @@ export default function ProfileEdit() {
         <TextField
           label="Handle"
           value={form.handle ?? ""}
-          onChangeText={(t) => set("handle", t.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+          onChangeText={(t) =>
+            set("handle", t.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+          }
           autoCapitalize="none"
           hint="Lowercase letters, digits and underscores only"
           error={errors.handle}
@@ -301,7 +138,11 @@ export default function ProfileEdit() {
           onChangeText={(t) => set("bio", t)}
           multiline
           numberOfLines={4}
-          style={{ minHeight: 100, paddingVertical: 12, textAlignVertical: "top" }}
+          style={{
+            minHeight: 100,
+            paddingVertical: 12,
+            textAlignVertical: "top",
+          }}
           error={errors.bio}
         />
         {/* Task #6015 — curated avatar gallery (every plan). Saves the
@@ -338,11 +179,17 @@ export default function ProfileEdit() {
         <View
           style={[
             styles.toggleRow,
-            { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
           ]}
         >
           <View style={{ flex: 1 }}>
-            <Text style={[styles.tLabel, { color: colors.foreground }]}>Discoverable</Text>
+            <Text style={[styles.tLabel, { color: colors.foreground }]}>
+              Discoverable
+            </Text>
             <Text style={[styles.tHint, { color: colors.mutedForeground }]}>
               Show up in creator discovery
             </Text>
@@ -357,11 +204,17 @@ export default function ProfileEdit() {
         <View
           style={[
             styles.toggleRow,
-            { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
           ]}
         >
           <View style={{ flex: 1 }}>
-            <Text style={[styles.tLabel, { color: colors.foreground }]}>Allow followers</Text>
+            <Text style={[styles.tLabel, { color: colors.foreground }]}>
+              Allow followers
+            </Text>
             <Text style={[styles.tHint, { color: colors.mutedForeground }]}>
               Let other people follow your updates
             </Text>
@@ -377,7 +230,9 @@ export default function ProfileEdit() {
             web Creator Profile editor so creators can manage mute
             words, watermarking, country gating and the DMCA contact
             from the phone too. */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Safety & moderation</Text>
+        <Text style={[styles.section, { color: colors.foreground }]}>
+          Safety & moderation
+        </Text>
 
         <TextField
           label="Mute words on your comments"
@@ -393,11 +248,17 @@ export default function ProfileEdit() {
         <View
           style={[
             styles.toggleRow,
-            { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
           ]}
         >
           <View style={{ flex: 1 }}>
-            <Text style={[styles.tLabel, { color: colors.foreground }]}>Watermark images</Text>
+            <Text style={[styles.tLabel, { color: colors.foreground }]}>
+              Watermark images
+            </Text>
             <Text style={[styles.tHint, { color: colors.mutedForeground }]}>
               Stamp every image with your handle and the viewer's name
             </Text>
@@ -460,7 +321,13 @@ const styles = StyleSheet.create({
   },
   tLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   tHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, marginTop: 2 },
-  section: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.6, marginTop: 12 },
+  section: {
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 13,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: 12,
+  },
   pvControls: {
     flexDirection: "row",
     alignItems: "center",

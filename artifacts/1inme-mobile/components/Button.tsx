@@ -97,6 +97,10 @@ export function Button({
     return (
       <Pressable
         {...WEB_FOCUS_RING_PROPS}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: isDisabled, busy: loading }}
+        aria-disabled={isDisabled}
         onPress={handlePress}
         disabled={isDisabled}
         style={({ pressed }) => [
@@ -108,7 +112,11 @@ export function Button({
         testID={testID}
       >
         <LinearGradient
-          colors={variant === "cta" ? colors.ctaGradient : [colors.primary, colors.accent]}
+          colors={
+            variant === "cta"
+              ? colors.ctaGradient
+              : [colors.primary, colors.accent]
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[StyleSheet.absoluteFill, { borderRadius: colors.radius }]}
@@ -128,6 +136,10 @@ export function Button({
   return (
     <Pressable
       {...WEB_FOCUS_RING_PROPS}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      aria-disabled={isDisabled}
       onPress={handlePress}
       disabled={isDisabled}
       style={({ pressed }) => [

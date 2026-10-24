@@ -6,12 +6,12 @@ import { apiFetch } from "@/lib/api";
 // `reactions_catalog` so this client copy is only used as the initial
 // render seed before the profile request resolves.
 export const BRANDED_REACTIONS = [
-  { key: "fire",       label: "Fire",        emoji: "🔥" },
-  { key: "mind_blown", label: "Mind blown",  emoji: "🤯" },
-  { key: "heart_eyes", label: "Love",        emoji: "😍" },
-  { key: "clap",       label: "Clap",        emoji: "👏" },
-  { key: "wow",        label: "Wow",         emoji: "😮" },
-  { key: "bookmark",   label: "Bookmark",    emoji: "🔖" },
+  { key: "fire", label: "Fire", emoji: "🔥" },
+  { key: "mind_blown", label: "Mind blown", emoji: "🤯" },
+  { key: "heart_eyes", label: "Love", emoji: "😍" },
+  { key: "clap", label: "Clap", emoji: "👏" },
+  { key: "wow", label: "Wow", emoji: "😮" },
+  { key: "bookmark", label: "Bookmark", emoji: "🔖" },
 ] as const;
 
 export type ReactionKey = (typeof BRANDED_REACTIONS)[number]["key"];
@@ -63,7 +63,21 @@ export type ShowcaseCard = {
   url: string;
 };
 
+export type CreatorPresentation = {
+  layout: "classic" | "centered" | "editorial" | "minimal";
+  theme: "paper" | "midnight" | "warm" | "mint";
+  mode: "light" | "dark";
+  avatar_shape: "circle" | "rounded" | "square";
+  avatar_size: 80 | 96 | 128;
+  avatar_x: number;
+  avatar_y: number;
+};
+
 export type CreatorProfile = {
+  workspace_id?: number | null;
+  presentation?: CreatorPresentation;
+  redirect_url?: string | null;
+  verification_color?: string | null;
   id: number;
   handle: string | null;
   name: string;
@@ -75,6 +89,10 @@ export type CreatorProfile = {
   niche_tags: string[];
   socials: Record<string, string>;
   sections: {
+    posts?: boolean;
+    monetization?: boolean;
+    sharing?: boolean;
+    tabs?: boolean;
     hero: boolean;
     about: boolean;
     socials: boolean;
@@ -269,6 +287,17 @@ export type OwnerShowcaseItem = {
 };
 
 export type CreatorProfileSettings = {
+  creator_profile_id: number;
+  workspace_id: number;
+  is_personal: boolean;
+  name: string;
+  avatar: string | null;
+  cover_image: string | null;
+  identity_locked: boolean;
+  presentation: CreatorPresentation;
+  primary_biolink_id: number | null;
+  profile_destination: "profile" | "redirect";
+  redirect_link_id: number | null;
   handle: string | null;
   tagline: string | null;
   location: string | null;
@@ -307,6 +336,20 @@ export async function getCreatorProfileSettings(): Promise<CreatorProfileSetting
  * JSON booleans here.
  */
 export type CreatorProfileUpdatePayload = {
+  creator_profile_id?: number;
+  presentation?: CreatorPresentation;
+  primary_biolink_id?: number | null;
+  profile_destination?: "profile" | "redirect";
+  redirect_link_id?: number | null;
+  workspace_name?: string;
+  profile_published?: "0" | "1";
+  creator_avatar_asset?: string;
+  creator_avatar_url?: string;
+  creator_avatar_remove?: "0" | "1";
+  cover_image_url?: string;
+  cover_image_remove?: "0" | "1";
+  niche_tags?: string[];
+  socials?: Record<string, string>;
   tagline?: string | null;
   location?: string | null;
   bio?: string | null;
@@ -405,3 +448,25 @@ export const creatorProfile = {
     return res.data.comment;
   },
 };
+
+/** PHP parses file uploads from POST; Laravel routes the method override as PATCH. */
+export async function uploadCreatorImage(
+  profileId: number,
+  field: "creator_avatar" | "cover_image",
+  image: { uri: string; mimeType?: string | null; fileName?: string | null },
+): Promise<void> {
+  const form = new FormData();
+  form.append("_method", "PATCH");
+  form.append("creator_profile_id", String(profileId));
+  if (image.uri.startsWith("blob:") || image.uri.startsWith("data:")) {
+    const blob = await (await fetch(image.uri)).blob();
+    form.append(field, blob, image.fileName ?? "image.jpg");
+  } else {
+    form.append(field, {
+      uri: image.uri,
+      name: image.fileName ?? "image.jpg",
+      type: image.mimeType ?? "image/jpeg",
+    } as unknown as Blob);
+  }
+  await apiFetch("/me/creator-profile", { method: "POST", body: form });
+}

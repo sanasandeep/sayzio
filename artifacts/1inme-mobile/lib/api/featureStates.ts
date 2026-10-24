@@ -81,6 +81,10 @@ export const HREF_FEATURE_KEY: Record<string, string> = {
   "/domains": "domains",
   "/monetization": "monetization",
   "/payouts": "payouts",
+  "/social-proofs": "social_proofs",
+  "/pixels": "pixels",
+  "/ai-companions": "ai_companions",
+  "/ai-staff": "ai_staff",
 };
 
 /**

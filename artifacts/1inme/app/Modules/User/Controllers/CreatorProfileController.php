@@ -211,6 +211,8 @@ class CreatorProfileController extends Controller
 
             if ($request && $request->hasFile('creator_avatar')) {
                 $target->creator_avatar = '/storage/' . $request->file('creator_avatar')->store('avatars', 'public');
+            } elseif (!empty($data['creator_avatar_url'])) {
+                $target->creator_avatar = $data['creator_avatar_url'];
             } elseif ($creatorAvatarAssetValid) {
                 // Platform avatar-gallery pick (Task #6015) — store the
                 // absolute public CDN URL (PublicStorageUrl passes absolute

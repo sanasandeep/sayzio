@@ -1,3 +1,4 @@
+import { LinkStatusControl } from "@/components/LinkStatusControl";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -43,10 +44,7 @@ export function LinkRow({
       ]}
     >
       <View
-        style={[
-          styles.iconWrap,
-          { backgroundColor: colors.primary + "1c" },
-        ]}
+        style={[styles.iconWrap, { backgroundColor: colors.primary + "1c" }]}
       >
         <AppIcon name={iconName} size={18} color={colors.primary} />
       </View>
@@ -73,12 +71,9 @@ export function LinkRow({
         </Text>
       </View>
       {showNfcButton && link.short_url ? (
-        <NfcWriteTrigger
-          linkId={link.id}
-          url={link.short_url}
-          variant="icon"
-        />
+        <NfcWriteTrigger linkId={link.id} url={link.short_url} variant="icon" />
       ) : null}
+      <LinkStatusControl link={link} />
       {!link.is_active ? (
         <View
           style={[

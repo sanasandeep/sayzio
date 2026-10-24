@@ -6,7 +6,6 @@ import React, {
   useState,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   listWorkspaces,
@@ -14,8 +13,6 @@ import {
   type Workspace,
 } from "@/lib/api/workspaces";
 import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
-
-const ACTIVE_WS_KEY = "sayzio_active_workspace_id";
 
 type WorkspaceContextValue = {
   workspaces: Workspace[];
@@ -37,7 +34,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<number | null>(null);
 
-  const { data: workspaces = [], isLoading, refetch } = useQuery({
+  const {
+    data: workspaces = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["workspaces-list"],
     queryFn: listWorkspaces,
     staleTime: 60_000,
@@ -45,50 +46,28 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    AsyncStorage.getItem(ACTIVE_WS_KEY).then((raw) => {
-      const parsed = raw ? parseInt(raw, 10) : null;
-      if (parsed && !isNaN(parsed)) setActiveId(parsed);
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!activeId && workspaces.length > 0) {
-      const personal = workspaces.find((w) => w.is_personal) ?? workspaces[0];
-      setActiveId(personal.id);
-    }
-  }, [workspaces, activeId]);
+    const serverActive = workspaces.find((w) => w.is_active);
+    if (serverActive) setActiveId(serverActive.id);
+    else if (!activeId && workspaces.length)
+      setActiveId((workspaces.find((w) => w.is_personal) ?? workspaces[0]).id);
+  }, [workspaces]);
 
   const activeWorkspace =
     workspaces.find((w) => w.id === activeId) ??
+    workspaces.find((w) => w.is_active) ??
     workspaces.find((w) => w.is_personal) ??
     workspaces[0] ??
     null;
 
   const switchWorkspace = useCallback(
     async (ws: Workspace) => {
+      // Do not show a new workspace while the API still points at the old one.
+      await apiSwitchWorkspace(ws.id);
       setActiveId(ws.id);
-      await AsyncStorage.setItem(ACTIVE_WS_KEY, String(ws.id));
-      try {
-        // Persists users.active_workspace_id server-side; the API links list
-        // and dashboard are scoped by it, and the web session honours it too,
-        // so switching here keeps both surfaces in sync.
-        await apiSwitchWorkspace(ws.id);
-      } catch (e) {
-        if (__DEV__) console.warn("workspace activate failed", e);
-      }
       // Server-side scoping depends on the active workspace — refetch every
       // workspace-scoped surface so lists/counters match the new scope.
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["workspaces-list"] }),
-        queryClient.invalidateQueries({ queryKey: ["links"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
-        // Task #6618 — creator profiles are workspace-scoped: refresh the
-        // profile view/editor surfaces when the active workspace changes.
-        queryClient.invalidateQueries({ queryKey: ["profile"] }),
-        queryClient.invalidateQueries({ queryKey: ["auth-me"] }),
-        queryClient.invalidateQueries({ queryKey: ["creator-profile-settings"] }),
-        queryClient.invalidateQueries({ queryKey: ["cp-preview-url"] }),
-      ]);
+      // Every workspace-aware module must refresh, including older billing/CRM screens.
+      await queryClient.invalidateQueries();
     },
     [queryClient],
   );
@@ -104,7 +83,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WorkspaceContext.Provider
-      value={{ workspaces, activeWorkspace, isLoading, switchWorkspace, refresh }}
+      value={{
+        workspaces,
+        activeWorkspace,
+        isLoading,
+        switchWorkspace,
+        refresh,
+      }}
     >
       {children}
     </WorkspaceContext.Provider>

@@ -5,6 +5,7 @@ export type Workspace = {
   name: string;
   slug: string | null;
   is_personal: boolean;
+  is_active?: boolean;
   owner_user_id: number;
   is_owner?: boolean;
   color?: string | null;
@@ -55,7 +56,18 @@ export const WORKSPACE_COLOR_CHOICES = [
  */
 export function workspaceFeatherIcon(
   ws: Pick<Workspace, "icon" | "is_personal">,
-): "user" | "users" | "briefcase" | "home" | "zap" | "star" | "heart" | "globe" | "shopping-bag" | "layers" | "feather" {
+):
+  | "user"
+  | "users"
+  | "briefcase"
+  | "home"
+  | "zap"
+  | "star"
+  | "heart"
+  | "globe"
+  | "shopping-bag"
+  | "layers"
+  | "feather" {
   switch (ws.icon) {
     case "user":
       return "user";
@@ -113,14 +125,17 @@ export async function updateWorkspace(
   id: number,
   input: { name: string; icon?: string | null; color?: string | null },
 ): Promise<Workspace> {
-  const res = await apiFetch<{ data: { item: Workspace } }>(`/workspaces/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({
-      name: input.name,
-      icon: input.icon ?? null,
-      color: input.color ?? null,
-    }),
-  });
+  const res = await apiFetch<{ data: { item: Workspace } }>(
+    `/workspaces/${id}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: input.name,
+        icon: input.icon ?? null,
+        color: input.color ?? null,
+      }),
+    },
+  );
   return res.data.item;
 }
 
@@ -154,13 +169,18 @@ export async function createWorkspace(input: {
  * entry and re-pick an active workspace immediately.
  */
 export async function deleteWorkspace(id: number): Promise<Workspace[]> {
-  const res = await apiFetch<{ data: { items: Workspace[] } }>(`/workspaces/${id}`, {
-    method: "DELETE",
-  });
+  const res = await apiFetch<{ data: { items: Workspace[] } }>(
+    `/workspaces/${id}`,
+    {
+      method: "DELETE",
+    },
+  );
   return res.data.items;
 }
 
-export async function listWorkspaceMembers(id: number): Promise<WorkspaceMember[]> {
+export async function listWorkspaceMembers(
+  id: number,
+): Promise<WorkspaceMember[]> {
   const res = await apiFetch<{ data: { items: WorkspaceMember[] } }>(
     `/workspaces/${id}/members`,
   );
@@ -168,7 +188,12 @@ export async function listWorkspaceMembers(id: number): Promise<WorkspaceMember[
 }
 
 /** The five collaborator roles the web team screen exposes, in seniority order. */
-export type WorkspaceRole = "admin" | "editor" | "replier" | "analyst" | "viewer";
+export type WorkspaceRole =
+  | "admin"
+  | "editor"
+  | "replier"
+  | "analyst"
+  | "viewer";
 
 export type WorkspaceInvite = {
   id: number;
@@ -198,7 +223,9 @@ export type WorkspaceTeam = {
  * exactly what the per-workspace members screen (reached from workspace-edit)
  * needs, independent of which workspace is currently active.
  */
-export async function getWorkspaceTeam(workspaceId: number): Promise<WorkspaceTeam> {
+export async function getWorkspaceTeam(
+  workspaceId: number,
+): Promise<WorkspaceTeam> {
   const res = await apiFetch<{ data: WorkspaceTeam }>(
     `/team?workspace_id=${workspaceId}`,
   );
