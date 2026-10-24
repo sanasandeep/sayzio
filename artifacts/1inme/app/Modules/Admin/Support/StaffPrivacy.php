@@ -17,6 +17,8 @@ final class StaffPrivacy
 
     public static function restrictedRoute(string $route): bool
     {
+        // Attendance is scoped to the internal staff directory, never customer data.
+        if (str_starts_with($route, 'admin.attendance.')) return true;
         return in_array($route, [
             'admin.dashboard', 'admin.meta.last-updated', 'admin.logout',
             'admin.switch-to-user', 'admin.users.index', 'admin.users.show',

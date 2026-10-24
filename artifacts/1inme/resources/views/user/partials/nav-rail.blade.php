@@ -88,6 +88,7 @@
     // permission gates still bite after the markup moved, without
     // standing up the whole dashboard around it.
     $__can = $__can ?? [
+        'attendance_view' => RailWP::userCan('attendance.view'),
         'tasks_view'     => RailWP::userCan('tasks.view'),
         'vault_view'     => RailWP::userCan('vault.view'),
         'files_view'     => RailWP::userCan('files.view'),

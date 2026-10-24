@@ -57,6 +57,7 @@ class NavRailSections
             'partial' => 'user.partials.nav._home',
             'routes'  => [
                 'user.dashboard',
+                'user.attendance.*',
                 'user.links.index',
                 'user.links.show',
                 'user.links.create',

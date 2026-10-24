@@ -10,7 +10,7 @@ class WorkspacePermissionCatalog
         return [
             'links' => 'Links & Link in Bio', 'forms' => 'Forms & submissions',
             'projects' => 'Folders', 'posts' => 'Posts', 'tasks' => 'Tasks',
-            'planner' => 'AI Planner & notes', 'minds' => 'AI Minds',
+            'attendance' => 'Attendance', 'planner' => 'AI Planner & notes', 'minds' => 'AI Minds',
             'ai-personas' => 'AI Personas', 'ai-agents' => 'AI Agents & Staff',
             'ai' => 'Other AI tools', 'calendar' => 'Calendar & bookings',
             'files' => 'Files & cloud storage', 'inbox' => 'Inbox & replies',
@@ -34,6 +34,7 @@ class WorkspacePermissionCatalog
 
     public static function featureActions(string $feature): array
     {
+        if ($feature === 'attendance') return ['view', 'create', 'review', 'manage', 'export'];
         $actions = self::actions();
         if (in_array($feature, ['links', 'forms', 'stats', 'files', 'tasks', 'posts', 'subscribers', 'contacts', 'invoices', 'projects', 'planner', 'qr'])) {
             $actions[] = 'export';

@@ -1,5 +1,7 @@
 # Attendance design review
 
+The app implementation is documented in [Attendance](../../attendance.md), including workspace and internal staff routes. The standalone design below remains a local-only prototype.
+
 From the repository root, run `python3 -m http.server 8789 --bind 127.0.0.1 --directory docs/designs`, then open http://127.0.0.1:8789/attendance/. Camera and location require browser permission and a supported secure context (localhost or HTTPS).
 
 ![Attendance overview](overview.png)

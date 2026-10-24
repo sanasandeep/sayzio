@@ -186,7 +186,9 @@ class WorkspaceRoleMatrix
             foreach (WorkspacePermissionCatalog::keys() as $action) {
                 $base = str_contains($action, '.') ? explode('.', $action, 2)[1] : $action;
                 $base = WorkspacePermissionCatalog::baseAction($base);
-                $value = $storedRow[$base] ?? $row[$base] ?? false;
+                $value = str_starts_with($action, 'attendance.')
+                    ? ($role === 'admin' || in_array($action, ['attendance.view', 'attendance.create']))
+                    : ($storedRow[$base] ?? $row[$base] ?? false);
                 if (array_key_exists($action, $storedRow)) {
                     $out[$role][$action] = (bool) $storedRow[$action];
                 } else {
@@ -225,7 +227,9 @@ class WorkspaceRoleMatrix
             foreach ($actions as $action) {
                 $base = str_contains($action, '.') ? explode('.', $action, 2)[1] : $action;
                 $base = WorkspacePermissionCatalog::baseAction($base);
-                $out[$role][$action] = array_key_exists($action, $row) ? filter_var($row[$action], FILTER_VALIDATE_BOOLEAN) : !empty($row[$base]);
+                $fallback = str_starts_with($action, 'attendance.')
+                    ? ($role === 'admin' || in_array($action, ['attendance.view', 'attendance.create'])) : !empty($row[$base]);
+                $out[$role][$action] = array_key_exists($action, $row) ? filter_var($row[$action], FILTER_VALIDATE_BOOLEAN) : $fallback;
             }
         }
         // Reject extras so a malicious payload can't smuggle in unknown

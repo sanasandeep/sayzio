@@ -55,6 +55,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
 
     Route::middleware([\App\Modules\Admin\Middleware\AdminAuth::class])->group(function () {
+        Route::prefix('attendance')->name('attendance.')->controller(\App\Modules\Admin\Controllers\AttendanceController::class)->group(function () {
+            Route::get('', 'index')->middleware('throttle:60,1')->name('index');
+            Route::post('challenge', 'challenge')->middleware('throttle:60,1')->name('challenge');
+            Route::post('punch', 'punch')->middleware('throttle:60,1')->name('punch');
+            Route::get('export', 'export')->middleware('throttle:60,1')->name('export');
+            Route::put('settings', 'settings')->middleware('throttle:60,1')->name('settings');
+            Route::post('requests', 'storeRequest')->middleware('throttle:60,1')->name('requests.store');
+            Route::post('requests/{attendanceRequest}/review', 'decideRequest')->middleware('throttle:60,1')->name('requests.review');
+            Route::get('punches/{punch}/evidence', 'evidence')->whereNumber(['punch','attendanceRequest'])->middleware('throttle:60,1')->name('evidence');
+            Route::post('punches/{punch}/review', 'review')->whereNumber(['punch','attendanceRequest'])->middleware('throttle:60,1')->name('review');
+        });
+
         Route::get('creator-phone-claims', [\App\Modules\User\Controllers\CreatorPhoneController::class, 'adminIndex'])->middleware(CheckPermission::class . ':user.verifications.review')->name('creator-phone-claims.index');
         Route::post('creator-phone-claims/{id}/review', [\App\Modules\User\Controllers\CreatorPhoneController::class, 'review'])->whereNumber('id')->middleware(CheckPermission::class . ':user.verifications.review')->name('creator-phone-claims.review');
         Route::post('creator-phone-assignments/{id}/revoke', [\App\Modules\User\Controllers\CreatorPhoneController::class, 'revoke'])->whereNumber('id')->middleware(CheckPermission::class . ':user.verifications.review')->name('creator-phone-claims.revoke');

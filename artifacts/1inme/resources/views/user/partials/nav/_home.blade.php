@@ -127,3 +127,7 @@
                 {{-- Task #3848 — the Wallet nav item moved to a compact icon +
                      balance badge in the top header (see the header markup
                      below); it no longer has its own sidebar entry. --}}
+
+@if($__can['attendance_view'] ?? false)
+<a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}" style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span><span class="sidebar-tooltip">Attendance</span></a>
+@endif
