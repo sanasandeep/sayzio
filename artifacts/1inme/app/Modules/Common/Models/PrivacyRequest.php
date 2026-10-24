@@ -15,6 +15,7 @@ class PrivacyRequest extends Model
 {
     public const TYPE_DELETION = 'deletion';
     public const TYPE_EXPORT   = 'export';
+    public const TYPE_DATA_DELETION = 'data_deletion';
 
     public const STATUS_PENDING_VERIFICATION = 'pending_verification';
     public const STATUS_VERIFIED   = 'verified';
@@ -40,7 +41,7 @@ class PrivacyRequest extends Model
         'scheduled_at', 'approved_by', 'approved_at',
         'rejection_reason', 'rejected_at', 'completed_at', 'failure_reason',
         'download_token', 'archive_path', 'download_expires_at',
-        'ip', 'audit',
+        'ip', 'audit', 'data_scopes',
     ];
 
     protected $casts = [
@@ -52,6 +53,7 @@ class PrivacyRequest extends Model
         'completed_at'        => 'datetime',
         'download_expires_at' => 'datetime',
         'audit'               => 'array',
+        'data_scopes' => 'array',
     ];
 
     public function user()
@@ -61,7 +63,7 @@ class PrivacyRequest extends Model
 
     public function isDeletion(): bool
     {
-        return $this->type === self::TYPE_DELETION;
+        return in_array($this->type, [self::TYPE_DELETION, self::TYPE_DATA_DELETION], true);
     }
 
     public function isExport(): bool
@@ -72,7 +74,7 @@ class PrivacyRequest extends Model
     /** Human label for the request type. */
     public function typeLabel(): string
     {
-        return $this->isDeletion() ? 'Account deletion' : 'Data export';
+        return $this->type === self::TYPE_DATA_DELETION ? 'Selected data deletion' : ($this->isDeletion() ? 'Account deletion' : 'Data export');
     }
 
     /**

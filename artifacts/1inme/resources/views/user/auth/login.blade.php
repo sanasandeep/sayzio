@@ -180,6 +180,9 @@
                 <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
                     <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Or sign in with</p>
                     <div class="flex flex-col gap-2 mb-4">
+                        @if(\App\Services\AppleSignIn::enabled() && \App\Services\AppleSignIn::serviceId()!=='')
+                        <a href="{{ route('user.apple.login') }}" class="btn-ghost w-full justify-center text-xs py-2.5 gap-2"><i class="fab fa-apple"></i> Log in with Apple</a>
+                        @endif
                         <a href="{{ route('user.social-oauth.login', 'google') }}"
                            class="btn-ghost w-full justify-center text-xs py-2.5 gap-2">
                             <i class="fab fa-google text-[13px]"></i>

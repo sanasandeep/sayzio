@@ -2,7 +2,7 @@
 
 @switch($stage)
 @case('verify')
-We received a request to {{ $pr->isDeletion() ? 'permanently delete your account' : 'export a copy of all your data' }} associated with {{ $pr->email }}.
+We received a request to {{ $pr->type === 'data_deletion' ? 'delete selected personal data' : ($pr->isDeletion() ? 'permanently delete your account' : 'export a copy of your data') }} associated with {{ $pr->email }}.
 
 To confirm this was you, please verify your request by opening the link below. This link expires in {{ \App\Modules\Common\Models\PrivacyRequest::VERIFY_TTL_HOURS }} hours.
 
@@ -14,7 +14,9 @@ If you did not make this request, you can safely ignore this email; nothing will
 @case('received')
 Thanks, we've received your {{ $typeLabel }} request and our team will review it shortly.
 
-@if($pr->isDeletion())
+@if($pr->type === 'data_deletion')
+If approved, only your selected personal data categories will be removed after a {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }}-day cooling-off period. Your account remains active.
+@elseif($pr->isDeletion())
 If approved, your account and personal data will be permanently removed after a short cooling-off period of {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }} days. We'll email you at each step.
 @else
 If approved, we'll generate a secure archive of your data and email you a download link.
@@ -30,7 +32,9 @@ Your email has been confirmed and your {{ $typeLabel }} request is now queued fo
 @case('approved')
 Good news: your {{ $typeLabel }} request has been approved.
 
-@if($pr->isDeletion())
+@if($pr->type === 'data_deletion')
+Your selected personal data categories are scheduled for deletion after a {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }}-day cooling-off period. Your account remains active. Contact support before fulfillment if you change your mind.
+@elseif($pr->isDeletion())
 Your account is scheduled for permanent deletion after a {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }}-day cooling-off period{{ $pr->scheduled_at ? ' (on or after '.\App\Support\PlatformTimezone::display($pr->scheduled_at)->toDayDateTimeString().' IST)' : '' }}. If you change your mind before then, contact our support team.
 @else
 We're now preparing your data archive. You'll receive a separate email with a secure download link once it's ready.
@@ -46,9 +50,13 @@ If you believe this was a mistake, please reply to our support team.
 @break
 
 @case('completed')
+@if($pr->type === 'data_deletion')
+Your selected personal data categories have been removed. Your account remains active.
+@else
 Your account and associated personal data have been permanently removed from {{ config('app.name') }}, as requested. Some records may be retained in anonymised form where required for legal or financial compliance.
 
 We're sorry to see you go.
+@endif
 @break
 
 @case('ready')

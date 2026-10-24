@@ -382,6 +382,8 @@
             </div>
         </section>
 
+        @include('admin.partials.platform-prices', ['platformModel' => $plan ?? new \App\Modules\Admin\Models\Plan, 'platformCycles' => ['monthly','annual']])
+
         {{-- ============================== TRIAL & RETENTION ============================== --}}
         <section id="sec-trial" class="glass rounded-2xl border border-white/10 p-6">
             <header class="mb-4">

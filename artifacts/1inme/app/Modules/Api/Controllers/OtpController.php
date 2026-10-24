@@ -31,6 +31,7 @@ class OtpController extends Controller
     public function config()
     {
         return $this->ok([
+            'apple_login_enabled' => \App\Services\AppleSignIn::enabled(),
             'mobile_login_enabled' => AuthMethods::mobileLoginEnabled(),
             'allowed_country_codes' => AuthMethods::allowedCountryCodes(),
         ]);

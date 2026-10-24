@@ -210,6 +210,14 @@
                 <i class="fas fa-save mr-1.5"></i> Save settings
             </button>
         </div>
+        <section class="glass rounded-2xl p-5 space-y-3">
+            <h2 class="font-bold">Sign in with Apple</h2>
+            <label class="block"><input type="checkbox" name="apple_login_enabled" value="1" @checked(old('apple_login_enabled', \App\Services\AppleSignIn::enabled()))> Enable Apple login</label>
+            <label class="block">iOS Bundle ID<input class="theme-input w-full" name="apple_bundle_id" value="{{ old('apple_bundle_id', \App\Services\AppleSignIn::bundleId()) }}"></label>
+            <label class="block">Web Services ID<input class="theme-input w-full" name="apple_service_id" value="{{ old('apple_service_id', \App\Services\AppleSignIn::serviceId()) }}"></label>
+            <p class="text-sm">Enable Sign in with Apple for the iOS App ID and register your web domain and return URL in Apple Developer. Web return URL: {{ route('user.apple.login') }}. IDs are public configuration; identity tokens are verified against Apple’s public keys. A rebuilt iOS app is required for its entitlement.</p>
+            <button type="submit" class="btn-primary">Save login settings</button>
+        </section>
     </form>
 </div>
 @endsection

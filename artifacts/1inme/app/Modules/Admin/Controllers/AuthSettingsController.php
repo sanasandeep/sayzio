@@ -36,6 +36,9 @@ class AuthSettingsController extends Controller
     public function update(Request $request)
     {
         $data = $request->validate([
+            'apple_login_enabled' => 'nullable|boolean',
+            'apple_bundle_id' => 'nullable|string|max:190|regex:/^[A-Za-z0-9.-]+$/',
+            'apple_service_id' => 'nullable|string|max:190|regex:/^[A-Za-z0-9.-]+$/',
             'email_password_enabled'       => ['nullable', 'boolean'],
             'email_otp_enabled'            => ['nullable', 'boolean'],
             'email_verification_required'  => ['nullable', 'boolean'],
@@ -67,6 +70,11 @@ class AuthSettingsController extends Controller
             $codes = AuthMethods::DEFAULT_ALLOWED_CODES;
         }
 
+        if ($request->exists('apple_bundle_id')) {
+            AppSetting::put('apple_login_enabled',$request->boolean('apple_login_enabled'));
+            AppSetting::put('apple_bundle_id',$data['apple_bundle_id'] ?? 'com.oneinme.app');
+            AppSetting::put('apple_service_id',$data['apple_service_id'] ?? '');
+        }
         AppSetting::put(AuthMethods::SETTING_EMAIL_PASSWORD_ENABLED, $emailPasswordEnabled);
         AppSetting::put(AuthMethods::SETTING_EMAIL_OTP_ENABLED, $emailOtpEnabled);
         AppSetting::put(

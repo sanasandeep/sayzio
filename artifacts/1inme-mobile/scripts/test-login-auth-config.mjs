@@ -111,7 +111,7 @@ console.log("[test-login-auth-config] getAuthConfig mapping");
     data: { mobile_login_enabled: false, allowed_country_codes: [] },
   }));
   const cfg = await getAuthConfig();
-  assert.deepEqual(cfg, { mobileLoginEnabled: false, allowedCountryCodes: [] });
+  assert.deepEqual(cfg, { appleLoginEnabled: false, mobileLoginEnabled: false, allowedCountryCodes: [] });
 }
 {
   // Enabled policy → carries the allowed dialling codes through (as strings).
@@ -120,6 +120,7 @@ console.log("[test-login-auth-config] getAuthConfig mapping");
   }));
   const cfg = await getAuthConfig();
   assert.deepEqual(cfg, {
+    appleLoginEnabled: false,
     mobileLoginEnabled: true,
     allowedCountryCodes: ["1", "44"],
   });
@@ -130,7 +131,11 @@ console.log("[test-login-auth-config] getAuthConfig mapping");
     throw new Error("boom");
   });
   const cfg = await getAuthConfig();
-  assert.deepEqual(cfg, { mobileLoginEnabled: false, allowedCountryCodes: [] });
+  assert.deepEqual(cfg, { appleLoginEnabled: false, mobileLoginEnabled: false, allowedCountryCodes: [] });
+}
+{
+ const {getAuthConfig}=loadAuthConfig(async()=>({data:{apple_login_enabled:true}}));
+ assert.equal((await getAuthConfig()).appleLoginEnabled,true);
 }
 ok("getAuthConfig maps the policy and falls back to email-only on failure");
 

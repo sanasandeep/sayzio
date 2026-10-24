@@ -38,6 +38,12 @@ class ProcessPrivacyExportJob implements ShouldQueue
      * @var array<string, array{0:string,1:string}>
      */
     private const DOMAINS = [
+        'creator_profiles' => ['creator_profiles','user_id'],
+        'ai_minds' => ['ai_minds','user_id'],
+        'projects' => ['projects','user_id'],
+        'calendar_events' => ['calendar_events','user_id'],
+        'subscriptions' => ['subscriptions','user_id'],
+        'invoices' => ['invoices','user_id'],
         'linked_identifiers'       => ['linked_identifiers', 'user_id'],
         'links'                    => ['links', 'user_id'],
         'qr_codes'                 => ['qr_codes', 'user_id'],
@@ -146,10 +152,26 @@ class ProcessPrivacyExportJob implements ShouldQueue
             }
         }
 
+        // Child content belongs to a requester-owned parent, not merely a shared workspace.
+        $children = [
+            'biolink_blocks' => ['biolink_blocks','link_id','links','user_id'],
+            'ai_mind_chunks' => ['ai_mind_chunks','mind_id','ai_minds','user_id'],
+            'ai_mind_sources' => ['ai_mind_sources','mind_id','ai_minds','user_id'],
+            'task_cards' => ['task_cards','board_id','task_boards','owner_user_id'],
+        ];
+        foreach ($children as $file=>[$table,$foreign,$parent,$owner]) {
+            try {
+                $rows=DB::table($table)->whereIn($foreign,DB::table($parent)->select('id')->where($owner,$user->id))->get();
+                // Mind sources may contain encrypted connector credentials; never export those secrets.
+                if ($file==='ai_mind_sources') $rows=$rows->map(fn($row)=>collect((array)$row)->only(['id','mind_id','type','name','content','url','status','created_at','updated_at'])->all());
+                $zip->addFromString('data/'.$file.'.json',$this->json($rows));$manifest['domains'][$file]=$rows->count();
+            } catch (\Throwable $e) { $manifest['domains'][$file]='unavailable'; }
+        }
+
         // Uploaded files: copy each stored object into files/<id>-<name>.
         $fileCount = 0;
         try {
-            foreach (UserFile::where('user_id', $user->id)->cursor() as $f) {
+            foreach (UserFile::withoutGlobalScopes()->where('user_id', $user->id)->cursor() as $f) {
                 try {
                     $storageDisk = $f->disk === 'public'
                         ? 'public'

@@ -2,6 +2,7 @@ import { apiFetch } from "@/lib/api";
 
 export type AuthConfig = {
   mobileLoginEnabled: boolean;
+  appleLoginEnabled: boolean;
   allowedCountryCodes: string[];
 };
 
@@ -13,17 +14,26 @@ export type AuthConfig = {
 export async function getAuthConfig(): Promise<AuthConfig> {
   try {
     const res = await apiFetch<{
-      data?: { mobile_login_enabled?: boolean; allowed_country_codes?: string[] };
+      data?: {
+        apple_login_enabled?: boolean;
+        mobile_login_enabled?: boolean;
+        allowed_country_codes?: string[];
+      };
     }>("/auth/config");
     const data = res?.data ?? {};
     return {
+      appleLoginEnabled: Boolean(data.apple_login_enabled),
       mobileLoginEnabled: Boolean(data.mobile_login_enabled),
       allowedCountryCodes: Array.isArray(data.allowed_country_codes)
         ? data.allowed_country_codes.map(String)
         : [],
     };
   } catch {
-    return { mobileLoginEnabled: false, allowedCountryCodes: [] };
+    return {
+      appleLoginEnabled: false,
+      mobileLoginEnabled: false,
+      allowedCountryCodes: [],
+    };
   }
 }
 

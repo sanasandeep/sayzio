@@ -113,6 +113,7 @@ type Ctx = AuthState & {
   socialLogin: (input: {
     provider: "google" | "apple";
     id_token?: string;
+    nonce?: string;
     access_token?: string;
   }) => Promise<{ needsName: boolean }>;
   loginWithPassword: (input: {
@@ -520,6 +521,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (input: {
       provider: "google" | "apple";
       id_token?: string;
+    nonce?: string;
       access_token?: string;
     }) => {
       const res = await apiFetch<{

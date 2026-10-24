@@ -86,7 +86,7 @@ class PrivacyMaintenanceCommand extends Command
     {
         $count = 0;
         PrivacyRequest::query()
-            ->where('type', PrivacyRequest::TYPE_DELETION)
+            ->whereIn('type', [PrivacyRequest::TYPE_DELETION, PrivacyRequest::TYPE_DATA_DELETION])
             ->where('status', PrivacyRequest::STATUS_APPROVED)
             ->whereNotNull('scheduled_at')
             ->where('scheduled_at', '<=', now())

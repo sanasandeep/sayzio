@@ -28,7 +28,7 @@ class PrivacyRequestController extends Controller
         }
 
         $type = $request->query('type');
-        if (in_array($type, [PrivacyRequest::TYPE_DELETION, PrivacyRequest::TYPE_EXPORT], true)) {
+        if (in_array($type, [PrivacyRequest::TYPE_DELETION, PrivacyRequest::TYPE_DATA_DELETION, PrivacyRequest::TYPE_EXPORT], true)) {
             $query->where('type', $type);
         }
 

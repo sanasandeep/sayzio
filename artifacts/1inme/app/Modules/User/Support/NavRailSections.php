@@ -131,6 +131,7 @@ class NavRailSections
             'partial' => 'user.partials.nav._settings',
             'routes'  => [
                 'user.profile.*',
+                'user.account-data.*',
                 'user.identifiers.*',
                 'user.email-connections.*',
                 'user.emails.*',

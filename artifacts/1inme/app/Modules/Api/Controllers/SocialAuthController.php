@@ -34,6 +34,7 @@ class SocialAuthController extends Controller
     {
         $data = $request->validate([
             'provider'     => ['required', Rule::in(['apple', 'google', 'facebook'])],
+            'nonce' => 'nullable|string|size:64',
             'id_token'     => ['nullable', 'string', 'max:8000'],
             'access_token' => ['nullable', 'string', 'max:8000'],
             'name'         => ['nullable', 'string', 'max:120'],
@@ -41,9 +42,10 @@ class SocialAuthController extends Controller
             'device'       => ['nullable', 'string', 'max:60'],
         ]);
 
+        if ($data['provider']==='apple' && !\App\Services\AppleSignIn::enabled()) return $this->fail('Apple sign-in is disabled.',403,'provider_disabled');
         try {
             $verified = match ($data['provider']) {
-                'apple'    => $this->verifyApple($data['id_token'] ?? null),
+                'apple'    => $this->verifyApple($data['id_token'] ?? null, $data['nonce'] ?? ''),
                 'google'   => $this->verifyGoogle($data['id_token'] ?? null),
                 'facebook' => $this->verifyFacebook($data['access_token'] ?? null),
             };
@@ -94,6 +96,8 @@ class SocialAuthController extends Controller
             }
             $created = true;
         }
+
+        if ($user->status !== 'active') return $this->fail('This account cannot sign in.',403,'account_inactive');
 
         // Bind/refresh the social identifier — refuse if it already
         // belongs to a different live account (the user must merge from
@@ -164,18 +168,23 @@ class SocialAuthController extends Controller
      * Validates signature against Apple's published JWKS, plus issuer
      * and audience (== our configured bundle id).
      */
-    private function verifyApple(?string $idToken): array
+    public function verifyApple(?string $idToken, string $nonce): array
     {
         if (!$idToken) throw new \RuntimeException('Missing id_token');
 
+        $claims=json_decode(base64_decode(strtr(explode('.', $idToken)[1] ?? '', '-_', '+/')),true) ?? [];
+        $aud=$claims['aud'] ?? '';
+        $allowed=array_filter([\App\Services\AppleSignIn::bundleId(),\App\Services\AppleSignIn::serviceId()]);
+        if (!is_string($aud) || !in_array($aud,$allowed,true)) throw new \RuntimeException('Unrecognized Apple audience');
         $jwks = Http::timeout(5)->get('https://appleid.apple.com/auth/keys')->json('keys') ?? [];
         $payload = $this->verifyJwt($idToken, $jwks, [
             'iss' => 'https://appleid.apple.com',
-            'aud' => env('APPLE_BUNDLE_ID', 'com.oneinme.app'),
+            'aud' => $aud,
         ]);
+        if (!hash_equals($nonce, (string)($payload['nonce'] ?? '')) || !\App\Services\AppleSignIn::consumeNonce($nonce)) throw new \RuntimeException('Invalid or expired Apple nonce');
         return [
             'external_id' => $payload['sub']   ?? null,
-            'email'       => $payload['email'] ?? null,
+            'email'       => in_array($payload['email_verified'] ?? false,[true,'true',1,'1'],true) ? ($payload['email'] ?? null) : null,
         ];
     }
 
@@ -262,7 +271,7 @@ class SocialAuthController extends Controller
         if (($header['alg'] ?? '') !== 'RS256') throw new \RuntimeException('Unsupported alg: ' . ($header['alg'] ?? ''));
 
         $kid = $header['kid'] ?? null;
-        $jwk = collect($jwks)->firstWhere('kid', $kid) ?: ($jwks[0] ?? null);
+        $jwk = collect($jwks)->firstWhere('kid', $kid);
         if (!$jwk) throw new \RuntimeException('Signing key not found');
 
         $pem = $this->jwkToPem($jwk);

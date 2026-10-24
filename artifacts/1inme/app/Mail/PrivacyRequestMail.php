@@ -33,7 +33,7 @@ class PrivacyRequestMail extends Mailable
             'verified'  => 'Your ' . $typeLabel . ' request is now under review',
             'approved'  => 'Your ' . $typeLabel . ' request has been approved',
             'rejected'  => 'Your ' . $typeLabel . ' request could not be completed',
-            'completed' => 'Your account has been deleted',
+            'completed' => $this->privacyRequest->type === PrivacyRequest::TYPE_DATA_DELETION ? 'Your selected personal data has been deleted' : 'Your account has been deleted',
             'ready'     => 'Your data export is ready to download',
         ];
 

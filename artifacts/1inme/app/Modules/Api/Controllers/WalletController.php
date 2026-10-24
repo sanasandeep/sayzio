@@ -109,11 +109,12 @@ class WalletController extends Controller
         if (!WalletService::isEnabled()) return $this->err('Wallet is disabled.', 404);
         $user = $request->user();
         $currency = PricingResolver::currencyForUser($user);
+        $platform = \App\Services\PlatformPricing::platform($request);
         $items = CoinPackage::active()->ordered()->with('prices')->get()
-            ->map(function ($p) use ($currency, $user) {
-                $priced = PricingResolver::priceForCurrency($p, $currency, 'monthly');
+            ->map(function ($p) use ($currency, $user, $platform) {
+                $priced = \App\Services\PlatformPricing::price($p, $currency, 'monthly', $platform);
                 $current = (int) ($priced['amount_minor'] ?? 0);
-                $orig = $p->originalPriceDisplay($currency, $current);
+                $orig = $platform === 'web' ? $p->originalPriceDisplay($currency, $current) : null;
                 $planBonus = \App\Services\Billing\CoinPlanBonus::breakdownFor($user, $p);
                 return [
                     'id'                    => $p->id,
@@ -131,6 +132,7 @@ class WalletController extends Controller
                     'currency'              => $currency,
                     'amount_minor'          => $current,
                     'formatted'             => $priced['formatted'] ?? null,
+                    'platform' => $platform,
                     'original_amount_minor' => $orig ? (int) $orig['amount_minor'] : null,
                     'original_formatted'    => $orig['formatted'] ?? null,
                 ];

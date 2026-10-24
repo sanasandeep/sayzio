@@ -35,7 +35,8 @@
                        class="px-3 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white w-44 ak-strong ak-input">
                 <select name="type" class="px-3 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white ak-strong ak-input">
                     <option value="all" @selected($filters['type']==='all')>All types</option>
-                    <option value="deletion" @selected($filters['type']==='deletion')>Deletion</option>
+                    <option value="deletion" @selected($filters['type']==='deletion')>Account deletion</option>
+                    <option value="data_deletion" @selected($filters['type']==='data_deletion')>Selected data deletion</option>
                     <option value="export" @selected($filters['type']==='export')>Export</option>
                 </select>
                 <button class="px-3 py-1.5 rounded-lg text-xs bg-blue-600 text-white hover:bg-blue-700">Filter</button>
