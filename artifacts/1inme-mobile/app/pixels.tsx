@@ -33,8 +33,11 @@ function PixelForm({ workspaceId }: { workspaceId?: number }) {
   const q = useQuery({
     queryKey: ["workspace-pixels", workspaceId],
     queryFn: async () =>
-      (await apiFetch<{ data: { pixels: Pixels } }>("/workspace/pixels")).data
-        .pixels,
+      (
+        await apiFetch<{ data: { pixels: Pixels } }>(
+          `/workspace/pixels?workspace_id=${workspaceId}`,
+        )
+      ).data.pixels,
     enabled: !!workspaceId,
   });
   useEffect(() => {
@@ -45,7 +48,7 @@ function PixelForm({ workspaceId }: { workspaceId?: number }) {
   }, [q.data, seeded]);
   const save = useMutation({
     mutationFn: () =>
-      apiFetch("/workspace/pixels", {
+      apiFetch(`/workspace/pixels?workspace_id=${workspaceId}`, {
         method: "PUT",
         body: JSON.stringify(values),
       }),
@@ -86,6 +89,7 @@ function PixelForm({ workspaceId }: { workspaceId?: number }) {
       <Button
         label="Save tracking pixels"
         loading={save.isPending}
+        disabled={!workspaceId || !seeded}
         onPress={() => save.mutate()}
       />
     </FeatureScreen>

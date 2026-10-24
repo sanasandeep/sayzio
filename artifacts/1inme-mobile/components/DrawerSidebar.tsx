@@ -36,6 +36,7 @@ import {
   focusRingMarkerProps,
   useWebFocusRing,
 } from "@/lib/webFocusRing";
+import { showAlert } from "@/lib/webAlert";
 import type { ThemePref } from "@/lib/secure";
 import { workspaceFeatherIcon, type Workspace } from "@/lib/api/workspaces";
 import { getBaseUrl } from "@/lib/api";
@@ -148,7 +149,12 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Workspace & Tools",
     items: [
-      { label: "Attendance", icon: "clock", href: "/attendance", webPath: "/user/attendance" },
+      {
+        label: "Attendance",
+        icon: "clock",
+        href: "/attendance",
+        webPath: "/user/attendance",
+      },
       {
         label: "Tasks",
         icon: "check-square",
@@ -275,7 +281,7 @@ function WorkspaceSwitcherBlock({
     try {
       await switchWorkspace(ws);
     } catch (e) {
-      Alert.alert(
+      showAlert(
         "Could not switch workspace",
         e instanceof Error ? e.message : "Try again.",
       );
@@ -895,7 +901,7 @@ export function DrawerSidebar() {
                             void Linking.openURL(
                               `${getBaseUrl()}${item.webPath}`,
                             ).catch(() =>
-                              Alert.alert(
+                              showAlert(
                                 "Could not open web feature",
                                 "Please try again.",
                               ),

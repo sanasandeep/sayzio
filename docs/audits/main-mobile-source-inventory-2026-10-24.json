@@ -484,6 +484,11 @@
       "web_path": null
     },
     {
+      "label": "Attendance",
+      "native_route": null,
+      "web_path": "/user/attendance"
+    },
+    {
       "label": "Tasks",
       "native_route": null,
       "web_path": "/user/tasks"

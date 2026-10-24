@@ -20,6 +20,7 @@ The target is `artifacts/1inme-mobile` (main Expo/React Native app), with suppor
 | Phone ownership | Exclusive workspace caller identity and disputes existed only on web | Native attach verified number, list allocations/claims, request admin ownership review with message, URLs and attachments. Shared identity service retains global number exclusivity and admin-only reassignment. Login identifiers remain separate. |
 | Sharing | Native creator profile lacked newer share/contact actions | Share sheet, copy, contact vCard, WhatsApp, Telegram, SMS and QR dialog. Public profile respects sharing visibility. |
 | Links | List/grid only indicated disabled status | Accessible enable/disable control using existing update API, server result/refetch, error handling and no optimistic false success. Existing editor toggle remains. |
+| Tracking pixel scope | API defaulted to the first workspace and permitted generic members | Native requests include the selected workspace ID; shared API reads/writes enforce `pixels.view` / `pixels.edit`. |
 | Older pairings | Web added URL/file pairings but native fell back to generic Create | Dedicated short-link/file create routes and icons; free-plan mapping guard updated to the actual web catalog. |
 | Accessibility | New radio/tab selections and shared action buttons lacked explicit web semantics | Checked/selected ARIA states and shared button roles/labels/disabled state; real browser snapshot confirms selected controls. |
 
@@ -41,7 +42,7 @@ The existing `parity:check-mobile-docs` guard reports 12/129 web block types wit
 
 ## Validation
 
-Main mobile TypeScript typecheck and the complete `test:unit` chain passed. The focused PostgreSQL suite passed 18 tests / 70 assertions, including creator settings, stale workspace writes, hidden feeds, verification invalidation/scope, phone exclusivity and leads. Route-shadowing and mobile/docs parity guards passed. Android and iOS JavaScript/Hermes exports passed. Expo browser checks exercised a saved handle change and presentation save/reload at 390 × 844. These are local checks, not store deployment. Tests use isolated local PostgreSQL databases; no production user data, messages, financial transactions or staff records were changed. The Expo browser preview uses a disposable local fixture account. Physical iOS/Android testing, signed store builds, provider checkout, S3-backed upload/download and biometric/NFC hardware are not certified by these checks.
+Main mobile TypeScript typecheck and the complete `test:unit` chain passed. The focused PostgreSQL suite passed 19 tests / 75 assertions, including creator settings, stale workspace writes, hidden feeds, verification invalidation/scope, phone exclusivity, leads and pixel workspace/role isolation. Route-shadowing and mobile/docs parity guards passed. Android and iOS JavaScript/Hermes exports passed. Expo browser checks exercised a saved handle change and presentation save/reload at 390 × 844. These are local checks, not store deployment. A supplementary run of the 13 newly merged attendance tests had no assertion failures but reported seven existing output-buffer warnings; it is not counted as a clean suite pass here. Tests use isolated local PostgreSQL databases; no production user data, messages, financial transactions or staff records were changed. The Expo browser preview uses a disposable local fixture account. Physical iOS/Android testing, signed store builds, provider checkout, S3-backed upload/download and biometric/NFC hardware are not certified by these checks.
 
 ## Remaining limits
 
@@ -50,3 +51,9 @@ Main mobile TypeScript typecheck and the complete `test:unit` chain passed. The 
 - Mobile phone and verification uploads are implemented against the production upload contract, but the isolated local environment has no configured S3 provider. Native gallery/document permissions, physical camera/files and real provider uploads need device/provider validation.
 - PR #595 added the web attendance implementation while this audit was underway. The main mobile menu now exposes it as Web; native attendance capture and vendor biometric integration are not implemented in this PR.
 - A new mobile build/update and deployment of the shared API changes are required before these changes reach installed apps.
+
+## Browser proof (disposable local account)
+
+![Main mobile creator editor at phone width](assets/main-mobile-creator-settings.png)
+
+![Saved native public profile with posts disabled](assets/main-mobile-profile-public.png)

@@ -57,4 +57,20 @@ class MobileCreatorWorkspaceParityTest extends TestCase
         $this->postJson('/api/v1/me/creator-profile/handle', ['creator_profile_id' => $profile->id, 'handle' => 'updated_'.$user->id])->assertOk();
         $this->assertSame('unverified', $profile->refresh()->profile_verification_status);
     }
+
+    public function test_pixels_target_the_requested_workspace_and_viewers_cannot_edit(): void
+    {
+        $owner = User::factory()->create()->fresh();
+        $personal = $owner->ensureDefaultWorkspace();
+        $team = $owner->ownedWorkspaces()->create(['name'=>'Pixel team', 'slug'=>'pixel-team-'.$owner->id]);
+        $viewer = User::factory()->create()->fresh();
+        \App\Modules\User\Models\WorkspaceMember::create(['workspace_id'=>$team->id, 'user_id'=>$viewer->id, 'role'=>'viewer']);
+        $this->withToken($owner->createToken('mobile')->plainTextToken);
+        $this->putJson('/api/v1/workspace/pixels?workspace_id='.$team->id, ['meta_id'=>'123456789012345'])->assertOk();
+        $this->assertSame('123456789012345', $team->refresh()->settings['pixels']['meta_id']);
+        $this->assertEmpty($personal->refresh()->settings['pixels'] ?? []);
+        $this->withToken($viewer->createToken('mobile')->plainTextToken);
+        $this->putJson('/api/v1/workspace/pixels?workspace_id='.$team->id, ['meta_id'=>'999999999999999'])->assertForbidden();
+        $this->assertSame('123456789012345', $team->refresh()->settings['pixels']['meta_id']);
+    }
 }
