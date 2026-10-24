@@ -300,6 +300,18 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('security.logins');
         Route::post('security/logins/{loginEvent}/revoke', [\App\Modules\User\Controllers\SecurityController::class, 'revokeFromList'])
             ->name('security.logins.revoke-from-list');
+        Route::prefix('attendance')->name('attendance.')->controller(\App\Modules\User\Controllers\AttendanceController::class)->group(function () {
+            Route::get('', 'index')->middleware('throttle:60,1')->name('index');
+            Route::post('challenge', 'challenge')->middleware('throttle:60,1')->name('challenge');
+            Route::post('punch', 'punch')->middleware('throttle:60,1')->name('punch');
+            Route::get('export', 'export')->middleware('throttle:60,1')->name('export');
+            Route::put('settings', 'settings')->middleware('throttle:60,1')->name('settings');
+            Route::post('requests', 'storeRequest')->middleware('throttle:60,1')->name('requests.store');
+            Route::post('requests/{attendanceRequest}/review', 'decideRequest')->middleware('throttle:60,1')->name('requests.review');
+            Route::get('punches/{punch}/evidence', 'evidence')->whereNumber(['punch','attendanceRequest'])->middleware('throttle:60,1')->name('evidence');
+            Route::post('punches/{punch}/review', 'review')->whereNumber(['punch','attendanceRequest'])->middleware('throttle:60,1')->name('review');
+        });
+
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['onboarding.gate', 'contacts.sync-on-open'])->name('dashboard');
 
         // The "how your Sayzio fits together" panel, served on its own so the

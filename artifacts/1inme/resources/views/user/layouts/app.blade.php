@@ -784,6 +784,7 @@
                 // Resolve once: hide menu entries the active member's role can't reach.
                 // Owners and super-admins always pass these checks.
                 $__can = [
+                    'attendance_view' => WP::userCan('attendance.view'),
                     'tasks_view'     => WP::userCan('tasks.view'),
                     'vault_view'     => WP::userCan('vault.view'),
                     'files_view'     => WP::userCan('files.view'),
@@ -1318,8 +1319,8 @@
                 </div>
 
                 {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
-                @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                @php $grpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
+                @if($__can['attendance_view'] || $__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
+                @php $grpWorkspaceActive = nav_route_is('user.attendance.*') || nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
                 <div x-data="{ open: {{ $grpWorkspaceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1327,6 +1328,9 @@
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                        @if($__can['attendance_view'])
+                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span><span class="sidebar-tooltip">Attendance</span></a>
+                        @endif
                         @if($__can['tasks_view'])
                         <a href="{{ route('user.tasks.index') }}"
                            class="sidebar-link {{ nav_route_is('user.tasks.*') ? 'active' : '' }}"
@@ -2106,8 +2110,8 @@
                         </div>
 
                         {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
-                        @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                        @php $mGrpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
+                        @if($__can['attendance_view'] || $__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
+                        @php $mGrpWorkspaceActive = nav_route_is('user.attendance.*') || nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
                         <div x-data="{ open: {{ $mGrpWorkspaceActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -2115,6 +2119,9 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
+                                @if($__can['attendance_view'])
+                                <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span><span class="sidebar-tooltip">Attendance</span></a>
+                                @endif
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.tasks.index') }}" class="sidebar-link {{ nav_route_is('user.tasks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div> <span>Tasks</span></a>
                                 @endif

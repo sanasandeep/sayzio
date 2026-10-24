@@ -62,6 +62,10 @@ class WorkspacePermissions
         if (array_key_exists($action, $row)) return (bool) $row[$action];
         // Unconfigured built-in workspaces use the historic action defaults.
         if (str_contains($action, '.') && isset(WorkspacePermissionCatalog::features()[explode('.', $action, 2)[0]])) {
+            if (explode('.', $action, 2)[0] === 'attendance') {
+                $verb = explode('.', $action, 2)[1];
+                return in_array($verb, ['view', 'create']) || $role === 'admin';
+            }
             $base = WorkspacePermissionCatalog::baseAction(explode('.', $action, 2)[1]);
             return (bool) ($row[$base] ?? false);
         }
