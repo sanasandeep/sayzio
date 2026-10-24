@@ -145,7 +145,7 @@ class TaskAdvancedTest extends TestCase
     public function test_column_people_groups_assignees_and_contributors_without_other_columns(): void
     {
         [$owner, $ws, $board, $card] = $this->setupBoard();
-        $assigned = User::factory()->create(['name' => 'Assigned teammate']);
+        $assigned = User::factory()->create(['name' => 'Assigned teammate', 'avatar' => 'https://example.com/teammate.png']);
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $assigned->id, 'role' => 'editor']);
         $card->assignees()->attach($assigned->id);
         \App\Modules\User\Models\TaskActivity::log($card->id, $assigned->id, 'commented', []);
@@ -154,10 +154,23 @@ class TaskAdvancedTest extends TestCase
         $this->assertArrayHasKey($assigned->id, $people[$card->column_id]);
         $this->assertSame(['Assigned', 'Participated'], array_keys($people[$card->column_id][$assigned->id]['roles']));
         $this->assertCount(1, $people[$card->column_id][$assigned->id]['tasks']);
+        $this->assertSame('https://example.com/teammate.png', $people[$card->column_id][$assigned->id]['avatar']);
         $this->assertSame([], $people[$board->columns[1]->id]);
         $card->update(['archived_at' => now()]);
         $page = $this->get('/user/tasks/boards/'.$board->id)->assertOk();
         $this->assertSame([], $page->viewData('columnPeople')[$card->column_id]);
+    }
+
+    public function test_related_link_type_is_available_and_duplicate_urls_are_deduplicated(): void
+    {
+        [$owner, $ws, $board, $card] = $this->setupBoard();
+        $link = \App\Modules\User\Models\Link::create(['user_id' => $owner->id, 'title' => 'Campaign bio', 'alias' => 'campaign-bio', 'type' => 'biolink']);
+        $choices = $this->getJson('/user/tasks/boards/'.$board->id.'/related-choices?kind=link&q=Campaign')->assertOk();
+        $this->assertSame('biolink', $choices->json('items.0.link_type'));
+        $item = ['title' => 'Campaign bio', 'type' => 'link', 'link_type' => 'biolink', 'url' => route('user.links.show', $link), 'note' => ''];
+        $this->patchJson('/user/tasks/cards/'.$card->id, ['related_items' => [$item, array_merge($item, ['url' => $item['url'].'/#details'])]])->assertOk();
+        $this->assertCount(1, $card->fresh()->related_items);
+        $this->assertSame('biolink', $card->fresh()->related_items[0]['link_type']);
     }
 
     public function test_export_and_editor_render_with_escaped_titles(): void

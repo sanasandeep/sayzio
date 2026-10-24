@@ -51,6 +51,7 @@
     .col-drag-handle:hover { opacity: 1; }
 .task-editor-tabs{display:flex;overflow-x:auto;gap:16px;position:sticky;top:0;background:var(--bg-card);z-index:5;padding:12px 0;margin-bottom:18px;border-bottom:1px solid var(--border-soft)}.task-editor-tabs button{white-space:nowrap;font-size:12px;padding:8px 2px;border-bottom:2px solid transparent}.task-editor-tabs button[aria-selected=true]{color:var(--c-primary,#3d6bff);border-color:currentColor}.task-related-results{max-height:230px;overflow:auto}.task-related-choice{display:flex;justify-content:space-between;width:100%;padding:10px;text-align:left;border-bottom:1px solid var(--border-soft);font-size:13px}.task-related-choice:hover{background:var(--bg-glass-input)}.drawer .task-progress-range{padding:0;border:0;min-height:28px;height:28px;accent-color:var(--c-primary,#3d6bff)}.drawer .theme-input{max-width:100%}.drawer [data-editor-panel=time] input{min-width:0}.drawer [x-cloak]{display:none!important}
 .task-column-people{border-bottom:1px solid var(--border-soft);font-size:12px;color:var(--text-primary)}.task-column-people>summary{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;cursor:pointer;color:var(--text-muted);list-style:none}.task-column-people>summary::-webkit-details-marker{display:none}.task-column-people>summary>span:first-child{display:flex;gap:8px;align-items:center}.task-column-people[open]>summary{color:var(--c-primary,#3d6bff)}.task-column-people-list{padding:0 12px 10px;max-height:300px;overflow:auto}.task-column-people-hint{font-size:11px;line-height:1.5;color:var(--text-muted);margin:4px 0 10px}.task-column-person>summary{display:flex;gap:8px;align-items:center;padding:8px 0;cursor:pointer;list-style:none}.task-person-initial{display:grid;place-items:center;width:28px;height:28px;flex-shrink:0;border-radius:50%;background:var(--bg-glass-input);color:var(--c-primary,#3d6bff);font-weight:700}.task-person-copy{min-width:0}.task-person-copy strong{display:block;font-size:12px;overflow-wrap:anywhere}.task-person-copy small,.task-person-tasks small{display:block;font-size:10px;color:var(--text-muted);line-height:1.5}.task-person-tasks{padding-left:36px}.task-person-tasks button{display:block;width:100%;text-align:left;padding:6px 0;overflow-wrap:anywhere}.task-person-tasks strong{font-size:11px;font-weight:500}.task-person-tasks button:hover strong{color:var(--c-primary,#3d6bff)}
+.task-person-initial{position:relative;overflow:hidden}.task-person-initial img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}.task-column-people{border-top:1px solid var(--border-soft)}.task-related-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;flex-shrink:0;font-size:13px}.task-related-result-copy{display:flex;gap:10px;align-items:center;min-width:0}.task-related-result-copy strong{display:block;font-size:12px;font-weight:600;overflow-wrap:anywhere}.task-related-result-copy small{display:block;font-size:10px;color:var(--text-muted);overflow-wrap:anywhere}.task-related-choice{align-items:center;gap:12px}.task-related-choice>small{white-space:nowrap;color:var(--c-primary,#3d6bff)}
 </style>
 @endpush
 @section('content')
@@ -148,7 +149,6 @@
                     <button @click="editing=true" class="text-xs" style="color: var(--text-faint);" title="Edit column" aria-label="Edit column"><i class="fas fa-pen"></i></button>
                     <button @click="deleteColumn({{ $col->id }})" class="text-xs" style="color: var(--text-faint);" title="Delete column" aria-label="Delete column"><i class="fas fa-times"></i></button>
                 </div>
-                @include('user.tasks.partials.column-people')
                 {{-- Inline edit popover wired to PUT /columns/{id} --}}
                 <div x-show="editing" x-transition class="absolute z-30 p-3 mt-1 rounded-xl shadow-xl space-y-2"
                      @click.outside="editing=false"
@@ -233,8 +233,8 @@
                                 </div>
                                 <div class="flex -space-x-1">
                                     @foreach($card->assignees->take(3) as $a)
-                                        <div class="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white text-[9px] font-bold flex items-center justify-center border" style="border-color: var(--bg-card);" title="{{ $a->name }}">
-                                            <img src="{{ $a->resolveAvatarUrl() }}" alt="{{ $a->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.hidden=true">
+                                        <div class="relative w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white text-[9px] font-bold flex items-center justify-center border" style="border-color: var(--bg-card);" title="{{ $a->name }}">
+                                            <span>{{ mb_strtoupper(mb_substr($a->name,0,1)) }}</span><img src="{{ $a->resolveAvatarUrl() }}" alt="{{ $a->name }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.hidden=true">
                                         </div>
                                     @endforeach
                                 </div>
@@ -242,6 +242,7 @@
                         </div>
                     @endforeach
                 </div>
+                @include('user.tasks.partials.column-people')
                 <form @submit.prevent="addCard($el, {{ $col->id }})" class="p-2 border-t" style="border-color: var(--border-soft);">
                     <input name="title" placeholder="+ Add a card" maxlength="200"
                            class="w-full px-2 py-1.5 text-sm rounded border-0"
@@ -424,7 +425,7 @@
                     <p class="text-xs my-2" style="color:var(--text-faint);">What is this task about? Connect a link, Mind, customer, invoice or any Sayzio page. Opening an item uses your normal access permissions.</p>
                     <template x-for="(item, index) in (card.related_items || [])" :key="index">
                         <div class="py-2 border-b" style="border-color:var(--border-soft);">
-                            <div class="flex items-center gap-2"><span class="text-xs uppercase" x-text="item.type"></span><a class="font-semibold underline break-all" :href="item.url" target="_blank" rel="noopener noreferrer" x-text="item.title"></a><button type="button" class="ml-auto text-xs" @click="removeRelatedItem(index)" :aria-label="'Remove ' + item.title">Remove</button></div>
+                            <div class="flex items-center gap-2"><span class="task-related-icon" :style="'color:'+relatedPresentation(item).color+';background:'+relatedPresentation(item).color+'18'" :title="relatedPresentation(item).label"><i :class="relatedPresentation(item).icon" aria-hidden="true"></i></span><a class="font-semibold underline break-all" :href="item.url" target="_blank" rel="noopener noreferrer" x-text="item.title"></a><button type="button" class="ml-auto text-xs" @click="removeRelatedItem(index)" :aria-label="'Remove ' + item.title">Remove</button></div>
                             <p class="text-xs mt-1 break-words" x-text="item.note"></p>
                         </div>
                     </template>
@@ -434,7 +435,7 @@
                         <input class="theme-input" type="search" x-model="relatedQuery" @input.debounce.250ms="loadRelated()" placeholder="Search accessible Sayzio items…" aria-label="Search related items">
                         <button type="button" class="form-chip" @click="loadRelated()">Browse items</button>
                         <p class="notes-hint" x-show="relatedLoading">Loading…</p>
-                        <div class="task-related-results"><template x-for="item in relatedResults" :key="item.type+':'+item.id"><button type="button" @click="connectRelated(item)" class="task-related-choice"><span x-text="item.title"></span><small>Connect +</small></button></template><p class="notes-hint" x-show="relatedLoaded && !relatedResults.length && !relatedLoading">No matching accessible items.</p></div>
+                        <div class="task-related-results"><template x-for="item in availableRelatedResults" :key="item.type+':'+item.id"><button type="button" @click="connectRelated(item)" class="task-related-choice"><span class="task-related-result-copy"><span class="task-related-icon" :style="'color:'+relatedPresentation(item).color+';background:'+relatedPresentation(item).color+'18'"><i :class="relatedPresentation(item).icon" aria-hidden="true"></i></span><span><strong x-text="item.title"></strong><small x-text="relatedPresentation(item).label+' · '+relatedPath(item.url)"></small></span></span><small>Connect +</small></button></template><p class="notes-hint" x-show="relatedLoaded && !availableRelatedResults.length && !relatedLoading">No matching accessible items.</p></div>
                     </div>
                     <details class="mt-3"><summary class="text-xs">Connect another Sayzio page by URL</summary><form class="grid gap-2 mt-2" @submit.prevent="addRelatedItem($event)"><input name="type" type="hidden" value="other"><input class="theme-input" name="title" required maxlength="160" placeholder="Page name"><input class="theme-input" name="url" type="url" required placeholder="Full Sayzio page URL"><input class="theme-input" name="note" maxlength="500" placeholder="Optional context"><button class="form-chip">Connect page</button></form></details>
                 </section>
@@ -664,6 +665,7 @@
 function kanbanBoard(boardId) {
     return {
         boardId,
+        linkTypeStyles:@js(\App\Modules\User\Support\LinkTypeCategories::types()),
         drawerOpen: false, editorTab: 'details', followAttendance:false, ganttAnchor:taskToday(), ganttDays:35,
         relatedKind:'link',relatedQuery:'',relatedResults:[],relatedLoading:false,relatedLoaded:false,
         boardView:sessionStorage.getItem('task-view-'+boardId)||'kanban', syncRevision:@js($syncRevision),syncStatus:'Checks every 15 seconds',syncTimer:null,notice:'',
@@ -749,8 +751,12 @@ function kanbanBoard(boardId) {
             await this.fetchJson(`/user/tasks/cards/${this.card.id}/complete`,{method:'POST',body:{completed}});
             sessionStorage.setItem('task-filters-'+this.boardId,JSON.stringify(this.filters));location.reload();
         },
+        relatedKey(url){try{const u=new URL(url,location.origin);u.hash='';u.pathname=u.pathname.replace(/\/+$/,'')||'/';u.searchParams.sort();return u.host+u.pathname+u.search;}catch{return url;}},
+        relatedPath(url){try{return new URL(url,location.origin).pathname;}catch{return url;}},
+        get availableRelatedResults(){const connected=new Set((this.card?.related_items||[]).map(i=>this.relatedKey(i.url)));return this.relatedResults.filter(i=>!connected.has(this.relatedKey(i.url)));},
+        relatedPresentation(item){const existing=this.relatedResults.find(i=>this.relatedKey(i.url)===this.relatedKey(item.url));const kind=item.link_type||existing?.link_type||item.type;if(item.type==='link'&&this.linkTypeStyles[kind]){const t=this.linkTypeStyles[kind];return {icon:'fas '+t.icon,color:t.tint||'#3d6bff',label:t.label};}const types={link:['fas fa-link','#3d6bff','Link'],biolink:['fas fa-id-card','#8b5cf6','Bio page'],shortlink:['fas fa-link','#3d6bff','Short link'],vcard:['fas fa-address-card','#0891b2','Contact card'],file:['fas fa-file','#64748b','File'],mind:['fas fa-brain','#8b5cf6','AI Mind'],other:['fas fa-robot','#d97706','AI Staff / other'],project:['fas fa-folder','#0891b2','Project'],contact:['fas fa-user','#16a34a','Contact'],invoice:['fas fa-file-invoice','#d97706','Invoice'],event:['fas fa-calendar','#db2777','Event'],product:['fas fa-shopping-bag','#ea580c','Product'],image:['fas fa-image','#0d9488','Image'],video:['fas fa-video','#dc2626','Video'],audio:['fas fa-music','#9333ea','Audio']};const [icon,color,label]=types[kind]||types[item.type]||['fas fa-globe','#64748b','Page'];return {icon,color,label};},
         async loadRelated(){const kind=this.relatedKind,query=this.relatedQuery;this.relatedLoading=true;this.relatedLoaded=true;try{const r=await this.fetchJson(`/user/tasks/boards/${this.boardId}/related-choices?kind=${kind}&q=${encodeURIComponent(query)}`);if(kind===this.relatedKind&&query===this.relatedQuery)this.relatedResults=r.items;}catch(e){this.relatedError=e.message;this.relatedResults=[];}finally{this.relatedLoading=false;}},
-        async connectRelated(item){if(this.relatedSaving)return;this.relatedSaving=true;try{if((this.card.related_items||[]).some(r=>r.url===item.url))return;const items=[...(this.card.related_items||[]),{type:item.type,title:item.title,url:item.url,note:''}];await this.saveCard({related_items:items});this.card.related_items=items;}finally{this.relatedSaving=false;}},
+        async connectRelated(item){if(this.relatedSaving)return;this.relatedSaving=true;try{if((this.card.related_items||[]).some(r=>this.relatedKey(r.url)===this.relatedKey(item.url)))return;const items=[...(this.card.related_items||[]),{type:item.type,title:item.title,url:item.url,link_type:item.link_type||null,note:''}];await this.saveCard({related_items:items});this.card.related_items=items;}finally{this.relatedSaving=false;}},
         async exportView(format){const mode=this.boardView==='gantt'?'gantt':'board';const query=new URLSearchParams({mode,format:format==='png'?'svg':format,from:this.ganttAnchor,days:this.ganttDays});const url=`/user/tasks/boards/${this.boardId}/export?${query}`;if(format==='pdf'){window.open(url,'_blank','noopener');return;}const response=await fetch(url);if(!response.ok){this.notice='Export failed. Check your export permission or board size.';return;}const svg=await response.blob();const image=new Image();const src=URL.createObjectURL(svg);try{await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=src;});const canvas=document.createElement('canvas');const scale=Math.min(1,8192/image.naturalWidth,16384/image.naturalHeight,Math.sqrt(32000000/(image.naturalWidth*image.naturalHeight)));canvas.width=Math.round(image.naturalWidth*scale);canvas.height=Math.round(image.naturalHeight*scale);canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);const a=document.createElement('a');a.download='task-'+mode+'.png';a.href=canvas.toDataURL('image/png');a.click();}finally{URL.revokeObjectURL(src);}},
         async fetchJson(url, opts = {}) {
             const headers = { 'X-CSRF-TOKEN': this.csrf, 'Accept': 'application/json', ...(opts.headers || {}) };
@@ -818,6 +824,7 @@ function kanbanBoard(boardId) {
             const id=this.card.id;
             const form=event.target;
             const item=Object.fromEntries(new FormData(form));
+            if((this.card.related_items||[]).some(r=>this.relatedKey(r.url)===this.relatedKey(item.url))){this.relatedError='This item is already connected.';return;}
             const items=[...(this.card.related_items || []),item];
             this.relatedSaving=true; this.relatedError='';
             try { await this.saveCard({related_items:items}); if(this.card?.id===id) this.card.related_items=items; form.reset(); }
