@@ -54,7 +54,6 @@
 </style>
 @endpush
 @section('content')
-@include('user.cloud-files._attach-picker')
 @include('user.planner.styles')
 <div x-data="kanbanBoard({{ $board->id }})" @gantt-window="ganttAnchor=$event.detail.from;ganttDays=$event.detail.days"  class="task-workspace px-6 py-6">
     @include('user.partials.page-hero',['title'=>$board->name,'subtitle'=>'Manage your project tasks, checklists and deadlines.','icon'=>'fa-list-check','favicon'=>null,'url'=>null,'back'=>route('user.tasks.index'),'actions'=>[],'chips'=>[['text'=>$board->scope==='personal'?'Private board':'Team board','icon'=>'fa-users'],['text'=>$board->columns->count().' columns','icon'=>'fa-table-columns'],['text'=>$board->columns->sum(fn($c)=>$c->cards->count()).' tasks','icon'=>'fa-check']]])
@@ -276,7 +275,7 @@
     </div>
 
     {{-- Card detail drawer --}}
-    <div class="drawer" role="dialog" aria-label="Task details" :aria-hidden="!drawerOpen" :class="{ open: drawerOpen }" @click.outside="if(!cloudPickerOpen) drawerOpen = false" @task-cloud-state.window="cloudPickerOpen=$event.detail.open">
+    <div class="drawer" role="dialog" aria-label="Task details" :aria-hidden="!drawerOpen" :class="{ open: drawerOpen }" @click.outside="drawerOpen = false">
         <template x-if="card">
             <div class="p-6">
                 <div class="flex items-start justify-between mb-3">
@@ -431,7 +430,7 @@
                     </template>
                     <p x-show="relatedError" x-cloak role="alert" class="text-sm mt-2" style="color:var(--danger,#dc2626);" x-text="relatedError"></p>
                     <div class="grid gap-2 mt-3">
-                        <label>Item type<select x-model="relatedKind" @change="loadRelated()" class="theme-input"><option value="link">Links &amp; pages</option><option value="mind">AI Minds</option><option value="staff">AI Staff</option><option value="calendar">Events &amp; calendars</option><option value="project">Projects</option><option value="contact">Contacts</option><option value="invoice">Client invoices</option><option value="file">Files</option></select></label>
+                        <label>Item type<select x-model="relatedKind" @change="loadRelated()" class="theme-input"><option value="link">Links &amp; pages</option><option value="mind">AI Minds</option><option value="staff">AI Staff</option><option value="calendar">Events &amp; calendars</option><option value="project">Projects</option><option value="contact">Contacts</option><option value="invoice">Client invoices</option></select></label>
                         <input class="theme-input" type="search" x-model="relatedQuery" @input.debounce.250ms="loadRelated()" placeholder="Search accessible Sayzio items…" aria-label="Search related items">
                         <button type="button" class="form-chip" @click="loadRelated()">Browse items</button>
                         <p class="notes-hint" x-show="relatedLoading">Loading…</p>
@@ -458,15 +457,8 @@
                         <input type="file" class="hidden" @change="uploadAttachment($event)">
                     </label>
 
-                    {{-- Cloud-library attachments for this card. Shares the
-                         workspace cloud file picker; bytes stay in the
-                         provider, we just store a reference. --}}
-                    <div class="mt-3" x-init="$watch('open', value => $dispatch('task-cloud-state', {open:value}))" x-data="cloudAttachPicker({
-                            mode: 'ajax',
-                            targetType: 'task_card',
-                            targetId: card.id,
-                            onAttached: (atts) => { card.cloud_attachments = (card.cloud_attachments || []).concat(atts); },
-                        })">
+                    {{-- Keep existing file references accessible without offering new cloud connections. --}}
+                    <div class="mt-3" x-show="(card.cloud_attachments || []).length">
                         <template x-for="a in (card.cloud_attachments || [])" :key="'cf' + a.id">
                             <div class="flex items-center justify-between gap-2 mb-1 p-2 rounded text-sm" style="background: var(--bg-glass-input);">
                                 <a :href="a.link" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 flex-1 truncate" style="color: var(--text-primary);">
@@ -477,12 +469,7 @@
                                 <button type="button" @click="detachCloudFile(a.id)" class="text-xs" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                             </div>
                         </template>
-                        <button type="button" @click="show()"
-                                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border"
-                                style="border-color: var(--border-strong); color: var(--text-primary);">
-                            <i class="fas fa-cloud"></i> Attach from Cloud Files
-                        </button>
-                        @include('user.cloud-files._attach-modal', ['confirmLabel' => 'Attach to card'])
+
                     </div>
                 </div>
 
@@ -677,7 +664,7 @@
 function kanbanBoard(boardId) {
     return {
         boardId,
-        drawerOpen: false, editorTab: 'details', cloudPickerOpen:false, followAttendance:false, ganttAnchor:taskToday(), ganttDays:35,
+        drawerOpen: false, editorTab: 'details', followAttendance:false, ganttAnchor:taskToday(), ganttDays:35,
         relatedKind:'link',relatedQuery:'',relatedResults:[],relatedLoading:false,relatedLoaded:false,
         boardView:sessionStorage.getItem('task-view-'+boardId)||'kanban', syncRevision:@js($syncRevision),syncStatus:'Checks every 15 seconds',syncTimer:null,notice:'',
         workflowOpen:false,workflowColumn:null,workflowRules:[],

@@ -1,7 +1,6 @@
 @extends('user.layouts.app')
 @section('title', 'Workspace Cloud Files')
 @section('content')
-@include('user.files._top-tabs')
 @include('user.cloud-files._tabs')
 
 @php

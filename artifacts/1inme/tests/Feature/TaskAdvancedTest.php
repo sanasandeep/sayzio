@@ -167,7 +167,9 @@ class TaskAdvancedTest extends TestCase
         foreach (['Prepare content', 'Review copy', 'Publish launch'] as $i => $title) {
             $board->cards()->create(['workspace_id' => $ws->id, 'column_id' => $board->columns[$i % 3]->id, 'created_by_user_id' => $owner->id, 'title' => $title, 'start_date' => '2026-10-'.(25 + $i), 'due_date' => '2026-11-02', 'progress' => 20 + $i * 20, 'position' => $i + 1]);
         }
-        $page = $this->get('/user/tasks/boards/'.$board->id)->assertOk()->assertSee('Task editor sections')->assertSee('Column connections')->assertSee('Export PDF');
+        $page = $this->get('/user/tasks/boards/'.$board->id)->assertOk()->assertSee('Task editor sections')->assertSee('Column connections')->assertSee('Export PDF')->assertDontSee('Attach from Cloud Files')->assertDontSee('cloudAttachPicker(', false);
+        $files = $this->withSession(['files_last_tab' => 'cloud'])->get('/user/files')->assertOk()->assertDontSee('My Vault')->assertDontSee('Cloud Library');
+        if (getenv('TASK_UI_FIXTURE')) file_put_contents('/tmp/sayzio-files-clean.html', $files->getContent());
         $svg = $this->get('/user/tasks/boards/'.$board->id.'/export?mode=gantt&format=svg&from=2026-10-24')->assertOk();
         $this->assertStringContainsString('<svg', $svg->getContent());
         $pdf = $this->get('/user/tasks/boards/'.$board->id.'/export?mode=gantt&format=pdf&from=2026-10-24')->assertOk();

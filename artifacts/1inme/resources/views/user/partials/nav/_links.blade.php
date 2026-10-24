@@ -54,14 +54,7 @@
                         @endif
                         @if($__can['files_view'] || $__can['links_view'])
                         @php
-                            $__filesLastTab = session('files_last_tab', 'vault');
-                            if ($__filesLastTab === 'cloud' && $__can['files_view']) {
-                                $filesHref = route('user.cloud-files.index');
-                            } elseif ($__can['links_view']) {
-                                $filesHref = route('user.files.index');
-                            } else {
-                                $filesHref = route('user.cloud-files.index');
-                            }
+                            $filesHref = $__can['links_view'] ? route('user.files.index') : route('user.cloud-files.index');
                         @endphp
                         <a href="{{ $filesHref }}"
                            class="sidebar-link {{ nav_route_is('user.files.*') || nav_route_is('user.cloud-files.*') || nav_route_is('user.cloud-oauth.*') ? 'active' : '' }}"
