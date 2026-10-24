@@ -126,10 +126,32 @@ class TaskBoardController extends Controller
         ]);
 
         $members = $this->workspaceMembers();
+        $columnPeople = [];
+        $activityPeople = TaskActivity::whereIn('card_id', $board->columns->flatMap->cards->pluck('id'))
+            ->whereNotNull('user_id')->select('card_id', 'user_id', 'type')->distinct()->with('user:id,name,avatar')->get()->groupBy('card_id');
+        foreach ($board->columns as $column) {
+            $people = [];
+            $add = function ($user, $task, $role) use (&$people) {
+                if (!$user) return;
+                $people[$user->id] ??= ['name' => $user->name, 'tasks' => [], 'roles' => []];
+                $people[$user->id]['roles'][$role] = true;
+                $people[$user->id]['tasks'][$task->id] ??= ['id' => $task->id, 'title' => $task->title, 'roles' => []];
+                $people[$user->id]['tasks'][$task->id]['roles'][$role] = true;
+            };
+            foreach ($column->cards as $task) {
+                foreach ($task->assignees as $user) $add($user, $task, 'Assigned');
+                foreach ($activityPeople->get($task->id, collect()) as $activity) {
+                    $role = match ($activity->type) { 'created' => 'Created', 'commented' => 'Participated', 'assigned', 'unassigned' => 'Updated', default => 'Updated' };
+                    $add($activity->user, $task, $role);
+                }
+            }
+            $columnPeople[$column->id] = collect($people)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->all();
+        }
 
-        return view('user.tasks.show', [
+        return view('user.tasks.show' , [
             'board'      => $board,
             'members'    => $members,
+            'columnPeople' => $columnPeople,
             'priorities' => TaskCard::priorities(),
             'projects'=>$this->projectChoices(),
             'projectAssignment'=>ProjectItem::where('kind','board')->where('resource_id',$board->id)->first(),
