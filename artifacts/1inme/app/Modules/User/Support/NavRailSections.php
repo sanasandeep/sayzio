@@ -123,7 +123,7 @@ class NavRailSections
         ],
         'work' => [
             'label' => 'Work', 'icon' => 'fa-list-check', 'partial' => 'user.partials.nav._work',
-            'routes' => ['user.tasks.*', 'user.attendance.*', 'user.vault.*'],
+            'routes' => ['user.tasks.*', 'user.attendance.*', 'user.team.*', 'user.vault.*'],
         ],
         'settings' => [
             'label'   => 'Settings',

@@ -1,6 +1,6 @@
 {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
                 @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'] || ($__can['attendance_view'] ?? false))
-                @php $grpWorkspaceActive = nav_route_is('user.attendance.*') || nav_route_is('user.tasks.*') || (nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*')); @endphp
+                @php $grpWorkspaceActive = nav_route_is('user.team.*') || nav_route_is('user.attendance.*') || nav_route_is('user.tasks.*') || (nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*')); @endphp
                 <div x-data="{ open: {{ $grpWorkspaceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">

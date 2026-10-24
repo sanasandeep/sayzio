@@ -53,16 +53,16 @@ class AttendanceCrmTest extends TestCase
         return $this->postJson('/user/attendance/punch', ['challenge_id' => $id])->assertOk()->json('id');
     }
 
-    public function test_navigation_moves_attendance_to_billing_and_accounts(): void
+    public function test_navigation_places_attendance_in_work_and_team(): void
     {
         [$owner,$ws,$staff] = $this->team();
         $this->login($owner, $ws);
         $page = $this->get('/user/attendance')->assertOk();
-        $page->assertSee('Billing &amp; Accounting', false)->assertSee('Attendance records')->assertSee('QR clock-in');
+        $page->assertSee('Work &amp; Team', false)->assertSee('Attendance records')->assertSee('QR clock-in');
         if (getenv('ATTENDANCE_UI_FIXTURE')) {
             file_put_contents('/tmp/sayzio-attendance-manager.html', $page->getContent());
         }
-        $this->assertSame('money', NavRailSections::activeKey());
+        $this->assertSame('work', NavRailSections::activeKey());
         $home = file_get_contents(resource_path('views/user/partials/nav/_home.blade.php'));
         $this->assertStringNotContainsString("route('user.attendance.index')", $home);
     }

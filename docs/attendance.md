@@ -66,7 +66,7 @@ Biometric device ingestion is **not connected**. Implementing it requires the ve
 
 ## Shifts and employee self-service
 
-Attendance, Shifts & Leave remains under Billing & Accounting for workspaces and Billing & Accounts for internal staff. Managers can create and archive shift templates, assign work/off rosters in bulk, and configure roster-required check-in, early check-in windows and automatic shift-end punch-out. Overnight assignments are supported. Assignments snapshot times and grace periods; assignments referenced by attendance cannot be rewritten or cancelled. Planned breaks are informational; actual worked time subtracts recorded breaks.
+Attendance and Leave Management use the Work & Team navigation for workspaces and Billing & Accounts for internal staff. Managers can create and archive shift templates, assign work/off rosters in bulk, and configure roster-required check-in, early check-in windows and automatic shift-end punch-out. Overnight assignments are supported. Assignments snapshot times and grace periods; assignments referenced by attendance cannot be rewritten or cancelled. Planned breaks are informational; actual worked time subtracts recorded breaks.
 
 Employee Self-Service shows personal attendance, dated rosters, timing, leave balances, and request history. Employees can submit leave, attendance correction, overtime, training and general requests, and withdraw pending requests. Training requests capture a title, provider and course URL. Requests use the existing scoped approval permissions and prohibit self-approval.
 
