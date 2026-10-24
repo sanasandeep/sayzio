@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class AiStaffConnections
 {
-    public const DATA = ['profile', 'links', 'biolinks', 'analytics', 'audience', 'payments', 'billing', 'contacts', 'tasks', 'forms', 'events', 'inbox', 'social'];
+    public const DATA = ['profile', 'links', 'biolinks', 'analytics', 'audience', 'payments', 'billing', 'contacts', 'tasks', 'forms', 'events', 'inbox', 'social', 'people'];
 
     public function options($user): array
     {

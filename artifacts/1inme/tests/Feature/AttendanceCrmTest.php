@@ -58,7 +58,7 @@ class AttendanceCrmTest extends TestCase
         [$owner,$ws,$staff] = $this->team();
         $this->login($owner, $ws);
         $page = $this->get('/user/attendance')->assertOk();
-        $page->assertSee('Billing &amp; Accounting', false)->assertSee('Team Management')->assertSee('QR clock-in');
+        $page->assertSee('Billing &amp; Accounting', false)->assertSee('Attendance records')->assertSee('QR clock-in');
         if (getenv('ATTENDANCE_UI_FIXTURE')) {
             file_put_contents('/tmp/sayzio-attendance-manager.html', $page->getContent());
         }
@@ -132,7 +132,7 @@ class AttendanceCrmTest extends TestCase
         $this->post('/user/attendance/setup', $data)->assertRedirect();
         $this->post('/user/attendance/setup', array_replace($data, ['title' => 'Future announcement', 'starts_on' => now()->addMonth()->toDateString()]))->assertRedirect();
         $this->login($staff, $ws);
-        $this->get('/user/attendance/team?tab=notices')->assertOk()->assertSee('Team meeting at ten')->assertDontSee('Future announcement');
+        $this->get('/user/team/people?tab=notices')->assertOk()->assertSee('Team meeting at ten')->assertDontSee('Future announcement');
     }
 
     public function test_bulk_review_is_atomic_and_cannot_approve_self(): void

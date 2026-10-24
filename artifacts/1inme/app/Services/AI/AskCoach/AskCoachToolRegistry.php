@@ -46,6 +46,7 @@ class AskCoachToolRegistry
             'analytics'    => ['label' => 'Analytics',   'description' => 'Clicks over time, device split, drop-off funnel.'],
             'payments'     => ['label' => 'Payments',    'description' => 'Wallet coin balance, billing plan.'],
             'audience'     => ['label' => 'Audience',    'description' => 'Followers, subscribers, recent growth.'],
+            'people'=>['label'=>'Attendance & leave','description'=>'Permission-scoped live attendance, leave balances and working policies.'],
             'account'      => ['label' => 'Account',     'description' => 'Plan, wallet coins, recent invoices.'],
             'event_lookup' => ['label' => 'Event lookup', 'description' => "Full stats for ONE specific event by name or date — tickets sold/checked in or RSVP counts. Use this when the user asks about a particular event, especially one that isn't in the recent-events overview."],
         ];
@@ -130,6 +131,7 @@ class AskCoachToolRegistry
             'analytics' => ['analytic', 'traffic', 'visitor', 'drop', 'funnel', 'conversion', 'bounce', 'mobile', 'desktop'],
             'payments'  => ['sale', 'revenue', 'payment', 'refund', 'checkout', 'product', 'price', 'paypal'],
             'audience'  => ['follower', 'subscriber', 'audience', 'fans', 'growth', 'lead'],
+            'people'=>['attendance','leave','roster','shift','working hours'],
             'account'   => ['plan', 'credit', 'wallet', 'billing', 'invoice', 'upgrade', 'free tier'],
         ];
 
@@ -166,6 +168,7 @@ class AskCoachToolRegistry
                 'payments'     => $this->payments($user),
                 'audience'     => $this->audience($user),
                 'account'      => $this->account($user),
+                'people'=>['summary'=>auth('web')->user()?app(\App\Services\AI\PeopleAiContext::class)->snapshot(auth('web')->user()):'', 'actions'=>array_filter([$this->action('People assistance','user.team.people','Review drafts and manage workspace policies')])],
                 'event_lookup' => $this->eventLookup($user, (string) ($args['query'] ?? '')),
                 default        => $base,
             };

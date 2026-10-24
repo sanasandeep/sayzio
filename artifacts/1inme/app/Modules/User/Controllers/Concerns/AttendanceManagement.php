@@ -39,8 +39,8 @@ trait AttendanceManagement
         $ws = $this->workspace($request, 'manage');
         $data = $request->validate(['staff_ids' => 'required|array|min:1|max:100', 'staff_ids.*' => 'required|integer|distinct',
             'designation_id' => ['nullable', 'integer', Rule::exists('attendance_designations', 'id')->where('workspace_id', $ws->id)],
-            'attendance_enabled' => 'nullable|boolean', 'auto_out_time' => 'nullable|date_format:H:i', 'allowed_ips' => 'nullable|string|max:2000',
-            'employee_code' => 'nullable|string|max:80', 'display_name' => 'nullable|string|max:120', 'fields' => 'required|array|min:1', 'fields.*' => 'in:designation_id,attendance_enabled,auto_out_time,allowed_ips,employee_code,display_name', 'note' => 'required|string|min:3|max:2000']);
+            'attendance_enabled' => 'nullable|boolean', 'auto_out_time' => 'nullable|date_format:H:i', 'employment_started_on'=>'nullable|date_format:Y-m-d', 'allowed_ips' => 'nullable|string|max:2000',
+            'employee_code' => 'nullable|string|max:80', 'display_name' => 'nullable|string|max:120', 'fields' => 'required|array|min:1', 'fields.*' => 'in:designation_id,attendance_enabled,auto_out_time,allowed_ips,employee_code,display_name,employment_started_on', 'note' => 'required|string|min:3|max:2000']);
         $allowed = $this->directory($ws)->pluck('id')->map(fn ($v) => (int) $v)->all();
         foreach ($data['staff_ids'] as $id) {
             abort_unless(in_array((int) $id, $allowed, true), 404);
@@ -110,10 +110,13 @@ trait AttendanceManagement
             } else {
                 $rules = ['name' => ['required', 'string', 'max:120', Rule::unique($table, 'name')->where('workspace_id', $ws->id)->ignore($id)]];
                 if ($kind === 'leave_type') {
-                    $rules += ['annual_days' => 'required|integer|between:0,366', 'paid' => 'required|boolean', 'encashment_enabled' => 'nullable|boolean', 'max_encash_days' => 'nullable|integer|between:0,366'];
+                    $rules += ['annual_days' => 'required|integer|between:0,366', 'paid' => 'required|boolean', 'encashment_enabled' => 'nullable|boolean', 'max_encash_days' => 'nullable|integer|between:0,366', 'accrual_mode'=>'nullable|in:annual,interval', 'accrual_days'=>'nullable|numeric|min:0.01|max:366', 'accrual_every_days'=>'nullable|integer|between:1,366', 'accrual_starts_on'=>'nullable|date_format:Y-m-d', 'opening_days'=>'nullable|numeric|between:0,366'];
                 }$values = $request->validate($rules);
             }
             if ($kind === 'leave_type' && empty($base['delete'])) {
+                $prior = $id ? DB::table($table)->where('id',$id)->first() : null;
+                foreach (['accrual_mode'=>'annual','accrual_days'=>1,'accrual_every_days'=>15,'accrual_starts_on'=>null,'opening_days'=>0] as $key=>$default) $values[$key] = array_key_exists($key,$values) ? $values[$key] : ($prior->$key ?? $default);
+                abort_if($values['opening_days'] > $values['annual_days'],422,'Opening days cannot exceed the annual cap.');
                 $values['encashment_enabled'] = (bool) ($values['encashment_enabled'] ?? false);
                 $values['max_encash_days'] = (int) ($values['max_encash_days'] ?? 0);
                 abort_if($values['encashment_enabled'] && ($values['max_encash_days'] < 1 || $values['max_encash_days'] > $values['annual_days']), 422, 'The encashment limit must be between one day and the annual allowance.');

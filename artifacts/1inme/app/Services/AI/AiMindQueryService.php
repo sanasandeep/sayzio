@@ -172,7 +172,9 @@ class AiMindQueryService
                     // there's none (anonymous visitor on a platform Mind)
                     // to avoid leaking another account's private data.
                     if (!$owner) continue;
-                    $text = $this->features->snapshot($owner, $key);
+                    $snapshotUser = $key === 'people' ? $contextUser : $owner;
+                    if (!$snapshotUser) continue;
+                    $text = $this->features->snapshot($snapshotUser, $key);
                 }
                 if ($text === '') continue;
                 $snapshots[] = [

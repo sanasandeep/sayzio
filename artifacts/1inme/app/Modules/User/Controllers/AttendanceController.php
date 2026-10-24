@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Support\StaffNavigation;
+use App\Modules\User\Controllers\Concerns\AttendanceAi;
 use App\Modules\User\Controllers\Concerns\AttendanceManagement;
 use App\Modules\User\Controllers\Concerns\AttendanceSelfService;
 use App\Modules\User\Models\AttendanceParticipant;
@@ -16,6 +17,7 @@ use App\Modules\User\Services\AttendanceOperations;
 use App\Modules\User\Services\AttendanceReport;
 use App\Modules\User\Services\AttendanceService;
 use App\Modules\User\Services\AttendanceWorkforce;
+use App\Modules\User\Services\PeoplePolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -25,6 +27,7 @@ use Illuminate\Validation\Rule;
 
 class AttendanceController extends Controller
 {
+    use AttendanceAi;
     use AttendanceManagement;
     use AttendanceSelfService;
 
@@ -85,6 +88,9 @@ class AttendanceController extends Controller
 
     public function index(Request $request)
     {
+        if ($this->actorGuard() === 'web' && $request->routeIs('user.attendance.team')) {
+            return redirect()->route('user.team.people', $request->only('tab'));
+        }
         $ws = $this->workspace($request);
         $policy = $this->attendance->policy($ws);
         $participant = $this->attendance->participant($ws, $this->actor($request)->id);
@@ -112,8 +118,14 @@ class AttendanceController extends Controller
 
         }
         if ($area === 'team') {
-            $tabs = ($reviewer || $canManage) ? ['people' => $this->actorGuard() === 'admin' ? 'Internal staff' : 'Team members'] : [];
-            $tabs += ['shifts' => 'Shifts & rosters', 'calendar' => 'Designations & holidays', 'notices' => 'Notices', 'access' => 'Roles & permissions'];
+            $tabs = ($reviewer || $canManage) ? ['people' => $this->actorGuard() === 'admin' ? 'Staff attendance settings' : 'Employment settings'] : [];
+            $tabs += ['shifts' => 'Shifts & rosters', 'calendar' => 'Designations & holidays', 'notices' => 'Notices', 'access' => 'Roles & permissions', 'ai' => 'AI assistance'];
+        }
+        if ($this->actorGuard() === 'admin') {
+            unset($tabs['ai']);
+        }
+        if ($area === 'team' && $canManage) {
+            $tabs['policy'] = 'Working hours & policy';
         }
         $tab = $request->query('tab', array_key_first($tabs));
         abort_unless(is_string($tab) && array_key_exists($tab, $tabs), 404);
@@ -143,11 +155,13 @@ class AttendanceController extends Controller
         }))->latest('created_at')->limit(30)->get();
         $directory = ($reviewer || $canManage) ? $this->directory($ws) : collect();
         $states = AttendanceParticipant::where('workspace_id', $ws->id)->pluck('state', 'user_id');
+        $peopleAi = $this->peopleAiData($request, $ws);
+        $workTarget = app(PeoplePolicy::class)->target($participant, $ws);
         $operations = $this->operationsData($request, $ws, $participant, $reviewer);
         $routePrefix = $this->routePrefix();
         $layout = $this->layout();
 
-        return view('user.attendance.index', compact('area', 'tabs', 'tab', 'isInternal', 'mayManageRoles', 'directoryAccess', 'accessPermissions', 'canRequest', 'operations', 'routePrefix', 'layout', 'directory', 'states', 'ws', 'policy', 'participant', 'reviewer', 'canManage', 'canExport', 'canPunch', 'punches', 'requests', 'seconds', 'reviews'));
+        return view('user.attendance.index', compact('peopleAi', 'workTarget', 'area', 'tabs', 'tab', 'isInternal', 'mayManageRoles', 'directoryAccess', 'accessPermissions', 'canRequest', 'operations', 'routePrefix', 'layout', 'directory', 'states', 'ws', 'policy', 'participant', 'reviewer', 'canManage', 'canExport', 'canPunch', 'punches', 'requests', 'seconds', 'reviews'));
     }
 
     public function challenge(Request $request)
@@ -210,9 +224,15 @@ class AttendanceController extends Controller
     public function settings(Request $request)
     {
         $ws = $this->workspace($request, 'manage');
+        $hours = $request->validate(['daily_hours' => 'sometimes|required|numeric|between:0.25,24', 'weekly_hours' => 'sometimes|required|numeric|between:0.25,168']);
+        foreach (['daily_hours' => 'daily_minutes', 'weekly_hours' => 'weekly_minutes'] as $key => $target) {
+            if (array_key_exists($key, $hours)) {
+                $request->merge([$target => (int) round($hours[$key] * 60)]);
+            }
+        }
         $data = $request->validate(['timezone' => 'required|timezone', 'require_photo' => 'required|boolean', 'require_location' => 'required|boolean',
             'latitude' => 'nullable|numeric|between:-90,90|required_with:radius_m', 'longitude' => 'nullable|numeric|between:-180,180|required_with:radius_m',
-            'radius_m' => 'nullable|integer|between:50,100000', 'retention_days' => 'required|integer|between:7,365', 'enforce_roster' => 'nullable|boolean', 'early_checkin_minutes' => 'nullable|integer|between:0,720', 'auto_out_at_shift_end' => 'nullable|boolean', 'note' => 'required|string|min:3|max:2000']);
+            'radius_m' => 'nullable|integer|between:50,100000', 'retention_days' => 'required|integer|between:7,365', 'enforce_roster' => 'nullable|boolean', 'early_checkin_minutes' => 'nullable|integer|between:0,720', 'auto_out_at_shift_end' => 'nullable|boolean', 'schedule_mode' => 'sometimes|required|in:fixed,flexible,weekly', 'fixed_start' => 'sometimes|required|date_format:H:i', 'fixed_end' => 'sometimes|required|date_format:H:i', 'daily_minutes' => 'sometimes|required|integer|between:1,1440', 'weekly_minutes' => 'sometimes|required|integer|between:1,10080', 'working_days' => 'sometimes|required|array|min:1|max:7', 'working_days.*' => 'integer|distinct|between:0,6', 'ai_people_enabled' => 'nullable|boolean', 'note' => 'required|string|min:3|max:2000']);
         abort_if($data['require_photo'] && ! config('attendance.evidence_bucket'), 422, 'Configure S3 storage before requiring selfies.');
         DB::transaction(function () use ($ws, $request, $data) {
             // Scope 0 belongs only to the internal admin directory; real workspace IDs start at 1.
@@ -222,7 +242,7 @@ class AttendanceController extends Controller
             $previous = $this->attendance->policy($ws);
             $values = array_replace($previous, $values);
             $values['early_checkin_minutes'] = (int) ($values['early_checkin_minutes'] ?? 60);
-            foreach (['enforce_roster', 'auto_out_at_shift_end'] as $flag) {
+            foreach (['enforce_roster', 'auto_out_at_shift_end', 'ai_people_enabled'] as $flag) {
                 $values[$flag] = (bool) $values[$flag];
             }
             DB::table('attendance_policies')->updateOrInsert(['workspace_id' => $ws->id], ['settings' => json_encode($values), 'created_at' => now(), 'updated_at' => now()]);

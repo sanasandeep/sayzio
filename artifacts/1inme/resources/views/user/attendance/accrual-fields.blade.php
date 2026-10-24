@@ -1,0 +1,6 @@
+<label>Allowance method<select name="accrual_mode"><option value="annual" @selected(($leaveType->accrual_mode ?? 'annual')==='annual')>Annual upfront</option><option value="interval" @selected(($leaveType->accrual_mode ?? '')==='interval')>Earn every N days</option></select></label>
+<label>Days per credit<input type="number" name="accrual_days" value="{{ $leaveType->accrual_days ?? 1 }}" step="0.01" min="0.01" max="366" required></label>
+<label>Credit every (calendar days)<input type="number" name="accrual_every_days" value="{{ $leaveType->accrual_every_days ?? 15 }}" min="1" max="366" required></label>
+<label>Policy starts on<input type="date" name="accrual_starts_on" value="{{ $leaveType->accrual_starts_on ?? '' }}"></label>
+<label>Opening days<input type="number" name="opening_days" value="{{ $leaveType->opening_days ?? 0 }}" step="0.01" min="0" max="366" required></label>
+<p class="muted" style="grid-column:1/-1">Earned leave uses completed intervals from the later of employment start, policy start and January 1. For example: 1 day every 15 calendar days. Credits reset annually and stop at the annual cap. Changes recalculate the current policy; existing requests remain recorded.</p>

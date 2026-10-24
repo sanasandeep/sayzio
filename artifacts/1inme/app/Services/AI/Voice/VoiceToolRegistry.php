@@ -46,6 +46,20 @@ class VoiceToolRegistry
     public function tools(): array
     {
         return [
+            'read_people_policies'=>[
+                'category'=>'guidance','role'=>'user','destructive'=>false,'permission'=>'attendance.view',
+                'ui_description'=>'Read your permitted attendance and leave summary.',
+                'description'=>'Read live permission-scoped attendance, leave balances and working policies when workspace AI people assistance is enabled. Excludes evidence and private reasons.',
+                'parameters'=>['type'=>'object','properties'=>(object)[],'additionalProperties'=>false],
+                'handler'=>fn(User $u,array $a)=>['summary'=>app(\App\Services\AI\PeopleAiContext::class)->snapshot($u)],
+            ],
+            'prepare_people_change'=>[
+                'category'=>'guidance','role'=>'user','destructive'=>false,'permission'=>'attendance.view',
+                'ui_description'=>'Prepare a leave or roster draft for your approval.',
+                'description'=>'Prepare a draft using an owned AI Staff member. Does not apply changes. The user must review and approve in workspace Team. Roster drafts require attendance.manage.',
+                'parameters'=>['type'=>'object','properties'=>['ai_staff_id'=>['type'=>'integer'],'draft_kind'=>['type'=>'string','enum'=>['leave','roster']],'prompt'=>['type'=>'string']],'required'=>['ai_staff_id','draft_kind','prompt'],'additionalProperties'=>false],
+                'handler'=>function(User $u,array $a){$r=\Illuminate\Http\Request::create('/user/attendance/ai-draft','POST',$a);$r->setUserResolver(fn()=>$u);app(\App\Modules\User\Controllers\AttendanceController::class)->preparePeopleDraft($r);return ['summary'=>'Draft prepared for human review. No attendance or leave changes applied.','url'=>route('user.team.people',['tab'=>'ai'])];},
+            ],
             'open_sayzio_feature'=>[
                 'ui_description'=>'Find and open a Sayzio page you can access.',
                 'category'=>'navigation','role'=>'user','destructive'=>false,

@@ -189,7 +189,7 @@ class AttendanceSelfServiceTest extends TestCase
         $matrix['viewer']['attendance.manage'] = true;
         WorkspaceRoleMatrix::save($ws, $matrix, $owner);
         $this->login($staff, $ws);
-        $this->get('/user/attendance/team?tab=shifts')->assertOk()->assertSee('Assign rosters in bulk');
+        $this->get('/user/team/people?tab=shifts')->assertOk()->assertSee('Assign rosters in bulk');
         $this->shift($ws);
         $this->assertFalse($staff->canInWorkspace($ws, 'attendance.review'));
     }
@@ -230,15 +230,15 @@ class AttendanceSelfServiceTest extends TestCase
             'encashments' => ['/user/attendance/leave?tab=encashments', 'Encashment requests', 'Your next action'],
             'balances' => ['/user/attendance/leave?tab=balances', 'annual balances', 'Team attendance'],
             'types' => ['/user/attendance/leave?tab=types', 'Configure leave types', 'Your next action'],
-            'people' => ['/user/attendance/team', 'Team members', 'Your next action'],
-            'shifts' => ['/user/attendance/team?tab=shifts', 'Create shift template', 'Your next action'],
-            'access' => ['/user/attendance/team?tab=access', 'Workspace team roles', 'Internal staff roles'],
+            'people' => ['/user/team/people', 'Employment settings', 'Your next action'],
+            'shifts' => ['/user/team/people?tab=shifts', 'Create shift template', 'Your next action'],
+            'access' => ['/user/team/people?tab=access', 'Workspace team roles', 'Internal staff roles'],
             'requests' => ['/user/attendance?tab=requests', 'New employee request', 'Your next action'],
             'qr' => ['/user/attendance?tab=qr', 'QR', 'Your next action'],
             'policy' => ['/user/attendance?tab=policy', 'Save policy', 'Your next action'],
             'reports' => ['/user/attendance?tab=reports', 'Download report', 'Your next action'],
-            'calendar' => ['/user/attendance/team?tab=calendar', 'holidays', 'Your next action'],
-            'notices' => ['/user/attendance/team?tab=notices', 'Team notices', 'Your next action'],
+            'calendar' => ['/user/team/people?tab=calendar', 'holidays', 'Your next action'],
+            'notices' => ['/user/team/people?tab=notices', 'Team notices', 'Your next action'],
             'audit' => ['/user/attendance?tab=audit', 'Review &amp; policy history', 'Your next action'],
         ];
         foreach ($pages as $name => [$url, $present, $absent]) {
@@ -253,13 +253,13 @@ class AttendanceSelfServiceTest extends TestCase
         }
         $this->get('/user/attendance/leave')->assertSee('Leave only reason')->assertDontSee('Training only reason');
         $this->get('/user/attendance?tab=requests')->assertSee('Training only reason')->assertDontSee('Leave only reason');
-        $this->get('/user/attendance/team?tab=access')->assertSee(route('user.team.roles.index'), false)->assertDontSee(route('admin.roles.index'), false);
+        $this->get('/user/team/people?tab=access')->assertSee(route('user.team.roles.index'), false)->assertDontSee(route('admin.roles.index'), false);
         $this->get('/user/attendance?tab=unknown')->assertNotFound();
         $this->login($staff, $ws);
         $this->get('/user/attendance?tab=policy')->assertNotFound();
-        $this->get('/user/attendance/team?tab=people')->assertNotFound();
+        $this->get('/user/team/people?tab=people')->assertNotFound();
         $this->get('/user/attendance/leave?tab=types')->assertNotFound();
-        $this->get('/user/attendance/team?tab=access')->assertOk()->assertDontSee('Manage team roles');
+        $this->get('/user/team/people?tab=access')->assertOk()->assertDontSee('Manage team roles');
         auth()->logout();
         $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Staff manager', 'guard' => 'admin']);
         $admin = Admin::create(['name' => 'Internal manager', 'email' => 'ui-staff@example.test', 'password' => bcrypt('password'), 'role_id' => $role->id, 'status' => 'active']);
