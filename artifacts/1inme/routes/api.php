@@ -214,7 +214,13 @@ Route::prefix('v1')->group(function () {
         // Owner read of the editable creator-profile state (Task #5600) —
         // raw resolved showcase (incl. disabled featured links) so the
         // mobile settings screen can seed losslessly before PATCHing.
+        Route::get('/leads', [\App\Modules\Api\Controllers\LeadApiController::class, 'index'])->middleware('auth:sanctum');
+        Route::post('/leads/decision', [\App\Modules\Api\Controllers\LeadApiController::class, 'decide'])->middleware('auth:sanctum')->middleware('throttle:60,1');
         Route::get('/me/creator-profile', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'settings']);
+        Route::post('/me/creator-profile/handle', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'claimHandle'])->middleware('auth:sanctum')->middleware('throttle:10,1');
+        Route::get('/me/creator-profile/phones', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'phones'])->middleware('auth:sanctum');
+        Route::post('/me/creator-profile/phones', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'attachPhone'])->middleware('auth:sanctum')->middleware('throttle:10,1');
+        Route::post('/me/creator-profile/phone-claims', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'claimPhone'])->middleware('auth:sanctum')->middleware('throttle:5,60');
 
         // Unified creator Stats home (mobile parity for web /user/stats).
         Route::get('/stats', [\App\Modules\Api\Controllers\CreatorStatsApiController::class, 'index']);

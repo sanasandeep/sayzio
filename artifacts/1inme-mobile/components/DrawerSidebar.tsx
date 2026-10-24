@@ -6,6 +6,7 @@ import {
   AccessibilityInfo,
   Alert,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -47,6 +48,7 @@ type NavItem = {
   icon: keyof typeof Feather.glyphMap;
   href: string;
   soon?: boolean;
+  webPath?: string;
 };
 
 type NavGroup = {
@@ -85,7 +87,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Subscribers", icon: "user-plus", href: "/subscribers" },
       { label: "Followers", icon: "user-check", href: "/followers" },
-      { label: "Feed", icon: "activity", href: "/feed", soon: true },
+      { label: "Feed", icon: "activity", href: "/feed" },
       { label: "My Posts", icon: "edit-2", href: "/posts" },
       { label: "Leads", icon: "target", href: "/leads" },
       { label: "Social Accounts", icon: "share-2", href: "/social" },
@@ -95,48 +97,80 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Monetization",
     items: [
-      { label: "Earnings & Payouts", icon: "dollar-sign", href: "/payouts", soon: true },
-      { label: "Monetization", icon: "trending-up", href: "/monetization", soon: true },
+      { label: "Earnings & Payouts", icon: "dollar-sign", href: "/payouts" },
+      { label: "Monetization", icon: "trending-up", href: "/monetization" },
       { label: "Orders", icon: "shopping-bag", href: "/orders" },
     ],
   },
   {
     title: "Growth & Marketing",
     items: [
-      { label: "Buzz", icon: "bell", href: "/social-proofs", soon: true },
-      { label: "Pixel", icon: "crosshair", href: "/pixels", soon: true },
+      { label: "Buzz", icon: "bell", href: "/social-proofs" },
+      { label: "Pixel", icon: "crosshair", href: "/pixels" },
       { label: "Referrals", icon: "gift", href: "/insider" },
     ],
   },
   {
     title: "AI",
     items: [
-      { label: "AI Note Summarizer", icon: "cpu", href: "/ai-mind", soon: true },
-      { label: "AI Minds", icon: "database", href: "/ai-minds", soon: true },
+      {
+        label: "AI Planner",
+        icon: "cpu",
+        href: "/ai-mind",
+        webPath: "/user/ai/mind",
+      },
+      {
+        label: "AI Minds",
+        icon: "database",
+        href: "/ai-minds",
+        webPath: "/user/minds",
+      },
       { label: "AI Persona Generator", icon: "user", href: "/ai-persona" },
-      { label: "AI Agents", icon: "zap", href: "/ai-agents", soon: true },
+      {
+        label: "AI Agents",
+        icon: "zap",
+        href: "/ai-agents",
+        webPath: "/user/ai-personas",
+      },
       { label: "AI Chat", icon: "message-square", href: "/ai-coach" },
-      { label: "Chat Widgets", icon: "message-circle", href: "/ai-companions", soon: true },
+      { label: "Chat Widgets", icon: "message-circle", href: "/ai-companions" },
       { label: "AI Brand Kit", icon: "feather", href: "/brand-kits" },
       { label: "AI Brand Studio", icon: "layers", href: "/brand-studio" },
-      { label: "AI Link Optimizer", icon: "trending-up", href: "/ai-growth-coach", soon: true },
       { label: "AI Coach", icon: "compass", href: "/ask-coach" },
-      { label: "AI Marketing Strategist", icon: "bar-chart", href: "/marketing-strategist" },
-      { label: "AI Staff", icon: "users", href: "/ai-staff", soon: true },
+      {
+        label: "AI Marketing Strategist",
+        icon: "bar-chart",
+        href: "/marketing-strategist",
+      },
+      { label: "AI Staff", icon: "users", href: "/ai-staff" },
     ],
   },
   {
     title: "Workspace & Tools",
     items: [
-      { label: "Tasks", icon: "check-square", href: "/tasks", soon: true },
-      { label: "Delivery Projects", icon: "clipboard", href: "/delivery-projects" },
+      { label: "Attendance", icon: "clock", href: "/attendance", webPath: "/user/attendance" },
+      {
+        label: "Tasks",
+        icon: "check-square",
+        href: "/tasks",
+        webPath: "/user/tasks",
+      },
+      {
+        label: "Delivery Projects",
+        icon: "clipboard",
+        href: "/delivery-projects",
+      },
       { label: "Vault", icon: "lock", href: "/vault" },
       { label: "Vault Audit", icon: "shield", href: "/vault-audit" },
       { label: "Events", icon: "calendar", href: "/events" },
       { label: "My Calendar", icon: "calendar", href: "/calendars" },
       { label: "Calendar Sync", icon: "refresh-cw", href: "/calendar" },
       { label: "AI Competitor Teardown", icon: "search", href: "/teardown" },
-      { label: "AI Performer Specialist", icon: "target", href: "/marketing-strategist" },
+      {
+        label: "AI Performer Specialist",
+        icon: "target",
+        href: "/marketing-strategist",
+      },
     ],
   },
   {
@@ -157,8 +191,13 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Account",
     items: [
       { label: "Settings", icon: "sliders", href: "/profile-edit" },
+      { label: "Creator profile", icon: "user", href: "/creator-settings" },
       { label: "Security", icon: "shield", href: "/security" },
-      { label: "Devices & Sessions", icon: "monitor", href: "/account-sessions" },
+      {
+        label: "Devices & Sessions",
+        icon: "monitor",
+        href: "/account-sessions",
+      },
       { label: "Linked IDs", icon: "at-sign", href: "/identifiers" },
       { label: "Connected Apps", icon: "zap", href: "/connected-apps" },
       { label: "Integrations", icon: "link", href: "/integrations" },
@@ -201,7 +240,8 @@ function WorkspaceSwitcherBlock({
   colors: ReturnType<typeof useColors>;
   isDark: boolean;
 }) {
-  const { workspaces, activeWorkspace, switchWorkspace, refresh } = useWorkspace();
+  const { workspaces, activeWorkspace, switchWorkspace, refresh } =
+    useWorkspace();
   const { closeDrawer } = useDrawer();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -234,6 +274,11 @@ function WorkspaceSwitcherBlock({
     setSwitching(ws.id);
     try {
       await switchWorkspace(ws);
+    } catch (e) {
+      Alert.alert(
+        "Could not switch workspace",
+        e instanceof Error ? e.message : "Try again.",
+      );
     } finally {
       setSwitching(null);
       setOpen(false);
@@ -308,9 +353,7 @@ function WorkspaceSwitcherBlock({
               backgroundColor: isDark
                 ? "rgba(20,20,28,0.98)"
                 : "rgba(250,251,255,0.98)",
-              borderColor: isDark
-                ? "rgba(255,255,255,0.1)"
-                : "rgba(0,0,0,0.1)",
+              borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
               shadowColor: "#000",
               shadowOpacity: isDark ? 0.5 : 0.15,
               shadowOffset: { width: 0, height: 6 },
@@ -329,12 +372,11 @@ function WorkspaceSwitcherBlock({
                 style={({ pressed }) => [
                   styles.wsRow,
                   {
-                    backgroundColor:
-                      isActive
-                        ? colors.primary + "18"
-                        : pressed
-                          ? colors.muted
-                          : "transparent",
+                    backgroundColor: isActive
+                      ? colors.primary + "18"
+                      : pressed
+                        ? colors.muted
+                        : "transparent",
                     borderRadius: 10,
                   },
                 ]}
@@ -383,7 +425,9 @@ function WorkspaceSwitcherBlock({
                     hitSlop={8}
                     style={({ pressed }) => [
                       styles.wsGear,
-                      { backgroundColor: pressed ? colors.muted : "transparent" },
+                      {
+                        backgroundColor: pressed ? colors.muted : "transparent",
+                      },
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel={`Edit workspace ${ws.name}`}
@@ -527,7 +571,7 @@ function ThemeToggleBlock({
 export function DrawerSidebar() {
   // Task #6729 — hide the Events entry when the platform-wide Events module
   // is switched off (the API 404s every events endpoint then). Fails open.
-  const { eventsModuleEnabled } = useFeatureStates();
+  const { eventsModuleEnabled, stateForHref } = useFeatureStates();
   const { isOpen, closeDrawer, contentProgress } = useDrawer();
   const { user, signOut } = useAuth();
   const colors = useColors();
@@ -543,7 +587,9 @@ export function DrawerSidebar() {
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(setReduceMotion)
+      .catch(() => {});
     const sub = AccessibilityInfo.addEventListener(
       "reduceMotionChanged",
       setReduceMotion,
@@ -575,7 +621,10 @@ export function DrawerSidebar() {
   const panelStyle = useAnimatedStyle(() => {
     const tx = interpolate(contentProgress.value, [0, 1], [-drawerW, 0]);
     if (reduceMotion) {
-      return { transform: [{ translateX: tx }], opacity: contentProgress.value };
+      return {
+        transform: [{ translateX: tx }],
+        opacity: contentProgress.value,
+      };
     }
     const rotateY = interpolate(contentProgress.value, [0, 1], [-8, 0]);
     return {
@@ -610,18 +659,14 @@ export function DrawerSidebar() {
       if (window.confirm("Are you sure you want to sign out?")) confirmed();
       return;
     }
-    Alert.alert(
-      "Sign out",
-      "Are you sure you want to sign out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign out",
-          style: "destructive",
-          onPress: confirmed,
-        },
-      ],
-    );
+    Alert.alert("Sign out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign out",
+        style: "destructive",
+        onPress: confirmed,
+      },
+    ]);
   };
 
   const isActive = (href: string) => {
@@ -714,7 +759,6 @@ export function DrawerSidebar() {
 
         {/* Content */}
         <View style={styles.panelContent}>
-
           {/* ── Header: brand wordmark + close ───────────────────────── */}
           <View
             style={[
@@ -761,10 +805,7 @@ export function DrawerSidebar() {
             {user?.avatar_url ? (
               <Image
                 source={{ uri: user.avatar_url }}
-                style={[
-                  styles.avatar,
-                  { borderColor: colors.primary + "55" },
-                ]}
+                style={[styles.avatar, { borderColor: colors.primary + "55" }]}
               />
             ) : (
               <View
@@ -777,12 +818,7 @@ export function DrawerSidebar() {
                   },
                 ]}
               >
-                <Text
-                  style={[
-                    styles.avatarInitial,
-                    { color: colors.primary },
-                  ]}
-                >
+                <Text style={[styles.avatarInitial, { color: colors.primary }]}>
                   {avatarInitial}
                 </Text>
               </View>
@@ -797,7 +833,10 @@ export function DrawerSidebar() {
                 {user?.display_name || user?.name || "Member"}
               </Text>
               <Text
-                style={[styles.identityEmail, { color: colors.mutedForeground }]}
+                style={[
+                  styles.identityEmail,
+                  { color: colors.mutedForeground },
+                ]}
                 numberOfLines={1}
               >
                 {user?.email ?? ""}
@@ -843,98 +882,124 @@ export function DrawerSidebar() {
                     (item) => eventsModuleEnabled || item.href !== "/events",
                   )
                   .map((item) => {
-                  const active = !item.soon && isActive(item.href);
-                  return (
-                    <Pressable
-                      key={item.label}
-                      onPress={() => !item.soon && navigate(item.href)}
-                      style={({ pressed }) => [
-                        styles.navItem,
-                        {
-                          backgroundColor: active
-                            ? colors.primary + "20"
-                            : pressed && !item.soon
-                              ? colors.primary + "12"
-                              : "transparent",
-                          borderRadius: 10,
-                          opacity: item.soon ? 0.6 : 1,
-                        },
-                      ]}
-                      accessibilityRole="menuitem"
-                      accessibilityState={{ selected: active }}
-                      {...WEB_FOCUS_RING_PROPS}
-                    >
-                      <View
-                        style={[
-                          styles.navIconWrap,
+                    const feature = stateForHref(item.href);
+                    const unavailable =
+                      item.soon || feature?.status === "coming_soon";
+                    const active = !unavailable && isActive(item.href);
+                    return (
+                      <Pressable
+                        key={item.label}
+                        onPress={() => {
+                          if (item.webPath) {
+                            closeDrawer();
+                            void Linking.openURL(
+                              `${getBaseUrl()}${item.webPath}`,
+                            ).catch(() =>
+                              Alert.alert(
+                                "Could not open web feature",
+                                "Please try again.",
+                              ),
+                            );
+                            return;
+                          }
+                          if (item.soon) return;
+                          if (feature?.status === "coming_soon") {
+                            closeDrawer();
+                            router.push({
+                              pathname: "/coming-soon",
+                              params: { key: feature.key },
+                            });
+                          } else navigate(item.href);
+                        }}
+                        style={({ pressed }) => [
+                          styles.navItem,
                           {
                             backgroundColor: active
-                              ? colors.primary + "30"
-                              : colors.muted,
-                            borderRadius: 8,
+                              ? colors.primary + "20"
+                              : pressed && !unavailable
+                                ? colors.primary + "12"
+                                : "transparent",
+                            borderRadius: 10,
+                            opacity: unavailable ? 0.6 : 1,
                           },
                         ]}
+                        accessibilityRole="menuitem"
+                        accessibilityState={{ selected: active }}
+                        {...WEB_FOCUS_RING_PROPS}
                       >
-                        <Feather
-                          name={item.icon}
-                          size={14}
-                          color={active ? colors.primary : colors.mutedForeground}
-                        />
-                      </View>
-                      <Text
-                        style={[
-                          styles.navLabel,
-                          {
-                            color: active
-                              ? colors.primary
-                              : colors.foreground,
-                            fontFamily: active
-                              ? "SpaceGrotesk_600SemiBold"
-                              : "SpaceGrotesk_500Medium",
-                          },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {item.label}
-                      </Text>
-                      {item.soon ? (
                         <View
                           style={[
-                            styles.soonBadge,
+                            styles.navIconWrap,
                             {
-                              backgroundColor: isDark
-                                ? "rgba(255,255,255,0.10)"
-                                : "rgba(0,0,0,0.07)",
+                              backgroundColor: active
+                                ? colors.primary + "30"
+                                : colors.muted,
+                              borderRadius: 8,
                             },
                           ]}
                         >
-                          <Text
+                          <Feather
+                            name={item.icon}
+                            size={14}
+                            color={
+                              active ? colors.primary : colors.mutedForeground
+                            }
+                          />
+                        </View>
+                        <Text
+                          style={[
+                            styles.navLabel,
+                            {
+                              color: active
+                                ? colors.primary
+                                : colors.foreground,
+                              fontFamily: active
+                                ? "SpaceGrotesk_600SemiBold"
+                                : "SpaceGrotesk_500Medium",
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.label}
+                        </Text>
+                        {unavailable || item.webPath ? (
+                          <View
                             style={[
-                              styles.soonBadgeText,
-                              { color: colors.mutedForeground },
+                              styles.soonBadge,
+                              {
+                                backgroundColor: isDark
+                                  ? "rgba(255,255,255,0.10)"
+                                  : "rgba(0,0,0,0.07)",
+                              },
                             ]}
                           >
-                            Soon
-                          </Text>
-                        </View>
-                      ) : active ? (
-                        <View
-                          style={[
-                            styles.activeIndicator,
-                            { backgroundColor: colors.primary },
-                          ]}
-                        />
-                      ) : (
-                        <Feather
-                          name="chevron-right"
-                          size={13}
-                          color={colors.mutedForeground}
-                          style={{ opacity: 0.5 }}
-                        />
-                      )}
-                    </Pressable>
-                  );
-                })}
+                            <Text
+                              style={[
+                                styles.soonBadgeText,
+                                { color: colors.mutedForeground },
+                              ]}
+                            >
+                              {item.webPath ? "Web ↗" : "Soon"}
+                            </Text>
+                          </View>
+                        ) : active ? (
+                          <View
+                            style={[
+                              styles.activeIndicator,
+                              { backgroundColor: colors.primary },
+                            ]}
+                          />
+                        ) : (
+                          <Feather
+                            name="chevron-right"
+                            size={13}
+                            color={colors.mutedForeground}
+                            style={{ opacity: 0.5 }}
+                          />
+                        )}
+                      </Pressable>
+                    );
+                  })}
               </View>
             ))}
             <View style={{ height: 24 }} />

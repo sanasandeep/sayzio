@@ -1,0 +1,637 @@
+{
+  "scope": "Source inventory, not an end-to-end certification",
+  "screen_sources": [
+    "app/(auth)/cancel-change.tsx",
+    "app/(auth)/index.tsx",
+    "app/(auth)/verify.tsx",
+    "app/(tabs)/create.tsx",
+    "app/(tabs)/inbox.tsx",
+    "app/(tabs)/index.tsx",
+    "app/(tabs)/links.tsx",
+    "app/(tabs)/profile.tsx",
+    "app/+not-found.tsx",
+    "app/account-merge.tsx",
+    "app/account-sessions.tsx",
+    "app/admin-user-password.tsx",
+    "app/ai-coach.tsx",
+    "app/ai-companions.tsx",
+    "app/ai-persona.tsx",
+    "app/ai-staff.tsx",
+    "app/api-usage.tsx",
+    "app/ask-coach.tsx",
+    "app/backlinks.tsx",
+    "app/billing/catalog.tsx",
+    "app/billing/companies.tsx",
+    "app/billing/companies/[id]/emails.tsx",
+    "app/billing/companies/[id]/emails/[key].tsx",
+    "app/billing/companies/[id]/smtp.tsx",
+    "app/billing/downgrade.tsx",
+    "app/billing/expenses.tsx",
+    "app/billing/ledger.tsx",
+    "app/billing/recurring.tsx",
+    "app/billing/tax-rules.tsx",
+    "app/biolink/[handle].tsx",
+    "app/brand-kits.tsx",
+    "app/brand-studio.tsx",
+    "app/calendar.tsx",
+    "app/calendars/[id].tsx",
+    "app/calendars/edit.tsx",
+    "app/calendars/event.tsx",
+    "app/calendars/index.tsx",
+    "app/card-scan.tsx",
+    "app/client-portals.tsx",
+    "app/client-portals/[id].tsx",
+    "app/cloud-files.tsx",
+    "app/coin-packages.tsx",
+    "app/coming-soon.tsx",
+    "app/connected-apps.tsx",
+    "app/contact-duplicates.tsx",
+    "app/contact-privacy.tsx",
+    "app/contacts-export.tsx",
+    "app/contacts.tsx",
+    "app/contacts/[id].tsx",
+    "app/contacts/follow-ups.tsx",
+    "app/creator-settings.tsx",
+    "app/dashboard-customize.tsx",
+    "app/delivery-projects.tsx",
+    "app/delivery-projects/[id].tsx",
+    "app/dialer-history.tsx",
+    "app/dialer-profile.tsx",
+    "app/dialer.tsx",
+    "app/dm/[handle].tsx",
+    "app/dm/tip.tsx",
+    "app/domains.tsx",
+    "app/events/[alias].tsx",
+    "app/events/broadcast/[linkId].tsx",
+    "app/events/checkin/[linkId].tsx",
+    "app/events/connect-qr/[linkId].tsx",
+    "app/events/create.tsx",
+    "app/events/edit/[linkId].tsx",
+    "app/events/index.tsx",
+    "app/events/my-tickets.tsx",
+    "app/events/people/[alias].tsx",
+    "app/events/swaps/[alias].tsx",
+    "app/events/ticket/[alias]/[code].tsx",
+    "app/events/tiers/[linkId].tsx",
+    "app/feed.tsx",
+    "app/followers/index.tsx",
+    "app/forms/[id].tsx",
+    "app/forms/index.tsx",
+    "app/identifiers.tsx",
+    "app/import-url.tsx",
+    "app/inbox/[id].tsx",
+    "app/inbox/forwarding.tsx",
+    "app/inbox/spam-settings.tsx",
+    "app/index.tsx",
+    "app/info/about.tsx",
+    "app/info/contact.tsx",
+    "app/info/extension.tsx",
+    "app/info/help.tsx",
+    "app/info/nfc.tsx",
+    "app/info/privacy.tsx",
+    "app/info/terms.tsx",
+    "app/insider.tsx",
+    "app/integrations.tsx",
+    "app/invoices.tsx",
+    "app/invoices/[id].tsx",
+    "app/invoices/edit/[id].tsx",
+    "app/invoices/new.tsx",
+    "app/leaderboard.tsx",
+    "app/leads.tsx",
+    "app/links/[id]/ai-builder.tsx",
+    "app/links/[id]/ai-chat.tsx",
+    "app/links/[id]/analytics.tsx",
+    "app/links/[id]/blocks/[blockId].tsx",
+    "app/links/[id]/blocks/index.tsx",
+    "app/links/[id]/conversational.tsx",
+    "app/links/[id]/edit.tsx",
+    "app/links/[id]/restaurant-menu.tsx",
+    "app/links/[id]/restaurant-orders.tsx",
+    "app/links/[id]/roadmap.tsx",
+    "app/links/[id]/service-booking-builder.tsx",
+    "app/links/[id]/service-booking-dashboard.tsx",
+    "app/links/[id]/settings/advanced.tsx",
+    "app/links/[id]/settings/appearance.tsx",
+    "app/links/[id]/settings/block-theme.tsx",
+    "app/links/[id]/settings/insurance.tsx",
+    "app/links/[id]/settings/layout.tsx",
+    "app/links/[id]/settings/stickers.tsx",
+    "app/links/[id]/settings/themes.tsx",
+    "app/links/[id]/slides.tsx",
+    "app/links/[id]/store-menu.tsx",
+    "app/links/[id]/store-orders.tsx",
+    "app/links/[id]/updates.tsx",
+    "app/links/[id]/visitors.tsx",
+    "app/links/conversational.tsx",
+    "app/links/create/[kind].tsx",
+    "app/links/insurance.tsx",
+    "app/links/wizard.tsx",
+    "app/lock.tsx",
+    "app/manage-subscription.tsx",
+    "app/marketing-strategist/[id].tsx",
+    "app/marketing-strategist/index.tsx",
+    "app/marketing-strategist/new.tsx",
+    "app/monetization/index.tsx",
+    "app/monetization/manage.tsx",
+    "app/monetization/subscribe.tsx",
+    "app/monetization/tip.tsx",
+    "app/monetization/unlock.tsx",
+    "app/my-card.tsx",
+    "app/notification-preferences.tsx",
+    "app/notifications.tsx",
+    "app/oauth-callback.tsx",
+    "app/onboarding.tsx",
+    "app/orders.tsx",
+    "app/paid-page/[alias].tsx",
+    "app/payouts.tsx",
+    "app/pixels.tsx",
+    "app/plans.tsx",
+    "app/posts/[id].tsx",
+    "app/posts/index.tsx",
+    "app/posts/new.tsx",
+    "app/profile-edit.tsx",
+    "app/profile/[handle].tsx",
+    "app/projects.tsx",
+    "app/qr-studio.tsx",
+    "app/qr.tsx",
+    "app/restaurant/[alias].tsx",
+    "app/resume.tsx",
+    "app/reviews/[alias].tsx",
+    "app/reviews/manage.tsx",
+    "app/security-logins.tsx",
+    "app/security.tsx",
+    "app/security/backup-codes.tsx",
+    "app/security/change-password.tsx",
+    "app/security/cool-off.tsx",
+    "app/security/trusted-contacts.tsx",
+    "app/security/two-factor.tsx",
+    "app/service-booking/[alias].tsx",
+    "app/setup.tsx",
+    "app/social-proofs.tsx",
+    "app/social/index.tsx",
+    "app/splash.tsx",
+    "app/stats.tsx",
+    "app/store/[alias].tsx",
+    "app/store/order/[id].tsx",
+    "app/subscribers.tsx",
+    "app/team.tsx",
+    "app/teardown/[id].tsx",
+    "app/teardown/index.tsx",
+    "app/upgrade.tsx",
+    "app/vault-audit.tsx",
+    "app/vault.tsx",
+    "app/verification-review.tsx",
+    "app/verification.tsx",
+    "app/visitors.tsx",
+    "app/wallet.tsx",
+    "app/whatsapp-verify.tsx",
+    "app/workspace-edit.tsx",
+    "app/workspace-members.tsx",
+    "app/workspaces.tsx"
+  ],
+  "api_clients": [
+    "accountMerge",
+    "accounting",
+    "adminUsers",
+    "aiBuilder",
+    "aiChat",
+    "aiCompanions",
+    "aiStaff",
+    "analytics",
+    "ask-coach",
+    "assistant",
+    "authConfig",
+    "bgPresets",
+    "bgTemplates",
+    "billing",
+    "biolinkThemes",
+    "biolinks",
+    "blockCache",
+    "blocks",
+    "brandKits",
+    "brandStudio",
+    "branding",
+    "calendar",
+    "calendars",
+    "cardScans",
+    "cardTemplates",
+    "client-portals",
+    "cloudFiles",
+    "company-mail",
+    "connectedApps",
+    "contactExport",
+    "contactPrivacy",
+    "contacts",
+    "conversational",
+    "creatorProfile",
+    "creditNotes",
+    "dashboard",
+    "deliveryProjects",
+    "dialer",
+    "dialerDevice",
+    "dm",
+    "domains",
+    "emailVerification",
+    "events",
+    "extensionStores",
+    "featureStates",
+    "files",
+    "follows",
+    "forms",
+    "identifiers",
+    "inbox",
+    "insurance",
+    "integrations",
+    "invoices",
+    "linkTypePairings",
+    "links",
+    "marketingStrategist",
+    "monetization",
+    "nfc",
+    "notifications",
+    "pageTemplates",
+    "paidPage",
+    "payouts",
+    "platformAssets",
+    "posts",
+    "profile",
+    "projects",
+    "push",
+    "qr",
+    "restaurant",
+    "resume",
+    "reviews",
+    "roadmap",
+    "security",
+    "service-booking",
+    "sessions",
+    "siteContent",
+    "slides",
+    "social",
+    "socialProofs",
+    "splash",
+    "store",
+    "storeMenu",
+    "subscribers",
+    "team",
+    "teardown",
+    "transfers",
+    "updates",
+    "usage",
+    "vault",
+    "verification",
+    "verificationAdmin",
+    "visitors",
+    "voice",
+    "whatsapp",
+    "wizard",
+    "workspaces"
+  ],
+  "drawer": [
+    {
+      "label": "Dashboard",
+      "native_route": "/",
+      "web_path": null
+    },
+    {
+      "label": "Links",
+      "native_route": "/links",
+      "web_path": null
+    },
+    {
+      "label": "Create",
+      "native_route": "/create",
+      "web_path": null
+    },
+    {
+      "label": "Inbox",
+      "native_route": "/inbox",
+      "web_path": null
+    },
+    {
+      "label": "Notifications",
+      "native_route": "/notifications",
+      "web_path": null
+    },
+    {
+      "label": "Stats",
+      "native_route": "/stats",
+      "web_path": null
+    },
+    {
+      "label": "Visitors",
+      "native_route": "/visitors",
+      "web_path": null
+    },
+    {
+      "label": "QR Codes",
+      "native_route": "/qr",
+      "web_path": null
+    },
+    {
+      "label": "QR Studio",
+      "native_route": "/qr-studio",
+      "web_path": null
+    },
+    {
+      "label": "Forms",
+      "native_route": "/forms",
+      "web_path": null
+    },
+    {
+      "label": "Backlinks",
+      "native_route": "/backlinks",
+      "web_path": null
+    },
+    {
+      "label": "Intros",
+      "native_route": "/splash",
+      "web_path": null
+    },
+    {
+      "label": "AI Resume / Portfolio",
+      "native_route": "/resume",
+      "web_path": null
+    },
+    {
+      "label": "Projects",
+      "native_route": "/projects",
+      "web_path": null
+    },
+    {
+      "label": "Cloud Files",
+      "native_route": "/cloud-files",
+      "web_path": null
+    },
+    {
+      "label": "Subscribers",
+      "native_route": "/subscribers",
+      "web_path": null
+    },
+    {
+      "label": "Followers",
+      "native_route": "/followers",
+      "web_path": null
+    },
+    {
+      "label": "Feed",
+      "native_route": "/feed",
+      "web_path": null
+    },
+    {
+      "label": "My Posts",
+      "native_route": "/posts",
+      "web_path": null
+    },
+    {
+      "label": "Leads",
+      "native_route": "/leads",
+      "web_path": null
+    },
+    {
+      "label": "Social Accounts",
+      "native_route": "/social",
+      "web_path": null
+    },
+    {
+      "label": "Leaderboard",
+      "native_route": "/leaderboard",
+      "web_path": null
+    },
+    {
+      "label": "Earnings & Payouts",
+      "native_route": "/payouts",
+      "web_path": null
+    },
+    {
+      "label": "Monetization",
+      "native_route": "/monetization",
+      "web_path": null
+    },
+    {
+      "label": "Orders",
+      "native_route": "/orders",
+      "web_path": null
+    },
+    {
+      "label": "Buzz",
+      "native_route": "/social-proofs",
+      "web_path": null
+    },
+    {
+      "label": "Pixel",
+      "native_route": "/pixels",
+      "web_path": null
+    },
+    {
+      "label": "Referrals",
+      "native_route": "/insider",
+      "web_path": null
+    },
+    {
+      "label": "AI Planner",
+      "native_route": null,
+      "web_path": "/user/ai/mind"
+    },
+    {
+      "label": "AI Minds",
+      "native_route": null,
+      "web_path": "/user/minds"
+    },
+    {
+      "label": "AI Persona Generator",
+      "native_route": "/ai-persona",
+      "web_path": null
+    },
+    {
+      "label": "AI Agents",
+      "native_route": null,
+      "web_path": "/user/ai-personas"
+    },
+    {
+      "label": "AI Chat",
+      "native_route": "/ai-coach",
+      "web_path": null
+    },
+    {
+      "label": "Chat Widgets",
+      "native_route": "/ai-companions",
+      "web_path": null
+    },
+    {
+      "label": "AI Brand Kit",
+      "native_route": "/brand-kits",
+      "web_path": null
+    },
+    {
+      "label": "AI Brand Studio",
+      "native_route": "/brand-studio",
+      "web_path": null
+    },
+    {
+      "label": "AI Coach",
+      "native_route": "/ask-coach",
+      "web_path": null
+    },
+    {
+      "label": "AI Marketing Strategist",
+      "native_route": "/marketing-strategist",
+      "web_path": null
+    },
+    {
+      "label": "AI Staff",
+      "native_route": "/ai-staff",
+      "web_path": null
+    },
+    {
+      "label": "Tasks",
+      "native_route": null,
+      "web_path": "/user/tasks"
+    },
+    {
+      "label": "Delivery Projects",
+      "native_route": "/delivery-projects",
+      "web_path": null
+    },
+    {
+      "label": "Vault",
+      "native_route": "/vault",
+      "web_path": null
+    },
+    {
+      "label": "Vault Audit",
+      "native_route": "/vault-audit",
+      "web_path": null
+    },
+    {
+      "label": "Events",
+      "native_route": "/events",
+      "web_path": null
+    },
+    {
+      "label": "My Calendar",
+      "native_route": "/calendars",
+      "web_path": null
+    },
+    {
+      "label": "Calendar Sync",
+      "native_route": "/calendar",
+      "web_path": null
+    },
+    {
+      "label": "AI Competitor Teardown",
+      "native_route": "/teardown",
+      "web_path": null
+    },
+    {
+      "label": "AI Performer Specialist",
+      "native_route": "/marketing-strategist",
+      "web_path": null
+    },
+    {
+      "label": "Invoices",
+      "native_route": "/invoices",
+      "web_path": null
+    },
+    {
+      "label": "Client Portals",
+      "native_route": "/client-portals",
+      "web_path": null
+    },
+    {
+      "label": "Recurring",
+      "native_route": "/billing/recurring",
+      "web_path": null
+    },
+    {
+      "label": "Expenses",
+      "native_route": "/billing/expenses",
+      "web_path": null
+    },
+    {
+      "label": "Catalog",
+      "native_route": "/billing/catalog",
+      "web_path": null
+    },
+    {
+      "label": "Tax Rules",
+      "native_route": "/billing/tax-rules",
+      "web_path": null
+    },
+    {
+      "label": "Ledger",
+      "native_route": "/billing/ledger",
+      "web_path": null
+    },
+    {
+      "label": "Wallet",
+      "native_route": "/wallet",
+      "web_path": null
+    },
+    {
+      "label": "API Usage",
+      "native_route": "/api-usage",
+      "web_path": null
+    },
+    {
+      "label": "Settings",
+      "native_route": "/profile-edit",
+      "web_path": null
+    },
+    {
+      "label": "Creator profile",
+      "native_route": "/creator-settings",
+      "web_path": null
+    },
+    {
+      "label": "Security",
+      "native_route": "/security",
+      "web_path": null
+    },
+    {
+      "label": "Devices & Sessions",
+      "native_route": "/account-sessions",
+      "web_path": null
+    },
+    {
+      "label": "Linked IDs",
+      "native_route": "/identifiers",
+      "web_path": null
+    },
+    {
+      "label": "Connected Apps",
+      "native_route": "/connected-apps",
+      "web_path": null
+    },
+    {
+      "label": "Integrations",
+      "native_route": "/integrations",
+      "web_path": null
+    },
+    {
+      "label": "Custom Domains",
+      "native_route": "/domains",
+      "web_path": null
+    },
+    {
+      "label": "Contact Privacy",
+      "native_route": "/contact-privacy",
+      "web_path": null
+    },
+    {
+      "label": "Verification",
+      "native_route": "/verification",
+      "web_path": null
+    },
+    {
+      "label": "Workspaces",
+      "native_route": "/workspaces",
+      "web_path": null
+    },
+    {
+      "label": "Team & Staff",
+      "native_route": "/team",
+      "web_path": null
+    }
+  ]
+}

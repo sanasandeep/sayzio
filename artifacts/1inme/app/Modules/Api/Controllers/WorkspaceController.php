@@ -34,6 +34,7 @@ class WorkspaceController extends Controller
     public function index(Request $request)
     {
         $userId = $request->user()->id;
+        $active = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($request->user());
         $memberWorkspaceIds = WorkspaceMember::where('user_id', $userId)->pluck('workspace_id');
         $items = Workspace::whereIn('id', $memberWorkspaceIds)
             ->orWhere('owner_user_id', $userId)
@@ -43,6 +44,7 @@ class WorkspaceController extends Controller
             ->values()
             ->map(fn ($w) => [
                 'id'         => $w->id,
+                'is_active' => (int) $active?->id === (int) $w->id,
                 'name'       => $w->name,
                 'slug'       => $w->slug ?? null,
                 'is_personal'=> (bool) ($w->is_personal ?? false),
@@ -137,6 +139,9 @@ class WorkspaceController extends Controller
         } catch (\Throwable) {
             // Column not migrated yet — treat as a no-op rather than a 500.
         }
+
+        $user->active_workspace_id = $ws->id;
+        app(\App\Modules\User\Services\WorkspaceContext::class)->set($ws);
 
         return $this->ok(['item' => $this->present($ws, (int) $user->id)]);
     }

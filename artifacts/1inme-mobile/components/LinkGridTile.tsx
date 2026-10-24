@@ -1,3 +1,4 @@
+import { LinkStatusControl } from "@/components/LinkStatusControl";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -47,8 +48,11 @@ export function LinkGridTile({ link }: { link: Link }) {
         },
       ]}
     >
+      <LinkStatusControl link={link} />
       {!link.is_active ? (
-        <View style={[styles.inactiveDot, { backgroundColor: colors.destructive }]} />
+        <View
+          style={[styles.inactiveDot, { backgroundColor: colors.destructive }]}
+        />
       ) : null}
       <View
         style={[
@@ -76,11 +80,16 @@ export function LinkGridTile({ link }: { link: Link }) {
             <View style={[styles.folderDot, { backgroundColor: tint }]} />
             <Text
               numberOfLines={1}
-              style={[styles.metaText, { color: colors.mutedForeground, maxWidth: 70 }]}
+              style={[
+                styles.metaText,
+                { color: colors.mutedForeground, maxWidth: 70 },
+              ]}
             >
               {link.project.name}
             </Text>
-            <Text style={[styles.metaText, { color: colors.mutedForeground }]}>·</Text>
+            <Text style={[styles.metaText, { color: colors.mutedForeground }]}>
+              ·
+            </Text>
           </>
         ) : null}
         <Text style={[styles.metaText, { color: colors.mutedForeground }]}>
@@ -113,7 +122,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     maxWidth: "100%",
   },
-  sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11, maxWidth: "100%" },
+  sub: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 11,
+    maxWidth: "100%",
+  },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",

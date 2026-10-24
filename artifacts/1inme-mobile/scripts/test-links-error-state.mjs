@@ -111,6 +111,7 @@ assert.match(
   /await apiSwitchWorkspace\(ws\.id\)/,
   "switchWorkspace must POST the server activate endpoint",
 );
+if (!/await queryClient\.invalidateQueries\(\)/.test(body)) {
 for (const key of ["workspaces-list", "links", "dashboard"]) {
   assert.match(
     body,
@@ -118,5 +119,7 @@ for (const key of ["workspaces-list", "links", "dashboard"]) {
     `switchWorkspace must invalidate the "${key}" query key`,
   );
 }
+}
+assert.ok(body.indexOf("await apiSwitchWorkspace(ws.id)") < body.indexOf("setActiveId(ws.id)"), "workspace display must change only after server activation succeeds");
 
 console.log("test-links-error-state: all assertions passed");

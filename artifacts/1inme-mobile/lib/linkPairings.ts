@@ -22,6 +22,8 @@ type IconName = keyof typeof Feather.glyphMap;
 // Catalog `type` → Feather glyph. Kept in step with the web icon intent and,
 // where a matching create kind exists, with lib/linkKinds.ts.
 const PAIRING_ICONS: Record<string, IconName> = {
+  url: "link",
+  file: "file",
   calendar: "calendar",
   ics: "calendar",
   biolink: "grid",
@@ -49,6 +51,10 @@ export function pairingIcon(type: string): IconName {
  */
 export function pairingCreatePath(type: string): string {
   switch (type) {
+    case "url":
+      return "/links/create/url";
+    case "file":
+      return "/links/create/file";
     case "biolink":
       return "/links/create/biolink";
     case "reviews":

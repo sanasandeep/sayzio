@@ -101,6 +101,8 @@ export async function apiFetch<T = unknown>(
     "X-1INME-Client": MOBILE_USER_AGENT,
     ...((init.headers as Record<string, string>) ?? {}),
   };
+  if (typeof FormData !== "undefined" && init.body instanceof FormData)
+    delete headers["Content-Type"];
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(url, { ...init, headers });
@@ -110,8 +112,7 @@ export async function apiFetch<T = unknown>(
   if (!res.ok) {
     // Backend may return either a flat { message } payload or the
     // standard envelope { error: { message, code, details } }.
-    const nested =
-      body && typeof body.error === "object" ? body.error : null;
+    const nested = body && typeof body.error === "object" ? body.error : null;
     const message =
       nested?.message ||
       (body && typeof body.message === "string" ? body.message : null) ||
@@ -150,8 +151,7 @@ export type OnboardingSlide = {
 };
 
 export const onboarding = {
-  slides: () =>
-    apiFetch<{ items: OnboardingSlide[] }>("/onboarding/slides"),
+  slides: () => apiFetch<{ items: OnboardingSlide[] }>("/onboarding/slides"),
 };
 
 // ── Wallet & coins ────────────────────────────────────────────────
@@ -204,12 +204,17 @@ export type WalletPurchaseResponse = {
   invoice_no: string;
   amount_minor: number;
   currency: string;
-  handoff: { kind: "redirect"; url: string } | { kind: "view"; view: string; data: unknown } | unknown;
+  handoff:
+    | { kind: "redirect"; url: string }
+    | { kind: "view"; view: string; data: unknown }
+    | unknown;
 };
 
 export const wallet = {
   balance: () => apiFetch<WalletBalance>("/wallet"),
-  transactions: (params: { type?: string; limit?: number; from?: string; to?: string } = {}) => {
+  transactions: (
+    params: { type?: string; limit?: number; from?: string; to?: string } = {},
+  ) => {
     const q = new URLSearchParams();
     if (params.type) q.set("type", params.type);
     if (params.limit) q.set("limit", String(params.limit));
@@ -222,7 +227,8 @@ export const wallet = {
       summary?: WalletLedgerSummary;
     }>(`/wallet/transactions${qs ? `?${qs}` : ""}`);
   },
-  packages: () => apiFetch<{ items: CoinPackage[]; currency: string }>("/wallet/packages"),
+  packages: () =>
+    apiFetch<{ items: CoinPackage[]; currency: string }>("/wallet/packages"),
   purchase: (coin_package_id: number, gateway: string) =>
     apiFetch<WalletPurchaseResponse>("/wallet/purchase", {
       method: "POST",
@@ -320,8 +326,7 @@ export type VoiceCapabilities = {
 };
 
 export const voiceAssistant = {
-  capabilities: () =>
-    apiFetch<VoiceCapabilities>("/ai/voice/capabilities"),
+  capabilities: () => apiFetch<VoiceCapabilities>("/ai/voice/capabilities"),
 
   /**
    * Upload a recorded clip and run one assistant turn.

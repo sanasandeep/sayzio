@@ -22,9 +22,12 @@ class ProfileVerificationApiController extends Controller
     public function show(Request $request)
     {
         $user = $request->user();
+        $profile = $this->workspaceProfile($request);
+        $target = $profile ?? $user;
+        if ($profile) $user = $profile->applyToUser(clone $user);
         $user->load('verificationTickType');
 
-        $requests = ProfileVerificationRequest::where('user_id', $user->id)->whereNull('creator_profile_id')
+        $requests = ProfileVerificationRequest::where('user_id', $user->id)->where('creator_profile_id', $profile?->id)
             ->with('tickType')
             ->orderByDesc('created_at')
             ->get()
@@ -46,6 +49,9 @@ class ProfileVerificationApiController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
+        $profile = $this->workspaceProfile($request);
+        $target = $profile ?? $user;
+        if ($profile) $user = $profile->applyToUser(clone $user);
 
         if (in_array($user->profile_verification_status, ['pending', 'pending_reverification'], true)) {
             return $this->fail('You already have a pending verification request.', 400, 'bad_request');
@@ -76,6 +82,7 @@ class ProfileVerificationApiController extends Controller
         $req = ProfileVerificationRequest::create([
             ...\App\Modules\User\Support\VerificationEvidence::fields($data),
             'user_id'       => $user->id,
+            'creator_profile_id' => $profile?->id,
             'tick_type_id'  => $data['tick_type_id'],
             'official_name' => $data['official_name'],
             'purpose'       => $data['purpose'],
@@ -86,7 +93,7 @@ class ProfileVerificationApiController extends Controller
         $req->update(['proof_files'=>$proofPaths]);
         if (trim((string) ($data['message'] ?? '')) !== '') $req->appendUpdate(trim($data['message']));
 
-        $user->update(['profile_verification_status' => 'pending']);
+        $target->update(['profile_verification_status' => 'pending']);
 
         return $this->created(['request' => $this->transformRequest($req->fresh('tickType'))]);
     }
@@ -98,8 +105,11 @@ class ProfileVerificationApiController extends Controller
     public function addUpdate(Request $request)
     {
         $user = $request->user();
+        $profile = $this->workspaceProfile($request);
+        $target = $profile ?? $user;
+        if ($profile) $user = $profile->applyToUser(clone $user);
 
-        $req = ProfileVerificationRequest::where('user_id', $user->id)->whereNull('creator_profile_id')
+        $req = ProfileVerificationRequest::where('user_id', $user->id)->where('creator_profile_id', $profile?->id)
             ->where('status', 'pending')
             ->orderByDesc('created_at')
             ->first();
@@ -183,6 +193,18 @@ class ProfileVerificationApiController extends Controller
         $user->update(['profile_verification_status' => 'pending_reverification']);
 
         return $this->ok(['request' => $this->transformRequest($req->fresh('tickType')), 'ok' => true]);
+    }
+
+    /** Existing account callers keep their scope; creator editor opts into the active workspace. */
+    private function workspaceProfile(Request $request): ?\App\Modules\User\Models\CreatorProfile
+    {
+        if ($request->input('context') !== 'workspace') return null;
+        $user = $request->user();
+        $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user) ?? $user->ensureDefaultWorkspace();
+        abort_unless((int) $ws->owner_user_id === (int) $user->id || $user->hasPermission('user.workspaces.access_any') || $user->membershipFor($ws)?->can('settings.edit'), 403);
+        $profile = \App\Modules\User\Models\CreatorProfile::forWorkspace($ws);
+        if ($request->filled('creator_profile_id')) abort_unless((int) $request->input('creator_profile_id') === (int) $profile->id, 409, 'Workspace changed. Reload before submitting.');
+        return $ws->is_personal ? null : $profile;
     }
 
     private function transformTickType(VerificationTickType $t): array
