@@ -25,11 +25,20 @@
     .kanban-card.completed { opacity: .55; text-decoration: line-through; }
     .sortable-ghost { opacity: 0.4; }
     .sortable-chosen { box-shadow: 0 8px 24px rgba(0,0,0,.25); }
-    .drawer { position: fixed; right: 0; top: 0; bottom: 0; width: 100%; max-width: 560px;
+    .drawer { position: fixed; right: 0; top: 0; bottom: 0; width: 100%; max-width: min(640px, 100vw);
               background: var(--bg-dropdown); border-left: 1px solid var(--border-strong);
               box-shadow: -8px 0 32px rgba(0,0,0,.25); z-index: 60;
               transform: translateX(100%); transition: transform .25s ease; overflow-y: auto; }
     .drawer.open { transform: translateX(0); }
+    .task-workflow-modal .form-chip{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:10px 14px;border:1px solid var(--border-strong);border-radius:12px;background:var(--bg-card);color:var(--text-primary);font-size:12px;font-weight:600;line-height:1.4}
+    .task-workflow-modal .task-modal-primary{background:var(--c-primary,#3d6bff);border-color:var(--c-primary,#3d6bff);color:#fff}
+    .task-workflow-modal .task-modal-close{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--border-soft);border-radius:10px;background:var(--bg-card);color:var(--text-muted);flex-shrink:0}
+    .task-workflow-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+    .task-workflow-fields label{display:flex;flex-direction:column;gap:6px;color:var(--text-muted);font-size:12px;font-weight:600;min-width:0}
+    .task-workflow-fields .theme-input{width:100%;min-width:0;height:40px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:10px;background:var(--bg-card);color:var(--text-primary);font-size:13px;font-weight:400}
+    .task-workflow-footer{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;border-top:1px solid var(--border-soft);padding-top:16px;margin-top:18px}
+    .task-workflow-modal button:focus-visible{outline:2px solid var(--c-primary,#3d6bff);outline-offset:3px}
+
     .priority-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
     .label-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: white; }
     .rt-toolbar button { padding: 2px 8px; border-radius: 6px; font-size: 12px; color: var(--text-muted); border: 1px solid var(--border-soft); background: var(--bg-glass-input); }
@@ -40,7 +49,7 @@
     .progress-fill  { height: 6px; background: linear-gradient(90deg,#3d6bff,#90acff); }
     .col-drag-handle { cursor: grab; opacity: 0.5; padding: 0 4px; }
     .col-drag-handle:hover { opacity: 1; }
-.task-editor-tabs{display:flex;overflow-x:auto;gap:16px;position:sticky;top:0;background:var(--bg-card);z-index:5;padding:12px 0;margin-bottom:18px;border-bottom:1px solid var(--border-soft)}.task-editor-tabs button{white-space:nowrap;font-size:12px;padding:8px 2px;border-bottom:2px solid transparent}.task-editor-tabs button[aria-selected=true]{color:var(--c-primary,#3d6bff);border-color:currentColor}.task-related-results{max-height:230px;overflow:auto}.task-related-choice{display:flex;justify-content:space-between;width:100%;padding:10px;text-align:left;border-bottom:1px solid var(--border-soft);font-size:13px}.task-related-choice:hover{background:var(--bg-glass-input)}.drawer .task-progress-range{padding:0;border:0;min-height:28px;height:28px;accent-color:var(--c-primary,#3d6bff)}.drawer .theme-input{max-width:100%}.drawer [data-editor-panel=time] input{min-width:0}.drawer{max-width:100vw}.drawer [x-cloak]{display:none!important}
+.task-editor-tabs{display:flex;overflow-x:auto;gap:16px;position:sticky;top:0;background:var(--bg-card);z-index:5;padding:12px 0;margin-bottom:18px;border-bottom:1px solid var(--border-soft)}.task-editor-tabs button{white-space:nowrap;font-size:12px;padding:8px 2px;border-bottom:2px solid transparent}.task-editor-tabs button[aria-selected=true]{color:var(--c-primary,#3d6bff);border-color:currentColor}.task-related-results{max-height:230px;overflow:auto}.task-related-choice{display:flex;justify-content:space-between;width:100%;padding:10px;text-align:left;border-bottom:1px solid var(--border-soft);font-size:13px}.task-related-choice:hover{background:var(--bg-glass-input)}.drawer .task-progress-range{padding:0;border:0;min-height:28px;height:28px;accent-color:var(--c-primary,#3d6bff)}.drawer .theme-input{max-width:100%}.drawer [data-editor-panel=time] input{min-width:0}.drawer [x-cloak]{display:none!important}
 </style>
 @endpush
 @section('content')
