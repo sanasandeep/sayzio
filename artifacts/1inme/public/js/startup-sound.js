@@ -20,7 +20,7 @@
     function paint() {
         buttons.forEach(button => {
             button.hidden = false;
-            const label = `Turn startup sound ${enabled ? 'off' : 'on'}`;
+            const label = `Turn Sayzio sounds ${enabled ? 'off' : 'on'}`;
             button.setAttribute('aria-label', label);
             button.setAttribute('title', label);
             button.setAttribute('aria-pressed', String(enabled));
@@ -41,9 +41,11 @@
         play();
     }
 
-    function play() {
-        if (!enabled || played || pending || document.visibilityState !== 'visible'
-            || config.dataset.dashboard !== 'true') return;
+    function play(reason = 'startup') {
+        const chatOpening = reason === 'chat';
+        if (!enabled || pending || document.visibilityState !== 'visible'
+            || (!chatOpening && (played || config.dataset.dashboard !== 'true'))
+            || (audio && audio.paused === false && !audio.ended)) return;
         if (!audio) {
             audio = new Audio(config.dataset.src);
             audio.preload = 'auto';
@@ -53,9 +55,10 @@
                 disarm();
             });
         }
+        if (chatOpening) audio.currentTime = 0;
         pending = true;
         audio.play().catch(error => {
-            if (error.name === 'NotAllowedError' && enabled && !played) {
+            if (error.name === 'NotAllowedError' && !chatOpening && enabled && !played) {
                 document.addEventListener('click', interact);
                 document.addEventListener('keydown', interact);
             }
@@ -82,6 +85,8 @@
             if (audio) audio.pause();
         }
     });
+    // Chat openings are separate from the once-per-session dashboard greeting.
+    window.addEventListener('sayzio:zio-open', () => play('chat'));
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') play();
         else if (audio) audio.pause();
