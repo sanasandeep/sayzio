@@ -55,6 +55,9 @@ $root = dirname(__DIR__);
  * environment-specific database row id.
  */
 const ALLOWLIST = [
+    'app/Console/Commands/AutoPunchOutAttendance.php' => [
+        "'actor_user_id' => 0" => 'System actor sentinel paired with actor_guard=system; it never references an employee database row.',
+    ],
     // Example:
     // 'database/seeders/SomeSeeder.php' => [
     //     "'external_id' => 0" => 'sentinel value for a third-party API field, not a DB row id',
