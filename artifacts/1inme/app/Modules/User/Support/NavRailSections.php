@@ -57,7 +57,6 @@ class NavRailSections
             'partial' => 'user.partials.nav._home',
             'routes'  => [
                 'user.dashboard',
-                'user.attendance.*',
                 'user.links.index',
                 'user.links.show',
                 'user.links.create',
@@ -137,6 +136,7 @@ class NavRailSections
                 'user.monetization.*',
                 'user.billing.*',
                 'user.client-invoices.*',
+                'user.attendance.*',
             ],
         ],
         'settings' => [

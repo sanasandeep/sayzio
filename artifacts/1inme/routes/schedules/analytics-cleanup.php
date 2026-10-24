@@ -14,6 +14,7 @@
 */
 
 return [
+    ['key'=>'attendance:auto-punch-out','description'=>'Close attendance sessions at employee configured cutoff times.','cadence'=>['everyMinute']],
     [
         'key' => 'attendance:prune-evidence',
         'description' => 'Remove attendance photos and coordinates after the team retention period.',

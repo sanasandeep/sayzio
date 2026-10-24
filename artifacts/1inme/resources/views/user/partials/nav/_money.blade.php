@@ -1,5 +1,5 @@
 {{--
-    Money: Monetization (one item) and Billing & Accounting (seven),
+    Money: Monetization and Billing & Accounting, including Attendance,
     both verbatim and both keeping their headers.
 --}}
                 {{-- ========== MONETIZATION (collapsible) ========== --}}
@@ -25,8 +25,8 @@
                 @endif
 
                 {{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
-                @if($__can['tasks_view'])
-                @php $grpBillingActive = nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*'); @endphp
+                @if($__can['tasks_view'] || ($__can['attendance_view'] ?? false))
+                @php $grpBillingActive = nav_route_is('user.attendance.*') || nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*'); @endphp
                 <div x-data="{ open: {{ $grpBillingActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -34,6 +34,10 @@
                         <svg class="nav-icon grp-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
+@if($__can['attendance_view'] ?? false)
+                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-check"></use></svg></div><span class="nav-label">Attendance</span><span class="sidebar-tooltip">Attendance</span></a>
+                        @endif
+                        @if($__can['tasks_view'])
                         <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-building-2"></use></svg></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
                         <a href="{{ route('user.client-invoices.dashboard') }}"
                            class="sidebar-link {{ nav_route_is('user.client-invoices.*') ? 'active' : '' }}"
@@ -77,6 +81,7 @@
                             <span class="nav-label">Ledger</span>
                             <span class="sidebar-tooltip">Ledger / P&amp;L</span>
                         </a>
+                        @endif
                     </div>
                 </div>
                 @endif

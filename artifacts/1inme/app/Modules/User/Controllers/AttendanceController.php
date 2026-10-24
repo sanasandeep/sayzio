@@ -3,12 +3,15 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Controllers\Concerns\AttendanceManagement;
 use App\Modules\User\Models\AttendanceParticipant;
 use App\Modules\User\Models\AttendancePunch;
 use App\Modules\User\Models\AttendanceRequest;
 use App\Modules\User\Models\AttendanceReview;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
+use App\Modules\User\Services\AttendanceOperations;
+use App\Modules\User\Services\AttendanceReport;
 use App\Modules\User\Services\AttendanceService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -19,6 +22,8 @@ use Illuminate\Validation\Rule;
 
 class AttendanceController extends Controller
 {
+    use AttendanceManagement;
+
     public function __construct(private AttendanceService $attendance) {}
 
     protected function workspace(Request $request, string $ability = 'view'): Workspace
@@ -61,7 +66,7 @@ class AttendanceController extends Controller
         return 'web';
     }
 
-    private function scopedPunch(Workspace $ws, int $id): AttendancePunch
+    protected function scopedPunch(Workspace $ws, int $id): AttendancePunch
     {
         return AttendancePunch::whereHas('participant', fn ($q) => $q->where('workspace_id', $ws->id))->findOrFail($id);
     }
@@ -81,7 +86,7 @@ class AttendanceController extends Controller
         $reviewer = $this->can($request, $ws, 'review');
         $canManage = $this->can($request, $ws, 'manage');
         $canExport = $this->can($request, $ws, 'export');
-        $canPunch = $this->can($request, $ws, 'create');
+        $canPunch = $this->can($request, $ws, 'create') && $participant->attendance_enabled;
         $query = AttendancePunch::with('participant.'.$this->staffRelation())->whereHas('participant', fn ($q) => $q->where('workspace_id', $ws->id)->when(! $reviewer, fn ($q) => $q->where('user_id', $this->actor($request)->id)));
         $filters = $request->validate(['from' => 'nullable|date_format:Y-m-d', 'to' => 'nullable|date_format:Y-m-d|after_or_equal:from', 'staff' => 'nullable|integer|min:1']);
         if (! empty($filters['from'])) {
@@ -103,17 +108,19 @@ class AttendanceController extends Controller
         }))->latest('created_at')->limit(30)->get();
         $directory = $reviewer ? $this->directory($ws) : collect();
         $states = AttendanceParticipant::where('workspace_id', $ws->id)->pluck('state', 'user_id');
+        $operations = $this->operationsData($request, $ws, $participant, $reviewer);
         $routePrefix = $this->routePrefix();
         $layout = $this->layout();
 
-        return view('user.attendance.index', compact('routePrefix', 'layout', 'directory', 'states', 'ws', 'policy', 'participant', 'reviewer', 'canManage', 'canExport', 'canPunch', 'punches', 'requests', 'seconds', 'reviews'));
+        return view('user.attendance.index', compact('operations', 'routePrefix', 'layout', 'directory', 'states', 'ws', 'policy', 'participant', 'reviewer', 'canManage', 'canExport', 'canPunch', 'punches', 'requests', 'seconds', 'reviews'));
     }
 
     public function challenge(Request $request)
     {
         $ws = $this->workspace($request, 'create');
-        $data = $request->validate(['action' => ['required', Rule::in(AttendanceService::ACTIONS)]]);
-        $challenge = $this->attendance->challenge($this->attendance->participant($ws, $this->actor($request)->id), $data['action']);
+        abort_if($this->actorGuard() === 'web' && session()->has('impersonate_user_id'), 403, 'Attendance cannot be recorded while impersonating another user.');
+        $data = $request->validate(['action' => ['required', Rule::in(AttendanceService::ACTIONS)], 'qr_token' => 'nullable|uuid']);
+        $challenge = $this->attendance->challenge($this->attendance->participant($ws, $this->actor($request)->id), $data['action'], $request->ip(), $data['qr_token'] ?? null);
 
         return response()->json(['id' => $challenge->id, 'pose' => $challenge->pose, 'expires_at' => $challenge->expires_at->toIso8601String(),
             'photo_available' => (bool) config('attendance.evidence_bucket'),
@@ -124,8 +131,10 @@ class AttendanceController extends Controller
     public function punch(Request $request)
     {
         $ws = $this->workspace($request, 'create');
+        abort_if($this->actorGuard() === 'web' && session()->has('impersonate_user_id'), 403, 'Attendance cannot be recorded while impersonating another user.');
         $data = $request->validate(['challenge_id' => 'required|uuid', 'photo' => 'nullable|image|mimes:jpeg,png,webp|max:3072|dimensions:max_width=1920,max_height=1920',
             'captured_at' => 'nullable|date', 'latitude' => 'nullable|required_with:longitude,accuracy|numeric|between:-90,90', 'longitude' => 'nullable|required_with:latitude,accuracy|numeric|between:-180,180', 'accuracy' => 'nullable|required_with:latitude,longitude|numeric|between:0,100000']);
+        $data['ip_address'] = $request->ip();
         $punch = $this->attendance->punch($this->attendance->participant($ws, $this->actor($request)->id), $ws, $data, $request->file('photo'));
 
         return response()->json(['id' => $punch->id, 'message' => 'Attendance saved.', 'received_at' => $punch->created_at->toIso8601String()]);
@@ -188,7 +197,7 @@ class AttendanceController extends Controller
         $ws = $this->workspace($request, 'create');
         $data = $request->validate(['type' => 'required|in:leave,correction,overtime', 'starts_on' => 'required|date_format:Y-m-d', 'ends_on' => 'required|date_format:Y-m-d|after_or_equal:starts_on',
             'reason' => 'required|string|min:3|max:2000', 'punch_id' => 'exclude_unless:type,correction|required|integer',
-            'proposed_at' => 'exclude_unless:type,correction|required|date', 'minutes' => 'exclude_unless:type,overtime|required|integer|between:1,1440']);
+            'proposed_at' => 'exclude_unless:type,correction|required|date', 'minutes' => 'exclude_unless:type,overtime|required|integer|between:1,1440', 'leave_type_id' => 'exclude_unless:type,leave|nullable|integer']);
         abort_if($data['type'] === 'overtime' && $data['starts_on'] !== $data['ends_on'], 422, 'Submit overtime for one date at a time.');
         $participant = $this->attendance->participant($ws, $this->actor($request)->id);
         if ($data['type'] === 'correction') {
@@ -198,8 +207,9 @@ class AttendanceController extends Controller
             $data['proposed_at'] = $proposed;
             abort_if($proposed->isFuture() || $proposed->diffInDays($punch->occurred_at, true) > 7, 422, 'Correction must be in the past and within seven days of the original punch.');
         }
-        DB::transaction(function () use ($participant, $data) {
+        DB::transaction(function () use ($participant, $data, $ws) {
             AttendanceParticipant::whereKey($participant->id)->lockForUpdate()->firstOrFail();
+            app(AttendanceOperations::class)->validateLeave($ws->id, $participant, $data);
             $existing = AttendanceRequest::where('participant_id', $participant->id)->where('type', $data['type'])->whereIn('status', ['pending', 'approved']);
             if ($data['type'] === 'correction') {
                 $existing->where('punch_id', $data['punch_id']);
@@ -224,6 +234,11 @@ class AttendanceController extends Controller
             $record = AttendanceRequest::whereKey($record->id)->lockForUpdate()->firstOrFail();
             abort_if($record->participant->user_id == $this->actor($request)->id, 403, 'A different reviewer must decide your request.');
             abort_unless($record->status === 'pending', 409, 'Request already decided.');
+            if ($data['decision'] === 'approved' && $record->type === 'leave') {
+                $leave = $record->toArray();
+                app(AttendanceOperations::class)->validateLeave($ws->id, $record->participant, $leave, $record->id);
+                $record->fill(collect($leave)->only(['requested_days', 'leave_year'])->all());
+            }
             $details = [];
             if ($data['decision'] === 'approved' && $record->type === 'correction') {
                 $punch = AttendancePunch::where('participant_id', $record->participant_id)->findOrFail($record->punch_id);
@@ -240,7 +255,7 @@ class AttendanceController extends Controller
         return back()->with('success', 'Request decision saved.');
     }
 
-    private function audit(Workspace $ws, Request $request, string $type, int $id, array $data, array $details = []): void
+    protected function audit(Workspace $ws, Request $request, string $type, int $id, array $data, array $details = []): void
     {
         AttendanceReview::create(['workspace_id' => $ws->id, 'actor_user_id' => $this->actor($request)->id, 'actor_guard' => $this->actorGuard(),
             'subject_type' => $type, 'subject_id' => $id, 'decision' => $data['decision'], 'note' => $data['note'], 'details' => $details, 'created_at' => now()]);
@@ -249,30 +264,28 @@ class AttendanceController extends Controller
     public function export(Request $request)
     {
         $ws = $this->workspace($request, 'export');
-        $data = $request->validate(['from' => 'required|date_format:Y-m-d', 'to' => 'required|date_format:Y-m-d|after_or_equal:from']);
+        $data = $request->validate(['from' => 'required|date_format:Y-m-d', 'to' => 'required|date_format:Y-m-d|after_or_equal:from', 'format' => 'nullable|in:csv,pdf,xlsx', 'mode' => 'nullable|in:daily,summary', 'staff' => 'nullable|integer|min:1']);
         $zone = $this->attendance->policy($ws)['timezone'];
         $from = CarbonImmutable::parse($data['from'], $zone)->startOfDay();
         $to = CarbonImmutable::parse($data['to'], $zone)->addDay()->startOfDay();
         abort_if($from->diffInDays($to) > 93, 422, 'Export up to 93 days at a time.');
         $reviewer = $this->can($request, $ws, 'review');
-        $participants = AttendanceParticipant::with($this->staffRelation())->where('workspace_id', $ws->id)->when(! $reviewer, fn ($q) => $q->where('user_id', $this->actor($request)->id))->get();
-
-        return response()->streamDownload(function () use ($participants, $from, $to, $zone) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, ['Staff', 'Email', 'Date', 'Timezone', 'Recorded hours', 'Approved overtime minutes', 'Approved leave requests'], ',', '"', '');
-            foreach ($participants as $participant) {
-                $punches = $participant->punches()->where('occurred_at', '<', $to->utc())->orderBy('occurred_at')->orderBy('id')->get();
-                $requests = AttendanceRequest::where('participant_id', $participant->id)->where('status', 'approved')->where('starts_on', '<', $to->toDateString())->where('ends_on', '>=', $from->toDateString())->get();
-                for ($day = $from; $day->lt($to); $day = $day->addDay()) {
-                    $date = $day->toDateString();
-                    $safe = fn ($value) => preg_match('/^[=+@\-\t\r\n]/u', (string) $value) ? "'".$value : $value;
-                    $hours = round($this->attendance->workedSeconds($punches, $day, $day->addDay()) / 3600, 2);
-                    fputcsv($file, array_map($safe, [$participant->staff?->name, $participant->staff?->email, $date, $zone, $hours,
-                        $requests->where('type', 'overtime')->where('starts_on', $date)->sum('minutes'),
-                        $requests->where('type', 'leave')->filter(fn ($r) => $r->starts_on <= $date && $r->ends_on >= $date)->count()]), ',', '"', '');
-                }
+        if ($reviewer) {
+            foreach ($this->directory($ws) as $employee) {
+                $this->attendance->participant($ws, $employee->id);
             }
-            fclose($file);
-        }, 'attendance-'.$data['from'].'-'.$data['to'].'.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+        }
+        $people = AttendanceParticipant::with($this->staffRelation())->where('workspace_id', $ws->id)->when(! $reviewer, fn ($q) => $q->where('user_id', $this->actor($request)->id))->when(! empty($data['staff']), fn ($q) => $q->where('user_id', $data['staff']))->get();
+        abort_if($people->count() * $from->diffInDays($to) > 50000, 422, 'Select fewer employees or a shorter report period.');
+        $mode = $data['mode'] ?? 'daily';
+        $format = $data['format'] ?? 'csv';
+        $report = app(AttendanceReport::class);
+        $rows = $report->rows($people, $from, $to, $zone, $mode);
+        abort_if($format === 'pdf' && count($rows) > 3000, 422, 'PDF exports are limited to 3,000 rows. Use summary mode, a shorter period, or Excel/CSV.');
+        $meta = ['scope' => $ws->name, 'from' => $data['from'], 'to' => $data['to'], 'timezone' => $zone, 'mode' => $mode];
+        $bytes = $format === 'pdf' ? $report->pdf($rows, $meta) : ($format === 'xlsx' ? $report->xlsx($rows) : $report->csv($rows));
+        $mime = ['csv' => 'text/csv; charset=UTF-8', 'pdf' => 'application/pdf', 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'][$format];
+
+        return response()->streamDownload(fn () => print ($bytes), 'attendance-'.$mode.'-'.$data['from'].'-'.$data['to'].'.'.$format, ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store']);
     }
 }

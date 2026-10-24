@@ -625,6 +625,8 @@ class UserManagementController extends Controller
     public function impersonate(User $user)
     {
         $admin = Auth::guard('admin')->user();
+        abort_unless($admin && $admin->hasPermission('users.impersonate'),403);
+        app(AdminActionLogger::class)->log('user.impersonated', $user, ['entry_point'=>'admin'], $admin);
         session(['impersonate_user_id' => $user->id, 'admin_id' => $admin->id]);
         Auth::guard('web')->login($user);
 

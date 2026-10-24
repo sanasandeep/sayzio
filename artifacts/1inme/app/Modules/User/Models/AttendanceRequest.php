@@ -8,7 +8,7 @@ class AttendanceRequest extends Model
 {
     protected $table = 'attendance_requests';
 
-    protected $fillable = ['participant_id', 'type', 'starts_on', 'ends_on', 'reason', 'punch_id', 'proposed_at', 'minutes', 'status'];
+    protected $fillable = ['participant_id', 'type', 'starts_on', 'ends_on', 'reason', 'punch_id', 'proposed_at', 'minutes', 'status', 'leave_type_id', 'requested_days', 'leave_year'];
 
     protected $casts = ['proposed_at' => 'immutable_datetime'];
 

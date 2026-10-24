@@ -3,8 +3,9 @@
 @section('content')
 <style>
 .att{max-width:1300px;margin:auto;color:var(--text-primary)}.att h1{font-size:30px;font-weight:750;letter-spacing:-1px}.att h2{font-size:18px;font-weight:700}.att p,.att small{color:var(--text-muted)}.att .card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:18px;padding:24px;margin-bottom:20px}.att .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.att .between{justify-content:space-between}.att .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.att .metric{font-size:32px;font-weight:700;letter-spacing:-1px}.att .badge{padding:5px 10px;border-radius:20px;background:var(--bg-hover);font-size:12px}.att button,.att .action{padding:10px 16px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--bg-hover);font-weight:600}.att button.primary{background:var(--accent,#3d6bff);color:white;border-color:transparent}.att button:disabled{opacity:.45;cursor:not-allowed}.att label{display:flex;flex-direction:column;gap:6px;font-size:13px}.att input,.att select,.att textarea{background:var(--bg-input,var(--bg-card));border:1px solid var(--border-subtle);border-radius:9px;padding:9px;color:var(--text-primary);min-width:0;width:100%}.att textarea{min-height:70px}.att .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}.att table{width:100%;border-collapse:collapse;font-size:13px}.att th,.att td{text-align:left;padding:14px 10px;border-bottom:1px solid var(--border-subtle);vertical-align:top}.att th{color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.att .scroll{overflow-x:auto}.att .note{padding:14px;border-radius:10px;background:var(--bg-hover);margin:12px 0;font-size:13px}.att details{margin-top:12px}.att summary{cursor:pointer;font-weight:600}.att dialog{background:var(--bg-card,#fff);color:var(--text-primary,#182033);border:1px solid var(--border-subtle,#ccd);border-radius:20px;padding:24px;width:min(520px,94vw);max-height:90vh;overflow:auto;margin:auto}.att dialog::backdrop{background:#050b20b3}.att video,.att .capture-photo{width:100%;max-height:320px;object-fit:contain;border-radius:12px;background:#111;margin:12px 0}.att [hidden]{display:none!important}.att .evidence{width:180px;border-radius:10px;margin-top:8px}.att .error{color:#dc2626}.att .muted{font-size:12px;color:var(--text-muted)}.att .space{margin-top:16px}@media(max-width:700px){.att .grid{grid-template-columns:1fr}.att .card{padding:16px}.att h1{font-size:26px}.att td,.att th{padding:10px 7px}}
+.att input[type=checkbox]{width:auto}.att-chart{overflow-x:auto;padding-top:18px}.att-bars{display:flex;gap:12px;align-items:flex-end;min-width:600px;min-height:155px}.att-chart-day{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px}.att-chart-day span{font-size:10px}.att-chart-bar{background:var(--accent,#3d6bff);width:75%;border-radius:5px 5px 0 0}.att-chart-day small{font-size:10px;white-space:nowrap}.att nav a{padding:6px 10px;border-radius:8px;background:var(--bg-hover)}.att section[id]{scroll-margin-top:90px}@media(max-width:700px){.att #att-calendar .grid>div{grid-column:auto!important}}
 </style>
-<div class="att" id="attendance-app" data-challenge-url="{{ route($routePrefix.'.challenge') }}" data-punch-url="{{ route($routePrefix.'.punch') }}">
+<div class="att" id="attendance-app" data-index-url="{{ route($routePrefix.'.index') }}" data-qr-session-url="{{ route($routePrefix.'.qr-session') }}" data-scan-base="{{ route($routePrefix.'.scan', ['token'=>'__TOKEN__']) }}" data-qr-token="{{ request()->attributes->get('attendance_qr_token', '') }}" data-challenge-url="{{ route($routePrefix.'.challenge') }}" data-punch-url="{{ route($routePrefix.'.punch') }}">
     <div class="row between" style="margin-bottom:24px">
 <div>
 <small>PEOPLE &amp; OPERATIONS · {{ $ws->name }}</small>
@@ -33,6 +34,7 @@
 <p>{{ $policy['radius_m'] ? 'Location within the configured work area' : ($policy['require_location'] ? 'Location required' : 'Location optional') }}</p>
 </div>
     </div>
+    @include('user.attendance.operations')
     <section class="card">
 <div class="row between">
 <div>
@@ -70,7 +72,7 @@
 </thead>
 <tbody>
         @forelse($punches as $punch)<tr>
-<td>{{ $punch->participant->staff?->name ?? 'Removed staff' }}<br>
+<td>@if($reviewer && $punch->participant_id !== $participant->id && $punch->review_status === 'pending')<input type="checkbox" form="att-bulk-punch" name="ids[]" value="{{ $punch->id }}" aria-label="Select punch {{ $punch->id }}">@endif {{ $punch->participant->staff?->name ?? 'Removed staff' }}<br>
 <small>#{{ $punch->id }}</small>
 </td>
 <td>{{ ['in'=>'Clock in','out'=>'Clock out','break'=>'Break started','resume'=>'Break ended'][$punch->action] }}<br>{{ $punch->occurred_at->setTimezone($policy['timezone'])->format('j M Y, H:i:s') }}<br>
@@ -82,7 +84,7 @@
 <img class="evidence" loading="lazy" src="{{ route($routePrefix.'.evidence',$punch->id) }}" alt="Attendance selfie for {{ $punch->participant->staff?->name }}">
 <p>Captured {{ $punch->captured_at?->setTimezone($policy['timezone'])->format('j M, H:i:s') }}</p>
 </details>@else<span class="muted">No retained photo</span>@endif
-            @if($punch->latitude !== null)<p class="muted">{{ $punch->latitude }}, {{ $punch->longitude }}<br>Accuracy ±{{ $punch->accuracy }} m</p>@endif</td>
+            <p class="muted">Source: {{ str_replace('_',' ',$punch->source) }}</p>@if($punch->latitude !== null)<p class="muted">{{ $punch->latitude }}, {{ $punch->longitude }}<br>Accuracy ±{{ $punch->accuracy }} m</p>@endif</td>
             <td>
 <span class="badge">{{ str_replace('_',' ',$punch->review_status) }}</span>
             @if($reviewer && $punch->participant_id !== $participant->id && $punch->review_status === 'pending')<details>
@@ -108,6 +110,7 @@
 </table>
 </div>
 <div class="space">{{ $punches->links() }}</div>
+@if($reviewer) @include('user.attendance.bulk-review', ['bulkKind'=>'punch']) @endif
     </section>
     @if($canPunch)<section class="card">
 <details>
@@ -120,6 +123,7 @@
 <option value="correction">Time correction</option>
 </select>
 </label>
+<label>Leave type<select name="leave_type_id"><option value="">General leave / not applicable</option>@foreach($operations['leave_types'] as $leaveType)<option value="{{ $leaveType->id }}">{{ $leaveType->name }}</option>@endforeach</select></label>
 <label>From<input type="date" name="starts_on" required>
 </label>
 <label>To<input type="date" name="ends_on" required>
@@ -140,28 +144,7 @@
 </form>
 </details>
 </section>@endif
-    @if($reviewer)<section class="card">
-<details>
-<summary>Staff directory · {{ $directory->count() }} active people</summary>
-<div class="scroll">
-<table>
-<thead>
-<tr>
-<th>Staff</th>
-<th>Email</th>
-<th>Current status</th>
-</tr>
-</thead>
-<tbody>@foreach($directory as $person)<tr>
-<td>{{ $person->name }}</td>
-<td>{{ $person->email }}</td>
-<td>{{ ['out'=>'Off duty','working'=>'Working','break'=>'On break'][$states[$person->id] ?? 'out'] }}</td>
-</tr>@endforeach</tbody>
-</table>
-</div>
-<p class="muted space">Uses the active staff directory. “Off duty” means no open session; it does not mark someone absent.</p>
-</details>
-</section>@endif
+
     <section class="card">
 <h2>{{ $reviewer ? 'Team requests' : 'Your requests' }}</h2>
 <div class="scroll">
@@ -174,7 +157,7 @@
 </tr>
 </thead>
 <tbody>@forelse($requests as $item)<tr>
-<td>{{ $item->participant->staff?->name }}<br>{{ ucfirst($item->type) }}</td>
+<td>@if($reviewer && $item->participant_id !== $participant->id && $item->status === 'pending')<input type="checkbox" form="att-bulk-request" name="ids[]" value="{{ $item->id }}" aria-label="Select request {{ $item->id }}">@endif {{ $item->participant->staff?->name }}<br>{{ ucfirst($item->type) }}</td>
 <td>{{ $item->starts_on }} – {{ $item->ends_on }}<p>{{ $item->reason }}</p>@if($item->minutes)<small>{{ $item->minutes }} minutes</small>@endif @if($item->punch_id)<small>Punch #{{ $item->punch_id }} → {{ $item->proposed_at?->setTimezone($policy['timezone'])->format('j M Y H:i') }}</small>@endif</td>
 <td>{{ ucfirst($item->status) }}@if($reviewer && $item->participant_id !== $participant->id && $item->status === 'pending')<form method="POST" action="{{ route($routePrefix.'.requests.review',$item->id) }}">@csrf<label>Decision<select name="decision">
 <option value="approved">Approve</option>
@@ -191,19 +174,11 @@
 </tr>@endforelse</tbody>
 </table>
 </div>
+@if($reviewer) @include('user.attendance.bulk-review', ['bulkKind'=>'request']) @endif
 <p class="muted">Showing the latest 50 requests. Approved overtime is exported separately from recorded hours.</p>
 </section>
-    @if($canExport)<section class="card">
-<h2>Attendance export</h2>
-<p>Daily recorded hours, approved overtime and leave. Up to 93 days per export.</p>
-<form class="row space" action="{{ route($routePrefix.'.export') }}">
-<label>From<input type="date" name="from" required value="{{ now($policy['timezone'])->startOfMonth()->toDateString() }}">
-</label>
-<label>To<input type="date" name="to" required value="{{ now($policy['timezone'])->toDateString() }}">
-</label>
-<button type="submit">Download CSV</button>
-</form>
-</section>@endif
+    @if($canExport)<section class="card" id="att-reports"><h2>Individual &amp; summary reports</h2><p>Recorded hours, approved overtime and leave. Up to 93 days per export.</p><form class="row space" action="{{ route($routePrefix.'.export') }}"><label>From<input type="date" name="from" required value="{{ now($policy['timezone'])->startOfMonth()->toDateString() }}"></label><label>To<input type="date" name="to" required value="{{ now($policy['timezone'])->toDateString() }}"></label><label>Report<select name="mode"><option value="daily">Individual / daily</option><option value="summary">Summary by employee</option></select></label>@if($reviewer)<label>Employee<select name="staff"><option value="">All employees</option>@foreach($directory as $person)<option value="{{ $person->id }}">{{ $person->name }}</option>@endforeach</select></label>@endif<label>File type<select name="format"><option value="csv">CSV</option><option value="xlsx">Excel (.xlsx)</option><option value="pdf">PDF</option></select></label><button type="submit">Download report</button></form></section>@endif
+
     @if($canManage)<section class="card">
 <details>
 <summary>Attendance policy</summary>
@@ -272,6 +247,6 @@
 <p class="muted space">Your photo and location, when captured, are shared with authorized attendance reviewers and retained under this team’s policy.</p>
 </dialog>
 </div>
-<script defer src="{{ asset('js/attendance.js') }}">
-</script>
+<script defer src="{{ asset('js/vendor/jsqr.min.js') }}"></script>
+<script defer src="{{ asset('js/attendance.js') }}?v=2"></script>
 @endsection
