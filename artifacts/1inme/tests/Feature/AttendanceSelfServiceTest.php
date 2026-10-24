@@ -94,7 +94,7 @@ class AttendanceSelfServiceTest extends TestCase
         $out = AttendancePunch::where('source', 'auto_punch_out')->first();
         $this->assertSame($roster, $out->roster_id);
         $this->assertNull($person->fresh()->active_roster_id);
-        $page = $this->get('/user/attendance')->assertOk()->assertSee('Employee Self-Service')->assertSee('Night shift')->assertSee('5m late');
+        $page = $this->get('/user/attendance?tab=self-service')->assertOk()->assertSee('Employee Self-Service')->assertSee('Night shift')->assertSee('5m late');
         if (getenv('ATTENDANCE_UI_FIXTURE')) {
             file_put_contents('/tmp/sayzio-attendance-self-service.html', $page->getContent());
         }$this->travelBack();
@@ -158,7 +158,7 @@ class AttendanceSelfServiceTest extends TestCase
         $this->post('/user/attendance/requests/'.$row->id.'/settle', $data)->assertStatus(409);
         $this->post('/user/attendance/requests/'.$row->id.'/withdraw', ['note' => 'Cannot withdraw paid request'])->assertNotFound();
         $this->login($staff, $ws);
-        $this->get('/user/attendance')->assertOk()->assertSee('PAY-TEST')->assertSee('500.25');
+        $this->get('/user/attendance/leave?tab=encashments')->assertOk()->assertSee('PAY-TEST')->assertSee('500.25');
     }
 
     public function test_training_and_general_requests_are_personal_and_reviewable(): void
@@ -172,7 +172,7 @@ class AttendanceSelfServiceTest extends TestCase
         $other = User::factory()->create();
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $other->id, 'role' => 'viewer']);
         $this->login($other, $ws);
-        $this->get('/user/attendance')->assertOk()->assertDontSee('Private staff training');
+        $this->get('/user/attendance?tab=requests')->assertOk()->assertDontSee('Private staff training');
         $this->post('/user/attendance/requests/'.$row->id.'/withdraw', ['note' => 'Cannot withdraw another request'])->assertNotFound();
         $this->login($owner, $ws);
         $this->post('/user/attendance/requests/'.$row->id.'/review', ['decision' => 'approved', 'note' => 'Training approved by manager'])->assertRedirect();
@@ -189,7 +189,7 @@ class AttendanceSelfServiceTest extends TestCase
         $matrix['viewer']['attendance.manage'] = true;
         WorkspaceRoleMatrix::save($ws, $matrix, $owner);
         $this->login($staff, $ws);
-        $this->get('/user/attendance')->assertOk()->assertSee('Assign rosters in bulk');
+        $this->get('/user/attendance/team?tab=shifts')->assertOk()->assertSee('Assign rosters in bulk');
         $this->shift($ws);
         $this->assertFalse($staff->canInWorkspace($ws, 'attendance.review'));
     }
@@ -211,10 +211,62 @@ class AttendanceSelfServiceTest extends TestCase
         $admin = Admin::create(['name' => 'Staff planner', 'email' => 'planner@example.test', 'password' => 'long-test-password', 'role_id' => $role->id, 'status' => 'active']);
         $this->actingAs($admin, 'admin');
         $this->post('/admin/attendance/shifts', ['name' => 'Office shift', 'starts_at' => '09:00', 'ends_at' => '17:00', 'break_minutes' => 30, 'late_grace_minutes' => 5, 'early_grace_minutes' => 5, 'active' => 1, 'note' => 'Internal team shift'])->assertRedirect();
-        $this->assertDatabaseHas('attendance_shifts',['workspace_id' => 0, 'name' => 'Office shift']);
-        $page = $this->get('/admin/attendance')->assertOk()->assertSee('Employee Self-Service')->assertSee('Office shift');
+        $this->assertDatabaseHas('attendance_shifts', ['workspace_id' => 0, 'name' => 'Office shift']);
+        $page = $this->get('/admin/attendance?tab=self-service')->assertOk()->assertSee('Employee Self-Service');
+        $this->get('/admin/attendance/team?tab=shifts')->assertOk()->assertSee('Office shift');
         if (getenv('ATTENDANCE_UI_FIXTURE')) {
-            file_put_contents('/tmp/sayzio-attendance-admin-self-service.html',$page->getContent());
+            file_put_contents('/tmp/sayzio-attendance-admin-self-service.html', $page->getContent());
+        }
+    }
+
+    public function test_management_pages_render_only_selected_section_and_keep_role_editors_separate(): void
+    {
+        [$owner, $ws, $staff] = $this->team();
+        $this->login($owner, $ws);
+        $pages = [
+            'overview' => ['/user/attendance', 'Your next action', 'Configure leave types'],
+            'history' => ['/user/attendance?tab=history', 'Team attendance', 'Your next action'],
+            'leave' => ['/user/attendance/leave', 'New leave request', 'Your next action'],
+            'encashments' => ['/user/attendance/leave?tab=encashments', 'Encashment requests', 'Your next action'],
+            'balances' => ['/user/attendance/leave?tab=balances', 'annual balances', 'Team attendance'],
+            'types' => ['/user/attendance/leave?tab=types', 'Configure leave types', 'Your next action'],
+            'people' => ['/user/attendance/team', 'Team members', 'Your next action'],
+            'shifts' => ['/user/attendance/team?tab=shifts', 'Create shift template', 'Your next action'],
+            'access' => ['/user/attendance/team?tab=access', 'Workspace team roles', 'Internal staff roles'],
+            'requests' => ['/user/attendance?tab=requests', 'New employee request', 'Your next action'],
+            'qr' => ['/user/attendance?tab=qr', 'QR', 'Your next action'],
+            'policy' => ['/user/attendance?tab=policy', 'Save policy', 'Your next action'],
+            'reports' => ['/user/attendance?tab=reports', 'Download report', 'Your next action'],
+            'calendar' => ['/user/attendance/team?tab=calendar', 'holidays', 'Your next action'],
+            'notices' => ['/user/attendance/team?tab=notices', 'Team notices', 'Your next action'],
+            'audit' => ['/user/attendance?tab=audit', 'Review &amp; policy history', 'Your next action'],
+        ];
+        foreach ($pages as $name => [$url, $present, $absent]) {
+            $page = $this->get($url)->assertOk()->assertSee($present, false)->assertDontSee($absent, false);
+            if (getenv('ATTENDANCE_UI_FIXTURE')) {
+                file_put_contents('/tmp/sayzio-attendance-ui-'.$name.'.html', $page->getContent());
+            }
+        }
+        $person = app(AttendanceService::class)->participant($ws, $owner->id);
+        foreach (['leave' => 'Leave only reason', 'training' => 'Training only reason'] as $type => $reason) {
+            AttendanceRequest::create(['participant_id' => $person->id, 'type' => $type, 'starts_on' => '2026-10-24', 'ends_on' => '2026-10-24', 'reason' => $reason, 'status' => 'pending']);
+        }
+        $this->get('/user/attendance/leave')->assertSee('Leave only reason')->assertDontSee('Training only reason');
+        $this->get('/user/attendance?tab=requests')->assertSee('Training only reason')->assertDontSee('Leave only reason');
+        $this->get('/user/attendance/team?tab=access')->assertSee(route('user.team.roles.index'), false)->assertDontSee(route('admin.roles.index'), false);
+        $this->get('/user/attendance?tab=unknown')->assertNotFound();
+        $this->login($staff, $ws);
+        $this->get('/user/attendance?tab=policy')->assertNotFound();
+        $this->get('/user/attendance/team?tab=people')->assertNotFound();
+        $this->get('/user/attendance/leave?tab=types')->assertNotFound();
+        $this->get('/user/attendance/team?tab=access')->assertOk()->assertDontSee('Manage team roles');
+        auth()->logout();
+        $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Staff manager', 'guard' => 'admin']);
+        $admin = Admin::create(['name' => 'Internal manager', 'email' => 'ui-staff@example.test', 'password' => bcrypt('password'), 'role_id' => $role->id, 'status' => 'active']);
+        $this->actingAs($admin, 'admin');
+        $page = $this->get('/admin/attendance/team?tab=access')->assertOk()->assertSee('Internal staff roles')->assertSee(route('admin.roles.index'), false)->assertDontSee(route('user.team.roles.index'), false);
+        if (getenv('ATTENDANCE_UI_FIXTURE')) {
+            file_put_contents('/tmp/sayzio-attendance-ui-admin-access.html', $page->getContent());
         }
     }
 }

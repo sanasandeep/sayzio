@@ -8,7 +8,7 @@
 <small>Used only for Modify punch times.</small>
 </label>@endif<label>Reason for every selected record<input name="note" required minlength="3" maxlength="2000">
 </label>
-<button type="submit">Apply bulk decision</button>
+<button type="submit" class="btn-primary">Apply bulk decision</button>
 </form>
 <p class="muted">Tick pending records above. You cannot select your own records. If any selection is invalid, no decisions are saved.</p>
 </details>

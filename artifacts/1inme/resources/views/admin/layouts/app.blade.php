@@ -362,7 +362,8 @@
                     @endif
                     {{-- Billing & Plans --}}
                     <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Billing &amp; Accounts</div>
-                    <a href="{{ route('admin.attendance.index') }}" class="sidebar-link {{ request()->routeIs('admin.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span>Attendance &amp; Leave</span></a>
+                    <a href="{{ route('admin.attendance.index') }}" class="sidebar-link {{ (request()->routeIs('admin.attendance.*') && !request()->routeIs('admin.attendance.leave')) ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span>Attendance</span></a>
+<a href="{{ route('admin.attendance.leave') }}" class="sidebar-link {{ request()->routeIs('admin.attendance.leave') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span>Leave Management</span></a>
                     @if($staffNavigation->allows('admin.plans.index'))
                     <a href="{{ route('admin.plans.index') }}" class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-tags"></i></div><span>Plans</span></a>
                     @endif

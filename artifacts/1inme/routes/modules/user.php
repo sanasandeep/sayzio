@@ -302,6 +302,8 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('security.logins.revoke-from-list');
         Route::prefix('attendance')->name('attendance.')->controller(\App\Modules\User\Controllers\AttendanceController::class)->group(function () {
             Route::get('', 'index')->middleware('throttle:60,1')->name('index');
+            Route::get('leave', 'index')->defaults('area', 'leave')->name('leave');
+            Route::get('team', 'index')->defaults('area', 'team')->name('team');
             Route::post('employees', 'saveEmployee')->middleware('throttle:30,1')->name('employees.save');
             Route::post('setup', 'saveResource')->middleware('throttle:30,1')->name('setup.save');
             Route::post('bulk-review', 'bulkReview')->middleware('throttle:20,1')->name('bulk-review');

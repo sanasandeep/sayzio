@@ -2,6 +2,9 @@
     'use strict';
     const root = document.getElementById('attendance-app');
     if (!root) return;
+    const tabs = root.querySelector('.att-tabs');
+    const activeTab = tabs?.querySelector('[aria-current="page"]');
+    if (activeTab) tabs.scrollLeft = activeTab.offsetLeft - tabs.offsetLeft - 16;
     const get = name => document.getElementById('attendance-' + name);
     const dialog = get('capture');
     const video = get('video');

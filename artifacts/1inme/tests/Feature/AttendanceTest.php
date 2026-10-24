@@ -60,7 +60,7 @@ class AttendanceTest extends TestCase
     {
         [$owner,$ws,$staff] = $this->team();
         $this->login($staff, $ws);
-        $page = $this->get('/user/attendance')->assertOk()->assertSee('Attendance')->assertSee('No attendance recorded yet');
+        $page = $this->get('/user/attendance?tab=history')->assertOk()->assertSee('Attendance')->assertSee('No attendance recorded yet');
         if (getenv('ATTENDANCE_UI_FIXTURE')) {
             file_put_contents('/tmp/sayzio-attendance-workspace.html', $page->getContent());
         }
@@ -259,6 +259,6 @@ class AttendanceTest extends TestCase
         $csv = $response->streamedContent();
         $this->assertStringContainsString("'=Unsafe formula", $csv);
         $this->assertStringContainsString('Asia/Kolkata,6,0,0', $csv);
-        $this->get('/user/attendance?from=2026-10-24&to=2026-10-24')->assertOk()->assertSee('=Unsafe formula');
+        $this->get('/user/attendance?tab=history&from=2026-10-24&to=2026-10-24')->assertOk()->assertSee('=Unsafe formula');
     }
 }

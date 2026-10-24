@@ -8,11 +8,7 @@
         ? (new \App\Modules\Admin\Support\StaffNavigation(auth('admin')->user()))->allows('admin.staff.index')
         : ((int)$ws->owner_user_id === (int)auth()->id() || auth()->user()?->membershipFor($ws)?->role === 'admin');
 @endphp
-<nav class="row card" aria-label="Attendance sections">
-<a href="#att-overview">Overview</a><a href="#att-self-service">Employee Self-Service</a><a href="#att-shifts">Shifts &amp; rosters</a>@if($reviewer)<a href="#att-people">Employees</a>@endif<a href="#att-leave">Leave</a>
-<a href="#att-calendar">Designations &amp; holidays</a>
-<a href="#att-notices">Notices</a>@if($canExport)<a href="#att-reports">Reports</a>@endif<a href="#att-qr">QR clock-in</a>
-</nav>
+@if($tab === 'overview')
 <section class="card" id="att-overview">
     <div class="row between">
 <h2>{{ $reviewer ? 'Team overview' : 'Your overview' }}</h2>
@@ -42,12 +38,14 @@
 <small>{{ $day['date'] }}</small>
 </div>@endforeach</div>
 </div>@else<p class="note">No recorded work hours in the last 14 days.</p>@endif
-    @if($dash['pending'] || $dash['reviews'])<p class="note">{{ $dash['pending'] }} pending requests and {{ $dash['reviews'] }} evidence items need a decision. @if($reviewer)Use individual or bulk review below.@elseYour reviewers can see these items.@endif</p>@endif
+    @if($dash['pending'] || $dash['reviews'])<p class="note">{{ $dash['pending'] }} pending requests and {{ $dash['reviews'] }} evidence items need a decision. @if($reviewer)<a href="{{ route($routePrefix.'.index', ['tab'=>'requests']) }}">Review employee requests</a> or <a href="{{ route($routePrefix.'.leave') }}">open Leave Management</a>.@elseYour reviewers can see these items.@endif</p>@endif
 </section>
+@endif
 @include('user.attendance.workforce')
+@if($tab === 'notices')
 <section class="card" id="att-notices">
 <div class="row between">
-<h2>Staff notices</h2>
+<h2>{{ $isInternal ? 'Staff notices' : 'Team notices' }}</h2>
 <span class="badge">{{ $operations['notices']->count() }} active</span>
 </div>
     @forelse($operations['notices'] as $notice)<article class="note">
@@ -71,7 +69,7 @@
 </label>
 <label>Audit note<input name="note" required minlength="3" maxlength="2000">
 </label>
-<button class="space" type="submit">Publish notice</button>
+<button class="btn-primary space" type="submit">Publish notice</button>
 </form>
 </details>
     <details>
@@ -90,20 +88,23 @@
 <label>Audit note<input required name="note" minlength="3" maxlength="2000">
 </label>
 <div class="row space">
-<button type="submit">Save</button>
-<button type="submit" name="delete" value="1">Delete notice</button>
+<button type="submit" class="btn-primary">Save</button>
+<button type="submit" name="delete" value="1" class="btn-ghost">Delete notice</button>
 </div>
 </form>@endforeach</details>@endif
 </section>
+@endif
+@if(in_array($tab, ['balances', 'types']))
 <section class="card" id="att-leave">
 <h2>Leave management</h2>
 <p>{{ now($policy['timezone'])->year }} annual balances · weekends and workspace holidays excluded.</p>
-    <div class="grid space">@forelse($operations['leave_balances'] as $balance)<div class="note">
+    @if($tab === 'balances')<div class="grid space">@forelse($operations['leave_balances'] as $balance)<div class="note">
 <strong>{{ $balance['name'] }} · {{ $balance['paid'] ? 'Paid' : 'Unpaid' }}</strong>
 <div class="metric">{{ $balance['remaining'] }} days</div>
 <p>{{ $balance['approved']-$balance['encashed'] }} leave · {{ $balance['encashed'] }} encashed · {{ $balance['pending'] }} pending · {{ $balance['allowance'] }} annual allowance</p>
 </div>@empty<p>No leave types configured. General leave requests remain available.</p>@endforelse</div>
-    @if($canManage)<details>
+    @endif
+    @if($tab === 'types' && $canManage)<details open>
 <summary>Configure leave types and annual allowances</summary>
 <form method="POST" action="{{ route($routePrefix.'.setup.save') }}">@csrf<input type="hidden" name="kind" value="leave_type">
 <div class="fields">
@@ -119,7 +120,7 @@
 <label>Audit note<input name="note" required minlength="3" maxlength="2000">
 </label>
 </div>
-<button type="submit">Add leave type</button>
+<button type="submit" class="btn-primary">Add leave type</button>
 </form>
     @foreach($operations['leave_types'] as $type)<form class="note" method="POST" action="{{ route($routePrefix.'.setup.save') }}">@csrf<input type="hidden" name="kind" value="leave_type">
 <input type="hidden" name="id" value="{{ $type->id }}">
@@ -137,17 +138,19 @@
 </label>
 </div>
 <div class="row">
-<button type="submit">Save type</button>
-<button type="submit" name="delete" value="1">Delete unused type</button>
+<button type="submit" class="btn-primary">Save type</button>
+<button type="submit" name="delete" value="1" class="btn-ghost">Delete unused type</button>
 </div>
 </form>@endforeach</details>@endif
 </section>
-@if($reviewer || $canManage)<section class="card" id="att-people">
+@endif
+@if($reviewer || $canManage)@if($tab === 'people')
+<section class="card" id="att-people">
 <div class="row between">
 <div>
-<h2>Employees</h2>
+<h2>{{ $isInternal ? 'Internal staff' : 'Team members' }}</h2>
 <p>Uses the {{ $isInternal ? 'internal admin staff' : 'workspace team' }} directory. Attendance settings are scoped to this team.</p>
-</div>@if($directoryAccess)<a class="action" href="{{ route($isInternal ? 'admin.staff.index' : 'user.team.index') }}">Create / edit / remove staff accounts</a>@endif</div>
+</div>@if($directoryAccess)<a class="btn-ghost" href="{{ route($isInternal ? 'admin.staff.index' : 'user.team.index') }}">Create / edit / remove staff accounts</a>@endif</div>
     <div class="scroll">
 <table>
 <thead>
@@ -165,7 +168,7 @@
 <td>{{ $designationNames[$profile?->designation_id] ?? 'Unassigned' }}</td>
 <td>{{ $profile && !$profile->attendance_enabled ? 'Disabled' : 'Enabled' }}</td>
 <td>{{ $profile?->auto_out_time ?: 'Manual only' }}</td>
-<td>{{ implode(', ', $profile?->allowed_ips ?? []) ?: 'Any IP' }}</td>@if($mayImpersonate)<td>@php($linkedUser = $isInternal ? $person->user_id : $person->id)@if($linkedUser)<form method="POST" action="{{ route('admin.users.impersonate',$linkedUser) }}">@csrf<button type="submit">Login as user</button>
+<td>{{ implode(', ', $profile?->allowed_ips ?? []) ?: 'Any IP' }}</td>@if($mayImpersonate)<td>@php($linkedUser = $isInternal ? $person->user_id : $person->id)@if($linkedUser)<form method="POST" action="{{ route('admin.users.impersonate',$linkedUser) }}">@csrf<button type="submit" class="btn-primary">Login as user</button>
 </form>@else<span class="muted">No linked user account</span>@endif</td>@endif</tr>@endforeach</tbody>
 </table>
 </div>
@@ -222,10 +225,12 @@
 </div>
 <label>Reason for change<input name="note" required minlength="3" maxlength="2000">
 </label>
-<button type="submit" class="space">Apply selected changes</button>
+<button type="submit" class="btn-primary space">Apply selected changes</button>
 </form>
 </details>@endif
-</section>@endif
+</section>
+@endif @endif
+@if($tab === 'calendar')
 <section class="card" id="att-calendar">
 <h2>Designations &amp; holidays</h2>
 <div class="grid space">
@@ -241,15 +246,15 @@
 </label>
 <label>Audit note<input name="note" required minlength="3" maxlength="2000">
 </label>
-<button type="submit">Create</button>
+<button type="submit" class="btn-primary">Create</button>
 </form>@foreach($operations['designations'] as $designation)<form method="POST" class="row note" action="{{ route($routePrefix.'.setup.save') }}">@csrf<input type="hidden" name="kind" value="designation">
 <input type="hidden" name="id" value="{{ $designation->id }}">
 <label>Name<input name="name" required maxlength="120" value="{{ $designation->name }}">
 </label>
 <label>Audit note<input required name="note" minlength="3" maxlength="2000">
 </label>
-<button type="submit">Save</button>
-<button type="submit" name="delete" value="1">Delete designation</button>
+<button type="submit" class="btn-primary">Save</button>
+<button type="submit" name="delete" value="1" class="btn-ghost">Delete designation</button>
 </form>@endforeach</details>
 <details>
 <summary>Create holidays in bulk</summary>
@@ -267,7 +272,7 @@
 <label>Audit note<input required name="note" minlength="3" maxlength="2000">
 </label>
 </div>
-<button type="submit">Create / update holiday dates</button>
+<button type="submit" class="btn-primary">Create / update holiday dates</button>
 </form>
 </details>
 <details>
@@ -284,21 +289,23 @@
 </label>
 </div>
 <div class="row">
-<button type="submit">Save holiday</button>
-<button type="submit" name="delete" value="1">Delete holiday</button>
+<button type="submit" class="btn-primary">Save holiday</button>
+<button type="submit" name="delete" value="1" class="btn-ghost">Delete holiday</button>
 </div>
 </form>@endforeach</details>@endif
 </section>
+@endif
+@if($tab === 'qr')
 <section class="card" id="att-qr">
 <div class="row between">
 <div>
 <h2>QR clock-in</h2>
 <p>Scan the current workplace QR, then complete your normal capture checks.</p>
-</div>@if($canPunch)<button type="button" data-open-qr-scanner>Scan workplace QR</button>@endif</div>
+</div>@if($canPunch)<button type="button" data-open-qr-scanner class="btn-ghost">Scan workplace QR</button>@endif</div>
 @if($canManage)<details>
 <summary>Display a rotating workplace QR</summary>
 <p class="muted space">Codes expire after 90 seconds. Keep this page open at the workplace. Scans cannot bypass employee identity, IP, selfie or location checks.</p>
-<button class="space" type="button" data-start-qr-station>Start QR display</button>
+<button class="btn-ghost space" type="button" data-start-qr-station>Start QR display</button>
 <div data-qr-station hidden style="text-align:center">
 <div data-qr-image style="display:inline-block;background:white;padding:12px;border-radius:12px">
 </div>
@@ -310,18 +317,19 @@
 <dialog id="attendance-qr-scanner" aria-labelledby="attendance-qr-title">
 <div class="row between">
 <h2 id="attendance-qr-title">Scan workplace QR</h2>
-<button type="button" data-close-qr>Close</button>
+<button type="button" data-close-qr class="btn-ghost">Close</button>
 </div>
 <video autoplay muted playsinline data-qr-video>
 </video>
 <p data-qr-status class="note" role="status">Camera is requested only when you press Start camera.</p>
 <div class="row">
-<button type="button" data-start-qr-camera>Start camera</button>
+<button type="button" data-start-qr-camera class="btn-ghost">Start camera</button>
 </div>
 <form class="space" data-qr-paste>
 <label>Or paste a scanned workplace QR link<input type="url" required data-qr-url>
 </label>
-<button class="space" type="submit">Open QR clock-in</button>
+<button class="btn-primary space" type="submit">Open QR clock-in</button>
 </form>
 </dialog>
 </section>
+@endif
