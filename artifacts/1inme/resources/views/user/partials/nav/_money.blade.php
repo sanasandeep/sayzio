@@ -1,43 +1,14 @@
-{{--
-    Money: Monetization and Billing & Accounting, including Attendance,
-    both verbatim and both keeping their headers.
---}}
-                {{-- ========== MONETIZATION (collapsible) ========== --}}
-                @if($__can['posts_view'])
-                @php $grpMonetActive = nav_route_is('user.monetization.*'); @endphp
-                <div x-data="{ open: {{ $grpMonetActive ? 'true' : 'false' }} }">
-                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
-                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                        <span>Monetization</span>
-                        <svg class="nav-icon grp-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
-                    </button>
-                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
-                        <a href="{{ route('user.monetization.earnings') }}"
-                           class="sidebar-link {{ nav_route_is('user.monetization.*') ? 'active' : '' }}"
-                           style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
-                            <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-gem"></use></svg></div>
-                            <span class="nav-label">Monetization</span>
-                            @include('common.partials.soon-badge', ['feature' => 'monetization'])
-                            <span class="sidebar-tooltip">Monetization</span>
-                        </a>
-                    </div>
-                </div>
-                @endif
-
-                {{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
-                @if($__can['tasks_view'] || ($__can['attendance_view'] ?? false))
-                @php $grpBillingActive = nav_route_is('user.attendance.*') || nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*'); @endphp
+{{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
+                @if($__can['tasks_view'])
+                @php $grpBillingActive = nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*'); @endphp
                 <div x-data="{ open: {{ $grpBillingActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                        <span>Billing &amp; Accounting</span>
+                        <span>Business finances</span>
                         <svg class="nav-icon grp-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
-@if($__can['attendance_view'] ?? false)
-                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ (nav_route_is('user.attendance.*') && !nav_route_is('user.attendance.leave')) ? 'active' : '' }}"><div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-check"></use></svg></div><span class="nav-label">Attendance</span><span class="sidebar-tooltip">Attendance</span></a>
-<a href="{{ route('user.attendance.leave') }}" class="sidebar-link {{ nav_route_is('user.attendance.leave') ? 'active' : '' }}"><div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-calendar-check"></use></svg></div><span class="nav-label">Leave Management</span><span class="sidebar-tooltip">Leave Management</span></a>
-                        @endif
+
                         @if($__can['tasks_view'])
                         <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-building-2"></use></svg></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
                         <a href="{{ route('user.client-invoices.dashboard') }}"

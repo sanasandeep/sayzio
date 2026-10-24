@@ -438,6 +438,19 @@ class TaskBoardController extends Controller
     {
         $this->authorizeEdit($card->board);
         $data = $request->validate([
+            'related_items' => 'sometimes|array|max:20',
+            'related_items.*.title' => 'required|string|max:160',
+            'related_items.*.type' => 'required|in:link,mind,contact,project,invoice,event,file,other',
+            'related_items.*.url' => ['required', 'string', 'max:2000', function ($attribute, $value, $fail) {
+                $parts = parse_url($value);
+                $host = parse_url(config('app.url'), PHP_URL_HOST);
+                if (!$parts || !in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)
+                    || strtolower($parts['host'] ?? '') !== strtolower($host ?? '')
+                    || isset($parts['user']) || isset($parts['pass'])) {
+                    $fail('Use a full URL from this Sayzio site.');
+                }
+            }],
+            'related_items.*.note' => 'nullable|string|max:500',
             'title'            => 'sometimes|string|max:200',
             'description'      => 'sometimes|nullable|string|max:8000',
             'description_html' => 'sometimes|nullable|string|max:20000',
@@ -461,7 +474,10 @@ class TaskBoardController extends Controller
             if(array_key_exists('description_html',$data)) $data['description_html']=$this->sanitizeHtml($data['description_html']);
             $changes=[];foreach($data as $field=>$value) {
                 $before=in_array($field,['start_date','due_date']) ? $card->{$field}?->toDateString() : $card->{$field};
-                if((string)$before!==(string)$value) $changes[$field]=['from'=>$before,'to'=>$value];
+                if(json_encode($before)!==json_encode($value)) $changes[$field]=['from'=>$before,'to'=>$value];
+            }
+            if (isset($data['related_items'])) {
+                $data['related_items'] = array_map(fn ($item) => \Illuminate\Support\Arr::only($item, ['title', 'type', 'url', 'note']), $data['related_items']);
             }
             $card->update($data);
             foreach($changes as $field=>$delta) TaskActivity::log($card->id,auth()->id(),match($field){'title'=>'renamed','priority'=>'priority','due_date'=>'due_set',default=>'edited'},$delta);

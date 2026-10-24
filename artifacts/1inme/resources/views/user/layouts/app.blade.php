@@ -995,7 +995,7 @@
 
                 {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                 @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
-                @php $grpLinksActive = nav_route_is('user.qr-codes.*') || nav_route_is('user.qrcode*') || nav_route_is('user.forms.*') || nav_route_is('user.backlinks.*') || nav_route_is('user.splash-pages.*') || nav_route_is('user.resume.*') || nav_route_is('user.projects.*') || nav_route_is('user.files.*') || nav_route_is('user.cloud-files.*') || nav_route_is('user.cloud-oauth.*') || nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*'); @endphp
+                @php $grpLinksActive = nav_route_is('user.qr-codes.*') || nav_route_is('user.qrcode*') || nav_route_is('user.forms.*') || nav_route_is('user.backlinks.*') || nav_route_is('user.splash-pages.*') || nav_route_is('user.resume.*') || nav_route_is('user.projects.*') || nav_route_is('user.files.*') || nav_route_is('user.cloud-files.*') || nav_route_is('user.cloud-oauth.*'); @endphp
                 <div x-data="{ open: {{ $grpLinksActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1063,23 +1063,14 @@
                             <span class="sidebar-tooltip">Files, your vault &amp; cloud library</span>
                         </a>
                         @endif
-                        @if($__can['posts_view'])
-                        <a href="{{ route('user.payouts.show') }}"
-                           class="sidebar-link {{ nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*') ? 'active' : '' }}"
-                           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div>
-                            <span class="nav-label">Earnings & Payouts</span>
-                            @include('common.partials.soon-badge', ['feature' => 'payouts'])
-                            <span class="sidebar-tooltip">Earnings & Payouts</span>
-                        </a>
-                        @endif
+
                     </div>
                 </div>
                 @endif
 
                 {{-- ========== AUDIENCE & COMMUNITY (collapsible) ========== --}}
                 @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'] || $__can['settings_view'])
-                @php $grpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.posts.*') || nav_route_is('user.contacts.*') || nav_route_is('user.dialer.*'); @endphp
+                @php $grpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.posts.*'); @endphp
                 <div x-data="{ open: {{ $grpAudienceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1121,6 +1112,24 @@
                             <span class="sidebar-tooltip">My Posts</span>
                         </a>
                         @endif
+
+                    </div>
+                </div>
+                @endif
+
+                @if($__can['settings_view'] || $__can['vault_view'])
+                <div x-data="{ open: {{ (nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.leads.*') || nav_route_is('user.contacts.*') || nav_route_is('user.dialer.*')) ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]"><span>CRM &amp; Customers</span><i class="fas fa-chevron-down grp-chevron"></i></button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                        @if($__can['vault_view'])
+                        <a href="{{ route('user.vault.clients.index') }}"
+                           class="sidebar-link {{ nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"
+                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div>
+                            <span class="nav-label">Clients</span>
+                            <span class="sidebar-tooltip">Clients</span>
+                        </a>
+                        @endif
                         @if($__can['settings_view'])
                         <a href="{{ route('user.leads.index') }}"
                            class="sidebar-link {{ nav_route_is('user.leads.*') ? 'active' : '' }}"
@@ -1159,11 +1168,11 @@
 
                 {{-- ========== MONETIZATION (collapsible) ========== --}}
                 @if($__can['posts_view'])
-                @php $grpMonetActive = nav_route_is('user.monetization.*'); @endphp
+                @php $grpMonetActive = nav_route_is('user.monetization.*') || nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*'); @endphp
                 <div x-data="{ open: {{ $grpMonetActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                        <span>Monetization</span>
+                        <span>Personal monetization</span>
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
@@ -1171,9 +1180,17 @@
                            class="sidebar-link {{ nav_route_is('user.monetization.*') ? 'active' : '' }}"
                            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-gem"></i></div>
-                            <span class="nav-label">Monetization</span>
+                            <span class="nav-label">Creator earnings</span>
                             @include('common.partials.soon-badge', ['feature' => 'monetization'])
                             <span class="sidebar-tooltip">Monetization</span>
+                        </a>
+<a href="{{ route('user.payouts.show') }}"
+                           class="sidebar-link {{ nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*') ? 'active' : '' }}"
+                           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div>
+                            <span class="nav-label">Earnings & Payouts</span>
+                            @include('common.partials.soon-badge', ['feature' => 'payouts'])
+                            <span class="sidebar-tooltip">Earnings & Payouts</span>
                         </a>
                     </div>
                 </div>
@@ -1319,12 +1336,12 @@
                 </div>
 
                 {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
-                @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                @php $grpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
+                @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'] || $__can['attendance_view'])
+                @php $grpWorkspaceActive = nav_route_is('user.attendance.*') || nav_route_is('user.tasks.*') || (nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*')); @endphp
                 <div x-data="{ open: {{ $grpWorkspaceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                        <span>Workspace &amp; Tools</span>
+                        <span>Work &amp; Team</span>
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
@@ -1337,15 +1354,11 @@
                             <span class="sidebar-tooltip">Task Boards</span>
                         </a>
                         @endif
-                        @if($__can['vault_view'])
-                        <a href="{{ route('user.vault.clients.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"
-                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div>
-                            <span class="nav-label">Clients</span>
-                            <span class="sidebar-tooltip">Clients</span>
-                        </a>
+@if($__can['attendance_view'])
+                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ (nav_route_is('user.attendance.*') && !nav_route_is('user.attendance.leave')) ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span></a>
+<a href="{{ route('user.attendance.leave') }}" class="sidebar-link {{ nav_route_is('user.attendance.leave') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Leave Management</span></a>
                         @endif
+
                         @if($__can['vault_view'])
                         <a href="{{ route('user.vault.index') }}"
                            class="sidebar-link {{ nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*') ? 'active' : '' }}"
@@ -1364,19 +1377,16 @@
                 @endif
 
                 {{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
-                @if($__can['tasks_view'] || $__can['attendance_view'])
-                @php $grpBillingActive = nav_route_is('user.attendance.*') || nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*'); @endphp
+                @if($__can['tasks_view'])
+                @php $grpBillingActive = nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*'); @endphp
                 <div x-data="{ open: {{ $grpBillingActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                        <span>Billing &amp; Accounting</span>
+                        <span>Business finances</span>
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
-                        @if($__can['attendance_view'])
-                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ (nav_route_is('user.attendance.*') && !nav_route_is('user.attendance.leave')) ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span></a>
-<a href="{{ route('user.attendance.leave') }}" class="sidebar-link {{ nav_route_is('user.attendance.leave') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Leave Management</span></a>
-                        @endif
+
                         @if($__can['tasks_view'])
                         <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
                         <a href="{{ route('user.client-invoices.dashboard') }}"
@@ -1963,7 +1973,7 @@
 
                         {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                         @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
-                        @php $mGrpLinksActive = nav_route_is('user.qr-codes.*') || nav_route_is('user.qrcode*') || nav_route_is('user.forms.*') || nav_route_is('user.backlinks.*') || nav_route_is('user.splash-pages.*') || nav_route_is('user.resume.*') || nav_route_is('user.projects.*') || nav_route_is('user.files.*') || nav_route_is('user.cloud-files.*') || nav_route_is('user.cloud-oauth.*') || nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*'); @endphp
+                        @php $mGrpLinksActive = nav_route_is('user.qr-codes.*') || nav_route_is('user.qrcode*') || nav_route_is('user.forms.*') || nav_route_is('user.backlinks.*') || nav_route_is('user.splash-pages.*') || nav_route_is('user.resume.*') || nav_route_is('user.projects.*') || nav_route_is('user.files.*') || nav_route_is('user.cloud-files.*') || nav_route_is('user.cloud-oauth.*'); @endphp
                         <div x-data="{ open: {{ $mGrpLinksActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1995,16 +2005,14 @@
                                 @endphp
                                 <a href="{{ $filesHref }}" class="sidebar-link {{ nav_route_is('user.files.*') || nav_route_is('user.cloud-files.*') || nav_route_is('user.cloud-oauth.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-open"></i></div> <span>Files</span></a>
                                 @endif
-                                @if($__can['posts_view'])
-                                <a href="{{ route('user.payouts.show') }}" class="sidebar-link {{ nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div> <span>Earnings &amp; Payouts</span>@include('common.partials.soon-badge', ['feature' => 'payouts'])</a>
-                                @endif
+
                             </div>
                         </div>
                         @endif
 
                         {{-- ========== AUDIENCE & COMMUNITY (collapsible) ========== --}}
                         @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'] || $__can['settings_view'])
-                        @php $mGrpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.creator-profile.*') || nav_route_is('user.posts.*') || nav_route_is('user.contacts.*') || nav_route_is('user.dialer.*'); @endphp
+                        @php $mGrpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.creator-profile.*') || nav_route_is('user.posts.*'); @endphp
                         <div x-data="{ open: {{ $mGrpAudienceActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -2023,26 +2031,37 @@
                                 <a href="{{ route('user.creator-profile.edit') }}" class="sidebar-link {{ nav_route_is('user.creator-profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-id-badge"></i></div> <span>Creator Profile</span></a>
                                 <a href="{{ route('user.posts.index') }}" class="sidebar-link {{ nav_route_is('user.posts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div> <span>My Posts</span></a>
                                 @endif
-                                @if($__can['settings_view'])
-                                <a href="{{ route('user.leads.index') }}" class="sidebar-link {{ nav_route_is('user.leads.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-plus"></i></div> <span>Leads</span>@if(($pendingLeadsCount ?? 0) > 0)<span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none text-white" style="background:#ef4444;" title="{{ $pendingLeadsCount }} pending lead(s)">{{ $pendingLeadsCount > 99 ? '99+' : $pendingLeadsCount }}</span>@endif</a>
-                                <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ nav_route_is('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span>@if(($contactsOverdueFollowUps ?? 0) > 0)<span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none text-white" style="background:#ef4444;" title="{{ $contactsOverdueFollowUps }} overdue follow-up(s)">{{ $contactsOverdueFollowUps > 99 ? '99+' : $contactsOverdueFollowUps }}</span>@endif</a>
-                                <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ nav_route_is('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span>@include('common.partials.soon-badge', ['feature' => 'dialer'])</a>
-                                @endif
+
                             </div>
                         </div>
                         @endif
 
-                        {{-- ========== MONETIZATION (collapsible) ========== --}}
+                        @if($__can['settings_view'] || $__can['vault_view'])
+                <div x-data="{ open: {{ (nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.leads.*') || nav_route_is('user.contacts.*') || nav_route_is('user.dialer.*')) ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]"><span>CRM &amp; Customers</span><i class="fas fa-chevron-down grp-chevron"></i></button>
+                    <div x-show="open" x-cloak>
+                        @if($__can['vault_view'])<a href="{{ route('user.vault.clients.index') }}" class="sidebar-link {{ nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div> <span>Clients</span></a>@endif
+                        @if($__can['settings_view'])
+                                <a href="{{ route('user.leads.index') }}" class="sidebar-link {{ nav_route_is('user.leads.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-plus"></i></div> <span>Leads</span>@if(($pendingLeadsCount ?? 0) > 0)<span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none text-white" style="background:#ef4444;" title="{{ $pendingLeadsCount }} pending lead(s)">{{ $pendingLeadsCount > 99 ? '99+' : $pendingLeadsCount }}</span>@endif</a>
+                                <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ nav_route_is('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span>@if(($contactsOverdueFollowUps ?? 0) > 0)<span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none text-white" style="background:#ef4444;" title="{{ $contactsOverdueFollowUps }} overdue follow-up(s)">{{ $contactsOverdueFollowUps > 99 ? '99+' : $contactsOverdueFollowUps }}</span>@endif</a>
+                                <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ nav_route_is('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span>@include('common.partials.soon-badge', ['feature' => 'dialer'])</a>
+                                @endif
+                    </div>
+                </div>
+                @endif
+
+                {{-- ========== MONETIZATION (collapsible) ========== --}}
                         @if($__can['posts_view'])
-                        @php $mGrpMonetActive = nav_route_is('user.monetization.*'); @endphp
+                        @php $mGrpMonetActive = nav_route_is('user.monetization.*') || nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*'); @endphp
                         <div x-data="{ open: {{ $mGrpMonetActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                                <span>Monetization</span>
+                                <span>Personal monetization</span>
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                <a href="{{ route('user.monetization.earnings') }}" class="sidebar-link {{ nav_route_is('user.monetization.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gem"></i></div> <span>Monetization</span>@include('common.partials.soon-badge', ['feature' => 'monetization'])</a>
+                                <a href="{{ route('user.monetization.earnings') }}" class="sidebar-link {{ nav_route_is('user.monetization.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gem"></i></div> <span>Creator earnings</span>@include('common.partials.soon-badge', ['feature' => 'monetization'])</a>
+<a href="{{ route('user.payouts.show') }}" class="sidebar-link {{ nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div> <span>Earnings &amp; Payouts</span>@include('common.partials.soon-badge', ['feature' => 'payouts'])</a>
                             </div>
                         </div>
                         @endif
@@ -2113,19 +2132,23 @@
                         </div>
 
                         {{-- ========== WORKSPACE & TOOLS (collapsible) ========== --}}
-                        @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'])
-                        @php $mGrpWorkspaceActive = nav_route_is('user.tasks.*') || nav_route_is('user.delivery-projects.*') || nav_route_is('user.vault.*'); @endphp
+                        @if($__can['links_view'] || $__can['tasks_view'] || $__can['vault_view'] || $__can['settings_view'] || $__can['attendance_view'])
+                        @php $mGrpWorkspaceActive = nav_route_is('user.attendance.*') || nav_route_is('user.tasks.*') || (nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*')); @endphp
                         <div x-data="{ open: {{ $mGrpWorkspaceActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                                <span>Workspace &amp; Tools</span>
+                                <span>Work &amp; Team</span>
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.tasks.index') }}" class="sidebar-link {{ nav_route_is('user.tasks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div> <span>Tasks</span></a>
                                 @endif
-                                @if($__can['vault_view'])<a href="{{ route('user.vault.clients.index') }}" class="sidebar-link {{ nav_route_is('user.vault.clients.*') || nav_route_is('user.delivery-projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div> <span>Clients</span></a>@endif
+@if($__can['attendance_view'])
+                                <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ (nav_route_is('user.attendance.*') && !nav_route_is('user.attendance.leave')) ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span></a>
+<a href="{{ route('user.attendance.leave') }}" class="sidebar-link {{ nav_route_is('user.attendance.leave') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Leave Management</span></a>
+                                @endif
+
                                 @if($__can['vault_view'])
                                 <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ nav_route_is('user.vault.*') && !nav_route_is('user.vault.clients.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>
                                 @endif
@@ -2138,18 +2161,15 @@
                         @endif
 
                         {{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
-                        @if($__can['tasks_view'] || $__can['attendance_view'])
-                        <div x-data="{ open: {{ (nav_route_is('user.attendance.*') || nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*')) ? 'true' : 'false' }} }">
+                        @if($__can['tasks_view'])
+                        <div x-data="{ open: {{ (nav_route_is('user.client-invoices.*') || nav_route_is('user.billing.*')) ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                                <span>Billing &amp; Accounting</span>
+                                <span>Business finances</span>
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                @if($__can['attendance_view'])
-                                <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ (nav_route_is('user.attendance.*') && !nav_route_is('user.attendance.leave')) ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span></a>
-<a href="{{ route('user.attendance.leave') }}" class="sidebar-link {{ nav_route_is('user.attendance.leave') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Leave Management</span></a>
-                                @endif
+
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
                                 <a href="{{ route('user.client-invoices.dashboard') }}" class="sidebar-link {{ nav_route_is('user.client-invoices.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-invoice-dollar"></i></div> <span>Invoices</span></a>

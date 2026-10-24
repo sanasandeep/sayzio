@@ -3,31 +3,12 @@
 namespace App\Modules\User\Support;
 
 /**
- * The seven sections of the rail navigation.
+ * Shared rail categories and their route ownership.
  *
- * WHY THIS IS A CLASS AND NOT MARKUP
- *
- * The rail has to know which of its seven icons is lit before Alpine
- * runs, so the panel opens on the section you are actually in rather
- * than snapping to it after paint. That means route matching in PHP.
- * Putting it here instead of in the Blade also makes the one thing
- * worth testing testable: that no destination went missing when ten
- * groups became seven sections.
- *
- * THE ROUTE PATTERNS ARE A SECOND COPY AND THAT IS A REAL COST
- *
- * Each classic group already computes its own `$grpFooActive` to decide
- * whether to start expanded. Those expressions stay where they are --
- * they control a group's collapse state, which is a different question
- * from which rail icon is lit. So the patterns below are a second copy,
- * and a route renamed in a group partial without being renamed here
- * lights the wrong icon. OneNavForBothScreensTest pins every route
- * named in a section partial to a pattern in this map, which is what
- * stops that drift from being silent.
- *
- * ORDER MATTERS. `events` is checked first because "My Events" is
- * `user.links.index` with `?type=ics` on it -- the same route name
- * "All Links" uses under `home`. Nothing else overlaps.
+ * Specific CRM client routes precede the broader Work vault routes. Events
+ * handles the shared links.index route with ?type=ics before normal matching.
+ * OneNavForBothScreensTest checks each partial against this map and guards
+ * against duplicate destinations across categories.
  */
 class NavRailSections
 {
@@ -81,8 +62,6 @@ class NavRailSections
                 'user.files.*',
                 'user.cloud-files.*',
                 'user.cloud-oauth.*',
-                'user.payouts.*',
-                'user.adult-content.*',
             ],
         ],
         'audience' => [
@@ -96,9 +75,6 @@ class NavRailSections
                 'user.feed.*',
                 'feed.*',
                 'user.posts.*',
-                'user.leads.*',
-                'user.contacts.*',
-                'user.dialer.*',
                 'user.creator-profile.*',
                 'user.social-proofs.*',
                 'user.pixels.*',
@@ -129,24 +105,31 @@ class NavRailSections
             ],
         ],
         'money' => [
-            'label'   => 'Money',
+            'label'   => 'Business',
             'icon'    => 'fa-sack-dollar',
             'partial' => 'user.partials.nav._money',
             'routes'  => [
-                'user.monetization.*',
                 'user.billing.*',
                 'user.client-invoices.*',
-                'user.attendance.*',
             ],
+        ],
+        'crm' => [
+            'label' => 'CRM', 'icon' => 'fa-address-book', 'partial' => 'user.partials.nav._crm',
+            'routes' => ['user.leads.*', 'user.contacts.*', 'user.dialer.*', 'user.vault.clients.*', 'user.delivery-projects.*'],
+        ],
+        'earnings' => [
+            'label' => 'Earnings', 'icon' => 'fa-gem', 'partial' => 'user.partials.nav._earnings',
+            'routes' => ['user.monetization.*', 'user.payouts.*', 'user.adult-content.*'],
+        ],
+        'work' => [
+            'label' => 'Work', 'icon' => 'fa-list-check', 'partial' => 'user.partials.nav._work',
+            'routes' => ['user.tasks.*', 'user.attendance.*', 'user.vault.*'],
         ],
         'settings' => [
             'label'   => 'Settings',
             'icon'    => 'fa-sliders',
             'partial' => 'user.partials.nav._settings',
             'routes'  => [
-                'user.tasks.*',
-                'user.delivery-projects.*',
-                'user.vault.*',
                 'user.profile.*',
                 'user.identifiers.*',
                 'user.email-connections.*',
@@ -169,7 +152,7 @@ class NavRailSections
      */
     public static function order(): array
     {
-        return ['home', 'links', 'events', 'audience', 'ai', 'money', 'settings'];
+        return ['home', 'links', 'events', 'audience', 'crm', 'work', 'ai', 'earnings', 'money', 'settings'];
     }
 
     /**

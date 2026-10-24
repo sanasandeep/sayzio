@@ -10,7 +10,7 @@
 --}}
                 {{-- ========== AUDIENCE & COMMUNITY (collapsible) ========== --}}
                 @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'] || $__can['settings_view'])
-                @php $grpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.posts.*') || nav_route_is('user.contacts.*') || nav_route_is('user.dialer.*'); @endphp
+                @php $grpAudienceActive = nav_route_is('user.subscribers.*') || nav_route_is('user.followers.*') || nav_route_is('user.following.*') || nav_route_is('user.feed.*') || nav_route_is('user.posts.*'); @endphp
                 <div x-data="{ open: {{ $grpAudienceActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -65,38 +65,7 @@
                             <span class="sidebar-tooltip">Creator Profile</span>
                         </a>
                         @endif
-                        @if($__can['settings_view'])
-                        <a href="{{ route('user.leads.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.leads.*') ? 'active' : '' }}"
-                           style="--nav-tint:#38bdf8; --nav-tint-soft:rgba(56,189,248,0.12);">
-                            <div class="nav-icon-wrap" style="position:relative;"><svg class="nav-icon" aria-hidden="true"><use href="#i-user-plus"></use></svg>
-                                @if(($pendingLeadsCount ?? 0) > 0)
-                                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold leading-none text-white ring-2" style="background:#ef4444; --tw-ring-color:var(--sidebar-bg,#0b1020);" title="{{ $pendingLeadsCount }} pending lead(s)">{{ $pendingLeadsCount > 99 ? '99+' : $pendingLeadsCount }}</span>
-                                @endif
-                            </div>
-                            <span class="nav-label">Leads</span>
-                            <span class="sidebar-tooltip">Leads</span>
-                        </a>
-                        <a href="{{ route('user.contacts.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.contacts.*') ? 'active' : '' }}"
-                           style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
-                            <div class="nav-icon-wrap" style="position:relative;"><svg class="nav-icon" aria-hidden="true"><use href="#i-book-user"></use></svg>
-                                @if(($contactsOverdueFollowUps ?? 0) > 0)
-                                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold leading-none text-white ring-2" style="background:#ef4444; --tw-ring-color:var(--sidebar-bg,#0b1020);" title="{{ $contactsOverdueFollowUps }} overdue follow-up(s)">{{ $contactsOverdueFollowUps > 99 ? '99+' : $contactsOverdueFollowUps }}</span>
-                                @endif
-                            </div>
-                            <span class="nav-label">Contacts</span>
-                            <span class="sidebar-tooltip">Contacts</span>
-                        </a>
-                        <a href="{{ route('user.dialer.index') }}"
-                           class="sidebar-link {{ nav_route_is('user.dialer.*') ? 'active' : '' }}"
-                           style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
-                            <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-phone"></use></svg></div>
-                            <span class="nav-label">Dialer</span>
-                            @include('common.partials.soon-badge', ['feature' => 'dialer'])
-                            <span class="sidebar-tooltip">Dialer</span>
-                        </a>
-                        @endif
+
                     </div>
                 </div>
                 @endif
