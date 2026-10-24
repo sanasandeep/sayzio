@@ -23,9 +23,7 @@ class ProjectController extends Controller
 
     public function index(Request $request)
     {
-        // The standalone Folders page is retired — folders now live on the
-        // dashboard desk. Keep the route for old bookmarks/deep links.
-        return redirect(route('user.dashboard').'#folders');
+        return app(FolderExplorerController::class)->index($request);
     }
 
     /** @deprecated Standalone folders page retired; kept for reference. */

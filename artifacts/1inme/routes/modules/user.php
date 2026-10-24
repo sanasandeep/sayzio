@@ -694,6 +694,9 @@ Route::prefix('user')->name('user.')->group(function () {
 
         // Projects are link-organisation buckets — gate under the links
         // feature so any role with links access can place links into one.
+        Route::get('folders', [\App\Modules\User\Controllers\FolderExplorerController::class,'index'])->middleware('workspace.can:links.view')->name('folders.index');
+        Route::get('folders/contents', [\App\Modules\User\Controllers\FolderExplorerController::class,'contents'])->middleware('workspace.can:links.view')->name('folders.contents');
+        Route::post('folders/items/move', [\App\Modules\User\Controllers\FolderExplorerController::class,'move'])->middleware('workspace.can:links.edit')->name('folders.items.move');
         Route::resource('projects', ProjectController::class)->except(['store', 'index', 'show'])->middleware('workspace.can:links.edit');
         Route::get('projects', [ProjectController::class, 'index'])->middleware('workspace.can:links.view')->name('projects.index');
         Route::get('projects/{project}', [ProjectController::class, 'show'])->middleware('workspace.can:links.view')->name('projects.show');
