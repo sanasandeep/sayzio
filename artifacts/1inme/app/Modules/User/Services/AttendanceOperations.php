@@ -59,7 +59,7 @@ class AttendanceOperations
         return DB::table('attendance_leave_types')->where('workspace_id', $scope)->orderBy('name')->get()->map(function ($type) use ($participant, $year) {
             $usage = AttendanceRequest::where('participant_id', $participant)->where('leave_type_id', $type->id)->where('leave_year', $year)->selectRaw('status, SUM(requested_days) as days')->groupBy('status')->pluck('days', 'status');
 
-            return ['id' => $type->id, 'name' => $type->name, 'paid' => (bool) $type->paid, 'allowance' => $type->annual_days, 'approved' => (float) ($usage['approved'] ?? 0), 'pending' => (float) ($usage['pending'] ?? 0), 'remaining' => max(0, $type->annual_days - ($usage['approved'] ?? 0) - ($usage['pending'] ?? 0))];
+            return ['id' => $type->id, 'name' => $type->name, 'paid' => (bool) $type->paid, 'allowance' => $type->annual_days, 'encashed' => (float) AttendanceRequest::where('participant_id', $participant)->where('leave_type_id', $type->id)->where('leave_year', $year)->where('type', 'encashment')->where('status', 'approved')->sum('requested_days'), 'approved' => (float) ($usage['approved'] ?? 0), 'pending' => (float) ($usage['pending'] ?? 0), 'remaining' => max(0, $type->annual_days - ($usage['approved'] ?? 0) - ($usage['pending'] ?? 0))];
         })->all();
     }
 
@@ -90,25 +90,34 @@ class AttendanceOperations
         if ($participant->state === 'out') {
             return null;
         }
-        $punch = AttendancePunch::create(['participant_id' => $participant->id, 'action' => 'out', 'occurred_at' => $time ?? now(), 'source' => $source, 'review_status' => 'not_required']);
-        $participant->update(['state' => 'out', 'auto_punch_out_at' => null]);
+        $punch = AttendancePunch::create(['participant_id' => $participant->id, 'action' => 'out', 'occurred_at' => $time ?? now(), 'source' => $source, 'roster_id' => $participant->active_roster_id, 'review_status' => 'not_required']);
+        $participant->update(['state' => 'out', 'auto_punch_out_at' => null, 'active_roster_id' => null]);
 
         return $punch;
     }
 
     public function autoOutDeadline(AttendanceParticipant $participant, Workspace $ws): ?CarbonImmutable
     {
-        if (! $participant->auto_out_time) {
-            return null;
+        $policy = app(AttendanceService::class)->policy($ws);
+        $deadline = null;
+        if ($participant->auto_out_time) {
+            $now = CarbonImmutable::now($policy['timezone']);
+            $deadline = $now->setTimeFromTimeString($participant->auto_out_time);
+            if ($deadline->lte($now)) {
+                $deadline = $deadline->addDay();
+            }$deadline = $deadline->utc();
         }
-        $zone = app(AttendanceService::class)->policy($ws)['timezone'];
-        $now = CarbonImmutable::now($zone);
-        $cutoff = $now->setTimeFromTimeString($participant->auto_out_time);
-        if ($cutoff->lte($now)) {
-            $cutoff = $cutoff->addDay();
+        if ($policy['auto_out_at_shift_end'] && $participant->active_roster_id) {
+            $roster = DB::table('attendance_rosters')->where('id', $participant->active_roster_id)->where('participant_id', $participant->id)->where('workspace_id', $ws->id)->first();
+            if ($roster && $roster->ends_at) {
+                $end = CarbonImmutable::parse($roster->ends_at);
+                if (! $deadline || $end->lt($deadline)) {
+                    $deadline = $end;
+                }
+            }
         }
 
-return $cutoff->utc();
+        return $deadline;
     }
 
     public function dashboard(Workspace $ws, ?int $person): array
@@ -132,9 +141,9 @@ return $cutoff->utc();
                     $events = collect([$anchor])->concat($events);
                 }$seconds += app(AttendanceService::class)->workedSeconds($events, $day, $day->addDay());
             }
-            $chart[] = ['date' => $day->format('j M'), 'hours' => round($seconds / 3600,2)];
+            $chart[] = ['date' => $day->format('j M'), 'hours' => round($seconds / 3600, 2)];
         }
 
-        return ['working' => $people->where('state','working')->count(), 'break' => $people->where('state','break')->count(), 'pending' => $pending, 'reviews' => $reviews, 'chart' => $chart];
+        return ['working' => $people->where('state', 'working')->count(), 'break' => $people->where('state', 'break')->count(), 'pending' => $pending, 'reviews' => $reviews, 'chart' => $chart];
     }
 }

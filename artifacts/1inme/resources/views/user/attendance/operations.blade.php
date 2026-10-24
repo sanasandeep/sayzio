@@ -9,7 +9,7 @@
         : ((int)$ws->owner_user_id === (int)auth()->id() || auth()->user()?->membershipFor($ws)?->role === 'admin');
 @endphp
 <nav class="row card" aria-label="Attendance sections">
-<a href="#att-overview">Overview</a>@if($reviewer)<a href="#att-people">Employees</a>@endif<a href="#att-leave">Leave</a>
+<a href="#att-overview">Overview</a><a href="#att-self-service">Employee Self-Service</a><a href="#att-shifts">Shifts &amp; rosters</a>@if($reviewer)<a href="#att-people">Employees</a>@endif<a href="#att-leave">Leave</a>
 <a href="#att-calendar">Designations &amp; holidays</a>
 <a href="#att-notices">Notices</a>@if($canExport)<a href="#att-reports">Reports</a>@endif<a href="#att-qr">QR clock-in</a>
 </nav>
@@ -44,6 +44,7 @@
 </div>@else<p class="note">No recorded work hours in the last 14 days.</p>@endif
     @if($dash['pending'] || $dash['reviews'])<p class="note">{{ $dash['pending'] }} pending requests and {{ $dash['reviews'] }} evidence items need a decision. @if($reviewer)Use individual or bulk review below.@elseYour reviewers can see these items.@endif</p>@endif
 </section>
+@include('user.attendance.workforce')
 <section class="card" id="att-notices">
 <div class="row between">
 <h2>Staff notices</h2>
@@ -100,7 +101,7 @@
     <div class="grid space">@forelse($operations['leave_balances'] as $balance)<div class="note">
 <strong>{{ $balance['name'] }} · {{ $balance['paid'] ? 'Paid' : 'Unpaid' }}</strong>
 <div class="metric">{{ $balance['remaining'] }} days</div>
-<p>{{ $balance['approved'] }} approved · {{ $balance['pending'] }} pending · {{ $balance['allowance'] }} annual allowance</p>
+<p>{{ $balance['approved']-$balance['encashed'] }} leave · {{ $balance['encashed'] }} encashed · {{ $balance['pending'] }} pending · {{ $balance['allowance'] }} annual allowance</p>
 </div>@empty<p>No leave types configured. General leave requests remain available.</p>@endforelse</div>
     @if($canManage)<details>
 <summary>Configure leave types and annual allowances</summary>
@@ -114,7 +115,7 @@
 <option value="1">Paid</option>
 <option value="0">Unpaid</option>
 </select>
-</label>
+</label><label>Allow encashment<select name="encashment_enabled"><option value="0">No</option><option value="1">Yes</option></select></label><label>Maximum encash days per year<input type="number" name="max_encash_days" min="0" max="366" value="0"></label>
 <label>Audit note<input name="note" required minlength="3" maxlength="2000">
 </label>
 </div>
@@ -131,7 +132,7 @@
 <option value="1" @selected($type->paid)>Paid</option>
 <option value="0" @selected(!$type->paid)>Unpaid</option>
 </select>
-</label>
+</label><label>Allow encashment<select name="encashment_enabled"><option value="0" @selected(!$type->encashment_enabled)>No</option><option value="1" @selected($type->encashment_enabled)>Yes</option></select></label><label>Max encash days per year<input type="number" name="max_encash_days" min="0" max="366" value="{{ $type->max_encash_days }}"></label>
 <label>Audit note<input name="note" required minlength="3" maxlength="2000">
 </label>
 </div>
@@ -141,7 +142,7 @@
 </div>
 </form>@endforeach</details>@endif
 </section>
-@if($reviewer)<section class="card" id="att-people">
+@if($reviewer || $canManage)<section class="card" id="att-people">
 <div class="row between">
 <div>
 <h2>Employees</h2>

@@ -182,4 +182,18 @@
     setInterval(() => { if (stationActive && stationExpiry) { const left = Math.max(0,Math.ceil((stationExpiry-Date.now())/1000)); root.querySelector('[data-qr-expiry]').textContent = left ? 'Code expires in '+left+' seconds.' : 'Code expired. Waiting for refresh…'; } },1000);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') stopQr(); else if (stationActive) refreshStation(); });
     window.addEventListener('pagehide',stopQr);
+
+    const requestForm = root.querySelector('[data-self-service-form]');
+    function requestFields() {
+        if (!requestForm) return;
+        const type = requestForm.querySelector('[data-request-type]').value;
+        requestForm.querySelectorAll('[data-request-for]').forEach(label => {
+            const visible = label.dataset.requestFor.split(',').includes(type); label.hidden = !visible;
+            label.querySelectorAll('input,select,textarea').forEach(input => { input.disabled = !visible; });
+        });
+        const required = { title:['training','general'], requested_days:['encashment'], punch_id:['correction'], proposed_local:['correction'], minutes:['overtime'], category:['general'] };
+        Object.entries(required).forEach(([name, types]) => { const input = requestForm.elements.namedItem(name); if (input) input.required = types.includes(type); });
+    }
+    requestForm?.querySelector('[data-request-type]').addEventListener('change',requestFields);
+    requestFields();
 })();

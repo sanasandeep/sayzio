@@ -62,3 +62,12 @@ Run the normal migrations, cache rebuild and deployment process. No new service 
 Report exports are limited to 93 days and 50,000 estimated daily rows; PDFs are limited to 3,000 rows. The existing S3 encryption/storage approach is preserved. Leave types with requests cannot be deleted, and disabling attendance records a system clock-out when needed. Retention keeps attendance/audit history while removing expired photos/coordinates. No wage, tax or statutory payroll calculations are introduced.
 
 Biometric device ingestion is **not connected**. Implementing it requires the vendor/model, transport/SDK, credentials and explicit mapping to staff accounts. The UI displays this state rather than importing invented punches.
+
+
+## Shifts and employee self-service
+
+Attendance, Shifts & Leave remains under Billing & Accounting for workspaces and Billing & Accounts for internal staff. Managers can create and archive shift templates, assign work/off rosters in bulk, and configure roster-required check-in, early check-in windows and automatic shift-end punch-out. Overnight assignments are supported. Assignments snapshot times and grace periods; assignments referenced by attendance cannot be rewritten or cancelled. Planned breaks are informational; actual worked time subtracts recorded breaks.
+
+Employee Self-Service shows personal attendance, dated rosters, timing, leave balances, and request history. Employees can submit leave, attendance correction, overtime, training and general requests, and withdraw pending requests. Training requests capture a title, provider and course URL. Requests use the existing scoped approval permissions and prohibit self-approval.
+
+Leave types can allow half-day/whole-day encashment requests with an annual limit. Leave and encashment share the same balance; pending requests reserve days and withdrawal releases reservations. Approval consumes days. Managers record a separate externally completed settlement with currency, amount and payment reference; this workflow does not transfer funds or calculate payroll. Internal staff use the same workflows in their separate attendance scope.

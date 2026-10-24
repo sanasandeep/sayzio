@@ -24,7 +24,7 @@ class AttendanceService
         $stored = DB::table('attendance_policies')->where('workspace_id', $workspace->id)->value('settings');
 
         return array_replace(['timezone' => 'UTC', 'require_photo' => (bool) config('attendance.evidence_bucket'), 'require_location' => false,
-            'latitude' => null, 'longitude' => null, 'radius_m' => null, 'retention_days' => 90],
+            'latitude' => null, 'longitude' => null, 'radius_m' => null, 'retention_days' => 90, 'enforce_roster' => false, 'early_checkin_minutes' => 60, 'auto_out_at_shift_end' => false],
             $stored ? json_decode($stored, true) : []);
     }
 
@@ -51,6 +51,11 @@ class AttendanceService
             if ($qr) {
                 abort_unless($action === 'in', 422, 'QR sessions are for clock-in only.');
                 $this->qrSession($qr, $participant);
+            }
+            if ($action === 'in') {
+                $scope = new Workspace;
+                $scope->id = $participant->workspace_id;
+                app(AttendanceWorkforce::class)->rosterForCheckIn($participant, $scope);
             }
             $this->nextState($participant->state, $action);
             AttendanceChallenge::where('participant_id', $participant->id)->whereNull('consumed_at')->delete();
@@ -81,6 +86,7 @@ class AttendanceService
                 abort_if($participant->auto_punch_out_at && $participant->auto_punch_out_at->isPast(), 409, 'Automatic punch-out is due. Refresh shortly before recording another action.');
                 $next = $this->nextState($participant->state, $challenge->action);
                 $policy = $this->policy($workspace);
+                $roster = $challenge->action === 'in' ? app(AttendanceWorkforce::class)->rosterForCheckIn($participant, $workspace) : null;
                 $needsPhoto = $policy['require_photo'] && in_array($challenge->action, ['in', 'out']);
                 if ($needsPhoto && ! $photo) {
                     throw ValidationException::withMessages(['photo' => 'Capture a selfie showing the requested pose.']);
@@ -109,10 +115,17 @@ class AttendanceService
                 $punch = AttendancePunch::create(['participant_id' => $participant->id, 'challenge_id' => $challenge->id,
                     'action' => $challenge->action, 'occurred_at' => now(), 'photo_path' => $path, 'pose' => $photo ? $challenge->pose : null,
                     'captured_at' => $capturedAt, 'latitude' => $data['latitude'] ?? null, 'longitude' => $data['longitude'] ?? null,
-                    'ip_address' => $data['ip_address'] ?? null, 'source' => $challenge->qr_session_id ? 'qr' : 'web',
+                    'roster_id' => $challenge->action === 'in' ? $roster?->id : $participant->active_roster_id, 'ip_address' => $data['ip_address'] ?? null, 'source' => $challenge->qr_session_id ? 'qr' : 'web',
                     'accuracy' => $data['accuracy'] ?? null, 'review_status' => $photo ? 'pending' : 'not_required']);
                 $challenge->update(['consumed_at' => now()]);
-                $participant->update(['state' => $next, 'auto_punch_out_at' => $challenge->action === 'in' ? app(AttendanceOperations::class)->autoOutDeadline($participant, $workspace) : ($next === 'out' ? null : $participant->auto_punch_out_at)]);
+                $deadline = $challenge->action === 'in' ? app(AttendanceOperations::class)->autoOutDeadline($participant, $workspace) : $participant->auto_punch_out_at;
+                if ($challenge->action === 'in' && $policy['auto_out_at_shift_end'] && $roster) {
+                    $shiftEnd = CarbonImmutable::parse($roster->ends_at);
+                    if (! $deadline || $shiftEnd->lt($deadline)) {
+                        $deadline = $shiftEnd;
+                    }
+                }
+                $participant->update(['state' => $next, 'active_roster_id' => $challenge->action === 'in' ? $roster?->id : ($next === 'out' ? null : $participant->active_roster_id), 'auto_punch_out_at' => $next === 'out' ? null : $deadline]);
                 if ($challenge->qr_session_id) {
                     DB::table('attendance_qr_redemptions')->insert(['qr_session_id' => $challenge->qr_session_id, 'participant_id' => $participant->id, 'punch_id' => $punch->id, 'created_at' => now(), 'updated_at' => now()]);
                 }

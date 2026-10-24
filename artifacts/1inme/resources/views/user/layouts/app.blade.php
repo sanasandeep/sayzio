@@ -1374,7 +1374,7 @@
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
                         @if($__can['attendance_view'])
-                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span></a>
+                        <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance &amp; Leave</span></a>
                         @endif
                         @if($__can['tasks_view'])
                         <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>
@@ -2146,7 +2146,7 @@
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
                                 @if($__can['attendance_view'])
-                                <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance</span></a>
+                                <a href="{{ route('user.attendance.index') }}" class="sidebar-link {{ nav_route_is('user.attendance.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-clock"></i></div><span class="nav-label">Attendance &amp; Leave</span></a>
                                 @endif
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ nav_route_is('user.billing.companies.*') ? 'active' : '' }}" style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div><span class="nav-label">Companies</span><span class="sidebar-tooltip">Billing Companies</span></a>

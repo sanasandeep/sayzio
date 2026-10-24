@@ -7,6 +7,7 @@ use App\Modules\User\Models\AttendancePunch;
 use App\Modules\User\Models\AttendanceRequest;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\AttendanceOperations;
+use App\Modules\User\Services\AttendanceWorkforce;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ trait AttendanceManagement
         $today = CarbonImmutable::now($zone)->toDateString();
         $op = app(AttendanceOperations::class);
 
-        return ['dashboard' => $op->dashboard($ws, $reviewer ? null : $participant->id),
+        return ['workforce' => app(AttendanceWorkforce::class)->employeeData($ws, $participant, $reviewer, $this->can($request, $ws, 'manage'), $request->validate(['roster_from' => 'nullable|date_format:Y-m-d', 'roster_to' => 'nullable|date_format:Y-m-d', 'roster_staff' => 'nullable|integer|min:1'])), 'dashboard' => $op->dashboard($ws, $reviewer ? null : $participant->id),
             'designations' => DB::table('attendance_designations')->where('workspace_id', $ws->id)->orderBy('name')->get(),
             'holidays' => DB::table('attendance_holidays')->where('workspace_id', $ws->id)->where('date', '>=', substr($today, 0, 4).'-01-01')->orderBy('date')->limit(500)->get(),
             'notices' => DB::table('attendance_notices')->where('workspace_id', $ws->id)->where('starts_on', '<=', $today)->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today))->latest()->get(),
@@ -30,7 +31,7 @@ trait AttendanceManagement
             'leave_types' => DB::table('attendance_leave_types')->where('workspace_id', $ws->id)->orderBy('name')->get(),
             'leave_balances' => $op->leaveBalances($ws->id, $participant->id, (int) substr($today, 0, 4)),
             'staff_groups' => $ws->id === 0 ? DB::table('admins')->pluck('role_id', 'id') : DB::table('workspace_members')->where('workspace_id', $ws->id)->pluck('role', 'user_id'),
-            'profiles' => $reviewer ? AttendanceParticipant::where('workspace_id', $ws->id)->get()->keyBy('user_id') : collect()];
+            'profiles' => ($reviewer || $this->can($request, $ws, 'manage')) ? AttendanceParticipant::where('workspace_id', $ws->id)->get()->keyBy('user_id') : collect()];
     }
 
     public function saveEmployee(Request $request)
@@ -109,8 +110,13 @@ trait AttendanceManagement
             } else {
                 $rules = ['name' => ['required', 'string', 'max:120', Rule::unique($table, 'name')->where('workspace_id', $ws->id)->ignore($id)]];
                 if ($kind === 'leave_type') {
-                    $rules += ['annual_days' => 'required|integer|between:0,366', 'paid' => 'required|boolean'];
+                    $rules += ['annual_days' => 'required|integer|between:0,366', 'paid' => 'required|boolean', 'encashment_enabled' => 'nullable|boolean', 'max_encash_days' => 'nullable|integer|between:0,366'];
                 }$values = $request->validate($rules);
+            }
+            if ($kind === 'leave_type' && empty($base['delete'])) {
+                $values['encashment_enabled'] = (bool) ($values['encashment_enabled'] ?? false);
+                $values['max_encash_days'] = (int) ($values['max_encash_days'] ?? 0);
+                abort_if($values['encashment_enabled'] && ($values['max_encash_days'] < 1 || $values['max_encash_days'] > $values['annual_days']), 422, 'The encashment limit must be between one day and the annual allowance.');
             }
             if ($kind === 'holiday') {
                 $from = CarbonImmutable::parse($values['starts_on']);

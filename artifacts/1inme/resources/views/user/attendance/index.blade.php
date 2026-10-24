@@ -1,5 +1,5 @@
 @extends($layout)
-@section('title', 'Attendance')
+@section('title', 'Attendance, Shifts & Leave')
 @section('content')
 <style>
 .att{max-width:1300px;margin:auto;color:var(--text-primary)}.att h1{font-size:30px;font-weight:750;letter-spacing:-1px}.att h2{font-size:18px;font-weight:700}.att p,.att small{color:var(--text-muted)}.att .card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:18px;padding:24px;margin-bottom:20px}.att .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.att .between{justify-content:space-between}.att .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.att .metric{font-size:32px;font-weight:700;letter-spacing:-1px}.att .badge{padding:5px 10px;border-radius:20px;background:var(--bg-hover);font-size:12px}.att button,.att .action{padding:10px 16px;border:1px solid var(--border-subtle);border-radius:10px;background:var(--bg-hover);font-weight:600}.att button.primary{background:var(--accent,#3d6bff);color:white;border-color:transparent}.att button:disabled{opacity:.45;cursor:not-allowed}.att label{display:flex;flex-direction:column;gap:6px;font-size:13px}.att input,.att select,.att textarea{background:var(--bg-input,var(--bg-card));border:1px solid var(--border-subtle);border-radius:9px;padding:9px;color:var(--text-primary);min-width:0;width:100%}.att textarea{min-height:70px}.att .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}.att table{width:100%;border-collapse:collapse;font-size:13px}.att th,.att td{text-align:left;padding:14px 10px;border-bottom:1px solid var(--border-subtle);vertical-align:top}.att th{color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.att .scroll{overflow-x:auto}.att .note{padding:14px;border-radius:10px;background:var(--bg-hover);margin:12px 0;font-size:13px}.att details{margin-top:12px}.att summary{cursor:pointer;font-weight:600}.att dialog{background:var(--bg-card,#fff);color:var(--text-primary,#182033);border:1px solid var(--border-subtle,#ccd);border-radius:20px;padding:24px;width:min(520px,94vw);max-height:90vh;overflow:auto;margin:auto}.att dialog::backdrop{background:#050b20b3}.att video,.att .capture-photo{width:100%;max-height:320px;object-fit:contain;border-radius:12px;background:#111;margin:12px 0}.att [hidden]{display:none!important}.att .evidence{width:180px;border-radius:10px;margin-top:8px}.att .error{color:#dc2626}.att .muted{font-size:12px;color:var(--text-muted)}.att .space{margin-top:16px}@media(max-width:700px){.att .grid{grid-template-columns:1fr}.att .card{padding:16px}.att h1{font-size:26px}.att td,.att th{padding:10px 7px}}
@@ -9,7 +9,7 @@
     <div class="row between" style="margin-bottom:24px">
 <div>
 <small>PEOPLE &amp; OPERATIONS · {{ $ws->name }}</small>
-<h1>Attendance</h1>
+<h1>Attendance, Shifts &amp; Leave</h1>
 <p>Your working day, recorded clearly.</p>
 </div>
 <span class="badge">{{ $policy['timezone'] }}</span>
@@ -34,7 +34,6 @@
 <p>{{ $policy['radius_m'] ? 'Location within the configured work area' : ($policy['require_location'] ? 'Location required' : 'Location optional') }}</p>
 </div>
     </div>
-    @include('user.attendance.operations')
     <section class="card">
 <div class="row between">
 <div>
@@ -51,7 +50,8 @@
 </div>
 <p class="muted space">Camera and location are requested only when you choose to capture. Selfies are manually reviewed; this does not perform face recognition or prove liveness. Offline punches are not queued.</p>
 </section>
-    <section class="card">
+    @include('user.attendance.operations')
+    <section class="card" id="att-history">
 <div class="row between">
 <div>
 <h2>{{ $reviewer ? 'Team attendance' : 'Your attendance' }}</h2>
@@ -112,38 +112,7 @@
 <div class="space">{{ $punches->links() }}</div>
 @if($reviewer) @include('user.attendance.bulk-review', ['bulkKind'=>'punch']) @endif
     </section>
-    @if($canPunch)<section class="card">
-<details>
-<summary>Request leave, overtime, or a correction</summary>
-<p>Requests need another reviewer’s decision. Original receipt times and decision history are retained.</p>
-<form method="POST" action="{{ route($routePrefix.'.requests.store') }}">@csrf<div class="fields">
-<label>Request type<select name="type">
-<option value="leave">Leave</option>
-<option value="overtime">Overtime</option>
-<option value="correction">Time correction</option>
-</select>
-</label>
-<label>Leave type<select name="leave_type_id"><option value="">General leave / not applicable</option>@foreach($operations['leave_types'] as $leaveType)<option value="{{ $leaveType->id }}">{{ $leaveType->name }}</option>@endforeach</select></label>
-<label>From<input type="date" name="starts_on" required>
-</label>
-<label>To<input type="date" name="ends_on" required>
-</label>
-<label>Overtime minutes<input type="number" name="minutes" min="1" max="1440">
-</label>
-<label>Punch ID for correction<input type="number" name="punch_id" min="1">
-</label>
-<label>Corrected time (device timezone)<input type="datetime-local" name="proposed_local" data-correction-local>
-<input type="hidden" name="proposed_at" data-correction-iso>
-</label>
-</div>
-<p class="muted">Correction input uses your device’s local timezone. The submitted timestamp includes its UTC offset.</p>
-<label>Reason<textarea name="reason" required minlength="3" maxlength="2000">
-</textarea>
-</label>
-<button type="submit" class="space">Submit request</button>
-</form>
-</details>
-</section>@endif
+
 
     <section class="card">
 <h2>{{ $reviewer ? 'Team requests' : 'Your requests' }}</h2>
@@ -158,8 +127,8 @@
 </thead>
 <tbody>@forelse($requests as $item)<tr>
 <td>@if($reviewer && $item->participant_id !== $participant->id && $item->status === 'pending')<input type="checkbox" form="att-bulk-request" name="ids[]" value="{{ $item->id }}" aria-label="Select request {{ $item->id }}">@endif {{ $item->participant->staff?->name }}<br>{{ ucfirst($item->type) }}</td>
-<td>{{ $item->starts_on }} – {{ $item->ends_on }}<p>{{ $item->reason }}</p>@if($item->minutes)<small>{{ $item->minutes }} minutes</small>@endif @if($item->punch_id)<small>Punch #{{ $item->punch_id }} → {{ $item->proposed_at?->setTimezone($policy['timezone'])->format('j M Y H:i') }}</small>@endif</td>
-<td>{{ ucfirst($item->status) }}@if($reviewer && $item->participant_id !== $participant->id && $item->status === 'pending')<form method="POST" action="{{ route($routePrefix.'.requests.review',$item->id) }}">@csrf<label>Decision<select name="decision">
+<td>{{ $item->starts_on }} – {{ $item->ends_on }}<p>{{ $item->reason }}</p><strong>{{ $item->metadata['title'] ?? '' }}</strong>@if($item->metadata['provider'] ?? null)<p>{{ $item->metadata['provider'] }}</p>@endif @if($item->metadata['training_url'] ?? null)<p><a href="{{ $item->metadata['training_url'] }}" target="_blank" rel="noopener noreferrer">Training details</a></p>@endif @if($item->requested_days)<p>{{ $item->requested_days }} days · {{ $item->leave_year }}</p>@endif @if($item->minutes)<small>{{ $item->minutes }} minutes</small>@endif @if($item->punch_id)<small>Punch #{{ $item->punch_id }} → {{ $item->proposed_at?->setTimezone($policy['timezone'])->format('j M Y H:i') }}</small>@endif</td>
+<td>{{ ucfirst($item->status) }}@if($item->settled_at)<p>Settlement recorded: {{ $item->settlement_currency }} {{ number_format($item->settlement_amount_minor/100,2) }} · {{ $item->settlement_reference }}</p>@elseif($canManage && $item->type==='encashment' && $item->status==='approved' && $item->participant_id!==$participant->id)<details><summary>Record external settlement</summary><form method="POST" action="{{ route($routePrefix.'.requests.settle',$item->id) }}">@csrf<label>Total amount<input name="amount" type="number" required min="0.01" step="0.01"></label><label>Currency<input name="currency" required minlength="3" maxlength="3" placeholder="INR"></label><label>External payment reference<input name="reference" required maxlength="160"></label><label>Audit note<input name="note" required minlength="3" maxlength="2000"></label><button type="submit">Record settlement</button><p class="muted">Record an already completed external payment. This does not send funds.</p></form></details>@endif @if($reviewer && $item->participant_id !== $participant->id && $item->status === 'pending')<form method="POST" action="{{ route($routePrefix.'.requests.review',$item->id) }}">@csrf<label>Decision<select name="decision">
 <option value="approved">Approve</option>
 <option value="rejected">Reject</option>
 </select>
@@ -185,6 +154,7 @@
 <form method="POST" action="{{ route($routePrefix.'.settings') }}">@csrf @method('PUT')<div class="fields">
 <label>Timezone<input name="timezone" required value="{{ $policy['timezone'] }}" placeholder="Asia/Kolkata">
 </label>
+<label>Require assigned roster<select name="enforce_roster"><option value="0" @selected(!$policy['enforce_roster'])>No</option><option value="1" @selected($policy['enforce_roster'])>Yes</option></select></label><label>Early clock-in window (minutes)<input type="number" name="early_checkin_minutes" min="0" max="720" value="{{ $policy['early_checkin_minutes'] }}"></label><label>Auto-out at assigned shift end<select name="auto_out_at_shift_end"><option value="0" @selected(!$policy['auto_out_at_shift_end'])>No</option><option value="1" @selected($policy['auto_out_at_shift_end'])>Yes</option></select></label>
 <label>Selfie on clock in / out<select name="require_photo">
 <option value="1" @selected($policy['require_photo'])>Required</option>
 <option value="0" @selected(!$policy['require_photo'])>Optional</option>
@@ -208,7 +178,7 @@
 </textarea>
 </label>
 <button class="space" type="submit">Save policy</button>
-<p class="muted space">Leave the radius blank to disable geofencing. Location accuracy is checked against the boundary. Evidence retention removes photos and coordinates; attendance times and audit history remain.</p>
+<p class="muted space">Leave the radius blank to disable geofencing. Location accuracy is checked against the boundary. Evidence retention removes photos and coordinates; attendance times and audit history remain. Roster enforcement checks clock-in against the stored shift window. Shift-end automatic out uses the earlier of the shift end and any employee cutoff.</p>
 </form>
 </details>
 </section>@endif
