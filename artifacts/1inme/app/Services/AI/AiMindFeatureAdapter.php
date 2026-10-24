@@ -29,6 +29,7 @@ class AiMindFeatureAdapter
         'inbox'       => 'Inbox',
         'social'      => 'Social Connections',
         'profile'     => 'Profile',
+        'people' => 'Attendance, leave & working policies',
         // Task #3523 — grounding for AI Staff's billing & contacts domains.
         'billing'     => 'Billing & Invoices',
         'contacts'    => 'Contacts & Leads',
@@ -91,6 +92,7 @@ class AiMindFeatureAdapter
             'inbox'     => $this->inbox($user),
             'social'    => $this->social($user),
             'profile'   => $this->profile($user),
+            'people'=>app(PeopleAiContext::class)->snapshot($user),
             'billing'   => $this->billing($user),
             'contacts'  => $this->contacts($user),
             'events'    => $this->events($user),

@@ -113,6 +113,7 @@ class AiStaffRuntime
             default => [],
         };
 
+        if (in_array('people',$staff->config['connections']['data_keys']??[],true)) $keys[]='people';
         $configured=$staff->config['connections']??[];
         if(array_key_exists('data_keys',$configured))$keys=array_values(array_intersect($keys,$configured['data_keys']));
         // Scoped client/folder context must not silently include unrelated aggregate data.
@@ -123,6 +124,24 @@ class AiStaffRuntime
             if ($snap !== '') $parts[] = $snap;
         }
         return implode("\n\n", $parts);
+    }
+
+    public function draftPeople(User $user, AiStaff $staff, string $kind, string $prompt, string $context): array
+    {
+        $connections = app(AiStaffConnections::class);
+        $budget = (int) ($staff->config['connections']['monthly_budget'] ?? 0);
+        abort_if($budget > 0 && $connections->spent($staff) >= $budget, 403, 'AI Staff monthly spending threshold reached.');
+        $shape = $kind === 'roster' ? 'staff_ids: integer[], kind: work|off, shift_id: integer|null, starts_on: YYYY-MM-DD, ends_on: YYYY-MM-DD, note: string' : 'leave_type_id: integer, starts_on: YYYY-MM-DD, ends_on: YYYY-MM-DD, reason: string';
+        $res = $this->openai->chat($user, AiEngineSettings::featureModel($staff->featureKey(), $user), [
+            ['role' => 'system', 'content' => $this->systemPrompt($staff)."\nPrepare a people-management DRAFT only. Return JSON with exactly these keys: ".$shape.'. Use only IDs in the supplied context; never invent missing dates or IDs. If required information is missing return {"error":"Describe what is missing"}. Today: '.now()->toDateString()."\n".$context],
+            ['role' => 'user', 'content' => $prompt]], ['response_format' => ['type' => 'json_object'], 'meta' => ['ai_staff_id' => $staff->id], 'feature' => $staff->featureKey().'.people_draft', 'related_id' => $staff->id, 'reason' => 'Prepare a people draft for human approval', 'max_tokens' => 1000]);
+        $data = json_decode((string) ($res['content'] ?? ''), true);
+        if (! is_array($data) || isset($data['error'])) {
+            throw new RuntimeException('The AI needs clearer dates and a leave type or shift. No changes were made.');
+        }
+        $staff->markUsed();
+
+        return $data;
     }
 
     /**

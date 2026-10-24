@@ -304,6 +304,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('', 'index')->middleware('throttle:60,1')->name('index');
             Route::get('leave', 'index')->defaults('area', 'leave')->name('leave');
             Route::get('team', 'index')->defaults('area', 'team')->name('team');
+            Route::post('ai-draft','preparePeopleDraft')->middleware('throttle:5,1')->name('ai-draft');
+            Route::post('ai-draft/{draft}','decidePeopleDraft')->whereNumber('draft')->middleware('throttle:30,1')->name('ai-draft.decide');
             Route::post('employees', 'saveEmployee')->middleware('throttle:30,1')->name('employees.save');
             Route::post('setup', 'saveResource')->middleware('throttle:30,1')->name('setup.save');
             Route::post('bulk-review', 'bulkReview')->middleware('throttle:20,1')->name('bulk-review');
@@ -398,6 +400,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('team/leave',                            [\App\Modules\User\Controllers\TeamController::class, 'leave'])     ->name('team.leave');
 
         // ---- Roles & Permissions (Owner + Admin) ----
+        Route::get('team/people', [\App\Modules\User\Controllers\AttendanceController::class, 'index'])->defaults('area','team')->name('team.people');
         Route::get   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'index']) ->name('team.roles.index');
         Route::put   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'update'])->name('team.roles.update');
         Route::post('team/roles/create', [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'createRole'])->name('team.roles.create');

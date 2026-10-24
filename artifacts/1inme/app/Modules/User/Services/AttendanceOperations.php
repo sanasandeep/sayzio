@@ -44,9 +44,11 @@ class AttendanceOperations
         $b = CarbonImmutable::parse($to);
         abort_if($a->diffInDays($b) > 366, 422, 'Split long leave requests into shorter periods.');
         $holidays = DB::table('attendance_holidays')->where('workspace_id', $scope)->whereBetween('date', [$from, $to])->pluck('date')->all();
+        $ws = new Workspace; $ws->id = $scope;
+        $workingDays = app(AttendanceService::class)->policy($ws)['working_days'];
         $days = 0;
         for ($day = $a; $day->lte($b); $day = $day->addDay()) {
-            if (! $day->isWeekend() && ! in_array($day->toDateString(), $holidays)) {
+            if (in_array($day->dayOfWeek, $workingDays) && ! in_array($day->toDateString(), $holidays)) {
                 $days++;
             }
         }
@@ -56,10 +58,12 @@ class AttendanceOperations
 
     public function leaveBalances(int $scope, int $participant, int $year): array
     {
-        return DB::table('attendance_leave_types')->where('workspace_id', $scope)->orderBy('name')->get()->map(function ($type) use ($participant, $year) {
+        return DB::table('attendance_leave_types')->where('workspace_id', $scope)->orderBy('name')->get()->map(function ($type) use ($scope, $participant, $year) {
+            $person = AttendanceParticipant::where('workspace_id',$scope)->findOrFail($participant);
+            $entitled = app(PeoplePolicy::class)->entitlement($type,$person,$year);
             $usage = AttendanceRequest::where('participant_id', $participant)->where('leave_type_id', $type->id)->where('leave_year', $year)->selectRaw('status, SUM(requested_days) as days')->groupBy('status')->pluck('days', 'status');
 
-            return ['id' => $type->id, 'name' => $type->name, 'paid' => (bool) $type->paid, 'allowance' => $type->annual_days, 'encashed' => (float) AttendanceRequest::where('participant_id', $participant)->where('leave_type_id', $type->id)->where('leave_year', $year)->where('type', 'encashment')->where('status', 'approved')->sum('requested_days'), 'approved' => (float) ($usage['approved'] ?? 0), 'pending' => (float) ($usage['pending'] ?? 0), 'remaining' => max(0, $type->annual_days - ($usage['approved'] ?? 0) - ($usage['pending'] ?? 0))];
+            return ['id' => $type->id, 'name' => $type->name, 'paid' => (bool) $type->paid, 'allowance' => $entitled, 'annual_cap'=>$type->annual_days, 'accrual_mode'=>$type->accrual_mode, 'encashed' => (float) AttendanceRequest::where('participant_id', $participant)->where('leave_type_id', $type->id)->where('leave_year', $year)->where('type', 'encashment')->where('status', 'approved')->sum('requested_days'), 'approved' => (float) ($usage['approved'] ?? 0), 'pending' => (float) ($usage['pending'] ?? 0), 'remaining' => max(0, $entitled - ($usage['approved'] ?? 0) - ($usage['pending'] ?? 0))];
         })->all();
     }
 
@@ -80,7 +84,7 @@ class AttendanceOperations
         $days = $this->leaveDays($scope, $data['starts_on'], $data['ends_on']);
         abort_if($days === 0, 422, 'This period contains no working days. Weekends and holidays are excluded.');
         $used = AttendanceRequest::where('participant_id', $participant->id)->where('leave_type_id', $type->id)->where('leave_year', $year)->whereIn('status', ['pending', 'approved'])->when($exclude, fn ($q) => $q->where('id', '!=', $exclude))->sum('requested_days');
-        abort_if($used + $days > $type->annual_days, 422, 'This request exceeds the remaining annual leave allowance.');
+        abort_if($used + $days > app(PeoplePolicy::class)->entitlement($type,$participant,$year), 422, 'This request exceeds the currently earned leave balance.');
         $data['leave_year'] = $year;
         $data['requested_days'] = $days;
     }

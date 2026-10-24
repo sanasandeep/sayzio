@@ -97,15 +97,15 @@
 @if(in_array($tab, ['balances', 'types']))
 <section class="card" id="att-leave">
 <h2>Leave management</h2>
-<p>{{ now($policy['timezone'])->year }} annual balances · weekends and workspace holidays excluded.</p>
+<p>{{ now($policy['timezone'])->year }} annual balances · non-working days and workspace holidays excluded.</p>
     @if($tab === 'balances')<div class="grid space">@forelse($operations['leave_balances'] as $balance)<div class="note">
 <strong>{{ $balance['name'] }} · {{ $balance['paid'] ? 'Paid' : 'Unpaid' }}</strong>
 <div class="metric">{{ $balance['remaining'] }} days</div>
-<p>{{ $balance['approved']-$balance['encashed'] }} leave · {{ $balance['encashed'] }} encashed · {{ $balance['pending'] }} pending · {{ $balance['allowance'] }} annual allowance</p>
+<p>{{ $balance['approved']-$balance['encashed'] }} leave · {{ $balance['encashed'] }} encashed · {{ $balance['pending'] }} pending · {{ $balance['allowance'] }} available allowance</p>
 </div>@empty<p>No leave types configured. General leave requests remain available.</p>@endforelse</div>
     @endif
-    @if($tab === 'types' && $canManage)<details open>
-<summary>Configure leave types and annual allowances</summary>
+    @if($tab === 'types' && $canManage) @include('user.attendance.leave-templates')<details open>
+<summary>Configure leave types and available allowances</summary>
 <form method="POST" action="{{ route($routePrefix.'.setup.save') }}">@csrf<input type="hidden" name="kind" value="leave_type">
 <div class="fields">
 <label>Leave type<input name="name" required maxlength="120" placeholder="Annual leave">
@@ -117,6 +117,7 @@
 <option value="0">Unpaid</option>
 </select>
 </label><label>Allow encashment<select name="encashment_enabled"><option value="0">No</option><option value="1">Yes</option></select></label><label>Maximum encash days per year<input type="number" name="max_encash_days" min="0" max="366" value="0"></label>
+@include('user.attendance.accrual-fields', ['leaveType'=>null])
 <label>Audit note<input name="note" required minlength="3" maxlength="2000">
 </label>
 </div>
@@ -133,7 +134,7 @@
 <option value="1" @selected($type->paid)>Paid</option>
 <option value="0" @selected(!$type->paid)>Unpaid</option>
 </select>
-</label><label>Allow encashment<select name="encashment_enabled"><option value="0" @selected(!$type->encashment_enabled)>No</option><option value="1" @selected($type->encashment_enabled)>Yes</option></select></label><label>Max encash days per year<input type="number" name="max_encash_days" min="0" max="366" value="{{ $type->max_encash_days }}"></label>
+</label><label>Allow encashment<select name="encashment_enabled"><option value="0" @selected(!$type->encashment_enabled)>No</option><option value="1" @selected($type->encashment_enabled)>Yes</option></select></label>@include('user.attendance.accrual-fields', ['leaveType'=>$type])<label>Max encash days per year<input type="number" name="max_encash_days" min="0" max="366" value="{{ $type->max_encash_days }}"></label>
 <label>Audit note<input name="note" required minlength="3" maxlength="2000">
 </label>
 </div>
@@ -148,9 +149,9 @@
 <section class="card" id="att-people">
 <div class="row between">
 <div>
-<h2>{{ $isInternal ? 'Internal staff' : 'Team members' }}</h2>
+<h2>{{ $isInternal ? 'Internal staff' : 'Employment settings' }}</h2>
 <p>Uses the {{ $isInternal ? 'internal admin staff' : 'workspace team' }} directory. Attendance settings are scoped to this team.</p>
-</div>@if($directoryAccess)<a class="btn-ghost" href="{{ route($isInternal ? 'admin.staff.index' : 'user.team.index') }}">Create / edit / remove staff accounts</a>@endif</div>
+</div>@if($directoryAccess)<a class="btn-ghost" href="{{ route($isInternal ? 'admin.staff.index' : 'user.team.index') }}">{{ $isInternal ? 'Manage staff accounts' : 'Manage workspace members' }}</a>@endif</div>
     <div class="scroll">
 <table>
 <thead>
@@ -183,6 +184,7 @@
     <label class="space">Employees<select name="staff_ids[]" multiple size="6" required data-attendance-staff>@foreach($directory as $person)<option value="{{ $person->id }}" data-group="{{ $operations['staff_groups'][$person->id] ?? 'owner' }}">{{ $person->name }} · {{ $person->email }}</option>@endforeach</select>
 </label>
     <div class="fields">
+<label><span><input type="checkbox" name="fields[]" value="employment_started_on"> Change employment start</span><input type="date" name="employment_started_on"><small>Used for earned leave; blank uses the workspace join date.</small></label>
 <label>
 <span>
 <input type="checkbox" name="fields[]" value="designation_id"> Change designation</span>

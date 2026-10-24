@@ -28,7 +28,18 @@ class AttendanceWorkforce
         $policy = app(AttendanceService::class)->policy($ws);
         $early = (int) $policy['early_checkin_minutes'];
         $roster = DB::table('attendance_rosters')->where('workspace_id', $ws->id)->where('participant_id', $person->id)->where('kind', 'work')->where('starts_at', '<=', now()->addMinutes($early))->where('ends_at', '>', now())->orderBy('starts_at')->first();
-        abort_if($policy['enforce_roster'] && ! $roster, 422, 'Clock-in requires a scheduled shift within its check-in window. Ask your manager to check your roster.');
+        if (!$roster && $policy['schedule_mode']==='fixed') {
+            $local = CarbonImmutable::now($policy['timezone']);
+            foreach ([$local->subDay(), $local] as $date) {
+                if (!in_array($date->dayOfWeek,$policy['working_days']) || DB::table('attendance_holidays')->where('workspace_id',$ws->id)->where('date',$date->toDateString())->exists()) continue;
+                [$start,$end] = $this->shiftBounds($date->toDateString(),(object)['starts_at'=>$policy['fixed_start'],'ends_at'=>$policy['fixed_end'],'break_minutes'=>0],$policy['timezone']);
+                if ($local->lt($start->subMinutes($early)) || $local->gte($end)) continue;
+                DB::table('attendance_rosters')->insertOrIgnore(['workspace_id'=>$ws->id,'participant_id'=>$person->id,'work_date'=>$date->toDateString(),'kind'=>'work','shift_name'=>'Fixed working hours','starts_at'=>$start->utc(),'ends_at'=>$end->utc(),'created_at'=>now(),'updated_at'=>now()]);
+                $roster = DB::table('attendance_rosters')->where('participant_id',$person->id)->where('work_date',$date->toDateString())->where('kind','work')->where('starts_at','<=',now()->addMinutes($early))->where('ends_at','>',now())->first();
+                if ($roster) break;
+            }
+        }
+        abort_if(($policy['enforce_roster'] || $policy['schedule_mode']==='fixed') && ! $roster, 422, 'Clock-in requires a scheduled shift within its check-in window. Ask your manager to check your roster.');
 
         return $roster;
     }
@@ -45,7 +56,7 @@ class AttendanceWorkforce
         $days = (float) $data['requested_days'];
         abort_if($days <= 0 || fmod($days, .5) !== 0.0, 422, 'Request whole or half days for encashment.');
         $base = AttendanceRequest::where('participant_id', $person->id)->where('leave_type_id', $type->id)->where('leave_year', $year)->whereIn('status', ['pending', 'approved'])->when($exclude, fn ($q) => $q->where('id', '!=', $exclude));
-        abort_if((clone $base)->sum('requested_days') + $days > $type->annual_days, 422, 'Encashment exceeds the available leave balance.');
+        abort_if((clone $base)->sum('requested_days') + $days > app(PeoplePolicy::class)->entitlement($type,$person,$year), 422, 'Encashment exceeds the available leave balance.');
         abort_if((clone $base)->where('type', 'encashment')->sum('requested_days') + $days > $type->max_encash_days, 422, 'Encashment exceeds the annual encashment limit.');
     }
 

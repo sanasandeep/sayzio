@@ -5,6 +5,12 @@
     const tabs = root.querySelector('.att-tabs');
     const activeTab = tabs?.querySelector('[aria-current="page"]');
     if (activeTab) tabs.scrollLeft = activeTab.offsetLeft - tabs.offsetLeft - 16;
+    root.querySelectorAll('[data-work-preset]').forEach(button => button.addEventListener('click', () => {
+        const form = button.closest('form');
+        const values = {schedule_mode:button.dataset.workPreset, fixed_start:'09:00', fixed_end:'17:00', daily_hours:'8', weekly_hours:'40'};
+        Object.entries(values).forEach(([key,value]) => { form.elements.namedItem(key).value = value; });
+        Array.from(form.elements.namedItem('working_days[]').options).forEach(option => { option.selected = ['1','2','3','4','5'].includes(option.value); });
+    }));
     const get = name => document.getElementById('attendance-' + name);
     const dialog = get('capture');
     const video = get('video');

@@ -14,6 +14,6 @@
 <label data-request-for="correction">Punch ID<input type="number" name="punch_id" min="1"></label>
 <label data-request-for="correction">Corrected time (device timezone)<input type="datetime-local" name="proposed_local" data-correction-local><input type="hidden" name="proposed_at" data-correction-iso></label></div>
 <label>Reason / details<textarea name="reason" required minlength="3" maxlength="2000"></textarea></label><button type="submit" class="btn-primary space">Submit for approval</button>
-<p class="muted space">Leave excludes weekends and holidays. Training approval records your team’s decision; it does not enrol you with an external provider.</p>
+<p class="muted space">Leave excludes non-working days and holidays. Training approval records your team’s decision; it does not enrol you with an external provider.</p>
 </form></details>
 @endif
