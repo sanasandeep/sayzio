@@ -30,7 +30,8 @@ class AttendanceSelfServiceTest extends TestCase
 
     private function team(): array
     {
-        $owner = User::factory()->create();
+        // Existing schedule fixtures use UTC clock values.
+        $owner = User::factory()->create(['timezone' => 'UTC']);
         $ws = $owner->ownedWorkspaces()->first();
         $staff = User::factory()->create();
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $staff->id, 'role' => 'viewer']);

@@ -23,7 +23,10 @@ class AttendanceService
     {
         $stored = DB::table('attendance_policies')->where('workspace_id', $workspace->id)->value('settings');
 
-        return array_replace(['timezone' => 'UTC', 'require_photo' => (bool) config('attendance.evidence_bucket'), 'require_location' => false,
+        // Challenge/auto-out paths can pass a workspace containing only its ID.
+        $owner = $workspace->owner_user_id !== null ? $workspace->owner : Workspace::find($workspace->id)?->owner;
+
+        return array_replace(['timezone' => \App\Support\PlatformTimezone::forUser($owner), 'require_photo' => (bool) config('attendance.evidence_bucket'), 'require_location' => false,
             'latitude' => null, 'longitude' => null, 'radius_m' => null, 'retention_days' => 90, 'enforce_roster' => false, 'early_checkin_minutes' => 60, 'auto_out_at_shift_end' => false, 'schedule_mode'=>'flexible', 'fixed_start'=>'09:00', 'fixed_end'=>'17:00', 'daily_minutes'=>480, 'weekly_minutes'=>2400, 'working_days'=>[1,2,3,4,5], 'ai_people_enabled'=>false],
             $stored ? json_decode($stored, true) : []);
     }
