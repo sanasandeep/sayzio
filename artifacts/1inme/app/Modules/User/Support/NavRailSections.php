@@ -44,8 +44,6 @@ class NavRailSections
                 'user.projects.*',
                 'user.inbox.*',
                 'user.notifications.*',
-                'user.stats.*',
-                'user.visitors.*',
             ],
         ],
         'links' => [
@@ -53,6 +51,7 @@ class NavRailSections
             'icon'    => 'fa-link',
             'partial' => 'user.partials.nav._links',
             'routes'  => [
+                'user.visitors.*',
                 'user.qr-codes.*',
                 'user.qrcode*',
                 'user.forms.*',
@@ -69,6 +68,7 @@ class NavRailSections
             'icon'    => 'fa-user-group',
             'partial' => 'user.partials.nav._audience',
             'routes'  => [
+                'user.stats.*',
                 'user.subscribers.*',
                 'user.followers.*',
                 'user.following.*',

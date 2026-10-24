@@ -106,24 +106,7 @@
                     </span>
                     <span class="sidebar-tooltip">Notifications</span>
                 </a>
-                @if($__can['posts_view'])
-                <a href="{{ route('user.stats.index') }}"
-                   class="sidebar-link {{ nav_route_is('user.stats.*') ? 'active' : '' }}"
-                   style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
-                    <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-chart-line"></use></svg></div>
-                    <span class="nav-label">Stats</span>
-                    <span class="sidebar-tooltip">Stats</span>
-                </a>
-                @endif
-                @if($__can['stats_view'])
-                <a href="{{ route('user.visitors.index') }}"
-                   class="sidebar-link {{ nav_route_is('user.visitors.index') ? 'active' : '' }}"
-                   style="--nav-tint:#5cc7ff; --nav-tint-soft:rgba(92,199,255,0.12);">
-                    <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-users"></use></svg></div>
-                    <span class="nav-label">Visitors</span>
-                    <span class="sidebar-tooltip">Visitors</span>
-                </a>
-                @endif
+
                 {{-- Task #3848 — the Wallet nav item moved to a compact icon +
                      balance badge in the top header (see the header markup
                      below); it no longer has its own sidebar entry. --}}
