@@ -146,6 +146,7 @@ class WorkspacePermissions
             'edit'   => 'Edit',
             'delete' => 'Delete',
             'reply'  => 'Reply to',
+            'workflow'=>'Configure workflows for', 'track'=>'Track time on', 'export'=>'Export',
         ];
     }
 

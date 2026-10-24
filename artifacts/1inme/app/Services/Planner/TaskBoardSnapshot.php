@@ -19,7 +19,7 @@ class TaskBoardSnapshot
 
     public static function revision(TaskBoard $board): string
     {
-        $board->load(['columns' => fn ($query) => $query->orderBy('id'), 'cards' => fn ($query) => $query->orderBy('id'), 'cards.assignees:id', 'cards.labels:id', 'cards.subtasks']);
+        $board->load(['columns' => fn ($query) => $query->orderBy('id'), 'cards' => fn ($query) => $query->orderBy('id'), 'cards.assignees:id', 'cards.labels:id', 'cards.subtasks','cards.timeEntries'=>fn($q)=>$q->select(['id','card_id','updated_at','minutes','ended_at'])]);
 
         $assignments = ProjectItem::where(fn ($query) => $query->where(fn ($q) => $q->where('kind', 'board')->where('resource_id', $board->id))->orWhere(fn ($q) => $q->where('kind', 'task')->whereIn('resource_id', $board->cards->pluck('id'))))->orderBy('kind')->orderBy('resource_id')->get(['kind', 'resource_id', 'project_id']);
 

@@ -17,6 +17,8 @@ class EnforceWorkspaceFeature
         $route = $request->route();
         $name = $route?->getName() ?? '';
         $method = strtolower($route?->getActionMethod() ?? '');
+        if($method==='savetransitions')return 'workflow';
+        if(in_array($method,['starttimer','stoptimer','storetimeentry','destroytimeentry']))return 'track';
         // Access telemetry follows the read permission; it never changes the record.
         if (in_array($name, ['user.vault.events', 'user.delivery-projects.tracking.event'], true)) {
             return 'view';

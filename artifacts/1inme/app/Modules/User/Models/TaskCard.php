@@ -20,7 +20,7 @@ class TaskCard extends Model
     public function roadmapItem() { return $this->belongsTo(RoadmapItem::class, 'roadmap_item_id'); }
 
     protected $casts = [
-        'start_date'        => 'date',
+        'start_date'        => 'date', 'progress'=>'integer',
         'due_date'          => 'date',
         'completed_at'      => 'datetime',
         'archived_at'       => 'datetime',

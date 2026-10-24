@@ -40,12 +40,13 @@
     .progress-fill  { height: 6px; background: linear-gradient(90deg,#3d6bff,#90acff); }
     .col-drag-handle { cursor: grab; opacity: 0.5; padding: 0 4px; }
     .col-drag-handle:hover { opacity: 1; }
+.task-editor-tabs{display:flex;overflow-x:auto;gap:16px;position:sticky;top:0;background:var(--bg-card);z-index:5;padding:12px 0;margin-bottom:18px;border-bottom:1px solid var(--border-soft)}.task-editor-tabs button{white-space:nowrap;font-size:12px;padding:8px 2px;border-bottom:2px solid transparent}.task-editor-tabs button[aria-selected=true]{color:var(--c-primary,#3d6bff);border-color:currentColor}.task-related-results{max-height:230px;overflow:auto}.task-related-choice{display:flex;justify-content:space-between;width:100%;padding:10px;text-align:left;border-bottom:1px solid var(--border-soft);font-size:13px}.task-related-choice:hover{background:var(--bg-glass-input)}.drawer .task-progress-range{padding:0;border:0;min-height:28px;height:28px;accent-color:var(--c-primary,#3d6bff)}.drawer .theme-input{max-width:100%}.drawer [data-editor-panel=time] input{min-width:0}.drawer{max-width:100vw}.drawer [x-cloak]{display:none!important}
 </style>
 @endpush
 @section('content')
 @include('user.cloud-files._attach-picker')
 @include('user.planner.styles')
-<div x-data="kanbanBoard({{ $board->id }})"  class="task-workspace px-6 py-6">
+<div x-data="kanbanBoard({{ $board->id }})" @gantt-window="ganttAnchor=$event.detail.from;ganttDays=$event.detail.days"  class="task-workspace px-6 py-6">
     @include('user.partials.page-hero',['title'=>$board->name,'subtitle'=>'Manage your project tasks, checklists and deadlines.','icon'=>'fa-list-check','favicon'=>null,'url'=>null,'back'=>route('user.tasks.index'),'actions'=>[],'chips'=>[['text'=>$board->scope==='personal'?'Private board':'Team board','icon'=>'fa-users'],['text'=>$board->columns->count().' columns','icon'=>'fa-table-columns'],['text'=>$board->columns->sum(fn($c)=>$c->cards->count()).' tasks','icon'=>'fa-check']]])
     <div class="flex justify-end mb-5 gap-3 flex-wrap">
         <div class="flex items-center gap-2">
@@ -94,6 +95,7 @@
         </div>
     </div>
 
+    @if(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.export'))<div class="flex gap-2 mb-3"><button type="button" class="form-chip" title="Export the full board (up to 500 tasks / 20 columns); interactive search filters are excluded" @click="exportView('png')">Export image</button><button type="button" class="form-chip" title="Export the full board as a paginated PDF; Gantt uses the selected date window" @click="exportView('pdf')">Export PDF</button></div>@endif
     <div class="task-workspace-toolbar"><div class="folder-view-switch"><button type="button" @click="boardView='kanban'" :aria-pressed="boardView==='kanban'">Board</button><button type="button" @click="boardView='gantt'" :aria-pressed="boardView==='gantt'">Gantt timeline</button></div><span class="notes-hint" x-text="syncStatus" role="status"></span><button type="button" class="form-chip" @click="location.reload()">Refresh updates</button><a class="form-chip" href="{{ route('user.ai.mind.show', $projectAssignment?->project_id ? ['project_id'=>$projectAssignment->project_id] : []) }}">Open AI Planner →</a></div>
     <p class="text-sm text-red-500 mb-3" x-show="notice" x-text="notice" role="alert"></p>
     @if(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.edit') && auth()->user()->canInWorkspace(app('current_workspace'),'projects.edit'))<form method="POST" action="{{ route('user.tasks.boards.update',$board) }}" class="notes-card mb-4 flex flex-wrap items-center gap-3">@csrf @method('PUT')<label class="text-sm">Optional project <select name="project_id" class="theme-input"> <option value="">No project</option>@foreach($projects as $projectChoice)<option value="{{ $projectChoice->id }}" @selected($projectAssignment?->project_id===$projectChoice->id)>{{ $projectChoice->name }}</option>@endforeach</select></label><button class="form-chip">Save project</button><span class="notes-hint">A project connection includes visible board tasks in the folder and Planner resource picker. Personal boards stay private.</span></form>@endif
@@ -122,6 +124,7 @@
         </button>
     </div>
 
+    @include('user.tasks.partials.workflow')
     @include('user.tasks.partials.gantt')
     <div x-show="boardView==='kanban'" class="kanban-scroll flex gap-4" data-sortable-cols>
         @foreach($board->columns as $col)
@@ -132,6 +135,7 @@
                     <span class="flex-1 cursor-pointer" @click="editing=true" x-text="name"></span>
                     <i class="fas fa-check-circle text-emerald-500" x-show="is_done" title="Done column"></i>
                     <span class="text-xs font-normal" title="Tasks in this column / advisory task limit" style="color: var(--text-faint);">{{ $col->cards->count() }}<span x-show="wip>0">/<span x-text="wip"></span></span></span>
+                    @if(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.workflow'))<button type="button" class="text-xs" title="Column connections" @click="openWorkflow({{ $col->id }})"><i class="fas fa-code-branch"></i><span class="sr-only">Column connections</span></button>@endif
                     <button @click="editing=true" class="text-xs" style="color: var(--text-faint);" title="Edit column" aria-label="Edit column"><i class="fas fa-pen"></i></button>
                     <button @click="deleteColumn({{ $col->id }})" class="text-xs" style="color: var(--text-faint);" title="Delete column" aria-label="Delete column"><i class="fas fa-times"></i></button>
                 </div>
@@ -177,6 +181,7 @@
                                 </label>
                             @endif
                             <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ $card->title }}</div><time class="block text-xs opacity-60 mt-2" datetime="{{ $card->updated_at->toIso8601String() }}">Updated {{ $card->updated_at->timezone(auth()->user()->timezone??config('app.timezone'))->format('d M Y, H:i') }}</time>
+                            <div class="progress-track mt-2" role="progressbar" aria-label="Task progress" aria-valuenow="{{ $card->progress }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill" data-task-progress="{{ $card->id }}" style="width:{{ $card->progress }}%"></div></div>
                             @if(count($card->related_items ?? []))
                                 <p class="text-xs mt-1 truncate" style="color:var(--text-faint);">Related: {{ collect($card->related_items)->pluck('title')->take(2)->implode(' · ') }}{{ count($card->related_items) > 2 ? ' +'.(count($card->related_items)-2) : '' }}</p>
                             @endif
@@ -260,7 +265,7 @@
     </div>
 
     {{-- Card detail drawer --}}
-    <div class="drawer" :class="{ open: drawerOpen }" @click.outside="drawerOpen = false">
+    <div class="drawer" role="dialog" aria-label="Task details" :aria-hidden="!drawerOpen" :class="{ open: drawerOpen }" @click.outside="if(!cloudPickerOpen) drawerOpen = false" @task-cloud-state.window="cloudPickerOpen=$event.detail.open">
         <template x-if="card">
             <div class="p-6">
                 <div class="flex items-start justify-between mb-3">
@@ -272,6 +277,11 @@
 
                 <p class="text-xs opacity-60 mb-3">Created <span x-text="new Date(card.created_at).toLocaleString()"></span> · Updated <span x-text="new Date(card.updated_at).toLocaleString()"></span></p>
                 @if(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.edit') || $board->owner_user_id===auth()->id())<button type="button" class="form-chip mb-3" @click="setCompleted(!card.completed_at)" x-text="card.completed_at?'Reopen task':'Mark completed'"></button>@endif
+                <p class="text-sm mb-3" style="color:var(--danger,#dc2626)" x-show="notice" x-text="notice" role="alert"></p>
+                <nav class="task-editor-tabs" aria-label="Task editor sections" role="tablist">
+                    <template x-for="tab in ['details','checklist','people','connections','time','activity']" :key="tab"><button type="button" role="tab" :aria-selected="editorTab===tab" @click="setEditorTab(tab)" x-text="({details:'Details',checklist:'Checklist',people:'People & categories',connections:'Connections & files',time:'Time & billing',activity:'Discussion & history'})[tab]"></button></template>
+                </nav>
+<div x-show="editorTab==='details'" x-cloak data-editor-panel="details">
                 <label class="block text-sm mb-3">Optional project<select class="theme-input" x-model="card.project_id" @change="saveCard({project_id:card.project_id||null})"><option value="">Use board project</option>@foreach($projects as $projectChoice)<option value="{{ $projectChoice->id }}">{{ $projectChoice->name }}</option>@endforeach</select></label>
                 <label class="block text-sm mb-3">Start date<input type="date" class="theme-input" x-model="card.start_date" @change="saveCard({start_date:card.start_date||null})"></label>
                 <div class="grid grid-cols-2 gap-3 mb-4">
@@ -299,28 +309,9 @@
                     </label>
                     <input type="range" min="0" max="100" step="5" x-model.number="card.progress"
                            @change="saveCard({ progress: parseInt(card.progress) })"
-                           class="w-full">
-                    <div class="progress-track mt-1"><div class="progress-fill" :style="`width:${card.progress||0}%`"></div></div>
-                </div>
+                           class="w-full task-progress-range" aria-label="Task progress">
 
-                <section class="mb-5 p-3 rounded-xl border" style="border-color:var(--border-soft); background:var(--bg-glass-input);" aria-label="Related Sayzio items">
-                    <h3 class="font-bold text-sm">Related Sayzio items</h3>
-                    <p class="text-xs my-2" style="color:var(--text-faint);">What is this task about? Connect a link, Mind, customer, invoice or any Sayzio page. Opening an item uses your normal access permissions.</p>
-                    <template x-for="(item, index) in (card.related_items || [])" :key="index">
-                        <div class="py-2 border-b" style="border-color:var(--border-soft);">
-                            <div class="flex items-center gap-2"><span class="text-xs uppercase" x-text="item.type"></span><a class="font-semibold underline break-all" :href="item.url" target="_blank" rel="noopener noreferrer" x-text="item.title"></a><button type="button" class="ml-auto text-xs" @click="removeRelatedItem(index)" :aria-label="'Remove ' + item.title">Remove</button></div>
-                            <p class="text-xs mt-1 break-words" x-text="item.note"></p>
-                        </div>
-                    </template>
-                    <p x-show="relatedError" x-cloak role="alert" class="text-sm mt-2" style="color:var(--danger,#dc2626);" x-text="relatedError"></p>
-                    <form class="grid gap-2 mt-3" @submit.prevent="addRelatedItem($event)">
-                        <select name="type" aria-label="Related item type" class="rounded border p-2" style="background:var(--bg-glass-input); color:var(--text-primary); border-color:var(--border-soft);"><option value="link">Link / page</option><option value="mind">Mind</option><option value="contact">Contact / customer</option><option value="project">Project</option><option value="invoice">Invoice</option><option value="event">Event</option><option value="file">File</option><option value="other">Other Sayzio item</option></select>
-                        <input name="title" required maxlength="160" aria-label="Related item name" placeholder="Name, e.g. Summer campaign biolink" class="rounded border p-2" style="background:var(--bg-glass-input); color:var(--text-primary); border-color:var(--border-soft);">
-                        <input name="url" type="url" required maxlength="2000" aria-label="Sayzio item URL" placeholder="Paste the full Sayzio page URL" class="rounded border p-2" style="background:var(--bg-glass-input); color:var(--text-primary); border-color:var(--border-soft);">
-                        <input name="note" maxlength="500" aria-label="Task context" placeholder="What needs doing with this item? (optional)" class="rounded border p-2" style="background:var(--bg-glass-input); color:var(--text-primary); border-color:var(--border-soft);">
-                        <button type="submit" :disabled="relatedSaving || (card.related_items || []).length >= 20" class="btn-secondary justify-self-start">Connect item</button>
-                    </form>
-                </section>
+                </div>
 
                 <label class="block text-[10px] font-bold uppercase mb-1" style="color: var(--text-faint);">Description</label>
                 <div class="rt-toolbar flex gap-1 mb-1">
@@ -335,6 +326,9 @@
                      x-html="card.description_html || ''"
                      data-placeholder="Add more detail…"></div>
 
+
+</div>
+<div x-show="editorTab==='people'" x-cloak data-editor-panel="people">
                 <div class="mt-5">
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Assignees</h3>
                     <div class="flex flex-wrap gap-2 mb-2">
@@ -356,7 +350,7 @@
                 </div>
 
                 <div class="mt-5">
-                    <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Labels</h3>
+                    <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Categories (labels)</h3><p class="text-xs mb-2" style="color:var(--text-muted)">Group tasks with tags such as Design, Bug or Client work. Use them to filter the board and match workflow routes.</p>
                     <div class="flex flex-wrap gap-1 mb-2">
                         <template x-for="l in card.labels" :key="l.id">
                             <span class="label-pill flex items-center gap-1" :style="`background:${l.color};`">
@@ -369,7 +363,7 @@
                         <select @change="if($event.target.value) { attachLabel(parseInt($event.target.value)); $event.target.value=''; }"
                                 class="px-2 py-1 rounded border text-sm flex-1"
                                 style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                            <option value="">+ Apply existing label</option>
+                            <option value="">+ Choose a category</option>
                             <template x-for="l in boardLabels" :key="l.id">
                                 <option :value="l.id" x-text="l.name"></option>
                             </template>
@@ -381,7 +375,7 @@
                         </button>
                     </div>
                     <form x-show="newLabelOpen" x-cloak @submit.prevent="createLabel($event)" class="mt-2 flex gap-2">
-                        <input name="name" placeholder="Label name" maxlength="60" required
+                        <input name="name" placeholder="Category name, e.g. Design" maxlength="60" required
                                class="flex-1 px-2 py-1 text-sm rounded border"
                                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
                         <input name="color" type="color" value="#5c83ff" class="w-12 h-8 rounded">
@@ -389,6 +383,9 @@
                     </form>
                 </div>
 
+
+</div>
+<div x-show="editorTab==='checklist'" x-cloak data-editor-panel="checklist">
                 <div class="mt-5">
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Subtasks</h3>
                     <div x-ref="subtaskList" data-subtask-list>
@@ -408,6 +405,29 @@
                                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
                     </form>
                 </div>
+
+
+</div>
+<div x-show="editorTab==='connections'" x-cloak data-editor-panel="connections">
+                <section class="mb-5 p-3 rounded-xl border" style="border-color:var(--border-soft); background:var(--bg-glass-input);" aria-label="Related Sayzio items">
+                    <h3 class="font-bold text-sm">Related Sayzio items</h3>
+                    <p class="text-xs my-2" style="color:var(--text-faint);">What is this task about? Connect a link, Mind, customer, invoice or any Sayzio page. Opening an item uses your normal access permissions.</p>
+                    <template x-for="(item, index) in (card.related_items || [])" :key="index">
+                        <div class="py-2 border-b" style="border-color:var(--border-soft);">
+                            <div class="flex items-center gap-2"><span class="text-xs uppercase" x-text="item.type"></span><a class="font-semibold underline break-all" :href="item.url" target="_blank" rel="noopener noreferrer" x-text="item.title"></a><button type="button" class="ml-auto text-xs" @click="removeRelatedItem(index)" :aria-label="'Remove ' + item.title">Remove</button></div>
+                            <p class="text-xs mt-1 break-words" x-text="item.note"></p>
+                        </div>
+                    </template>
+                    <p x-show="relatedError" x-cloak role="alert" class="text-sm mt-2" style="color:var(--danger,#dc2626);" x-text="relatedError"></p>
+                    <div class="grid gap-2 mt-3">
+                        <label>Item type<select x-model="relatedKind" @change="loadRelated()" class="theme-input"><option value="link">Links &amp; pages</option><option value="mind">AI Minds</option><option value="staff">AI Staff</option><option value="calendar">Events &amp; calendars</option><option value="project">Projects</option><option value="contact">Contacts</option><option value="invoice">Client invoices</option><option value="file">Files</option></select></label>
+                        <input class="theme-input" type="search" x-model="relatedQuery" @input.debounce.250ms="loadRelated()" placeholder="Search accessible Sayzio items…" aria-label="Search related items">
+                        <button type="button" class="form-chip" @click="loadRelated()">Browse items</button>
+                        <p class="notes-hint" x-show="relatedLoading">Loading…</p>
+                        <div class="task-related-results"><template x-for="item in relatedResults" :key="item.type+':'+item.id"><button type="button" @click="connectRelated(item)" class="task-related-choice"><span x-text="item.title"></span><small>Connect +</small></button></template><p class="notes-hint" x-show="relatedLoaded && !relatedResults.length && !relatedLoading">No matching accessible items.</p></div>
+                    </div>
+                    <details class="mt-3"><summary class="text-xs">Connect another Sayzio page by URL</summary><form class="grid gap-2 mt-2" @submit.prevent="addRelatedItem($event)"><input name="type" type="hidden" value="other"><input class="theme-input" name="title" required maxlength="160" placeholder="Page name"><input class="theme-input" name="url" type="url" required placeholder="Full Sayzio page URL"><input class="theme-input" name="note" maxlength="500" placeholder="Optional context"><button class="form-chip">Connect page</button></form></details>
+                </section>
 
                 <div class="mt-5">
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Attachments</h3>
@@ -430,7 +450,7 @@
                     {{-- Cloud-library attachments for this card. Shares the
                          workspace cloud file picker; bytes stay in the
                          provider, we just store a reference. --}}
-                    <div class="mt-3" x-data="cloudAttachPicker({
+                    <div class="mt-3" x-init="$watch('open', value => $dispatch('task-cloud-state', {open:value}))" x-data="cloudAttachPicker({
                             mode: 'ajax',
                             targetType: 'task_card',
                             targetId: card.id,
@@ -443,7 +463,7 @@
                                     <span class="truncate" x-text="a.name"></span>
                                     <span class="text-xs" style="color: var(--text-faint);" x-text="a.provider_label + ' · ' + a.human_size"></span>
                                 </a>
-                                <button type="button" @click="$root.detachCloudFile(a.id)" class="text-xs" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+                                <button type="button" @click="detachCloudFile(a.id)" class="text-xs" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                             </div>
                         </template>
                         <button type="button" @click="show()"
@@ -455,6 +475,9 @@
                     </div>
                 </div>
 
+
+</div>
+<div x-show="editorTab==='activity'" x-cloak data-editor-panel="activity">
                 <div class="mt-5">
                     {{-- Tabbed footer: Comments + Activity log. Activity rows
                          come from card.activities (server already eager-loads
@@ -542,6 +565,11 @@
                     </div>
                 </div>
 
+
+</div>
+<div x-show="editorTab==='time'" x-cloak data-editor-panel="time">
+                <section class="notes-card"><h3 class="font-bold">Task time tracking</h3><p class="notes-hint">Track time even when the task is not billable. Attendance mode resumes on clock-in/end-break and stops on break/clock-out for this selected task.</p>@if(auth()->user()->canInWorkspace(app('current_workspace'),'tasks.track'))<label class="text-sm block my-3"><input type="checkbox" x-model="followAttendance"> Follow my attendance</label><div class="flex gap-2"><button class="form-chip" type="button" @click="startTimer()">Start / select task</button><button class="form-chip" type="button" @click="stopTimer()">Stop / unlink</button></div><p class="notes-hint mt-2" x-text="card.running_timer?'Timer running for you':'No timer running for you'"></p><form @submit.prevent="addManualEntry($event)" class="flex flex-wrap gap-2 mt-3"><input class="theme-input" name="minutes" type="number" required min="1" max="1440" placeholder="Minutes"><input class="theme-input" name="note" maxlength="240" placeholder="Work note"><button class="form-chip">Log time manually</button></form>@endif<div class="mt-3"><template x-for="entry in (card.time_entries||[])" :key="entry.id"><p class="text-xs py-1"><span x-text="entry.user?.name"></span> · <span x-text="entry.minutes+'m · '+entry.source"></span></p></template></div></section>
+                <details class="mt-4"><summary>Optional billing settings</summary>
                 {{-- Billing & time tracking ---------------------------------- --}}
                 <div class="mt-5 pt-4 border-t" style="border-color: var(--border-soft);">
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">
@@ -573,69 +601,7 @@
                             </label>
                         </div>
 
-                        <template x-if="(card.rate_type || 'hourly') === 'hourly'">
-                            <div class="p-3 rounded-lg" style="background: var(--bg-glass-input);">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="text-xs" style="color: var(--text-muted);">
-                                        Logged: <strong x-text="formatMinutes(card.unbilled_minutes || 0)"></strong>
-                                        <span x-show="card.running_timer && card.running_timer.id"
-                                              class="ml-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase" style="color: #10b981;">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            Running
-                                        </span>
-                                    </div>
-                                    <div class="flex gap-1">
-                                        <button type="button"
-                                                x-show="!(card.running_timer && card.running_timer.id)"
-                                                @click="startTimer()"
-                                                class="px-2 py-1 rounded text-xs font-semibold text-white"
-                                                style="background: #10b981;">
-                                            <i class="fas fa-play"></i> Start
-                                        </button>
-                                        <button type="button"
-                                                x-show="card.running_timer && card.running_timer.id"
-                                                @click="stopTimer()"
-                                                class="px-2 py-1 rounded text-xs font-semibold text-white"
-                                                style="background: #ef4444;">
-                                            <i class="fas fa-stop"></i> Stop
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <form @submit.prevent="addManualEntry($event)" class="mt-2 flex gap-1">
-                                    <input name="minutes" type="number" min="1" max="1440" placeholder="Minutes"
-                                           required class="w-24 px-2 py-1 text-xs rounded border"
-                                           style="background: var(--bg-card); border-color: var(--border-soft); color: var(--text-primary);">
-                                    <input name="note" type="text" maxlength="240" placeholder="Note (optional)"
-                                           class="flex-1 px-2 py-1 text-xs rounded border"
-                                           style="background: var(--bg-card); border-color: var(--border-soft); color: var(--text-primary);">
-                                    <button class="px-2 py-1 text-xs font-semibold rounded text-white"
-                                            style="background: #3d6bff;">Log</button>
-                                </form>
-
-                                <ul class="mt-2 space-y-1 max-h-40 overflow-y-auto">
-                                    <template x-for="t in (card.time_entries || [])" :key="t.id">
-                                        <li class="flex items-center justify-between text-xs px-2 py-1 rounded"
-                                            style="background: var(--bg-card); color: var(--text-muted);">
-                                            <span>
-                                                <strong x-text="formatMinutes(t.minutes)"></strong>
-                                                <span class="opacity-60" x-show="t.note"> - <span x-text="t.note"></span></span>
-                                                <span class="opacity-50 ml-1 text-[10px]" x-text="t.user?.name || ''"></span>
-                                            </span>
-                                            <span class="flex items-center gap-2">
-                                                <span x-show="t.invoiced" class="text-[9px] font-bold uppercase"
-                                                      style="color: #3d6bff;">Invoiced</span>
-                                                <button type="button" x-show="!t.invoiced && t.ended_at"
-                                                        @click="destroyTimeEntry(t.id)" style="color: var(--text-faint);">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </span>
-                                        </li>
-                                    </template>
-                                </ul>
-                            </div>
-                        </template>
-
+                        <p class="notes-hint">Unbilled time: <span x-text="formatMinutes(card.unbilled_minutes||0)"></span>. Track work in the controls above.</p>
                         <template x-if="card.client_invoice_id">
                             <a :href="`/user/client-invoices/${card.client_invoice_id}`"
                                class="inline-flex items-center gap-1 text-xs font-semibold" style="color: #3d6bff;">
@@ -645,6 +611,9 @@
                     </div>
                 </div>
 
+
+</details>
+</div>
                 <div class="mt-6 pt-4 border-t flex justify-between" style="border-color: var(--border-soft);">
                     <button @click="destroyCard()" class="text-xs font-semibold" style="color:#ef4444;">
                         <i class="fas fa-trash mr-1"></i> Delete card
@@ -697,8 +666,13 @@
 function kanbanBoard(boardId) {
     return {
         boardId,
-        drawerOpen: false,
+        drawerOpen: false, editorTab: 'details', cloudPickerOpen:false, followAttendance:false, ganttAnchor:taskToday(), ganttDays:35,
+        relatedKind:'link',relatedQuery:'',relatedResults:[],relatedLoading:false,relatedLoaded:false,
         boardView:sessionStorage.getItem('task-view-'+boardId)||'kanban', syncRevision:@js($syncRevision),syncStatus:'Checks every 15 seconds',syncTimer:null,notice:'',
+        workflowOpen:false,workflowColumn:null,workflowRules:[],
+        workflowColumns:@js($board->columns->map(fn($col)=>['id'=>$col->id,'name'=>$col->name,'transitions'=>$col->transitions??[]])->values()),
+        openWorkflow(id){this.workflowColumn=id;this.workflowRules=JSON.parse(JSON.stringify(this.workflowColumns.find(c=>c.id===id).transitions));this.workflowOpen=true;},
+        async saveWorkflow(){await this.fetchJson(`/user/tasks/columns/${this.workflowColumn}/transitions`,{method:'PUT',body:{transitions:this.workflowRules}});this.workflowOpen=false;location.reload();},
         showAddColumn: false,
         showBilledColumnPicker: false,
         selectedCardIds: [],
@@ -773,11 +747,13 @@ function kanbanBoard(boardId) {
             }catch{this.syncStatus='Could not refresh updates. Try Refresh updates.';}
         },
         async setCompleted(completed){
-            const columns=@js($board->columns->map(fn($col)=>['id'=>$col->id,'done'=>$col->is_done])->values());
-            const column=columns.find(col=>col.done===completed);
-            if(!column){this.notice='Add a '+(completed?'completion':'work')+' column first.';return;}
-            await this.fetchJson(`/user/tasks/cards/${this.card.id}/move`,{method:'POST',body:{column_id:column.id,position:0}});await this.openCard(this.card.id);
+            await this.saveQueue;
+            await this.fetchJson(`/user/tasks/cards/${this.card.id}/complete`,{method:'POST',body:{completed}});
+            sessionStorage.setItem('task-filters-'+this.boardId,JSON.stringify(this.filters));location.reload();
         },
+        async loadRelated(){const kind=this.relatedKind,query=this.relatedQuery;this.relatedLoading=true;this.relatedLoaded=true;try{const r=await this.fetchJson(`/user/tasks/boards/${this.boardId}/related-choices?kind=${kind}&q=${encodeURIComponent(query)}`);if(kind===this.relatedKind&&query===this.relatedQuery)this.relatedResults=r.items;}catch(e){this.relatedError=e.message;this.relatedResults=[];}finally{this.relatedLoading=false;}},
+        async connectRelated(item){if(this.relatedSaving)return;this.relatedSaving=true;try{if((this.card.related_items||[]).some(r=>r.url===item.url))return;const items=[...(this.card.related_items||[]),{type:item.type,title:item.title,url:item.url,note:''}];await this.saveCard({related_items:items});this.card.related_items=items;}finally{this.relatedSaving=false;}},
+        async exportView(format){const mode=this.boardView==='gantt'?'gantt':'board';const query=new URLSearchParams({mode,format:format==='png'?'svg':format,from:this.ganttAnchor,days:this.ganttDays});const url=`/user/tasks/boards/${this.boardId}/export?${query}`;if(format==='pdf'){window.open(url,'_blank','noopener');return;}const response=await fetch(url);if(!response.ok){this.notice='Export failed. Check your export permission or board size.';return;}const svg=await response.blob();const image=new Image();const src=URL.createObjectURL(svg);try{await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=src;});const canvas=document.createElement('canvas');const scale=Math.min(1,8192/image.naturalWidth,16384/image.naturalHeight,Math.sqrt(32000000/(image.naturalWidth*image.naturalHeight)));canvas.width=Math.round(image.naturalWidth*scale);canvas.height=Math.round(image.naturalHeight*scale);canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);const a=document.createElement('a');a.download='task-'+mode+'.png';a.href=canvas.toDataURL('image/png');a.click();}finally{URL.revokeObjectURL(src);}},
         async fetchJson(url, opts = {}) {
             const headers = { 'X-CSRF-TOKEN': this.csrf, 'Accept': 'application/json', ...(opts.headers || {}) };
             if (opts.body && !(opts.body instanceof FormData)) {
@@ -786,6 +762,7 @@ function kanbanBoard(boardId) {
             }
             const r = await fetch(url, { ...opts, headers, credentials: 'same-origin' });
             if(!r.ok){let data;try{data=await r.json()}catch{}const error=new Error(data?.message||'Request failed. Please try again.');this.notice=error.message;throw error;}
+            if(r.redirected||!r.headers.get('content-type')?.includes('application/json')){this.notice='Your session expired. Refresh and sign in again.';throw new Error(this.notice);}
             return r.json();
         },
 
@@ -793,13 +770,16 @@ function kanbanBoard(boardId) {
             const cardId = evt.item.dataset.cardId;
             const columnId = evt.to.dataset.columnId;
             const position = evt.newIndex;
-            await this.fetchJson(`/user/tasks/cards/${cardId}/move`, {
+            try { await this.fetchJson(`/user/tasks/cards/${cardId}/move`, {
                 method: 'POST',
                 body: { column_id: parseInt(columnId), position },
-            });
+            });location.reload();}catch(e){evt.from.insertBefore(evt.item,evt.from.children[evt.oldIndex]||null);}
         },
 
+        setEditorTab(tab){this.editorTab=tab;this.$nextTick(()=>document.querySelector('.drawer').scrollTo({top:0}));if(tab==='connections'&&!this.relatedLoaded)this.loadRelated();},
         async openCard(id) {
+            const same=this.card?.id===id;
+            if(!same){this.editorTab='details';this.relatedResults=[];this.relatedLoaded=false;}
             const data = await this.fetchJson(`/user/tasks/cards/${id}`);
             this.card = data.card;
             this.card.start_date=this.card.start_date?this.card.start_date.substring(0,10):null;
@@ -862,7 +842,7 @@ function kanbanBoard(boardId) {
             this.saveQueue=this.saveQueue.catch(()=>{}).then(async()=>{
                 if(this.card?.id!==id)return;
                 const result=await this.fetchJson(`/user/tasks/cards/${id}`,{method:'PATCH',body:{...payload,expected_revision:this.card.revision}});
-                if(this.card?.id===id) { this.card.revision=result.revision;this.card.updated_at=result.card.updated_at;this.notice=''; }
+                if(this.card?.id===id) { const moved=result.card.column_id!==this.card.column_id;this.card.revision=result.revision;this.card.updated_at=result.card.updated_at;this.card.progress=Number(result.card.progress)||0;this.card.billable=result.card.billable;this.card.completed_at=result.card.completed_at;this.notice='';document.querySelectorAll(`[data-task-progress="${id}"]`).forEach(el=>{el.style.width=this.card.progress+'%';el.parentElement.setAttribute('aria-valuenow',this.card.progress);});window.dispatchEvent(new CustomEvent('task-progress-update',{detail:{id,progress:this.card.progress,done:!!this.card.completed_at}}));if(moved)location.reload(); }
             });return this.saveQueue;
         },
 
@@ -1089,7 +1069,8 @@ function kanbanBoard(boardId) {
         },
         async saveBilling(payload) { await this.saveCard(payload); },
         async startTimer() {
-            const r = await this.fetchJson(`/user/tasks/cards/${this.card.id}/timer/start`, { method: 'POST' });
+            const r = await this.fetchJson(`/user/tasks/cards/${this.card.id}/timer/start`, { method: 'POST',body:{follow_attendance:this.followAttendance} });
+            if(r.waiting)this.notice='Selected task will track time on your next clock-in or end-break.';
             this.card.running_timer = r.entry ? { id: r.entry.id, started_at: r.entry.started_at } : null;
             await this.openCard(this.card.id);
         },

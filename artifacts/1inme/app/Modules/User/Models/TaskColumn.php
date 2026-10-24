@@ -11,11 +11,11 @@ class TaskColumn extends Model
 
     protected $fillable = [
         'workspace_id', 'board_id', 'name', 'color',
-        'position', 'wip_limit', 'is_done',
+        'position', 'wip_limit', 'is_done', 'transitions',
     ];
 
     protected $casts = [
-        'is_done'   => 'boolean',
+        'is_done'   => 'boolean', 'transitions'=>'array',
         'wip_limit' => 'integer',
     ];
 

@@ -36,6 +36,7 @@ class WorkspacePermissionCatalog
     {
         if ($feature === 'attendance') return ['view', 'create', 'review', 'manage', 'export'];
         $actions = self::actions();
+        if($feature==='tasks') $actions=array_merge($actions,['workflow','track']);
         if (in_array($feature, ['links', 'forms', 'stats', 'files', 'tasks', 'posts', 'subscribers', 'contacts', 'invoices', 'projects', 'planner', 'qr'])) {
             $actions[] = 'export';
         }
@@ -53,7 +54,7 @@ class WorkspacePermissionCatalog
     {
         $action = str_replace('_others', '', $action);
 
-        return ['export' => 'view', 'publish' => 'edit', 'run' => 'edit'][$action] ?? $action;
+        return ['workflow'=>'edit', 'track'=>'edit', 'export' => 'view', 'publish' => 'edit', 'run' => 'edit'][$action] ?? $action;
     }
 
     public static function keys(): array

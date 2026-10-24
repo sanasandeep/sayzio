@@ -5,7 +5,8 @@
     on mode).
 --}}
 @php($_confirmLabel = $confirmLabel ?? null)
-<div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+<template x-teleport="body">
+<div x-show="open" x-cloak class="fixed inset-0 flex items-center justify-center bg-black/60 p-4" style="z-index:90" role="dialog" aria-modal="true" aria-label="Attach from Cloud Files" @click.self="open=false"
      @keydown.escape.window="open = false">
     <div class="w-full max-w-2xl rounded-xl border max-h-[80vh] flex flex-col"
          style="background: var(--bg-card); border-color: var(--border-soft);">
@@ -67,3 +68,5 @@
         </div>
     </div>
 </div>
+
+</template>
