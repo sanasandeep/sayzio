@@ -122,6 +122,7 @@
             <option value="inactive" {{ old('status', $package->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
         </select>
     </div>
+    @include('admin.partials.platform-prices', ['platformModel' => $package, 'platformCycles' => ['monthly']])
     <div class="flex items-center gap-3 pt-4">
         <button class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">{{ $submitLabel ?? 'Save Package' }}</button>
         <a href="{{ route('admin.coin-packages.index') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] ak-strong">Cancel</a>

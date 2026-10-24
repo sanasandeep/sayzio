@@ -1,4 +1,5 @@
 import { Ionicons, Feather } from "@expo/vector-icons";
+import * as AppleAuthentication from "expo-apple-authentication";
 import * as Google from "expo-auth-session/providers/google";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -32,7 +33,7 @@ import { useColors } from "@/hooks/useColors";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { redirectAfterAuth, touchPendingPostAuthNext } from "@/lib/authNext";
-import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
+import { apiFetch, getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 import { getAuthConfig, isAllowedCountryCode } from "@/lib/api/authConfig";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
@@ -49,7 +50,12 @@ const SOCIALS: {
   color: string;
 }[] = [
   { id: "google", label: "Google", icon: "logo-google", color: "#ea4335" },
-  { id: "linkedin", label: "LinkedIn", icon: "logo-linkedin", color: "#0a66c2" },
+  {
+    id: "linkedin",
+    label: "LinkedIn",
+    icon: "logo-linkedin",
+    color: "#0a66c2",
+  },
 ];
 
 // LinkedIn and Google (when no native client ID is compiled in) go through the
@@ -81,7 +87,11 @@ type GoogleAuth = ReturnType<typeof Google.useIdTokenAuthRequest>;
 
 function useGuardedGoogleAuth(): GoogleAuth {
   if (!GOOGLE_AUTH_SAFE_TO_INIT) {
-    return [null, null, async () => ({ type: "dismiss" })] as unknown as GoogleAuth;
+    return [
+      null,
+      null,
+      async () => ({ type: "dismiss" }),
+    ] as unknown as GoogleAuth;
   }
   // eslint-disable-next-line react-hooks/rules-of-hooks
   return Google.useIdTokenAuthRequest({
@@ -100,6 +110,44 @@ export default function AuthLanding() {
   const reducedMotion = useReducedMotion();
   const auth = useAuth();
   const { sendOtp, socialLogin, loginWithPassword } = auth;
+  const [appleEnabled, setAppleEnabled] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === "ios")
+      AppleAuthentication.isAvailableAsync()
+        .then(setAppleAvailable)
+        .catch(() => {});
+  }, []);
+  const signInApple = async () => {
+    setBusy("social-apple");
+    setError(null);
+    try {
+      const challenge = await apiFetch<{ data: { nonce: string } }>(
+        "/auth/apple/nonce",
+      );
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        ],
+        nonce: challenge.data.nonce,
+      });
+      if (!credential.identityToken)
+        throw new Error("Apple did not return a sign-in token.");
+      const result = await socialLogin({
+        provider: "apple",
+        id_token: credential.identityToken,
+        nonce: challenge.data.nonce,
+      });
+      if (result.needsName) setShowNameModal(true);
+      else await redirectAfterAuth(router);
+    } catch (e) {
+      if ((e as { code?: string }).code !== "ERR_REQUEST_CANCELED")
+        setError(e instanceof Error ? e.message : "Apple sign-in failed.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   // When the OAuth return screen sends users here to fall back to email
   // (?method=email), default to the email tab and focus the field so the
@@ -176,7 +224,9 @@ export default function AuthLanding() {
   // (`identity_taken`); drives the inline "merge accounts?" prompt.
   const [mergeProvider, setMergeProvider] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<"otp" | "password">("password");
+  const [loginMethod, setLoginMethod] = useState<"otp" | "password">(
+    "password",
+  );
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -199,6 +249,7 @@ export default function AuthLanding() {
     let active = true;
     getAuthConfig().then((cfg) => {
       if (!active) return;
+      setAppleEnabled(cfg.appleLoginEnabled);
       setMobileLoginEnabled(cfg.mobileLoginEnabled);
       setAllowedCountryCodes(cfg.allowedCountryCodes);
       if (!cfg.mobileLoginEnabled) setChannel("email");
@@ -220,7 +271,9 @@ export default function AuthLanding() {
     }
     const id = identifier.trim();
     if (!id) {
-      setError(channel === "email" ? "Enter your email" : "Enter your WhatsApp number");
+      setError(
+        channel === "email" ? "Enter your email" : "Enter your WhatsApp number",
+      );
       return;
     }
     if (channel === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) {
@@ -228,7 +281,9 @@ export default function AuthLanding() {
       return;
     }
     if (channel === "mobile" && !/^\+?[0-9\s\-()]{6,}$/.test(id)) {
-      setError("Enter a WhatsApp number with country code (e.g. +1 555 123 4567)");
+      setError(
+        "Enter a WhatsApp number with country code (e.g. +1 555 123 4567)",
+      );
       return;
     }
     if (
@@ -269,8 +324,10 @@ export default function AuthLanding() {
             .find(Boolean)
         : null;
       let msg = fieldMsg ?? err?.message ?? "Could not send code";
-      if (err?.status === 429) msg = "Too many attempts. Wait a minute and try again.";
-      if (err?.status && err.status >= 500) msg = "Our server is having trouble. Try again shortly.";
+      if (err?.status === 429)
+        msg = "Too many attempts. Wait a minute and try again.";
+      if (err?.status && err.status >= 500)
+        msg = "Our server is having trouble. Try again shortly.";
       setError(msg);
     } finally {
       setBusy(null);
@@ -279,9 +336,15 @@ export default function AuthLanding() {
 
   const onLoginWithPw = async () => {
     const email = identifier.trim();
-    if (!email) { setError("Enter your email"); return; }
+    if (!email) {
+      setError("Enter your email");
+      return;
+    }
     const pw = password.trim();
-    if (!pw) { setError("Enter your password"); return; }
+    if (!pw) {
+      setError("Enter your password");
+      return;
+    }
     setBusy("pw-login");
     setError(null);
     try {
@@ -298,14 +361,20 @@ export default function AuthLanding() {
         if (typeof token === "string" && token) {
           router.push({
             pathname: "/(auth)/verify",
-            params: { channel: "email", identifier: email, challenge_token: token },
+            params: {
+              channel: "email",
+              identifier: email,
+              challenge_token: token,
+            },
           });
           return;
         }
       }
       let msg = err?.message ?? "Sign-in failed";
-      if (err?.status === 401 || err?.status === 422) msg = "Incorrect email or password.";
-      if (err?.status === 429) msg = "Too many attempts. Wait a minute and try again.";
+      if (err?.status === 401 || err?.status === 422)
+        msg = "Incorrect email or password.";
+      if (err?.status === 429)
+        msg = "Too many attempts. Wait a minute and try again.";
       setError(msg);
     } finally {
       setBusy(null);
@@ -350,7 +419,10 @@ export default function AuthLanding() {
       // The scheme is registered in app.json so this should always
       // round-trip; if it doesn't, surface a clear error rather than
       // silently giving up.
-      const result = await WebBrowser.openAuthSessionAsync(url, "sayzio://oauth-callback");
+      const result = await WebBrowser.openAuthSessionAsync(
+        url,
+        "sayzio://oauth-callback",
+      );
       if (result.type === "success") {
         // Success URL handling lives in oauth-callback.tsx, which the
         // deep link router opens automatically. Nothing to do here.
@@ -361,9 +433,13 @@ export default function AuthLanding() {
         return;
       }
       if (result.type === "locked") {
-        throw new Error("Another sign-in is in progress. Try again in a moment.");
+        throw new Error(
+          "Another sign-in is in progress. Try again in a moment.",
+        );
       }
-      throw new Error(`${provider} sign-in didn't complete (${result.type ?? "unknown"})`);
+      throw new Error(
+        `${provider} sign-in didn't complete (${result.type ?? "unknown"})`,
+      );
     } catch (e) {
       const msg =
         e instanceof Error
@@ -445,12 +521,12 @@ export default function AuthLanding() {
       <AnimatedBlob
         color="#003399"
         size={width * 0.4}
-        initialX={width * 0.50}
+        initialX={width * 0.5}
         initialY={height * 0.35}
         driftX={10}
         driftY={-12}
         duration={7100}
-        opacity={0.10}
+        opacity={0.1}
         delayMs={1600}
         reduced={reducedMotion}
       />
@@ -460,10 +536,7 @@ export default function AuthLanding() {
         {...WEB_FOCUS_RING_PROPS}
         onPress={() => router.push("/onboarding")}
         hitSlop={12}
-        style={[
-          styles.backBtn,
-          { top: insets.top + 12, left: 16 },
-        ]}
+        style={[styles.backBtn, { top: insets.top + 12, left: 16 }]}
         accessibilityLabel="Back to intro"
         accessibilityRole="button"
       >
@@ -520,7 +593,9 @@ export default function AuthLanding() {
                     style={[
                       styles.tab,
                       {
-                        backgroundColor: active ? colors.background : "transparent",
+                        backgroundColor: active
+                          ? colors.background
+                          : "transparent",
                         borderRadius: colors.radius - 4,
                       },
                     ]}
@@ -528,7 +603,11 @@ export default function AuthLanding() {
                     <Text
                       style={[
                         styles.tabText,
-                        { color: active ? colors.primary : colors.mutedForeground },
+                        {
+                          color: active
+                            ? colors.primary
+                            : colors.mutedForeground,
+                        },
                       ]}
                     >
                       {c === "email" ? "Email" : "WhatsApp"}
@@ -544,7 +623,9 @@ export default function AuthLanding() {
 
         <TextField
           label={channel === "email" ? "Email address" : "WhatsApp number"}
-          placeholder={channel === "email" ? "you@example.com" : "+1 555 123 4567"}
+          placeholder={
+            channel === "email" ? "you@example.com" : "+1 555 123 4567"
+          }
           autoCapitalize="none"
           autoCorrect={false}
           autoFocus={autoFocusEmail && channel === "email"}
@@ -569,7 +650,9 @@ export default function AuthLanding() {
               trailing={
                 <Pressable
                   onPress={() => setShowPassword((v) => !v)}
-                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                  accessibilityLabel={
+                    showPassword ? "Hide password" : "Show password"
+                  }
                   accessibilityRole="button"
                   accessibilityState={{ checked: showPassword }}
                   hitSlop={8}
@@ -645,6 +728,21 @@ export default function AuthLanding() {
           <View style={[styles.line, { backgroundColor: colors.border }]} />
         </View>
 
+        {appleEnabled && appleAvailable && Platform.OS === "ios" ? (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={
+              AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+            }
+            buttonStyle={
+              AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+            }
+            cornerRadius={10}
+            style={{ width: "100%", height: 48, marginBottom: 12 }}
+            onPress={() => {
+              if (!busy) void signInApple();
+            }}
+          />
+        ) : null}
         <View style={styles.socialGrid}>
           {SOCIALS.filter((s) => WEB_BROWSER_PROVIDERS.has(s.id)).map((s) => {
             const isBusy = busy === `social-${s.id}`;
@@ -671,7 +769,9 @@ export default function AuthLanding() {
                   size={20}
                   color={colors.scheme === "dark" ? colors.foreground : s.color}
                 />
-                <Text style={[styles.socialBtnLabel, { color: colors.foreground }]}>
+                <Text
+                  style={[styles.socialBtnLabel, { color: colors.foreground }]}
+                >
                   Log in with {s.label}
                 </Text>
               </Pressable>
@@ -688,31 +788,51 @@ export default function AuthLanding() {
 
         <View style={{ height: 24 }} />
         <View style={styles.infoLinks}>
-          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/about")} hitSlop={8}>
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            onPress={() => router.push("/info/about")}
+            hitSlop={8}
+          >
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               About
             </Text>
           </Pressable>
           <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
-          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/help")} hitSlop={8}>
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            onPress={() => router.push("/info/help")}
+            hitSlop={8}
+          >
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               Help
             </Text>
           </Pressable>
           <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
-          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/privacy")} hitSlop={8}>
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            onPress={() => router.push("/info/privacy")}
+            hitSlop={8}
+          >
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               Privacy
             </Text>
           </Pressable>
           <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
-          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/terms")} hitSlop={8}>
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            onPress={() => router.push("/info/terms")}
+            hitSlop={8}
+          >
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               Terms
             </Text>
           </Pressable>
           <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
-          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => Linking.openURL("https://sayzio.app")} hitSlop={8}>
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            onPress={() => Linking.openURL("https://sayzio.app")}
+            hitSlop={8}
+          >
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               Website
             </Text>
@@ -758,7 +878,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     letterSpacing: -0.3,
   },
-  sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, marginBottom: 16 },
+  sub: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 14,
+    marginBottom: 16,
+  },
   tabs: { flexDirection: "row", padding: 4, borderWidth: 1 },
   tab: { flex: 1, alignItems: "center", paddingVertical: 10 },
   tabText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },

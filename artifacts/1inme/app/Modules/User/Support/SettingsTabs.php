@@ -42,6 +42,7 @@ class SettingsTabs
                 'route' => 'user.profile.edit',
                 'match' => ['user.profile.*'],
             ],
+            'account-data' => ['label'=>'Data & account deletion','icon'=>'fa-shield','route'=>'user.account-data.show','match'=>['user.account-data.*']],
             'design' => [
                 'label' => 'Design', 'icon' => 'fa-palette',
                 'route' => 'user.design.edit', 'match' => ['user.design.*'],

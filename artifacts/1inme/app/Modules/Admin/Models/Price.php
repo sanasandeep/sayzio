@@ -14,7 +14,7 @@ class Price extends Model
     protected $fillable = [
         'priceable_type', 'priceable_id',
         'currency', 'billing_cycle',
-        'amount_minor_units', 'is_active',
+        'amount_minor_units', 'is_active', 'ios_amount_minor', 'android_amount_minor',
     ];
 
     protected function casts(): array
@@ -22,6 +22,7 @@ class Price extends Model
         return [
             'amount_minor_units' => 'integer',
             'is_active' => 'boolean',
+            'ios_amount_minor' => 'integer', 'android_amount_minor' => 'integer',
         ];
     }
 

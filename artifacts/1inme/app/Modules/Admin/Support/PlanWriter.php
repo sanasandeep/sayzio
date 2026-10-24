@@ -28,6 +28,7 @@ class PlanWriter
     public function createFromRequest(Request $request): Plan
     {
         $validated = $request->validate($this->rules());
+        $platformPrices = $validated['platform_prices'] ?? []; unset($validated['platform_prices']);
         $validated['slug'] = $this->uniqueSlug($validated['name']);
         $validated['is_popular'] = $request->boolean('is_popular');
         $validated['is_internal'] = $request->boolean('is_internal');
@@ -51,6 +52,7 @@ class PlanWriter
         }
         $plan->addons()->sync($addonIds);
         $this->syncPriceTable($plan, $minor);
+        \App\Services\PlatformPricing::save($plan, $platformPrices);
         PricingPageCache::flush();
 
         return $plan;
@@ -63,6 +65,7 @@ class PlanWriter
     public function updateFromRequest(Request $request, Plan $plan): Plan
     {
         $validated = $request->validate($this->rules());
+        $platformPrices = $validated['platform_prices'] ?? []; unset($validated['platform_prices']);
         $validated['is_popular'] = $request->boolean('is_popular');
         $validated['is_internal'] = $request->boolean('is_internal');
         $validated['is_category_default'] = $request->boolean('is_category_default');
@@ -83,6 +86,7 @@ class PlanWriter
         }
         $plan->addons()->sync($addonIds);
         $this->syncPriceTable($plan, $minor);
+        \App\Services\PlatformPricing::save($plan, $platformPrices);
         PricingPageCache::flush();
 
         return $plan;
@@ -303,6 +307,7 @@ class PlanWriter
         return array_merge($providerRules, [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            ...\App\Services\PlatformPricing::rules(),
             'monthly_price' => 'required|integer|min:0',
             'annual_price' => 'required|integer|min:0',
             'monthly_price_secondary' => 'required|integer|min:0',

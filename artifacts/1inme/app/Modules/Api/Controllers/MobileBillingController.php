@@ -36,6 +36,7 @@ class MobileBillingController extends Controller
     {
         $user = $request->user();
         $currency = PricingResolver::currencyForUser($user);
+        $platform = \App\Services\PlatformPricing::platform($request);
 
         // Mirror the web /pricing page: pre-compute BOTH currencies so the
         // mobile client can flip USD ⇄ INR instantly client-side (no
@@ -43,13 +44,13 @@ class MobileBillingController extends Controller
         // currently-resolved default; `prices[CUR]` carries every cell.
         $currencies = ['USD', 'INR'];
 
-        $pricePair = function ($priceable, string $cur): array {
-            $m = PricingResolver::priceForCurrency($priceable, $cur, 'monthly');
-            $a = PricingResolver::priceForCurrency($priceable, $cur, 'annual');
+        $pricePair = function ($priceable, string $cur) use ($platform): array {
+            $m = ($priceable instanceof Plan ? \App\Services\PlatformPricing::price($priceable,$cur,'monthly',$platform) : PricingResolver::priceForCurrency($priceable,$cur,'monthly'));
+            $a = ($priceable instanceof Plan ? \App\Services\PlatformPricing::price($priceable,$cur,'annual',$platform) : PricingResolver::priceForCurrency($priceable,$cur,'annual'));
             // First-term intro discount blocks (null when none / not a Plan).
-            $introM = $priceable instanceof Plan
+            $introM = $priceable instanceof Plan && $platform==='web'
                 ? PricingResolver::introFor($priceable, $cur, 'monthly', (int) ($m['amount_minor'] ?? 0)) : null;
-            $introA = $priceable instanceof Plan
+            $introA = $priceable instanceof Plan && $platform==='web'
                 ? PricingResolver::introFor($priceable, $cur, 'annual', (int) ($a['amount_minor'] ?? 0)) : null;
             return [
                 'monthly' => [
@@ -151,6 +152,7 @@ class MobileBillingController extends Controller
             ->values()->all();
 
         return $this->ok([
+            'platform'         => $platform,
             'currency'         => $currency,
             'currencies'       => $currencies,
             'plans'            => $plans,

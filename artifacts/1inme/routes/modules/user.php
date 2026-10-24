@@ -139,6 +139,8 @@ Route::prefix('user')->name('user.')->group(function () {
 
     // "Sign in with <provider>" — resolves the social identity to its
     // linked account and signs the visitor in. Available pre-auth.
+    Route::get('apple/login', [\App\Modules\User\Controllers\AppleLoginController::class,'page'])->middleware('throttle:20,1')->name('apple.login');
+    Route::post('apple/login', [\App\Modules\User\Controllers\AppleLoginController::class,'complete'])->middleware('throttle:20,1')->name('apple.complete');
     Route::get('social-oauth/{provider}/login', [\App\Modules\User\Controllers\SocialOAuthController::class, 'loginConnect'])
         ->name('social-oauth.login');
 
@@ -511,6 +513,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'updatePreferences'])->name('notifications.preferences.update');
         // Task #3497: contact-privacy prefs (hide phone/email/location/socials
         // from strangers via the dialer caller-ID + universal search).
+        Route::get('settings/account-data', [\App\Modules\Api\Controllers\AccountDataController::class,'page'])->name('account-data.show');
+        Route::get('settings/account-data/requests', [\App\Modules\Api\Controllers\AccountDataController::class,'index'])->name('account-data.index');
+        Route::post('settings/account-data/requests', [\App\Modules\Api\Controllers\AccountDataController::class,'store'])->middleware('throttle:10,10')->name('account-data.store');
+        Route::get('settings/account-data/requests/{privacyRequest}/download', [\App\Modules\Api\Controllers\AccountDataController::class,'download'])->name('account-data.download');
         Route::prefix('settings/privacy')->name('settings.privacy.')->group(function () {
             Route::get('/', [\App\Modules\User\Controllers\ContactPrivacyController::class, 'show'])->name('show');
             Route::put('/', [\App\Modules\User\Controllers\ContactPrivacyController::class, 'update'])->name('update');

@@ -102,6 +102,7 @@ class CoinPackageController extends Controller
                 ? round((float) $data['api_budget_pct'], 2) : null,
         ]);
         $this->syncPrices($package, $minor);
+        \App\Services\PlatformPricing::save($package, $data['platform_prices'] ?? []);
         $this->syncOriginalPrices($package, $this->extractOriginalMinor($data));
         PricingPageCache::flush();
 
@@ -131,6 +132,7 @@ class CoinPackageController extends Controller
                 ? round((float) $data['api_budget_pct'], 2) : null,
         ]);
         $this->syncPrices($coinPackage, $minor);
+        \App\Services\PlatformPricing::save($coinPackage, $data['platform_prices'] ?? []);
         $this->syncOriginalPrices($coinPackage, $this->extractOriginalMinor($data));
         PricingPageCache::flush();
         return redirect()->route('admin.coin-packages.index')->with('success', 'Coin package updated.');
@@ -165,6 +167,7 @@ class CoinPackageController extends Controller
             'status'      => 'required|in:active,inactive',
             'sort_order'  => 'nullable|integer|min:0',
             // Per-currency price in MINOR units (cents/paise).
+            ...\App\Services\PlatformPricing::rules(),
             'price_usd'   => 'required|integer|min:0',
             'price_inr'   => 'required|integer|min:0',
             // Optional original ("compare-at") price in MINOR units. Blank or

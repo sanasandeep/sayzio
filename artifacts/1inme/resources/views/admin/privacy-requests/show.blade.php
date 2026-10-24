@@ -68,6 +68,9 @@
             @endif
         </dl>
 
+        @if($pr->data_scopes)
+        <div class="mt-4"><strong>Selected personal data only</strong><p>{{ implode(', ', $pr->data_scopes) }}</p><p>Retain the account, team workspace data and billing records.</p></div>
+        @endif
         @if($pr->reason)
             <div class="mt-4">
                 <div class="text-white/40 text-xs uppercase tracking-wider mb-1 ak-note">Reason given</div>

@@ -173,7 +173,7 @@ export type CancelResumeResponse = {
 };
 
 export const billing = {
-  plans: () => apiFetch<PlansResponse>("/billing/plans"),
+  plans: (platform: "web" | "ios" | "android" = "web") => apiFetch<PlansResponse>(`/billing/plans?platform=${platform}`),
   downgradeOptions: () =>
     apiFetch<{ data: DowngradeOptions }>("/billing/downgrade"),
   scheduleDowngrade: (plan_id: number) =>

@@ -53,6 +53,8 @@ class MobileSocialAuthRoundTripTest extends TestCase
         // concrete value to compare against (and we can fake it).
         putenv('GOOGLE_CLIENT_ID=test-google-client.apps.googleusercontent.com');
         putenv('APPLE_BUNDLE_ID=com.oneinme.app.test');
+        \App\Modules\Admin\Models\AppSetting::put('apple_login_enabled',true);
+        \App\Modules\Admin\Models\AppSetting::put('apple_bundle_id','com.oneinme.app.test');
     }
 
     /** Helper: build a user with a known email. */
@@ -173,6 +175,7 @@ class MobileSocialAuthRoundTripTest extends TestCase
     #[\PHPUnit\Framework\Attributes\Test]
     public function apple_native_round_trip_creates_a_new_user_and_returns_a_session_token(): void
     {
+        $nonce=\App\Services\AppleSignIn::nonce();
         [$privateKey, $jwk] = $this->makeRsaKeyAndJwk('apple-kid-1');
 
         Http::fake([
@@ -186,6 +189,7 @@ class MobileSocialAuthRoundTripTest extends TestCase
                 'aud'   => 'com.oneinme.app.test',
                 'sub'   => 'apple-uid-3003',
                 'email' => 'apple-newcomer@example.com',
+                'email_verified'=>true, 'nonce'=>$nonce,
                 'exp'   => time() + 3600,
                 'iat'   => time(),
             ],
@@ -196,11 +200,13 @@ class MobileSocialAuthRoundTripTest extends TestCase
             'provider' => 'apple',
             'id_token' => $idToken,
             'device'   => 'mobile-test-apple',
+            'nonce' => $nonce,
         ]);
 
         $resp->assertOk();
         $this->assertTrue($resp->json('data.created'));
         $this->assertNotEmpty($resp->json('data.token'));
+        $this->postJson('/api/v1/auth/social',['provider'=>'apple','id_token'=>$idToken,'nonce'=>$nonce])->assertUnauthorized();
 
         $user = User::where('email', 'apple-newcomer@example.com')->first();
         $this->assertNotNull($user);
@@ -243,6 +249,20 @@ class MobileSocialAuthRoundTripTest extends TestCase
 
         $resp->assertStatus(401);
         $this->assertDatabaseMissing('users', ['email' => 'evil@example.com']);
+    }
+
+    public function test_apple_web_signin_uses_service_id_nonce_and_replaces_temporary_token_with_session(): void
+    {
+        \App\Modules\Admin\Models\AppSetting::put('apple_service_id','app.sayzio.web');
+        $this->get('/user/apple/login')->assertOk()->assertSee('Continue with Apple');
+        $nonce=session('apple_web_nonce');
+        [$key,$jwk]=$this->makeRsaKeyAndJwk('apple-web');
+        Http::fake(['appleid.apple.com/auth/keys'=>Http::response(['keys'=>[$jwk]],200)]);
+        $token=$this->signRs256Jwt(['kid'=>'apple-web','alg'=>'RS256'],['iss'=>'https://appleid.apple.com','aud'=>'app.sayzio.web','sub'=>'web-user','email'=>'apple-web@example.test','email_verified'=>true,'nonce'=>$nonce,'exp'=>time()+300],$key);
+        $this->postJson('/user/apple/login',['id_token'=>$token,'nonce'=>$nonce])->assertOk()->assertJsonStructure(['redirect']);
+        $user=User::where('email','apple-web@example.test')->firstOrFail();
+        $this->assertAuthenticatedAs($user,'web');
+        $this->assertSame(0,$user->tokens()->count());
     }
 
     // ---------------------------------------------- WebBrowser entry endpoint

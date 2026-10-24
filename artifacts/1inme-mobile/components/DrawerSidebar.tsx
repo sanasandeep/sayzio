@@ -211,6 +211,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Settings", icon: "sliders", href: "/profile-edit" },
       { label: "Creator profile", icon: "user", href: "/creator-settings" },
       { label: "Security", icon: "shield", href: "/security" },
+      { label: "Data & account deletion", icon: "download", href: "/account-data" },
       {
         label: "Devices & Sessions",
         icon: "monitor",

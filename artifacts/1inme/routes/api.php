@@ -1605,3 +1605,12 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/browser/history/purge',                      [BrowserSyncController::class, 'purgeHistory'])->middleware('throttle:10,1');
     });
 });
+
+// Personal account rights, independent of the selected team workspace.
+Route::prefix('v1/me/data-requests')->middleware(['auth:sanctum','throttle:10,10'])->group(function () {
+ Route::get('/', [\App\Modules\Api\Controllers\AccountDataController::class,'index']);
+ Route::post('/', [\App\Modules\Api\Controllers\AccountDataController::class,'store']);
+ Route::get('/{privacyRequest}/download', [\App\Modules\Api\Controllers\AccountDataController::class,'download']);
+});
+
+Route::get('v1/auth/apple/nonce', [\App\Modules\User\Controllers\AppleLoginController::class,'nonce'])->middleware('throttle:20,1');

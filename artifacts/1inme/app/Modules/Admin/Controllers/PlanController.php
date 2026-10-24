@@ -596,6 +596,7 @@ class PlanController extends Controller
                 'currency' => $pr->currency,
                 'cycle'    => $pr->billing_cycle,
                 'minor'    => (int) $pr->amount_minor_units,
+                'ios' => $pr->ios_amount_minor, 'android' => $pr->android_amount_minor,
             ];
         }
 
@@ -652,6 +653,9 @@ class PlanController extends Controller
             'monthly_price_secondary' => $minor['INR_monthly'] ?? (int) round(((float) $plan->monthly_price_secondary) * 100),
             'annual_price_secondary'  => $minor['INR_annual']  ?? (int) round(((float) $plan->annual_price_secondary) * 100),
         ]);
+        foreach (($state['prices'] ?? []) as $row) {
+            \App\Services\PlatformPricing::save($plan, [$row['currency']=>[$row['cycle']=>['ios'=>$row['ios'] ?? null,'android'=>$row['android'] ?? null]]]);
+        }
     }
 
     /**

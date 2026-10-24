@@ -48,7 +48,10 @@ class ProcessPrivacyDeletionJob implements ShouldQueue
             return;
         }
 
-        $pr->forceFill(['status' => PrivacyRequest::STATUS_PROCESSING])->save();
+        // A queued message must not bypass the approved cooling-off window.
+        if (!$pr->scheduled_at || $pr->scheduled_at->isFuture()) return;
+        if (!PrivacyRequest::whereKey($pr->id)->where('status',PrivacyRequest::STATUS_APPROVED)->update(['status'=>PrivacyRequest::STATUS_PROCESSING])) return;
+        $pr->status=PrivacyRequest::STATUS_PROCESSING;
 
         $user = $pr->user_id ? User::find($pr->user_id) : PrivacyRequest::matchUser($pr->email);
 
@@ -74,9 +77,31 @@ class ProcessPrivacyDeletionJob implements ShouldQueue
             return;
         }
 
+        if ($pr->type === PrivacyRequest::TYPE_DATA_DELETION) {
+            // Selected personal data only; team workspace records and billing stay intact.
+            $personal = $user->ensureDefaultWorkspace();
+            foreach ((array)$pr->data_scopes as $scope) {
+                $model = match($scope) {
+                    'links' => \App\Modules\User\Models\Link::class,
+                    'contacts' => \App\Modules\User\Models\Contact::class,
+                    'notifications' => \App\Modules\User\Models\UserNotification::class,
+                    default => null,
+                };
+                if (!$model) continue;
+                $query=$model::withoutGlobalScopes()->where('user_id',$user->id);
+                if ($scope!=='notifications') $query->where('workspace_id',$personal->id);
+                $query->eachById(fn($row)=>$scope==='notifications' ? $row->forceDelete() : $row->delete());
+            }
+            $pr->forceFill(['status'=>PrivacyRequest::STATUS_COMPLETED,'completed_at'=>now()])->save();
+            $pr->recordAudit('completed','system','Selected personal data removed; account retained.');
+            $notifier->notifyDeletionCompleted($pr);
+            return;
+        }
+
         $email = $user->email;
 
         try {
+            \App\Modules\User\Models\UserFile::withoutGlobalScopes()->where('user_id',$user->id)->eachById(fn($file)=>$file->deleteFile());
             DB::transaction(function () use ($user) {
                 // The DB cascades child rows (links, files, wallet, invoices,
                 // notifications, …) on this delete; the User `deleting` hook

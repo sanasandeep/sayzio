@@ -30,7 +30,8 @@
         "NSCalendarsUsageDescription": "Sayzio adds events from calendars you follow to your device calendar so you don't miss them.",
         "NSCalendarsWriteOnlyAccessUsageDescription": "Sayzio adds events from calendars you follow to your device calendar so you don't miss them.",
         "NSContactsUsageDescription": "Sayzio uses your contacts to power the in-app dialer, caller ID, and contact sync features."
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.oneinme.app",
@@ -172,7 +173,8 @@
         {
           "contactsPermission": "Zio Dialer can read your contacts so you can call, message and manage them."
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,
