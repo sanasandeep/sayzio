@@ -142,6 +142,24 @@ class TaskAdvancedTest extends TestCase
         $this->getJson('/user/tasks/boards/'.$board->id.'/export?mode=board&format=svg')->assertForbidden();
     }
 
+    public function test_column_people_groups_assignees_and_contributors_without_other_columns(): void
+    {
+        [$owner, $ws, $board, $card] = $this->setupBoard();
+        $assigned = User::factory()->create(['name' => 'Assigned teammate']);
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $assigned->id, 'role' => 'editor']);
+        $card->assignees()->attach($assigned->id);
+        \App\Modules\User\Models\TaskActivity::log($card->id, $assigned->id, 'commented', []);
+        $page = $this->get('/user/tasks/boards/'.$board->id)->assertOk()->assertSee('Assigned teammate');
+        $people = $page->viewData('columnPeople');
+        $this->assertArrayHasKey($assigned->id, $people[$card->column_id]);
+        $this->assertSame(['Assigned', 'Participated'], array_keys($people[$card->column_id][$assigned->id]['roles']));
+        $this->assertCount(1, $people[$card->column_id][$assigned->id]['tasks']);
+        $this->assertSame([], $people[$board->columns[1]->id]);
+        $card->update(['archived_at' => now()]);
+        $page = $this->get('/user/tasks/boards/'.$board->id)->assertOk();
+        $this->assertSame([], $page->viewData('columnPeople')[$card->column_id]);
+    }
+
     public function test_export_and_editor_render_with_escaped_titles(): void
     {
         [$owner,$ws,$board,$card] = $this->setupBoard();

@@ -31,7 +31,8 @@ class PeoplePolicyTest extends TestCase
 
     private function team(): array
     {
-        $owner = User::factory()->create();
+        // Existing schedule fixtures use UTC clock values.
+        $owner = User::factory()->create(['timezone' => 'UTC']);
         $ws = $owner->ownedWorkspaces()->first();
         $staff = User::factory()->create();
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $staff->id, 'role' => 'viewer']);
@@ -99,10 +100,10 @@ class PeoplePolicyTest extends TestCase
     {
         [$owner,$ws] = $this->team();
         $p = app(AttendanceService::class)->participant($ws, $owner->id);
-        $this->travelTo(now()->setDate(2026, 10, 26)->setTime(8, 0));
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-10-26 08:00:00', 'UTC'));
         DB::table('attendance_policies')->where('workspace_id', $ws->id)->update(['settings' => json_encode(['require_photo' => false, 'schedule_mode' => 'fixed', 'fixed_start' => '09:00', 'fixed_end' => '17:00', 'early_checkin_minutes' => 15])]);
         $this->postJson('/user/attendance/challenge', ['action' => 'in'])->assertStatus(422);
-        $this->travelTo(now()->setTime(9, 0));
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-10-26 09:00:00', 'UTC'));
         $this->postJson('/user/attendance/challenge', ['action' => 'in'])->assertOk();
         $this->assertDatabaseHas('attendance_rosters', ['participant_id' => $p->id, 'shift_name' => 'Fixed working hours']);
         DB::table('attendance_rosters')->where('participant_id', $p->id)->update(['kind' => 'off']);
@@ -197,4 +198,22 @@ class PeoplePolicyTest extends TestCase
         $this->post('/user/attendance/ai-draft/'.$id, ['decision' => 'apply'])->assertRedirect();
         $this->assertDatabaseHas('attendance_rosters', ['workspace_id' => $ws->id, 'kind' => 'off']);
     }
+    public function test_attendance_timezone_inherits_owner_and_preserves_explicit_team_zone(): void
+    {
+        [$owner, $ws, $staff] = $this->team();
+        $owner->update(['timezone' => 'Asia/Kolkata']);
+        $ws->unsetRelation('owner');
+        $service = app(AttendanceService::class);
+        $this->assertSame('Asia/Kolkata', $service->policy($ws)['timezone']);
+        $this->travelTo(\Carbon\CarbonImmutable::parse('2026-10-24 20:00:00', 'UTC'));
+        $page = $this->get('/user/attendance')->assertOk()->assertSee('IST (UTC+05:30)')->assertSee('Asia/Kolkata')->assertSee('Sun, 25 Oct');
+        if (getenv('ATTENDANCE_UI_FIXTURE')) file_put_contents('/tmp/sayzio-attendance-timezone.html', $page->getContent());
+        $owner->update(['timezone' => 'America/New_York']);
+        $ws->unsetRelation('owner');
+        $this->assertSame('America/New_York', $service->policy($ws)['timezone']);
+        DB::table('attendance_policies')->where('workspace_id', $ws->id)->update(['settings' => json_encode(['timezone' => 'UTC', 'require_photo' => false])]);
+        $this->assertSame('UTC', $service->policy($ws)['timezone']);
+        $this->get('/user/attendance')->assertOk()->assertSee('team policy');
+    }
+
 }
