@@ -127,13 +127,15 @@ class TaskBoardController extends Controller
 
         $members = $this->workspaceMembers();
         $columnPeople = [];
+        $peopleAvatars = [];
         $activityPeople = TaskActivity::whereIn('card_id', $board->columns->flatMap->cards->pluck('id'))
-            ->whereNotNull('user_id')->select('card_id', 'user_id', 'type')->distinct()->with('user:id,name,avatar')->get()->groupBy('card_id');
+            ->whereNotNull('user_id')->select('card_id', 'user_id', 'type')->distinct()->with('user:id,name,email,avatar')->get()->groupBy('card_id');
         foreach ($board->columns as $column) {
             $people = [];
-            $add = function ($user, $task, $role) use (&$people) {
+            $add = function ($user, $task, $role) use (&$people, &$peopleAvatars) {
                 if (!$user) return;
-                $people[$user->id] ??= ['name' => $user->name, 'tasks' => [], 'roles' => []];
+                $peopleAvatars[$user->id] ??= $user->resolveAvatarUrl();
+                $people[$user->id] ??= ['name' => $user->name, 'avatar' => $peopleAvatars[$user->id], 'tasks' => [], 'roles' => []];
                 $people[$user->id]['roles'][$role] = true;
                 $people[$user->id]['tasks'][$task->id] ??= ['id' => $task->id, 'title' => $task->title, 'roles' => []];
                 $people[$user->id]['tasks'][$task->id]['roles'][$role] = true;
@@ -432,6 +434,7 @@ class TaskBoardController extends Controller
         $this->authorizeView($card->board);
         $card->load(['assignees:id,name,avatar', 'labels', 'subtasks', 'comments.user:id,name,avatar', 'activities.user:id,name,avatar', 'column', 'attachments.uploader:id,name', 'cloudAttachments.cloudFile', 'timeEntries.user:id,name']);
         $cardArr = $card->toArray();
+        $cardArr['related_items'] = $this->relatedItemsForCard($card);
         $cardArr['revision']=TaskBoardSnapshot::cardRevision($card);
         $cardArr['project_id']=ProjectItem::where('kind','task')->where('resource_id',$card->id)->value('project_id');
         $cardArr['time_entries'] = $card->timeEntries->map(fn ($t) => [
@@ -475,6 +478,7 @@ class TaskBoardController extends Controller
                     $fail('Use a full URL from this Sayzio site.');
                 }
             }],
+            'related_items.*.link_type' => 'nullable|string|max:60',
             'related_items.*.note' => 'nullable|string|max:500',
             'title'            => 'sometimes|string|max:200',
             'description'      => 'sometimes|nullable|string|max:8000',
@@ -503,7 +507,11 @@ class TaskBoardController extends Controller
                 if(json_encode($before)!==json_encode($value)) $changes[$field]=['from'=>$before,'to'=>$value];
             }
             if (isset($data['related_items'])) {
-                $data['related_items'] = array_map(fn ($item) => \Illuminate\Support\Arr::only($item, ['title', 'type', 'url', 'note']), $data['related_items']);
+                $data['related_items'] = array_map(fn ($item) => \Illuminate\Support\Arr::only($item, ['title', 'type', 'url', 'note', 'link_type']), $data['related_items']);
+                $data['related_items'] = collect($data['related_items'])->unique(function ($item) {
+                    $parts = parse_url($item['url']);
+                    return strtolower($parts['host'] ?? '').':'.($parts['port'] ?? '').rtrim($parts['path'] ?? '', '/').'?'.($parts['query'] ?? '');
+                })->values()->all();
             }
             if(isset($data['progress']) && $data['progress']<100 && $card->completed_at) abort(422,'Reopen the task before reducing its progress.');
             $card->update($data);

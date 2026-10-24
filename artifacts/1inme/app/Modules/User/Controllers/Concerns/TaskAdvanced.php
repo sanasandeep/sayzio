@@ -75,7 +75,7 @@ trait TaskAdvanced
                         break;
                     }
                 }
-            })->orderByDesc('id')->limit(100)->get()->map(fn ($r) => ['id' => $r->id, 'title' => $resources->label($r), 'type' => $kind === 'staff' ? 'other' : ($kind === 'calendar' ? 'event' : $kind), 'url' => $resources->url($kind, $r)]);
+            })->orderByDesc('id')->limit(100)->get()->map(fn ($r) => ['id' => $r->id, 'title' => $resources->label($r), 'type' => $kind === 'staff' ? 'other' : ($kind === 'calendar' ? 'event' : $kind), 'url' => $resources->url($kind, $r), 'link_type' => $kind === 'link' ? $r->type : null]);
         }
         $q = mb_strtolower($v['q'] ?? '');
 
@@ -84,6 +84,23 @@ trait TaskAdvanced
 
             return $item;
         })->values()]);
+    }
+
+    private function relatedItemsForCard(TaskCard $card): array
+    {
+        $items = collect($card->related_items ?? [])->unique(fn ($item) => preg_replace('~/#.*$|#.*$|/$~', '', $item['url']))->values();
+        $ids = $items->filter(fn ($item) => $item['type'] === 'link')->map(function ($item) {
+            preg_match('~/links/(\d+)/?$~', parse_url($item['url'], PHP_URL_PATH) ?? '', $match);
+            return $match[1] ?? null;
+        })->filter()->all();
+        $types = app(PlannerResources::class)->query('link', auth()->user())->whereIn('id', $ids)->pluck('type', 'id');
+        return $items->map(function ($item) use ($types) {
+            if ($item['type'] === 'link') {
+                preg_match('~/links/(\d+)/?$~', parse_url($item['url'], PHP_URL_PATH) ?? '', $match);
+                if (isset($match[1]) && isset($types[$match[1]])) $item['link_type'] = $types[$match[1]];
+            }
+            return $item;
+        })->all();
     }
 
     public function exportBoard(Request $request, TaskBoard $board)
