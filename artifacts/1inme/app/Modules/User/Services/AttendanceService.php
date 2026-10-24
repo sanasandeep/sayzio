@@ -130,6 +130,7 @@ class AttendanceService
                     DB::table('attendance_qr_redemptions')->insert(['qr_session_id' => $challenge->qr_session_id, 'participant_id' => $participant->id, 'punch_id' => $punch->id, 'created_at' => now(), 'updated_at' => now()]);
                 }
 
+                app(\App\Services\Planner\TaskAttendanceTracking::class)->punch($participant,$challenge->action,$punch->occurred_at);
                 return $punch;
             });
         } catch (\Throwable $e) {

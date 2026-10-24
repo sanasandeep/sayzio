@@ -95,6 +95,7 @@ class AttendanceOperations
             return null;
         }
         $punch = AttendancePunch::create(['participant_id' => $participant->id, 'action' => 'out', 'occurred_at' => $time ?? now(), 'source' => $source, 'roster_id' => $participant->active_roster_id, 'review_status' => 'not_required']);
+        app(\App\Services\Planner\TaskAttendanceTracking::class)->close($participant,$punch->occurred_at);
         $participant->update(['state' => 'out', 'auto_punch_out_at' => null, 'active_roster_id' => null]);
 
         return $punch;

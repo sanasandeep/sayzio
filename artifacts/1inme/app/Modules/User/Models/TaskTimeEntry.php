@@ -21,7 +21,7 @@ class TaskTimeEntry extends Model
     protected $fillable = [
         'workspace_id', 'card_id', 'user_id',
         'started_at', 'ended_at', 'minutes', 'note', 'source',
-        'client_invoice_id',
+        'client_invoice_id', 'attendance_participant_id',
     ];
 
     protected $casts = [

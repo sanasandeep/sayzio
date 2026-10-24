@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 
 class TaskBoardController extends Controller
 {
+    use \App\Modules\User\Controllers\Concerns\TaskAdvanced;
     /** Default columns seeded into every new board (per the v1 task spec). */
     private const STARTER_COLUMNS = [
         ['name' => 'Todo',  'color' => '#64748b', 'is_done' => false],
@@ -117,7 +118,7 @@ class TaskBoardController extends Controller
 
         $board->load([
             'columns' => fn ($q) => $q->orderBy('position'),
-            'columns.cards' => fn ($q) => $q->whereNull('archived_at')->orderBy('position'),
+            'columns.cards' => fn ($q) => $q->whereNull('archived_at')->withSum('timeEntries as tracked_minutes','minutes')->orderBy('position'),
             'columns.cards.assignees:id,name,email,avatar',
             'columns.cards.labels:id,name,color',
             'columns.cards.subtasks',
@@ -394,6 +395,8 @@ class TaskBoardController extends Controller
             'title'        => $data['title'],
             'position'     => $position,
             'priority'     => 'normal',
+            'progress' => $column->is_done ? 100 : 0,
+            'completed_at' => $column->is_done ? now() : null,
         ]);
         TaskActivity::log($card->id, auth()->id(), 'created', ['title' => $card->title]);
         if ($request->wantsJson()) {
@@ -420,7 +423,7 @@ class TaskBoardController extends Controller
             'user'       => $t->user ? ['id' => $t->user->id, 'name' => $t->user->name] : null,
         ])->all();
         $cardArr['unbilled_minutes'] = $card->unbilledMinutes();
-        $cardArr['running_timer']    = optional($card->runningTimer())->only(['id', 'started_at']);
+        $cardArr['running_timer']    = optional($card->timeEntries()->where('user_id',auth()->id())->where('source','timer')->whereNull('ended_at')->first())->only(['id', 'started_at']);
         $cardArr['attachments'] = $card->attachments->map(fn ($a) => array_merge($a->toArray(), [
             'url' => $a->url(),
             'human_size' => $a->humanSize(),
@@ -465,6 +468,7 @@ class TaskBoardController extends Controller
             'rate_amount_minor'=> 'sometimes|nullable|integer|min:0',
         ]);
         return DB::transaction(function() use($card,$data) {
+            TaskBoard::whereKey($card->board_id)->lockForUpdate()->firstOrFail();
             $card=TaskCard::whereKey($card->id)->lockForUpdate()->firstOrFail();
             abort_if(isset($data['expected_revision']) && !hash_equals(TaskBoardSnapshot::cardRevision($card),$data['expected_revision']),409,'This task changed since you opened it. Reopen it before saving.');
             unset($data['expected_revision']);
@@ -479,7 +483,9 @@ class TaskBoardController extends Controller
             if (isset($data['related_items'])) {
                 $data['related_items'] = array_map(fn ($item) => \Illuminate\Support\Arr::only($item, ['title', 'type', 'url', 'note']), $data['related_items']);
             }
+            if(isset($data['progress']) && $data['progress']<100 && $card->completed_at) abort(422,'Reopen the task before reducing its progress.');
             $card->update($data);
+            if(isset($data['progress']) && (int)$data['progress']===100 && !$card->completed_at) $card=app(\App\Services\Planner\TaskWorkflow::class)->complete($card,true);
             foreach($changes as $field=>$delta) TaskActivity::log($card->id,auth()->id(),match($field){'title'=>'renamed','priority'=>'priority','due_date'=>'due_set',default=>'edited'},$delta);
             return response()->json(['ok'=>true,'card'=>$card->fresh(),'revision'=>TaskBoardSnapshot::cardRevision($card->fresh())]);
         });
@@ -488,59 +494,10 @@ class TaskBoardController extends Controller
     public function moveCard(Request $request, TaskCard $card)
     {
         $this->authorizeEdit($card->board);
-        $data = $request->validate([
-            'column_id' => 'required|integer|exists:task_columns,id',
-            'position'  => 'required|integer|min:0',
-        ]);
-
-        $targetColumn = TaskColumn::where('board_id', $card->board_id)->findOrFail($data['column_id']);
-        $fromColumnId = $card->column_id;
-
-        DB::transaction(function () use ($card, $targetColumn, $data, $fromColumnId) {
-            if ($fromColumnId === $targetColumn->id) {
-                $siblings = TaskCard::where('column_id', $targetColumn->id)
-                    ->where('id', '!=', $card->id)
-                    ->orderBy('position')->get();
-            } else {
-                $siblings = TaskCard::where('column_id', $targetColumn->id)
-                    ->orderBy('position')->get();
-            }
-
-            $newOrder = $siblings->values()->all();
-            $insertAt = max(0, min((int) $data['position'], count($newOrder)));
-            array_splice($newOrder, $insertAt, 0, [$card]);
-
-            foreach ($newOrder as $i => $c) {
-                TaskCard::where('id', $c->id)->update([
-                    'column_id' => $targetColumn->id,
-                    'position'  => $i + 1,
-                ]);
-            }
-
-            $card->refresh();
-            if ($targetColumn->is_done && !$card->completed_at) {
-                $card->update(['completed_at' => now()]);
-                TaskActivity::log($card->id, auth()->id(), 'completed', []);
-            } elseif (!$targetColumn->is_done && $card->completed_at) {
-                $card->update(['completed_at' => null]);
-                TaskActivity::log($card->id, auth()->id(), 'reopened', []);
-            }
-        });
-
-        if ($fromColumnId !== $targetColumn->id) {
-            TaskActivity::log($card->id, auth()->id(), 'moved', [
-                'from' => $fromColumnId,
-                'to'   => $targetColumn->id,
-                'to_name' => $targetColumn->name,
-            ]);
-            // Mirror the move back to the linked public roadmap item, if any.
-            if ($card->roadmap_item_id) {
-                app(\App\Modules\Common\Services\RoadmapKanbanSync::class)
-                    ->pullStatusFromCard($card->fresh());
-            }
-        }
-
-        return response()->json(['ok' => true]);
+        $data=$request->validate(['column_id'=>'required|integer','position'=>'required|integer|min:0']);
+        $target=TaskColumn::where('board_id',$card->board_id)->findOrFail($data['column_id']);
+        $card=app(\App\Services\Planner\TaskWorkflow::class)->move($card,$target,$data['position']);
+        return response()->json(['ok'=>true,'card'=>$card]);
     }
 
     public function destroyCard(TaskCard $card)
@@ -658,42 +615,41 @@ class TaskBoardController extends Controller
     // ----- Time entries (billing) ------------------------------------------
 
     /** Start a timer on a card. If one is already running, it's returned as-is. */
-    public function startTimer(TaskCard $card)
+    public function startTimer(Request $request, TaskCard $card)
     {
-        $this->authorizeEdit($card->board);
-        if (!$card->billable) abort(422, 'Card is not billable.');
-
-        $running = $card->runningTimer();
-        if ($running) {
-            return response()->json(['ok' => true, 'entry' => $running]);
-        }
-        $entry = TaskTimeEntry::create([
-            'card_id'    => $card->id,
-            'user_id'    => auth()->id(),
-            'started_at' => now(),
-            'source'     => 'timer',
-        ]);
-        return response()->json(['ok' => true, 'entry' => $entry]);
+        $this->taskCapability($card->board,'track');
+        abort_if($card->completed_at||$card->archived_at,422,'Reopen this task before tracking time.');
+        $follow=$request->validate(['follow_attendance'=>'nullable|boolean'])['follow_attendance']??false;
+        return DB::transaction(function()use($card,$follow){
+            User::whereKey(auth()->id())->lockForUpdate()->firstOrFail();
+            $card->refresh();abort_if($card->completed_at||$card->archived_at,422,'Reopen this task before tracking time.');
+            $running=TaskTimeEntry::withoutWorkspaceScope()->where('user_id',auth()->id())->whereNull('ended_at')->whereNotNull('started_at')->first();
+            abort_if($running && $running->card_id!==$card->id,409,'Stop your other task timer first.');
+            if($running)return response()->json(['ok'=>true,'entry'=>$running]);
+            $person=null;
+            if($follow){abort_unless(auth()->user()->canInWorkspace(app('current_workspace'),'attendance.create'),403);$person=app(\App\Modules\User\Services\AttendanceService::class)->participant(app('current_workspace'),auth()->id());DB::table('task_tracking_preferences')->updateOrInsert(['workspace_id'=>$card->workspace_id,'user_id'=>auth()->id()],['card_id'=>$card->id,'created_at'=>now(),'updated_at'=>now()]);}
+            $entry=(!$follow||$person->state==='working')?TaskTimeEntry::create(['workspace_id'=>$card->workspace_id,'card_id'=>$card->id,'user_id'=>auth()->id(),'started_at'=>now(),'source'=>'timer','attendance_participant_id'=>$person?->id]):null;
+            return response()->json(['ok'=>true,'entry'=>$entry,'waiting'=>$follow&&!$entry]);
+        });
     }
 
     /** Stop the running timer on a card and write minutes (rounded up). */
     public function stopTimer(TaskCard $card)
     {
-        $this->authorizeEdit($card->board);
-        $running = $card->runningTimer();
-        if (!$running) return response()->json(['ok' => true, 'entry' => null]);
-
-        $now = now();
-        $minutes = max(1, (int) ceil($running->started_at->diffInSeconds($now) / 60));
-        $running->update(['ended_at' => $now, 'minutes' => $minutes]);
-        return response()->json(['ok' => true, 'entry' => $running->fresh()]);
+        $this->taskCapability($card->board,'track');
+        return DB::transaction(function()use($card){
+            User::whereKey(auth()->id())->lockForUpdate()->firstOrFail();
+            DB::table('task_tracking_preferences')->where('workspace_id',$card->workspace_id)->where('user_id',auth()->id())->where('card_id',$card->id)->delete();
+            $running=$card->timeEntries()->where('user_id',auth()->id())->where('source','timer')->whereNull('ended_at')->lockForUpdate()->first();
+            if($running){$end=now()->max($running->started_at);$running->update(['ended_at'=>$end,'minutes'=>max(0,(int)ceil($running->started_at->diffInSeconds($end)/60))]);}
+            return response()->json(['ok'=>true,'entry'=>$running?->fresh()]);
+        });
     }
 
     /** Manually log minutes against a card (no live timer). */
     public function storeTimeEntry(Request $request, TaskCard $card)
     {
-        $this->authorizeEdit($card->board);
-        if (!$card->billable) abort(422, 'Card is not billable.');
+        $this->taskCapability($card->board,'track');
         $data = $request->validate([
             'minutes' => 'required|integer|min:1|max:1440',
             'note'    => 'nullable|string|max:240',
@@ -715,7 +671,8 @@ class TaskBoardController extends Controller
     public function destroyTimeEntry(TaskTimeEntry $entry)
     {
         $card = $this->resolveScopedCard($entry->card_id);
-        $this->authorizeEdit($card->board);
+        $this->taskCapability($card->board,'track');
+        abort_unless($entry->user_id===auth()->id()||auth()->user()->canInWorkspace(app('current_workspace'),'tasks.edit'),403);
         if ($entry->client_invoice_id) {
             abort(422, 'Time entry already on an invoice.');
         }
