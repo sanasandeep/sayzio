@@ -100,7 +100,7 @@
     {{-- Filter bar: assignee / label / due range / search. All client-side. --}}
     <div class="mb-4 flex flex-wrap items-center gap-2 p-3 rounded-xl"
          style="background: var(--bg-card); border: 1px solid var(--border-soft);">
-        <input type="text" x-model.debounce.150ms="filters.search" placeholder="Search title / description…"
+        <input type="text" x-model.debounce.150ms="filters.search" placeholder="Search tasks and related items…"
                class="px-3 py-1.5 rounded-lg border text-sm flex-1 min-w-[200px]"
                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
         @php $assigneeOptions=$members->mapWithKeys(fn($member)=>[(string)$member->id=>$member->name])->all();$labelOptions=$board->labels->mapWithKeys(fn($label)=>[(string)$label->id=>$label->name])->all(); @endphp
@@ -162,7 +162,7 @@
                     @foreach($col->cards as $card)
                         <div class="kanban-card {{ $card->completed_at ? 'completed' : '' }}"
                              data-task-filter data-card-id="{{ $card->id }}"
-                             data-card-title="{{ strtolower($card->title.' '.$card->description) }}"
+                             data-card-title="{{ strtolower($card->title.' '.$card->description.' '.collect($card->related_items ?? [])->map(fn ($item) => ($item['title'] ?? '').' '.($item['note'] ?? ''))->implode(' ')) }}"
                              data-card-assignees="{{ $card->assignees->pluck('id')->implode(',') }}"
                              data-card-labels="{{ $card->labels->pluck('id')->implode(',') }}"
                              data-card-due="{{ $card->due_date ? $card->due_date->toDateString() : '' }}"
@@ -177,6 +177,9 @@
                                 </label>
                             @endif
                             <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ $card->title }}</div><time class="block text-xs opacity-60 mt-2" datetime="{{ $card->updated_at->toIso8601String() }}">Updated {{ $card->updated_at->timezone(auth()->user()->timezone??config('app.timezone'))->format('d M Y, H:i') }}</time>
+                            @if(count($card->related_items ?? []))
+                                <p class="text-xs mt-1 truncate" style="color:var(--text-faint);">Related: {{ collect($card->related_items)->pluck('title')->take(2)->implode(' · ') }}{{ count($card->related_items) > 2 ? ' +'.(count($card->related_items)-2) : '' }}</p>
+                            @endif
                             @if($card->billable)
                                 <div class="mt-1 flex items-center gap-1 flex-wrap">
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
@@ -299,6 +302,25 @@
                            class="w-full">
                     <div class="progress-track mt-1"><div class="progress-fill" :style="`width:${card.progress||0}%`"></div></div>
                 </div>
+
+                <section class="mb-5 p-3 rounded-xl border" style="border-color:var(--border-soft); background:var(--bg-glass-input);" aria-label="Related Sayzio items">
+                    <h3 class="font-bold text-sm">Related Sayzio items</h3>
+                    <p class="text-xs my-2" style="color:var(--text-faint);">What is this task about? Connect a link, Mind, customer, invoice or any Sayzio page. Opening an item uses your normal access permissions.</p>
+                    <template x-for="(item, index) in (card.related_items || [])" :key="index">
+                        <div class="py-2 border-b" style="border-color:var(--border-soft);">
+                            <div class="flex items-center gap-2"><span class="text-xs uppercase" x-text="item.type"></span><a class="font-semibold underline break-all" :href="item.url" target="_blank" rel="noopener noreferrer" x-text="item.title"></a><button type="button" class="ml-auto text-xs" @click="removeRelatedItem(index)" :aria-label="'Remove ' + item.title">Remove</button></div>
+                            <p class="text-xs mt-1 break-words" x-text="item.note"></p>
+                        </div>
+                    </template>
+                    <p x-show="relatedError" x-cloak role="alert" class="text-sm mt-2" style="color:var(--danger,#dc2626);" x-text="relatedError"></p>
+                    <form class="grid gap-2 mt-3" @submit.prevent="addRelatedItem($event)">
+                        <select name="type" aria-label="Related item type" class="rounded border p-2" style="background:var(--bg-glass-input); color:var(--text-primary); border-color:var(--border-soft);"><option value="link">Link / page</option><option value="mind">Mind</option><option value="contact">Contact / customer</option><option value="project">Project</option><option value="invoice">Invoice</option><option value="event">Event</option><option value="file">File</option><option value="other">Other Sayzio item</option></select>
+                        <input name="title" required maxlength="160" aria-label="Related item name" placeholder="Name, e.g. Summer campaign biolink" class="rounded border p-2" style="background:var(--bg-glass-input); color:var(--text-primary); border-color:var(--border-soft);">
+                        <input name="url" type="url" required maxlength="2000" aria-label="Sayzio item URL" placeholder="Paste the full Sayzio page URL" class="rounded border p-2" style="background:var(--bg-glass-input); color:var(--text-primary); border-color:var(--border-soft);">
+                        <input name="note" maxlength="500" aria-label="Task context" placeholder="What needs doing with this item? (optional)" class="rounded border p-2" style="background:var(--bg-glass-input); color:var(--text-primary); border-color:var(--border-soft);">
+                        <button type="submit" :disabled="relatedSaving || (card.related_items || []).length >= 20" class="btn-secondary justify-self-start">Connect item</button>
+                    </form>
+                </section>
 
                 <label class="block text-[10px] font-bold uppercase mb-1" style="color: var(--text-faint);">Description</label>
                 <div class="rt-toolbar flex gap-1 mb-1">
@@ -813,6 +835,26 @@ function kanbanBoard(boardId) {
                 { method: 'POST', body: { order } });
         },
 
+        relatedSaving:false, relatedError:'',
+        async addRelatedItem(event) {
+            const id=this.card.id;
+            const form=event.target;
+            const item=Object.fromEntries(new FormData(form));
+            const items=[...(this.card.related_items || []),item];
+            this.relatedSaving=true; this.relatedError='';
+            try { await this.saveCard({related_items:items}); if(this.card?.id===id) this.card.related_items=items; form.reset(); }
+            catch(error) { this.relatedError=error.message; }
+            finally { this.relatedSaving=false; }
+        },
+        async removeRelatedItem(index) {
+            if(this.relatedSaving)return;
+            const id=this.card.id;
+            const items=(this.card.related_items || []).filter((_,i)=>i!==index);
+            this.relatedSaving=true; this.relatedError='';
+            try { await this.saveCard({related_items:items}); if(this.card?.id===id) this.card.related_items=items; }
+            catch(error) { this.relatedError=error.message; }
+            finally { this.relatedSaving=false; }
+        },
         saveQueue:Promise.resolve(),
         saveCard(payload) {
             if(!this.card)return;
@@ -820,7 +862,7 @@ function kanbanBoard(boardId) {
             this.saveQueue=this.saveQueue.catch(()=>{}).then(async()=>{
                 if(this.card?.id!==id)return;
                 const result=await this.fetchJson(`/user/tasks/cards/${id}`,{method:'PATCH',body:{...payload,expected_revision:this.card.revision}});
-                this.card.revision=result.revision;this.card.updated_at=result.card.updated_at;this.notice='';
+                if(this.card?.id===id) { this.card.revision=result.revision;this.card.updated_at=result.card.updated_at;this.notice=''; }
             });return this.saveQueue;
         },
 

@@ -158,6 +158,19 @@ class OneNavForBothScreensTest extends TestCase
         $this->assertContains('user.identifiers.index', $this->routesIn('settings'));
     }
 
+    public function test_earnings_crm_work_and_business_finances_have_separate_destinations(): void
+    {
+        $this->assertContains('user.payouts.show', $this->routesIn('earnings'));
+        $this->assertContains('user.monetization.earnings', $this->routesIn('earnings'));
+        $this->assertContains('user.contacts.index', $this->routesIn('crm'));
+        $this->assertContains('user.leads.index', $this->routesIn('crm'));
+        $this->assertContains('user.vault.clients.index', $this->routesIn('crm'));
+        $this->assertContains('user.attendance.index', $this->routesIn('work'));
+        $this->assertContains('user.tasks.index', $this->routesIn('work'));
+        $this->assertContains('user.client-invoices.dashboard', $this->routesIn('money'));
+        $this->assertNotContains('user.attendance.index', $this->routesIn('money'));
+    }
+
     public function test_the_rail_lists_every_section_exactly_once(): void
     {
         $order = NavRailSections::order();
@@ -280,7 +293,7 @@ class OneNavForBothScreensTest extends TestCase
         $this->assertStringContainsString('Linked identifiers', $open);
     }
 
-    public function test_the_rail_renders_all_seven_tabs_and_opens_on_one_panel(): void
+    public function test_the_rail_renders_all_tabs_and_opens_on_one_panel(): void
     {
         $this->actingAs($this->host());
 
@@ -294,7 +307,7 @@ class OneNavForBothScreensTest extends TestCase
 
         // Exactly one panel is visible in the first painted frame: six
         // carry the server-set display:none, the active one does not.
-        $this->assertSame(6, substr_count($html, 'style="display:none"'),
+        $this->assertSame(count(NavRailSections::order()) - 1, substr_count($html, 'style="display:none"'),
             'the panel that opens on load is not exactly one');
     }
 

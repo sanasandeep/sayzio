@@ -3,7 +3,7 @@
 --}}
                 {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                 @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
-                @php $grpLinksActive = nav_route_is('user.qr-codes.*') || nav_route_is('user.qrcode*') || nav_route_is('user.forms.*') || nav_route_is('user.backlinks.*') || nav_route_is('user.splash-pages.*') || nav_route_is('user.resume.*') || nav_route_is('user.projects.*') || nav_route_is('user.files.*') || nav_route_is('user.cloud-files.*') || nav_route_is('user.cloud-oauth.*') || nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*'); @endphp
+                @php $grpLinksActive = nav_route_is('user.qr-codes.*') || nav_route_is('user.qrcode*') || nav_route_is('user.forms.*') || nav_route_is('user.backlinks.*') || nav_route_is('user.splash-pages.*') || nav_route_is('user.resume.*') || nav_route_is('user.projects.*') || nav_route_is('user.files.*') || nav_route_is('user.cloud-files.*') || nav_route_is('user.cloud-oauth.*'); @endphp
                 <div x-data="{ open: {{ $grpLinksActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -71,16 +71,7 @@
                             <span class="sidebar-tooltip">Files, your vault &amp; cloud library</span>
                         </a>
                         @endif
-                        @if($__can['posts_view'])
-                        <a href="{{ route('user.payouts.show') }}"
-                           class="sidebar-link {{ nav_route_is('user.payouts.*') || nav_route_is('user.adult-content.*') ? 'active' : '' }}"
-                           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
-                            <div class="nav-icon-wrap"><svg class="nav-icon" aria-hidden="true"><use href="#i-wallet"></use></svg></div>
-                            <span class="nav-label">Earnings & Payouts</span>
-                            @include('common.partials.soon-badge', ['feature' => 'payouts'])
-                            <span class="sidebar-tooltip">Earnings & Payouts</span>
-                        </a>
-                        @endif
+
                     </div>
                 </div>
                 @endif
